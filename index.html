@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade Up</title>
+<!--
+  ============================================================================
+  TRADE UP – Phase 1: Technisches Fundament & Bau-Raster (Startlevel "Garage")
+  ============================================================================
+  Diese EINE Datei enthält das komplette Spiel:
+    1. <style>   → Aussehen der Bedienoberfläche (HUD)          [UI/UX-Agent]
+    2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe) [UI/UX-Agent]
+    3. <script>  → 3D-Grafik, Raster-Logik und Steuerung        [3D- & Logik-Agent]
+
+  So startest du das Spiel:
+    - Datei im Browser öffnen (Doppelklick) ODER
+    - über GitHub Pages aufrufen (siehe README.md).
+  Three.js wird automatisch aus dem Internet (unpkg.com) geladen.
+  Alle Werte, die du selbst ändern darfst, stehen in den Blöcken "KONFIGURATION".
+-->
+
+<!-- Schriftarten von Google Fonts: "Fredoka" (runde Überschriften), "Nunito" (Fließtext) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700&display=swap">
+
+<style>
+  /* ==========================================================================
+     KONFIGURATION – Bedienoberfläche (UI/UX-Agent)
+     Hier änderst du Farben, Schriften und Abstände der Anzeigen,
+     die über der 3D-Szene liegen. Einfach den Wert hinter dem Doppelpunkt ändern.
+     Layout-Idee: kleine "Notizzettel"-Karte oben links, Tastenleiste unten mittig.
+     ========================================================================== */
+  :root {
+    /* --- Farben --- */
+    --farbe-hintergrund: #e9ece4;       /* Fallback-Hintergrund, solange die 3D-Szene lädt */
+    --farbe-karte: rgba(255, 253, 248, 0.92); /* Hintergrund der Infobox (leicht durchsichtig) */
+    --farbe-text: #2f3a34;              /* Haupt-Textfarbe */
+    --farbe-text-leise: #6d7a70;        /* Farbe für Beschriftungen wie "Maus über" */
+    --farbe-akzent: #f08a3c;            /* Akzentfarbe (Orange) – passt zur Auswahl im Raster */
+    --farbe-frei: #4f9d69;              /* Farbe für "frei" */
+    --farbe-rand: rgba(47, 58, 52, 0.12); /* feine Randlinie der Karten */
+    --farbe-taste: #ffffff;             /* Hintergrund der kleinen Tasten-Symbole */
+
+    /* --- Schriften --- */
+    --schrift-titel: "Fredoka", "Trebuchet MS", system-ui, sans-serif;
+    --schrift-text: "Nunito", "Segoe UI", system-ui, sans-serif;
+    --groesse-titel: 1.25rem;           /* Größe des Level-Namens */
+    --groesse-text: 0.9rem;             /* Größe des normalen Textes */
+    --groesse-klein: 0.75rem;           /* Größe der Beschriftungen */
+
+    /* --- Abstände & Formen --- */
+    --abstand-rand: 16px;               /* Abstand der Anzeigen zum Bildschirmrand */
+    --abstand-innen: 14px;              /* Innenabstand der Infobox */
+    --rundung: 14px;                    /* Wie rund die Ecken der Karten sind */
+    --schatten: 0 6px 20px rgba(47, 58, 52, 0.12); /* weicher Schatten unter den Karten */
+  }
+
+  /* Elemente mit dem Attribut "hidden" sind immer unsichtbar */
+  [hidden] { display: none !important; }
+
+  /* Die Seite füllt das ganze Fenster, ohne Scrollbalken */
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--farbe-hintergrund);
+    color: var(--farbe-text);
+    font-family: var(--schrift-text);
+    color-scheme: light;
+  }
+
+  /* Die 3D-Zeichenfläche (wird von Three.js erzeugt) füllt alles aus */
+  #spielfeld, #spielfeld canvas {
+    position: fixed;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;   /* verhindert Scrollen/Zoomen des Browsers beim Bedienen */
+  }
+
+  /* --- Infobox oben links --- */
+  #hud-info {
+    position: fixed;
+    top: calc(var(--abstand-rand) + env(safe-area-inset-top, 0px));
+    left: var(--abstand-rand);
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+    max-width: calc(100% - 2 * var(--abstand-rand));
+    width: 18rem;
+    box-sizing: border-box;
+    padding: var(--abstand-innen);
+    background: var(--farbe-karte);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--rundung);
+    box-shadow: var(--schatten);
+    backdrop-filter: blur(6px);
+    user-select: none;
+  }
+  #hud-info .kopf {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #hud-info h1 {
+    margin: 0;
+    font-family: var(--schrift-titel);
+    font-weight: 600;
+    font-size: var(--groesse-titel);
+  }
+  #hud-info .masse {
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text-leise);
+    font-variant-numeric: tabular-nums;
+  }
+  #hud-info dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 12px;
+    font-size: var(--groesse-text);
+  }
+  #hud-info dt {
+    font-size: var(--groesse-klein);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+    align-self: center;
+  }
+  #hud-info dd {
+    margin: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  #hud-info .status-frei { color: var(--farbe-frei); }
+  #hud-info .auswahl-punkt {
+    display: inline-block;
+    width: 0.6em;
+    height: 0.6em;
+    margin-right: 0.35em;
+    border-radius: 3px;
+    background: var(--farbe-akzent);
+  }
+
+  /* --- Hilfeleiste unten mittig --- */
+  #hud-hilfe {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--abstand-rand) + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 16px;
+    max-width: calc(100% - 2 * var(--abstand-rand));
+    box-sizing: border-box;
+    padding: 8px 14px;
+    background: var(--farbe-karte);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 999px;
+    box-shadow: var(--schatten);
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text-leise);
+    user-select: none;
+  }
+  #hud-hilfe span { white-space: nowrap; }
+  #hud-hilfe kbd {
+    display: inline-block;
+    min-width: 1.4em;
+    padding: 1px 5px;
+    margin-right: 3px;
+    text-align: center;
+    font-family: var(--schrift-text);
+    font-weight: 700;
+    color: var(--farbe-text);
+    background: var(--farbe-taste);
+    border: 1px solid var(--farbe-rand);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+  }
+
+  /* --- Ladehinweis, falls Three.js noch lädt oder nicht geladen werden kann --- */
+  #hud-lade {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding-inline: 16px;
+    text-align: center;
+    font-family: var(--schrift-titel);
+    font-size: var(--groesse-titel);
+    color: var(--farbe-text-leise);
+  }
+
+  /* Auf sehr schmalen Bildschirmen (Handy) die Hilfeleiste ausblenden */
+  @media (max-width: 480px) {
+    #hud-hilfe { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hier hängt Three.js seine 3D-Zeichenfläche (canvas) ein -->
+<div id="spielfeld"></div>
+
+<!-- ======================= BEDIENOBERFLÄCHE (HUD) ======================= -->
+<!-- Infobox: zeigt Level, Kachel unter der Maus und ausgewählte Kachel -->
+<section id="hud-info" aria-live="polite">
+  <div class="kopf">
+    <h1 id="hud-level">Garage</h1>
+    <span class="masse" id="hud-masse">16 × 48 Kacheln</span>
+  </div>
+  <dl>
+    <dt>Maus über</dt>
+    <dd id="hud-hover">–</dd>
+    <dt>Ausgewählt</dt>
+    <dd id="hud-auswahl">–</dd>
+  </dl>
+</section>
+
+<!-- Hilfeleiste mit der Steuerung -->
+<footer id="hud-hilfe">
+  <span><kbd>Klick</kbd> Kachel wählen</span>
+  <span><kbd>Rechts</kbd> ziehen: verschieben</span>
+  <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> bewegen</span>
+  <span><kbd>Rad</kbd> zoomen</span>
+  <span><kbd>Esc</kbd> abwählen</span>
+</footer>
+
+<!-- Ladehinweis (verschwindet, sobald die 3D-Szene läuft) -->
+<div id="hud-lade">Garage wird aufgebaut …</div>
+
+<!-- Import-Map: sagt dem Browser, woher "three" geladen wird.
+     Die Version ist fest eingetragen, damit ein Update von Three.js
+     das Spiel nie unbemerkt verändern kann. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+
+/* ============================================================================
+   ABSCHNITT 1: KONFIGURATION – 3D & Grafik                       [3D-Agent]
+   Hier stellst du ein, wie die Szene aussieht und wie sich die Kamera verhält.
+   ============================================================================ */
+const GRAFIK = {
+  // --- Farben (als Hex-Code, wie in Grafikprogrammen) ---
+  farbeHimmel:        "#e9ece4",  // Hintergrundfarbe der Szene
+  farbeAussenboden:   "#c9d3c2",  // Boden rund um die Garage (nicht bebaubar)
+  farbeGarageKante:   "#8c9a92",  // Sockel/Kante der Garage und Fugen zwischen den Kacheln
+  farbeKachel:        "#f3efe6",  // Grundfarbe der Bodenkacheln
+  farbeKachelHover:   "#fff9ec",  // Kachel unter der Maus (etwas heller)
+  farbeKachelAuswahl: "#f08a3c",  // Ausgewählte Kachel (Akzent-Orange)
+  farbeHoverRahmen:   "#f08a3c",  // Leuchtender Rahmen, der der Maus folgt
+
+  // --- Kamera ---
+  kameraDrehung:  45,       // Grad, um die die Kamera um die Hochachse gedreht ist
+  kameraNeigung:  35.264,   // Grad, mit dem die Kamera nach unten schaut (35.264 = echte Isometrie)
+  zoomMin:        0.4,      // Wie weit man maximal herauszoomen kann
+  zoomMax:        4.0,      // Wie weit man maximal hineinzoomen kann
+  zoomSchritt:    1.12,     // Wie stark ein Mausrad-Schritt zoomt
+  startRand:      0.85,     // Wie viel vom Bild die Garage beim Start füllt (0.85 = 85 %)
+  tastaturTempo:  18,       // Kacheln pro Sekunde beim Bewegen mit W A S D (bei Zoom 1)
+  randUmGarage:   6,        // Wie weit (in Kacheln) die Kamera über die Garage hinaus darf
+
+  // --- Licht ---
+  lichtHimmel:    1.6,      // Helligkeit des weichen Umgebungslichts
+  lichtSonne:     1.4,      // Helligkeit des Sonnenlichts (wirft die Schatten)
+  sonnenRichtung: { x: -18, y: 30, z: 12 }, // Woher die Sonne scheint
+  schatten:       true,     // Schatten an (true) oder aus (false)
+
+  // --- Raster-Optik ---
+  fugenBreite:    0.06,     // Breite der Fugen zwischen den Kacheln (0 = keine Fugen)
+  kachelDicke:    0.04,     // Wie dick eine Bodenkachel ist
+  sockelHoehe:    0.25,     // Wie hoch die Garage über dem Außenboden liegt
+  sockelUeberstand: 0.25,   // Wie weit die Kante über das Raster hinausragt
+
+  // --- Animation ---
+  hoverTempo:     18,       // Wie schnell der Hover-Rahmen der Maus folgt (höher = schneller)
+  klickToleranz:  6,        // Pixel, die sich die Maus beim Klicken bewegen darf
+};
+
+/* ============================================================================
+   ABSCHNITT 2: KONFIGURATION – Raster & Logik                  [Logik-Agent]
+   Hier stehen die Levels. Ein Level ist ein Gebäude mit einer Rastergröße.
+   Neue Gebäude (z. B. eine Halle) fügst du später einfach als weiteren
+   Eintrag in die Liste ein.
+   ============================================================================ */
+const LEVELS = [
+  { name: "Garage", breite: 16, tiefe: 48 },   // Startlevel: 16 Kacheln breit, 48 tief
+];
+const START_LEVEL = 0;      // Welches Level beim Start geladen wird (0 = erstes in der Liste)
+const KACHEL_GROESSE = 1;   // Kantenlänge einer Kachel in 3D-Einheiten
+
+/* ============================================================================
+   ABSCHNITT 3: Szene, Kamera, Licht                                [3D-Agent]
+   ============================================================================ */
+
+// Bewegungen respektieren, falls jemand im Betriebssystem "weniger Animation" eingestellt hat
+const wenigerAnimation = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Der Renderer zeichnet die 3D-Welt in eine Zeichenfläche (canvas) im Browser.
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // max. 2× schont schwächere Geräte
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = GRAFIK.schatten;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;              // weiche Schattenkanten
+document.getElementById("spielfeld").appendChild(renderer.domElement);
+const zeichenflaeche = renderer.domElement;
+
+// Die Szene ist der "Container" für alle 3D-Objekte.
+const szene = new THREE.Scene();
+szene.background = new THREE.Color(GRAFIK.farbeHimmel);
+
+// Orthografische Kamera: keine Perspektive, alle Kacheln bleiben gleich groß.
+// "sichtHoehe" ist, wie viele 3D-Einheiten bei Zoom 1 senkrecht ins Bild passen.
+const sichtHoehe = 40;
+const kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 500);
+
+// Der Punkt auf dem Boden, auf den die Kamera schaut. Verschieben = diesen Punkt bewegen.
+const kameraZiel = new THREE.Vector3(0, 0, 0);
+
+// Aus Drehung und Neigung berechnen wir, von wo die Kamera auf ihr Ziel schaut.
+const kameraAbstand = 120;
+const drehungRad = THREE.MathUtils.degToRad(GRAFIK.kameraDrehung);
+const neigungRad = THREE.MathUtils.degToRad(GRAFIK.kameraNeigung);
+const kameraVersatz = new THREE.Vector3(
+  Math.sin(drehungRad) * Math.cos(neigungRad) * kameraAbstand,
+  Math.sin(neigungRad) * kameraAbstand,
+  Math.cos(drehungRad) * Math.cos(neigungRad) * kameraAbstand
+);
+
+// Stellt die Kamera an die richtige Stelle und richtet sie auf das Ziel aus.
+function aktualisiereKamera() {
+  kamera.position.copy(kameraZiel).add(kameraVersatz);
+  kamera.lookAt(kameraZiel);
+  kamera.updateMatrixWorld();
+}
+
+// Passt das Kamerabild an die Fenstergröße an (wird auch beim Start aufgerufen).
+function passeFenstergroesseAn() {
+  const seitenverhaeltnis = window.innerWidth / window.innerHeight;
+  kamera.left   = -sichtHoehe * seitenverhaeltnis / 2;
+  kamera.right  =  sichtHoehe * seitenverhaeltnis / 2;
+  kamera.top    =  sichtHoehe / 2;
+  kamera.bottom = -sichtHoehe / 2;
+  kamera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener("resize", passeFenstergroesseAn);
+passeFenstergroesseAn();
+aktualisiereKamera();
+
+// Licht 1: weiches Himmelslicht von oben (hell) und unten (leicht grünlich vom Boden).
+const himmelsLicht = new THREE.HemisphereLight("#ffffff", "#b9c4b0", GRAFIK.lichtHimmel);
+szene.add(himmelsLicht);
+
+// Licht 2: die "Sonne". Sie scheint schräg von oben und wirft weiche Schatten.
+const sonne = new THREE.DirectionalLight("#fff4e2", GRAFIK.lichtSonne);
+sonne.position.set(GRAFIK.sonnenRichtung.x, GRAFIK.sonnenRichtung.y, GRAFIK.sonnenRichtung.z);
+sonne.castShadow = GRAFIK.schatten;
+sonne.shadow.mapSize.set(2048, 2048);   // Auflösung der Schatten
+sonne.shadow.radius = 4;                // Weichheit der Schatten
+sonne.shadow.bias = -0.0005;            // verhindert Streifen-Fehler auf Flächen
+szene.add(sonne);
+
+/* ============================================================================
+   ABSCHNITT 4: Raster-Daten & Koordinaten                       [Logik-Agent]
+   Hier wird gespeichert, was auf jeder Kachel liegt. In Phase 1 ist alles frei;
+   in Phase 2 trägt der Bau-Modus hier Maschinen ein.
+   Koordinaten: x = Spalte (0 bis breite-1), z = Reihe (0 bis tiefe-1).
+   ============================================================================ */
+const level = LEVELS[START_LEVEL];
+
+// rasterDaten[x][z] = Zustand einer Kachel
+const rasterDaten = [];
+for (let x = 0; x < level.breite; x++) {
+  rasterDaten[x] = [];
+  for (let z = 0; z < level.tiefe; z++) {
+    rasterDaten[x][z] = {
+      belegt: false,   // Steht hier schon etwas?
+      objekt: null,    // Was steht hier? (ab Phase 2: z. B. eine Maschine)
+    };
+  }
+}
+
+// Prüft, ob eine Koordinate innerhalb der Garage liegt.
+function istImRaster(x, z) {
+  return x >= 0 && x < level.breite && z >= 0 && z < level.tiefe;
+}
+
+// Liefert den gespeicherten Zustand einer Kachel (oder null außerhalb).
+function holeKachel(x, z) {
+  return istImRaster(x, z) ? rasterDaten[x][z] : null;
+}
+
+// Mittelpunkt einer Kachel in der 3D-Welt. Die Garage liegt mittig um den Nullpunkt.
+function kachelZuWelt(x, z) {
+  return new THREE.Vector3(
+    (x - level.breite / 2 + 0.5) * KACHEL_GROESSE,
+    0,
+    (z - level.tiefe / 2 + 0.5) * KACHEL_GROESSE
+  );
+}
+
+// Rechnet einen 3D-Punkt auf dem Boden in Kachel-Koordinaten um.
+function weltZuKachel(punkt) {
+  return {
+    x: Math.floor(punkt.x / KACHEL_GROESSE + level.breite / 2),
+    z: Math.floor(punkt.z / KACHEL_GROESSE + level.tiefe / 2),
+  };
+}
+
+// Ereignis-System: Andere Spielteile können sich hier "anmelden", um zu erfahren,
+// wenn die Maus über eine Kachel fährt oder eine Kachel angeklickt wird.
+//   spielEreignisse.addEventListener("kachelHover",     e => e.detail ...)
+//   spielEreignisse.addEventListener("kachelKlick",     e => e.detail ...)
+//   spielEreignisse.addEventListener("auswahlGeaendert", e => e.detail ...)
+// detail enthält { x, z, kachel } oder null (Maus außerhalb / nichts ausgewählt).
+const spielEreignisse = new EventTarget();
+function meldeEreignis(name, daten) {
+  spielEreignisse.dispatchEvent(new CustomEvent(name, { detail: daten }));
+}
+
+/* ============================================================================
+   ABSCHNITT 5: Raster-Darstellung & Hover                          [3D-Agent]
+   ============================================================================ */
+const breiteWelt = level.breite * KACHEL_GROESSE;
+const tiefeWelt = level.tiefe * KACHEL_GROESSE;
+const rasterHoehe = GRAFIK.sockelHoehe + GRAFIK.kachelDicke; // Oberkante der Kacheln
+
+// Außenboden: eine große Fläche rund um die Garage.
+const aussenboden = new THREE.Mesh(
+  new THREE.PlaneGeometry(600, 600),
+  new THREE.MeshStandardMaterial({ color: GRAFIK.farbeAussenboden, roughness: 1 })
+);
+aussenboden.rotation.x = -Math.PI / 2;  // Fläche flach hinlegen
+aussenboden.receiveShadow = true;
+szene.add(aussenboden);
+
+// Sockel der Garage: ein flacher Block. Seine Farbe erscheint als Kante und in den Fugen.
+const sockel = new THREE.Mesh(
+  new THREE.BoxGeometry(
+    breiteWelt + GRAFIK.sockelUeberstand * 2,
+    GRAFIK.sockelHoehe,
+    tiefeWelt + GRAFIK.sockelUeberstand * 2
+  ),
+  new THREE.MeshStandardMaterial({ color: GRAFIK.farbeGarageKante, roughness: 0.9 })
+);
+sockel.position.y = GRAFIK.sockelHoehe / 2;
+sockel.castShadow = true;
+sockel.receiveShadow = true;
+szene.add(sockel);
+
+// Alle Kacheln als EIN Objekt (InstancedMesh) – sehr schnell, auch bei tausenden Kacheln.
+const kachelAnzahl = level.breite * level.tiefe;
+const kachelMass = KACHEL_GROESSE - GRAFIK.fugenBreite;
+const kacheln = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(kachelMass, GRAFIK.kachelDicke, kachelMass),
+  new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.85 }),
+  kachelAnzahl
+);
+kacheln.receiveShadow = true;
+
+// Jede Kachel bekommt eine Nummer: nummer = x * tiefe + z
+const kachelNummer = (x, z) => x * level.tiefe + z;
+const hilfsMatrix = new THREE.Matrix4();
+for (let x = 0; x < level.breite; x++) {
+  for (let z = 0; z < level.tiefe; z++) {
+    const mitte = kachelZuWelt(x, z);
+    hilfsMatrix.makeTranslation(mitte.x, GRAFIK.sockelHoehe + GRAFIK.kachelDicke / 2, mitte.z);
+    kacheln.setMatrixAt(kachelNummer(x, z), hilfsMatrix);
+  }
+}
+szene.add(kacheln);
+
+// Sonne und ihren Schattenbereich so einstellen, dass die ganze Garage abgedeckt ist.
+const schattenRadius = Math.max(breiteWelt, tiefeWelt) / 2 + 4;
+Object.assign(sonne.shadow.camera, {
+  left: -schattenRadius, right: schattenRadius,
+  top: schattenRadius, bottom: -schattenRadius,
+  near: 1, far: 200,
+});
+sonne.shadow.camera.updateProjectionMatrix();
+
+// Färbt eine Kachel je nach Zustand: ausgewählt > Maus darüber > normal.
+const farbeNormal = new THREE.Color(GRAFIK.farbeKachel);
+const farbeHover = new THREE.Color(GRAFIK.farbeKachelHover);
+const farbeAuswahl = new THREE.Color(GRAFIK.farbeKachelAuswahl);
+function faerbeKachel(x, z) {
+  if (!istImRaster(x, z)) return;
+  let farbe = farbeNormal;
+  if (hoverKachel && hoverKachel.x === x && hoverKachel.z === z) farbe = farbeHover;
+  if (auswahlKachel && auswahlKachel.x === x && auswahlKachel.z === z) farbe = farbeAuswahl;
+  kacheln.setColorAt(kachelNummer(x, z), farbe);
+  kacheln.instanceColor.needsUpdate = true;
+}
+
+// Hover-Rahmen: ein flacher, leuchtender Ring, der weich zur Kachel unter der Maus gleitet.
+const rahmenForm = new THREE.Shape();
+const aussen = KACHEL_GROESSE / 2 + 0.02;
+const innen = aussen - 0.09;
+rahmenForm.moveTo(-aussen, -aussen); rahmenForm.lineTo(aussen, -aussen);
+rahmenForm.lineTo(aussen, aussen);   rahmenForm.lineTo(-aussen, aussen);
+const rahmenLoch = new THREE.Path();
+rahmenLoch.moveTo(-innen, -innen); rahmenLoch.lineTo(-innen, innen);
+rahmenLoch.lineTo(innen, innen);   rahmenLoch.lineTo(innen, -innen);
+rahmenForm.holes.push(rahmenLoch);
+const hoverRahmen = new THREE.Mesh(
+  new THREE.ShapeGeometry(rahmenForm),
+  new THREE.MeshBasicMaterial({
+    color: GRAFIK.farbeHoverRahmen,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  })
+);
+hoverRahmen.rotation.x = -Math.PI / 2;
+hoverRahmen.position.y = rasterHoehe + 0.01;  // knapp über den Kacheln, damit nichts flackert
+szene.add(hoverRahmen);
+const rahmenZiel = hoverRahmen.position.clone(); // wohin der Rahmen gleiten soll (gleiche Höhe)
+
+/* ============================================================================
+   ABSCHNITT 6: Maus, Klick, Kamera-Steuerung              [3D- & UI/UX-Agent]
+   ============================================================================ */
+let hoverKachel = null;    // { x, z } der Kachel unter der Maus, oder null
+let auswahlKachel = null;  // { x, z } der ausgewählten Kachel, oder null
+
+// Erst jetzt alle Kacheln einfärben (die Variablen oben müssen existieren).
+for (let x = 0; x < level.breite; x++) for (let z = 0; z < level.tiefe; z++) faerbeKachel(x, z);
+
+// Unsichtbare Ebene auf Höhe der Kacheloberfläche: der Mausstrahl trifft sie,
+// daraus berechnen wir, welche Kachel gemeint ist.
+const rasterEbene = new THREE.Plane(new THREE.Vector3(0, 1, 0), -rasterHoehe);
+const mausStrahl = new THREE.Raycaster();
+const mausNdc = new THREE.Vector2();
+
+// Liefert den 3D-Punkt auf dem Boden unter einer Bildschirmposition (in Pixeln).
+function punktUnterMaus(pixelX, pixelY) {
+  const rechteck = zeichenflaeche.getBoundingClientRect();
+  mausNdc.x = ((pixelX - rechteck.left) / rechteck.width) * 2 - 1;
+  mausNdc.y = -((pixelY - rechteck.top) / rechteck.height) * 2 + 1;
+  mausStrahl.setFromCamera(mausNdc, kamera);
+  const treffer = new THREE.Vector3();
+  return mausStrahl.ray.intersectPlane(rasterEbene, treffer) ? treffer : null;
+}
+
+// Setzt die Kachel unter der Maus und meldet die Änderung.
+function setzeHover(neu) {
+  const gleich = (hoverKachel && neu && hoverKachel.x === neu.x && hoverKachel.z === neu.z)
+              || (!hoverKachel && !neu);
+  if (gleich) return;
+  const alt = hoverKachel;
+  hoverKachel = neu;
+  if (alt) faerbeKachel(alt.x, alt.z);
+  if (neu) {
+    faerbeKachel(neu.x, neu.z);
+    const mitte = kachelZuWelt(neu.x, neu.z);
+    rahmenZiel.set(mitte.x, rahmenZiel.y, mitte.z);
+    if (!alt || wenigerAnimation) hoverRahmen.position.copy(rahmenZiel); // erstes Erscheinen: direkt hinspringen
+  }
+  meldeEreignis("kachelHover", neu ? { ...neu, kachel: holeKachel(neu.x, neu.z) } : null);
+}
+
+// Setzt die ausgewählte Kachel und meldet die Änderung.
+function setzeAuswahl(neu) {
+  const alt = auswahlKachel;
+  auswahlKachel = neu;
+  if (alt) faerbeKachel(alt.x, alt.z);
+  if (neu) faerbeKachel(neu.x, neu.z);
+  meldeEreignis("auswahlGeaendert", neu ? { ...neu, kachel: holeKachel(neu.x, neu.z) } : null);
+}
+
+// Ermittelt die Kachel unter der Maus (oder null, wenn außerhalb der Garage).
+function kachelUnterMaus(pixelX, pixelY) {
+  const punkt = punktUnterMaus(pixelX, pixelY);
+  if (!punkt) return null;
+  const k = weltZuKachel(punkt);
+  return istImRaster(k.x, k.z) ? k : null;
+}
+
+// Hält das Kameraziel in der Nähe der Garage, damit man sich nicht "verirrt".
+function begrenzeKameraZiel() {
+  const grenzeX = breiteWelt / 2 + GRAFIK.randUmGarage;
+  const grenzeZ = tiefeWelt / 2 + GRAFIK.randUmGarage;
+  kameraZiel.x = THREE.MathUtils.clamp(kameraZiel.x, -grenzeX, grenzeX);
+  kameraZiel.z = THREE.MathUtils.clamp(kameraZiel.z, -grenzeZ, grenzeZ);
+}
+
+// Zustand der Maustasten
+const maus = {
+  linksUnten: false,      // linke Taste gedrückt?
+  startX: 0, startY: 0,   // wo die linke Taste gedrückt wurde
+  verschiebt: false,      // wird gerade mit rechter/mittlerer Taste verschoben?
+  ankerPunkt: null,       // Bodenpunkt, der beim Verschieben unter der Maus "kleben" bleibt
+  letzteX: 0, letzteY: 0, // letzte bekannte Mausposition
+};
+
+zeichenflaeche.addEventListener("pointerdown", (e) => {
+  maus.letzteX = e.clientX; maus.letzteY = e.clientY;
+  if (e.button === 0) {
+    // Linke Taste: möglicher Klick – erst beim Loslassen entscheiden.
+    maus.linksUnten = true;
+    maus.startX = e.clientX; maus.startY = e.clientY;
+  } else if (e.button === 1 || e.button === 2) {
+    // Rechte oder mittlere Taste: Kamera verschieben beginnen.
+    maus.verschiebt = true;
+    maus.ankerPunkt = punktUnterMaus(e.clientX, e.clientY);
+    zeichenflaeche.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+});
+
+zeichenflaeche.addEventListener("pointermove", (e) => {
+  maus.letzteX = e.clientX; maus.letzteY = e.clientY;
+  if (maus.verschiebt && maus.ankerPunkt) {
+    // Den Bodenpunkt unter der Maus festhalten: Kamera so verschieben, dass er mitwandert.
+    const jetzt = punktUnterMaus(e.clientX, e.clientY);
+    if (jetzt) {
+      kameraZiel.add(maus.ankerPunkt.clone().sub(jetzt));
+      begrenzeKameraZiel();
+      aktualisiereKamera();
+    }
+  }
+  setzeHover(kachelUnterMaus(e.clientX, e.clientY));
+});
+
+zeichenflaeche.addEventListener("pointerup", (e) => {
+  if (e.button === 0 && maus.linksUnten) {
+    maus.linksUnten = false;
+    const bewegt = Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY);
+    // Nur ein echter Klick (Maus kaum bewegt) zählt als Auswahl.
+    if (bewegt <= GRAFIK.klickToleranz) {
+      const k = kachelUnterMaus(e.clientX, e.clientY);
+      if (k) {
+        // Gleiche Kachel erneut angeklickt = Auswahl aufheben.
+        const gleiche = auswahlKachel && auswahlKachel.x === k.x && auswahlKachel.z === k.z;
+        meldeEreignis("kachelKlick", { ...k, kachel: holeKachel(k.x, k.z) });
+        setzeAuswahl(gleiche ? null : k);
+      }
+    }
+  }
+  if (e.button === 1 || e.button === 2) {
+    maus.verschiebt = false;
+    maus.ankerPunkt = null;
+  }
+});
+
+// Maus verlässt die Zeichenfläche: Hover ausblenden.
+zeichenflaeche.addEventListener("pointerleave", () => {
+  if (!maus.verschiebt) setzeHover(null);
+});
+
+// Rechtsklick-Menü des Browsers unterdrücken (rechte Taste = verschieben).
+zeichenflaeche.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Mausrad: Zoomen zur Mausposition hin (der Punkt unter der Maus bleibt stehen).
+zeichenflaeche.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const vorher = punktUnterMaus(e.clientX, e.clientY);
+  const faktor = e.deltaY < 0 ? GRAFIK.zoomSchritt : 1 / GRAFIK.zoomSchritt;
+  kamera.zoom = THREE.MathUtils.clamp(kamera.zoom * faktor, GRAFIK.zoomMin, GRAFIK.zoomMax);
+  kamera.updateProjectionMatrix();
+  const nachher = punktUnterMaus(e.clientX, e.clientY);
+  if (vorher && nachher) {
+    kameraZiel.add(vorher.sub(nachher));
+    begrenzeKameraZiel();
+  }
+  aktualisiereKamera();
+  setzeHover(kachelUnterMaus(e.clientX, e.clientY));
+}, { passive: false });
+
+// Tastatur: W A S D / Pfeiltasten bewegen die Kamera, Esc hebt die Auswahl auf.
+const gedrueckteTasten = new Set();
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { setzeAuswahl(null); return; }
+  gedrueckteTasten.add(e.key.toLowerCase());
+});
+window.addEventListener("keyup", (e) => gedrueckteTasten.delete(e.key.toLowerCase()));
+window.addEventListener("blur", () => gedrueckteTasten.clear()); // Fenster verlässt Fokus: nichts "klemmt"
+
+// Bildschirm-Richtungen auf den Boden übertragen ("oben" im Bild = von der Kamera weg).
+const richtungVor = new THREE.Vector3(-kameraVersatz.x, 0, -kameraVersatz.z).normalize();
+const richtungRechts = new THREE.Vector3(-richtungVor.z, 0, richtungVor.x);
+function bewegeMitTastatur(sekunden) {
+  let vor = 0, rechts = 0;
+  if (gedrueckteTasten.has("w") || gedrueckteTasten.has("arrowup")) vor += 1;
+  if (gedrueckteTasten.has("s") || gedrueckteTasten.has("arrowdown")) vor -= 1;
+  if (gedrueckteTasten.has("d") || gedrueckteTasten.has("arrowright")) rechts += 1;
+  if (gedrueckteTasten.has("a") || gedrueckteTasten.has("arrowleft")) rechts -= 1;
+  if (!vor && !rechts) return;
+  const weg = GRAFIK.tastaturTempo * sekunden / kamera.zoom; // weiter rausgezoomt = schneller
+  kameraZiel.addScaledVector(richtungVor, vor * weg).addScaledVector(richtungRechts, rechts * weg);
+  begrenzeKameraZiel();
+  aktualisiereKamera();
+  // Die Kachel unter der (stillstehenden) Maus ändert sich beim Bewegen.
+  setzeHover(kachelUnterMaus(maus.letzteX, maus.letzteY));
+}
+
+// Startansicht: Zoom so wählen, dass die ganze Garage ins Bild passt.
+function zoomeAufGarage() {
+  kameraZiel.set(0, 0, 0);
+  aktualisiereKamera();
+  // Die vier Ecken der Garage in Kamera-Koordinaten umrechnen und den größten Abstand suchen.
+  let maxX = 0, maxY = 0;
+  for (const [ex, ez] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    const ecke = new THREE.Vector3(ex * breiteWelt / 2, rasterHoehe, ez * tiefeWelt / 2);
+    ecke.applyMatrix4(kamera.matrixWorldInverse);
+    maxX = Math.max(maxX, Math.abs(ecke.x));
+    maxY = Math.max(maxY, Math.abs(ecke.y));
+  }
+  const passtBreite = kamera.right / maxX;
+  const passtHoehe = kamera.top / maxY;
+  kamera.zoom = THREE.MathUtils.clamp(
+    Math.min(passtBreite, passtHoehe) * GRAFIK.startRand, GRAFIK.zoomMin, GRAFIK.zoomMax
+  );
+  kamera.updateProjectionMatrix();
+}
+zoomeAufGarage();
+
+/* ============================================================================
+   ABSCHNITT 7: HUD-Anbindung                                    [UI/UX-Agent]
+   Die Infobox hört auf die Raster-Ereignisse und zeigt sie an.
+   Für Menschen zählen Spalten und Reihen ab 1 (im Code ab 0).
+   ============================================================================ */
+const hudHover = document.getElementById("hud-hover");
+const hudAuswahl = document.getElementById("hud-auswahl");
+document.getElementById("hud-level").textContent = level.name;
+document.getElementById("hud-masse").textContent = `${level.breite} × ${level.tiefe} Kacheln`;
+
+const kachelText = (d) => `Spalte ${d.x + 1} · Reihe ${d.z + 1}`;
+
+spielEreignisse.addEventListener("kachelHover", (e) => {
+  hudHover.textContent = e.detail ? kachelText(e.detail) : "–";
+});
+spielEreignisse.addEventListener("auswahlGeaendert", (e) => {
+  const d = e.detail;
+  if (!d) { hudAuswahl.textContent = "–"; return; }
+  const status = d.kachel.belegt ? "belegt" : "frei";
+  hudAuswahl.innerHTML =
+    `<span class="auswahl-punkt"></span>${kachelText(d)} – <span class="status-frei">${status}</span>`;
+});
+
+// Schutz vor "Durchklicken": Mausaktionen auf der Bedienoberfläche erreichen das Raster nicht.
+for (const element of [document.getElementById("hud-info"), document.getElementById("hud-hilfe")]) {
+  for (const art of ["pointerdown", "pointerup", "click", "wheel", "contextmenu"]) {
+    element.addEventListener(art, (e) => e.stopPropagation());
+  }
+  // Fährt die Maus auf die Bedienoberfläche, gilt sie als "nicht über dem Raster".
+  element.addEventListener("pointerenter", () => setzeHover(null));
+}
+
+/* ============================================================================
+   ABSCHNITT 8: Spielschleife (Render-Loop)                         [3D-Agent]
+   Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
+   ============================================================================ */
+const uhr = new THREE.Clock();
+function spielschleife() {
+  const sekunden = Math.min(uhr.getDelta(), 0.1); // nach Tab-Wechsel keine riesigen Sprünge
+  const zeit = uhr.elapsedTime;
+
+  bewegeMitTastatur(sekunden);
+
+  // Hover-Rahmen gleitet weich zum Ziel und blendet sanft ein/aus.
+  const weich = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.hoverTempo * sekunden);
+  hoverRahmen.position.lerp(rahmenZiel, weich);
+  const zielDeckkraft = hoverKachel ? 0.95 : 0;
+  hoverRahmen.material.opacity += (zielDeckkraft - hoverRahmen.material.opacity) * weich;
+  // leichtes "Atmen" des Rahmens, damit er lebendig wirkt
+  const puls = wenigerAnimation ? 1 : 1 + Math.sin(zeit * 5) * 0.025;
+  hoverRahmen.scale.set(puls, puls, 1);
+
+  renderer.render(szene, kamera);
+  requestAnimationFrame(spielschleife);
+}
+
+document.getElementById("hud-lade").hidden = true; // Ladehinweis ausblenden
+spielschleife();
+
+// Für spätere Phasen und zum Ausprobieren in der Browser-Konsole erreichbar machen.
+window.tradeUp = { szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse };
+</script>
+
+<!-- Falls Three.js nicht geladen werden kann (z. B. offline), einen Hinweis zeigen. -->
+<script>
+  window.addEventListener("error", function (e) {
+    // Nur fehlgeschlagene Skripte zählen (eine fehlende Schriftart ist kein Problem).
+    if (!e.target || e.target.tagName !== "SCRIPT") return;
+    var lade = document.getElementById("hud-lade");
+    if (lade && !lade.hidden) lade.textContent = "Die 3D-Grafik konnte nicht geladen werden. Bitte Internetverbindung prüfen und neu laden.";
+  }, true);
+</script>
+</body>
+</html>

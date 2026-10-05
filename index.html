@@ -6,12 +6,14 @@
 <title>Trade Up</title>
 <!--
   ============================================================================
-  TRADE UP – Phase 1: Technisches Fundament & Bau-Raster (Startlevel "Garage")
+  TRADE UP – Phase 2: Der Spieler & Pathfinding (Startlevel "Garage")
+  (Phase 1: Technisches Fundament & Bau-Raster)
   ============================================================================
   Diese EINE Datei enthält das komplette Spiel:
     1. <style>   → Aussehen der Bedienoberfläche (HUD)          [UI/UX-Agent]
     2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe) [UI/UX-Agent]
-    3. <script>  → 3D-Grafik, Raster-Logik und Steuerung        [3D- & Logik-Agent]
+    3. <script>  → 3D-Grafik, Raster-Logik, Pathfinding, Spielfigur und Steuerung
+                                                                [3D- & Logik-Agent]
 
   So startest du das Spiel:
     - Datei im Browser öffnen (Doppelklick) ODER
@@ -40,6 +42,7 @@
     --farbe-text-leise: #6d7a70;        /* Farbe für Beschriftungen wie "Maus über" */
     --farbe-akzent: #f08a3c;            /* Akzentfarbe (Orange) – passt zur Auswahl im Raster */
     --farbe-frei: #4f9d69;              /* Farbe für "frei" */
+    --farbe-warnung: #e0533d;           /* Farbe für "blockiert" und Warn-Meldungen */
     --farbe-rand: rgba(47, 58, 52, 0.12); /* feine Randlinie der Karten */
     --farbe-taste: #ffffff;             /* Hintergrund der kleinen Tasten-Symbole */
 
@@ -90,7 +93,7 @@
     gap: 10px;
     min-width: 0;
     max-width: calc(100% - 2 * var(--abstand-rand));
-    width: 18rem;
+    width: 21rem;
     box-sizing: border-box;
     padding: var(--abstand-innen);
     background: var(--farbe-karte);
@@ -137,6 +140,33 @@
     font-variant-numeric: tabular-nums;
   }
   #hud-info .status-frei { color: var(--farbe-frei); }
+  #hud-info .status-blockiert { color: var(--farbe-warnung); }
+
+  /* --- Hinweis-Meldung oben mittig (blendet sanft ein und aus) --- */
+  #hud-meldung {
+    position: fixed;
+    top: calc(var(--abstand-rand) + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translate(-50%, -8px);
+    max-width: calc(100% - 2 * var(--abstand-rand));
+    box-sizing: border-box;
+    padding: 8px 16px;
+    background: var(--farbe-karte);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 999px;
+    box-shadow: var(--schatten);
+    font-size: var(--groesse-text);
+    font-weight: 700;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;        /* Meldung fängt keine Klicks ab */
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  #hud-meldung.sichtbar { opacity: 1; transform: translate(-50%, 0); }
+  #hud-meldung.warnung { color: var(--farbe-warnung); }
+  @media (prefers-reduced-motion: reduce) { #hud-meldung { transition: none; } }
+  /* Auf schmalen Bildschirmen die Meldung unter die Infobox setzen */
+  @media (max-width: 720px) { #hud-meldung { top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); } }
   #hud-info .auswahl-punkt {
     display: inline-block;
     width: 0.6em;
@@ -219,12 +249,19 @@
     <dd id="hud-hover">–</dd>
     <dt>Ausgewählt</dt>
     <dd id="hud-auswahl">–</dd>
+    <dt>Figur</dt>
+    <dd id="hud-figur">–</dd>
   </dl>
 </section>
 
+<!-- Kurze Hinweis-Meldung (z. B. "Ziel nicht erreichbar") -->
+<div id="hud-meldung" role="status"></div>
+
 <!-- Hilfeleiste mit der Steuerung -->
 <footer id="hud-hilfe">
-  <span><kbd>Klick</kbd> Kachel wählen</span>
+  <span><kbd>Klick</kbd> hinlaufen</span>
+  <span><kbd>Shift</kbd>+<kbd>Klick</kbd> Test-Block</span>
+  <span><kbd>Leertaste</kbd> Figur zeigen</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
   <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> bewegen</span>
   <span><kbd>Rad</kbd> zoomen</span>
@@ -287,6 +324,23 @@ const GRAFIK = {
   // --- Animation ---
   hoverTempo:     18,       // Wie schnell der Hover-Rahmen der Maus folgt (höher = schneller)
   klickToleranz:  6,        // Pixel, die sich die Maus beim Klicken bewegen darf
+
+  // --- Spielfigur (Phase 2) ---
+  figurGroesse:      0.8,       // Höhe der Figur in Kacheln
+  farbeFigurKoerper: "#4a7fc1", // Arbeitskleidung (Blau)
+  farbeFigurHaut:    "#f2c9a0", // Kopf und Hände
+  farbeFigurHelm:    "#f5c542", // Bauhelm (Gelb)
+  farbeFigurSchuhe:  "#3a3f47", // Schuhe und Augen
+  drehTempo:         12,        // Wie schnell sich die Figur in Laufrichtung dreht (höher = schneller)
+  schrittLaenge:     0.35,      // Länge eines Schritts in Kacheln (für die Geh-Animation)
+
+  // --- Pfad-Anzeige, Zielmarke, Test-Blöcke (Phase 2) ---
+  pfadAnzeigen:         true,      // Punkte für den geplanten Weg zeigen (true) oder nicht (false)
+  pfadPunktAbstand:     0.4,       // Abstand der Pfad-Punkte in Kacheln
+  farbePfad:            "#f08a3c", // Farbe der Pfad-Punkte und der Zielmarke
+  farbeNichtErreichbar: "#e0533d", // Farbe der Warn-Markierung bei "Ziel nicht erreichbar"
+  farbeTestBlock:       "#9aa3a8", // Farbe der grauen Test-Blöcke
+  testBlockHoehe:       0.6,       // Höhe eines Test-Blocks
 };
 
 /* ============================================================================
@@ -300,6 +354,17 @@ const LEVELS = [
 ];
 const START_LEVEL = 0;      // Welches Level beim Start geladen wird (0 = erstes in der Liste)
 const KACHEL_GROESSE = 1;   // Kantenlänge einer Kachel in 3D-Einheiten
+
+// --- Laufen & Pathfinding (Phase 2) ---
+const LOGIK = {
+  laufTempo:       3,        // Kacheln pro Sekunde, die die Figur höchstens läuft
+  beschleunigung:  10,       // Wie schnell sie anläuft und abbremst (Kacheln pro Sekunde²)
+  diagonalErlaubt: true,     // true = 8 Laufrichtungen, false = nur 4 (wie ein Turm beim Schach)
+  kostenGerade:    1,        // "Preis" eines geraden Schritts für das Pathfinding
+  kostenDiagonal:  1.41421,  // "Preis" eines diagonalen Schritts (Wurzel aus 2 = echte Länge)
+  wegGlaetten:     true,     // Zickzack-Wege zu geraden Strecken zusammenfassen
+  figurRadius:     0.3,      // "Breite" der Figur: so viel Abstand hält sie zu Blockaden
+};
 
 /* ============================================================================
    ABSCHNITT 3: Szene, Kamera, Licht                                [3D-Agent]
@@ -375,8 +440,8 @@ szene.add(sonne);
 
 /* ============================================================================
    ABSCHNITT 4: Raster-Daten & Koordinaten                       [Logik-Agent]
-   Hier wird gespeichert, was auf jeder Kachel liegt. In Phase 1 ist alles frei;
-   in Phase 2 trägt der Bau-Modus hier Maschinen ein.
+   Hier wird gespeichert, was auf jeder Kachel liegt. Aktuell können nur
+   Test-Blöcke gesetzt werden; ab Phase 3 trägt der Bau-Modus hier Maschinen ein.
    Koordinaten: x = Spalte (0 bis breite-1), z = Reihe (0 bis tiefe-1).
    ============================================================================ */
 const level = LEVELS[START_LEVEL];
@@ -387,8 +452,10 @@ for (let x = 0; x < level.breite; x++) {
   rasterDaten[x] = [];
   for (let z = 0; z < level.tiefe; z++) {
     rasterDaten[x][z] = {
-      belegt: false,   // Steht hier schon etwas?
-      objekt: null,    // Was steht hier? (ab Phase 2: z. B. eine Maschine)
+      belegt: false,    // Steht hier schon etwas?
+      objekt: null,     // Was steht hier? (später: z. B. eine Maschine)
+      begehbar: true,   // Darf man hier entlanglaufen? (getrennt von "belegt", weil z. B.
+                        // ein Kabelkanal belegt, aber begehbar sein kann)
     };
   }
 }
@@ -429,6 +496,184 @@ function weltZuKachel(punkt) {
 const spielEreignisse = new EventTarget();
 function meldeEreignis(name, daten) {
   spielEreignisse.dispatchEvent(new CustomEvent(name, { detail: daten }));
+}
+
+// Prüft, ob man auf einer Kachel laufen darf (außerhalb der Garage: nein).
+function istBegehbar(x, z) {
+  return istImRaster(x, z) && rasterDaten[x][z].begehbar;
+}
+
+// Setzt (an = true) oder entfernt (an = false) eine Blockade auf einer Kachel.
+// Danach wird "rasterGeaendert" gemeldet, damit laufende Figuren ihren Weg prüfen.
+function setzeBlockade(x, z, an, objekt = null) {
+  const kachel = holeKachel(x, z);
+  if (!kachel) return;
+  kachel.belegt = an;
+  kachel.begehbar = !an;
+  kachel.objekt = an ? objekt : null;
+  meldeEreignis("rasterGeaendert", { x, z, kachel });
+}
+
+/* ============================================================================
+   ABSCHNITT 4b: Pathfinding (A*)                                [Logik-Agent]
+   Findet den kürzesten Weg zwischen zwei Kacheln und umgeht dabei Blockaden.
+
+   So funktioniert A* (vereinfacht):
+     - Wir starten auf der Startkachel und schauen uns ihre Nachbarn an.
+     - Jede Kachel bekommt eine Bewertung:
+         bisherige Weglänge  +  geschätzte Reststrecke bis zum Ziel.
+     - Es wird immer die Kachel mit der besten (kleinsten) Bewertung als
+       nächstes untersucht. So "tastet" sich die Suche zielstrebig voran.
+     - Ist das Ziel erreicht, verfolgen wir die Kette der Vorgänger zurück.
+   Die Funktion kennt die Spielfigur nicht – später nutzen Kuriere sie genauso.
+   ============================================================================ */
+
+// Die 8 Nachbar-Richtungen: zuerst die 4 geraden, dann die 4 diagonalen.
+const NACHBARN = [
+  { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
+  { dx: 1, dz: 1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }, { dx: -1, dz: -1 },
+];
+
+// Geschätzte Reststrecke zwischen zwei Kacheln (so viele Diagonalen wie möglich, Rest gerade).
+function schaetzeRestweg(ax, az, bx, bz) {
+  const dx = Math.abs(ax - bx), dz = Math.abs(az - bz);
+  if (!LOGIK.diagonalErlaubt) return (dx + dz) * LOGIK.kostenGerade;
+  const diagonal = Math.min(dx, dz);
+  return diagonal * LOGIK.kostenDiagonal + (Math.max(dx, dz) - diagonal) * LOGIK.kostenGerade;
+}
+
+// Eine kleine "Warteschlange", die immer das Element mit dem kleinsten Wert zuerst herausgibt
+// (ein sogenannter Binär-Heap). Macht A* auch auf großen Rastern schnell.
+class Warteschlange {
+  constructor() { this.eintraege = []; }
+  get leer() { return this.eintraege.length === 0; }
+  hinzufuegen(wert, nummer) {
+    const e = this.eintraege;
+    e.push({ wert, nummer });
+    let i = e.length - 1;
+    while (i > 0) {                                  // nach oben sortieren
+      const eltern = (i - 1) >> 1;
+      if (e[eltern].wert <= e[i].wert) break;
+      [e[eltern], e[i]] = [e[i], e[eltern]];
+      i = eltern;
+    }
+  }
+  entnehmen() {
+    const e = this.eintraege;
+    const oben = e[0];
+    const letztes = e.pop();
+    if (e.length > 0) {
+      e[0] = letztes;
+      let i = 0;
+      for (;;) {                                     // nach unten sortieren
+        const l = 2 * i + 1, r = l + 1;
+        let kleinstes = i;
+        if (l < e.length && e[l].wert < e[kleinstes].wert) kleinstes = l;
+        if (r < e.length && e[r].wert < e[kleinstes].wert) kleinstes = r;
+        if (kleinstes === i) break;
+        [e[kleinstes], e[i]] = [e[i], e[kleinstes]];
+        i = kleinstes;
+      }
+    }
+    return oben.nummer;
+  }
+}
+
+// Sucht den kürzesten Weg von start {x, z} nach ziel {x, z}.
+// Rückgabe: { pfad: [{x, z}, ...] (von Start bis Ende), erreichbar: true/false }
+// Ist das Ziel nicht erreichbar, führt der Pfad zur nächstgelegenen erreichbaren Kachel.
+function findePfad(start, ziel) {
+  const B = level.breite, T = level.tiefe;
+  const nummerVon = (x, z) => x * T + z;
+  const kosten = new Float64Array(B * T).fill(Infinity); // bisherige Weglänge je Kachel
+  const vorgaenger = new Int32Array(B * T).fill(-1);      // von wo wir gekommen sind
+  const erledigt = new Uint8Array(B * T);                 // schon fertig untersucht?
+  const offen = new Warteschlange();
+
+  const startNr = nummerVon(start.x, start.z);
+  kosten[startNr] = 0;
+  offen.hinzufuegen(schaetzeRestweg(start.x, start.z, ziel.x, ziel.z), startNr);
+
+  // Merkt sich die Kachel, die dem Ziel bisher am nächsten kam (für "nicht erreichbar").
+  let besteNr = startNr;
+  let besterRest = schaetzeRestweg(start.x, start.z, ziel.x, ziel.z);
+  let zielGefunden = false;
+  const richtungen = LOGIK.diagonalErlaubt ? NACHBARN : NACHBARN.slice(0, 4);
+
+  while (!offen.leer) {
+    const nr = offen.entnehmen();
+    if (erledigt[nr]) continue;
+    erledigt[nr] = 1;
+    const x = Math.floor(nr / T), z = nr % T;
+
+    const rest = schaetzeRestweg(x, z, ziel.x, ziel.z);
+    if (rest < besterRest || (rest === besterRest && kosten[nr] < kosten[besteNr])) {
+      besterRest = rest;
+      besteNr = nr;
+    }
+    if (x === ziel.x && z === ziel.z) { zielGefunden = true; besteNr = nr; break; }
+
+    for (const { dx, dz } of richtungen) {
+      const nx = x + dx, nz = z + dz;
+      if (!istBegehbar(nx, nz)) continue;
+      const diagonal = dx !== 0 && dz !== 0;
+      // Kein Ecken-Schneiden: diagonal nur, wenn beide geraden Nachbarn frei sind.
+      if (diagonal && (!istBegehbar(x + dx, z) || !istBegehbar(x, z + dz))) continue;
+      const nNr = nummerVon(nx, nz);
+      if (erledigt[nNr]) continue;
+      const neueKosten = kosten[nr] + (diagonal ? LOGIK.kostenDiagonal : LOGIK.kostenGerade);
+      if (neueKosten < kosten[nNr]) {
+        kosten[nNr] = neueKosten;
+        vorgaenger[nNr] = nr;
+        offen.hinzufuegen(neueKosten + schaetzeRestweg(nx, nz, ziel.x, ziel.z), nNr);
+      }
+    }
+  }
+
+  // Weg rückwärts über die Vorgänger einsammeln und umdrehen.
+  const pfad = [];
+  for (let nr = besteNr; nr !== -1; nr = vorgaenger[nr]) {
+    pfad.push({ x: Math.floor(nr / T), z: nr % T });
+  }
+  pfad.reverse();
+  return { pfad, erreichbar: zielGefunden };
+}
+
+// Prüft, ob die Figur auf gerader Linie von Punkt a nach Punkt b laufen kann (3D-Punkte
+// auf dem Boden), ohne mit ihrer Breite (figurRadius) eine Blockade zu streifen.
+function sichtlinieFrei(a, b) {
+  const r = LOGIK.figurRadius;
+  const laenge = Math.hypot(b.x - a.x, b.z - a.z);
+  const schritte = Math.max(1, Math.ceil(laenge / 0.1));   // alle 0,1 Kacheln prüfen
+  for (let i = 0; i <= schritte; i++) {
+    const t = i / schritte;
+    const px = a.x + (b.x - a.x) * t, pz = a.z + (b.z - a.z) * t;
+    // Die vier Ecken eines kleinen Quadrats um die Figur prüfen.
+    for (const [ox, oz] of [[-r, -r], [r, -r], [r, r], [-r, r]]) {
+      const k = weltZuKachel({ x: px + ox, z: pz + oz });
+      if (!istBegehbar(k.x, k.z)) return false;
+    }
+  }
+  return true;
+}
+
+// Macht aus einem Kachel-Pfad eine Liste von 3D-Wegpunkten und entfernt dabei
+// Zwischenpunkte, die man auf gerader Linie überspringen kann (Wegglättung).
+function glaettePfad(pfad) {
+  const punkte = pfad.map(k => kachelZuWelt(k.x, k.z));
+  if (!LOGIK.wegGlaetten || punkte.length <= 2) return punkte;
+  const ergebnis = [punkte[0]];
+  let anker = 0;
+  while (anker < punkte.length - 1) {
+    // Den am weitesten entfernten Punkt suchen, der noch auf gerader Linie erreichbar ist.
+    let weitester = anker + 1;
+    for (let j = punkte.length - 1; j > anker + 1; j--) {
+      if (sichtlinieFrei(punkte[anker], punkte[j])) { weitester = j; break; }
+    }
+    ergebnis.push(punkte[weitester]);
+    anker = weitester;
+  }
+  return ergebnis;
 }
 
 /* ============================================================================
@@ -530,6 +775,240 @@ szene.add(hoverRahmen);
 const rahmenZiel = hoverRahmen.position.clone(); // wohin der Rahmen gleiten soll (gleiche Höhe)
 
 /* ============================================================================
+   ABSCHNITT 5b: Spielfigur – Modell & Animation                    [3D-Agent]
+   Die Figur wird aus einfachen Grundformen zusammengesetzt (keine Modelldatei).
+   Ihre "Vorderseite" zeigt in Richtung +z; dorthin schauen auch die Augen.
+   ============================================================================ */
+// Matt-Material mit flacher Schattierung = typischer Low-Poly-Look
+const figurMaterial = (farbe) =>
+  new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.75, flatShading: true });
+
+const figur3d = new THREE.Group();            // die ganze Figur (wird bewegt und gedreht)
+const figurOberkoerper = new THREE.Group();   // alles außer den Füßen (wippt und neigt sich)
+figur3d.add(figurOberkoerper);
+
+// Füße: zwei kleine Quader, die beim Laufen vor und zurück schwingen
+function baueFuss(seite) {
+  const fuss = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.17), figurMaterial(GRAFIK.farbeFigurSchuhe));
+  fuss.position.set(seite * 0.085, 0.035, 0.02);
+  figur3d.add(fuss);
+  return fuss;
+}
+const fussLinks = baueFuss(-1);
+const fussRechts = baueFuss(1);
+
+// Körper: eine Kapsel (Zylinder mit runden Enden) in Arbeitskleidungs-Farbe
+const koerper = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.22, 3, 10), figurMaterial(GRAFIK.farbeFigurKoerper));
+koerper.position.y = 0.34;
+figurOberkoerper.add(koerper);
+
+// Kopf mit Augen und gelbem Bauhelm
+const kopf = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), figurMaterial(GRAFIK.farbeFigurHaut));
+kopf.position.y = 0.72;
+figurOberkoerper.add(kopf);
+for (const seite of [-1, 1]) {
+  const auge = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), figurMaterial(GRAFIK.farbeFigurSchuhe));
+  auge.position.set(seite * 0.05, 0.73, 0.128);
+  figurOberkoerper.add(auge);
+}
+const helm = new THREE.Mesh(
+  new THREE.SphereGeometry(0.155, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), // obere Halbkugel
+  figurMaterial(GRAFIK.farbeFigurHelm)
+);
+helm.position.y = 0.75;
+figurOberkoerper.add(helm);
+const helmKrempe = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 14), figurMaterial(GRAFIK.farbeFigurHelm));
+helmKrempe.position.set(0, 0.75, 0.02);
+figurOberkoerper.add(helmKrempe);
+
+// Arme: drehen sich an der Schulter (Drehpunkt = Gruppe), Hand am Ende
+function baueArm(seite) {
+  const schulter = new THREE.Group();
+  schulter.position.set(seite * 0.2, 0.5, 0);
+  const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.14, 2, 6), figurMaterial(GRAFIK.farbeFigurKoerper));
+  arm.position.y = -0.09;
+  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), figurMaterial(GRAFIK.farbeFigurHaut));
+  hand.position.y = -0.2;
+  schulter.add(arm, hand);
+  figurOberkoerper.add(schulter);
+  return schulter;
+}
+const armLinks = baueArm(-1);
+const armRechts = baueArm(1);
+
+// Alle Teile werfen Schatten; Gesamtgröße auf GRAFIK.figurGroesse bringen (Modell ist ca. 0,9 hoch).
+figur3d.traverse((teil) => { if (teil.isMesh) teil.castShadow = true; });
+figur3d.scale.setScalar(GRAFIK.figurGroesse / 0.9);
+szene.add(figur3d);
+
+let schrittPhase = 0;   // Fortschritt der Geh-Animation (läuft mit der Geschwindigkeit mit)
+
+// Überträgt Position und Blickrichtung der Figur auf das 3D-Modell und animiert es.
+function aktualisiereFigur3d(sekunden, zeit) {
+  figur3d.position.set(figur.position.x, rasterHoehe, figur.position.z);
+  figur3d.rotation.y = figur.blickwinkel;
+
+  // Wie stark gelaufen wird: 0 = steht, 1 = volles Tempo
+  const staerke = Math.min(1, figur.tempo / LOGIK.laufTempo);
+  // Ein voller Animations-Zyklus (2 Schritte) = 2 × Schrittlänge. So "rutschen" die Füße nicht.
+  schrittPhase += (figur.tempo * sekunden / GRAFIK.schrittLaenge) * Math.PI;
+  const s = Math.sin(schrittPhase);
+
+  // Füße schwingen abwechselnd vor und zurück und heben sich leicht an
+  fussLinks.position.z = 0.02 + s * 0.09 * staerke;
+  fussRechts.position.z = 0.02 - s * 0.09 * staerke;
+  fussLinks.position.y = 0.035 + Math.max(0, Math.cos(schrittPhase)) * 0.04 * staerke;
+  fussRechts.position.y = 0.035 + Math.max(0, -Math.cos(schrittPhase)) * 0.04 * staerke;
+
+  // Arme schwingen gegengleich zu den Füßen
+  armLinks.rotation.x = -s * 0.7 * staerke;
+  armRechts.rotation.x = s * 0.7 * staerke;
+
+  // Oberkörper wippt beim Laufen, neigt sich etwas nach vorn und "atmet" im Stand
+  const wippen = wenigerAnimation ? 0 : Math.abs(s) * 0.025 * staerke;
+  const atmen = wenigerAnimation ? 0 : Math.sin(zeit * 2.2) * 0.008 * (1 - staerke);
+  figurOberkoerper.position.y = wippen + atmen;
+  figurOberkoerper.rotation.x = 0.1 * staerke;
+}
+
+/* ============================================================================
+   ABSCHNITT 5c: Pfad-Anzeige, Zielmarke & Test-Blöcke              [3D-Agent]
+   ============================================================================ */
+// Pfad-Punkte: kleine runde Scheiben auf dem Boden, alle als ein Objekt (schnell)
+const MAX_PFAD_PUNKTE = 400;
+const pfadPunkte = new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(0.06, 0.06, 0.02, 12),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbePfad, transparent: true, opacity: 0.85 }),
+  MAX_PFAD_PUNKTE
+);
+pfadPunkte.count = 0;
+szene.add(pfadPunkte);
+
+// Zielmarke: ein Ring auf der Zielkachel, der sanft pulsiert
+const zielMarke = new THREE.Mesh(
+  new THREE.RingGeometry(0.22, 0.32, 28),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbePfad, transparent: true, opacity: 0.9, depthWrite: false })
+);
+zielMarke.rotation.x = -Math.PI / 2;
+zielMarke.visible = false;
+szene.add(zielMarke);
+
+// Warn-Markierung: blinkt kurz rot auf, wenn ein Ziel nicht erreichbar ist
+const warnMarke = new THREE.Mesh(
+  new THREE.RingGeometry(0.2, 0.42, 4, 1, Math.PI / 4),   // 4 Ecken = Quadrat
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeNichtErreichbar, transparent: true, depthWrite: false })
+);
+warnMarke.rotation.x = -Math.PI / 2;
+warnMarke.visible = false;
+szene.add(warnMarke);
+let warnZeit = 0;   // wie lange die Warn-Markierung noch sichtbar ist (Sekunden)
+
+spielEreignisse.addEventListener("zielNichtErreichbar", (e) => {
+  const mitte = kachelZuWelt(e.detail.x, e.detail.z);
+  warnMarke.position.set(mitte.x, rasterHoehe + GRAFIK.testBlockHoehe + 0.02, mitte.z);
+  // Liegt auf der Kachel kein Block, Markierung auf den Boden legen
+  if (holeKachel(e.detail.x, e.detail.z).begehbar) warnMarke.position.y = rasterHoehe + 0.02;
+  warnZeit = 1.2;
+});
+
+// Test-Blöcke: graue Quader mit abgerundeten Kanten
+const blockForm = new THREE.Shape();
+const bh = 0.38, br = 0.08;   // halbe Breite, Eckenrundung
+blockForm.moveTo(-bh + br, -bh);
+blockForm.lineTo(bh - br, -bh);   blockForm.quadraticCurveTo(bh, -bh, bh, -bh + br);
+blockForm.lineTo(bh, bh - br);    blockForm.quadraticCurveTo(bh, bh, bh - br, bh);
+blockForm.lineTo(-bh + br, bh);   blockForm.quadraticCurveTo(-bh, bh, -bh, bh - br);
+blockForm.lineTo(-bh, -bh + br);  blockForm.quadraticCurveTo(-bh, -bh, -bh + br, -bh);
+const kante = 0.04;
+const blockGeometrie = new THREE.ExtrudeGeometry(blockForm, {
+  depth: GRAFIK.testBlockHoehe - 2 * kante,
+  bevelEnabled: true, bevelThickness: kante, bevelSize: kante, bevelSegments: 2, curveSegments: 4,
+});
+blockGeometrie.rotateX(-Math.PI / 2);          // hochkant stellen (Höhe zeigt nach oben)
+blockGeometrie.translate(0, kante, 0);         // Unterkante genau auf den Boden
+const blockMaterial = figurMaterial(GRAFIK.farbeTestBlock);
+const testBloecke = new Map();                 // "x,z" → { mesh, alter, verschwindet }
+
+// Reagiert auf Änderungen im Raster: Block-Modell erzeugen oder entfernen.
+spielEreignisse.addEventListener("rasterGeaendert", (e) => {
+  const { x, z, kachel } = e.detail;
+  const schluessel = `${x},${z}`;
+  const vorhanden = testBloecke.get(schluessel);
+  if (kachel.objekt === "testblock" && !vorhanden) {
+    const mesh = new THREE.Mesh(blockGeometrie, blockMaterial);
+    const mitte = kachelZuWelt(x, z);
+    mesh.position.set(mitte.x, rasterHoehe, mitte.z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.scale.setScalar(0.001);
+    szene.add(mesh);
+    testBloecke.set(schluessel, { mesh, alter: 0, verschwindet: false });
+  } else if (kachel.objekt !== "testblock" && vorhanden) {
+    vorhanden.verschwindet = true;
+    vorhanden.alter = 0;
+  }
+});
+
+// "Aufploppen": wächst schnell über 100 % hinaus und federt zurück
+const federnd = (t) => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
+
+// Animiert Pfad-Punkte, Zielmarke, Warn-Markierung und Test-Blöcke (jedes Bild).
+function aktualisierePfadUndMarken(sekunden, zeit) {
+  // --- Pfad-Punkte: vom Ziel rückwärts verteilt, damit sie beim Laufen stillstehen ---
+  let anzahl = 0;
+  if (GRAFIK.pfadAnzeigen && figur.zustand === "laeuft") {
+    const punkte = [figur.position, ...figur.wegpunkte];
+    const abschnitte = [];
+    let gesamt = 0;
+    for (let i = 1; i < punkte.length; i++) {
+      const l = Math.hypot(punkte[i].x - punkte[i - 1].x, punkte[i].z - punkte[i - 1].z);
+      abschnitte.push(l);
+      gesamt += l;
+    }
+    for (let d = gesamt - GRAFIK.pfadPunktAbstand; d > 0.35 && anzahl < MAX_PFAD_PUNKTE; d -= GRAFIK.pfadPunktAbstand) {
+      // Punkt im Abstand d vom Start der Linie finden
+      let rest = d, i = 0;
+      while (i < abschnitte.length - 1 && rest > abschnitte[i]) { rest -= abschnitte[i]; i++; }
+      const t = abschnitte[i] > 0 ? rest / abschnitte[i] : 0;
+      const a = punkte[i], b = punkte[i + 1];
+      hilfsMatrix.makeTranslation(a.x + (b.x - a.x) * t, rasterHoehe + 0.012, a.z + (b.z - a.z) * t);
+      pfadPunkte.setMatrixAt(anzahl++, hilfsMatrix);
+    }
+  }
+  pfadPunkte.count = anzahl;
+  pfadPunkte.instanceMatrix.needsUpdate = true;
+
+  // --- Zielmarke am Ende des Weges ---
+  const ende = figur.wegpunkte[figur.wegpunkte.length - 1];
+  zielMarke.visible = figur.zustand === "laeuft" && !!ende;
+  if (zielMarke.visible) {
+    zielMarke.position.set(ende.x, rasterHoehe + 0.015, ende.z);
+    const puls = wenigerAnimation ? 1 : 1 + Math.sin(zeit * 6) * 0.08;
+    zielMarke.scale.set(puls, puls, 1);
+  }
+
+  // --- Warn-Markierung blinkt und blendet aus ---
+  warnZeit = Math.max(0, warnZeit - sekunden);
+  warnMarke.visible = warnZeit > 0;
+  if (warnMarke.visible) {
+    const blinken = wenigerAnimation ? 1 : (Math.sin(zeit * 18) > 0 ? 1 : 0.35);
+    warnMarke.material.opacity = 0.9 * blinken * Math.min(1, warnZeit / 0.3);
+  }
+
+  // --- Test-Blöcke aufploppen bzw. schrumpfen lassen ---
+  for (const [schluessel, block] of testBloecke) {
+    block.alter += sekunden;
+    const t = Math.min(1, block.alter / 0.25);
+    if (block.verschwindet) {
+      block.mesh.scale.setScalar(Math.max(0.001, 1 - t));
+      if (t >= 1) { szene.remove(block.mesh); testBloecke.delete(schluessel); }
+    } else {
+      block.mesh.scale.setScalar(wenigerAnimation ? 1 : Math.max(0.001, federnd(t)));
+    }
+  }
+}
+
+/* ============================================================================
    ABSCHNITT 6: Maus, Klick, Kamera-Steuerung              [3D- & UI/UX-Agent]
    ============================================================================ */
 let hoverKachel = null;    // { x, z } der Kachel unter der Maus, oder null
@@ -614,6 +1093,7 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
   } else if (e.button === 1 || e.button === 2) {
     // Rechte oder mittlere Taste: Kamera verschieben beginnen.
     maus.verschiebt = true;
+    kameraFlugZiel = null;   // eigenes Verschieben bricht das Zentrieren ab
     maus.ankerPunkt = punktUnterMaus(e.clientX, e.clientY);
     zeichenflaeche.setPointerCapture(e.pointerId);
     e.preventDefault();
@@ -638,14 +1118,17 @@ zeichenflaeche.addEventListener("pointerup", (e) => {
   if (e.button === 0 && maus.linksUnten) {
     maus.linksUnten = false;
     const bewegt = Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY);
-    // Nur ein echter Klick (Maus kaum bewegt) zählt als Auswahl.
+    // Nur ein echter Klick (Maus kaum bewegt) zählt.
     if (bewegt <= GRAFIK.klickToleranz) {
       const k = kachelUnterMaus(e.clientX, e.clientY);
       if (k) {
-        // Gleiche Kachel erneut angeklickt = Auswahl aufheben.
-        const gleiche = auswahlKachel && auswahlKachel.x === k.x && auswahlKachel.z === k.z;
-        meldeEreignis("kachelKlick", { ...k, kachel: holeKachel(k.x, k.z) });
-        setzeAuswahl(gleiche ? null : k);
+        meldeEreignis("kachelKlick", { ...k, kachel: holeKachel(k.x, k.z), shift: e.shiftKey });
+        if (e.shiftKey) {
+          schalteTestBlock(k);       // Shift + Klick: Test-Block setzen oder entfernen
+        } else {
+          setzeAuswahl(k);           // Klick: Kachel auswählen ...
+          schickeFigur(k);           // ... und die Figur dorthin laufen lassen
+        }
       }
     }
   }
@@ -683,6 +1166,11 @@ zeichenflaeche.addEventListener("wheel", (e) => {
 const gedrueckteTasten = new Set();
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") { setzeAuswahl(null); return; }
+  if (e.key === " ") {               // Leertaste: Kamera auf die Figur zentrieren
+    e.preventDefault();              // verhindert, dass der Browser die Seite scrollt
+    kameraFlugZiel = new THREE.Vector3(figur.position.x, 0, figur.position.z);
+    return;
+  }
   gedrueckteTasten.add(e.key.toLowerCase());
 });
 window.addEventListener("keyup", (e) => gedrueckteTasten.delete(e.key.toLowerCase()));
@@ -698,6 +1186,7 @@ function bewegeMitTastatur(sekunden) {
   if (gedrueckteTasten.has("d") || gedrueckteTasten.has("arrowright")) rechts += 1;
   if (gedrueckteTasten.has("a") || gedrueckteTasten.has("arrowleft")) rechts -= 1;
   if (!vor && !rechts) return;
+  kameraFlugZiel = null;   // eigenes Bewegen bricht das Zentrieren ab
   const weg = GRAFIK.tastaturTempo * sekunden / kamera.zoom; // weiter rausgezoomt = schneller
   kameraZiel.addScaledVector(richtungVor, vor * weg).addScaledVector(richtungRechts, rechts * weg);
   begrenzeKameraZiel();
@@ -727,6 +1216,159 @@ function zoomeAufGarage() {
 }
 zoomeAufGarage();
 
+// Kamera-Flug: gleitet weich zu einem Punkt (z. B. zur Figur nach Druck auf die Leertaste)
+let kameraFlugZiel = null;
+function fliegeKamera(sekunden) {
+  if (!kameraFlugZiel) return;
+  const weich = wenigerAnimation ? 1 : 1 - Math.exp(-8 * sekunden);
+  kameraZiel.lerp(kameraFlugZiel, weich);
+  if (kameraZiel.distanceTo(kameraFlugZiel) < 0.01) kameraFlugZiel = null;
+  begrenzeKameraZiel();
+  aktualisiereKamera();
+  setzeHover(kachelUnterMaus(maus.letzteX, maus.letzteY));
+}
+
+/* ============================================================================
+   ABSCHNITT 6b: Bewegungs-Steuerung der Figur                   [Logik-Agent]
+   Hier wird entschieden, WOHIN die Figur läuft und wie schnell.
+   Wie sie dabei aussieht, regelt Abschnitt 5b.
+   Ereignisse: figurLaeuftLos, figurAngekommen, zielNichtErreichbar, hinweis
+   ============================================================================ */
+const startKachel = { x: Math.floor(level.breite / 2), z: Math.floor(level.tiefe / 2) };
+const figur = {
+  position: kachelZuWelt(startKachel.x, startKachel.z), // aktuelle Position auf dem Boden
+  wegpunkte: [],        // 3D-Punkte, die noch abgelaufen werden
+  zielWunsch: null,     // die angeklickte Kachel {x, z}
+  ziel: null,           // die Kachel, zu der wirklich gelaufen wird (bei "nicht erreichbar": die nächstgelegene)
+  zielErreichbar: true, // konnte das Wunschziel erreicht werden?
+  tempo: 0,             // aktuelle Geschwindigkeit (Kacheln pro Sekunde)
+  blickwinkel: 0,       // aktuelle Drehung (Bogenmaß)
+  blickZiel: 0,         // Drehung, in die sie sich gerade dreht
+  zustand: "steht",     // "steht" oder "laeuft"
+};
+
+// Auf welcher Kachel steht die Figur gerade?
+function figurKachel() {
+  return weltZuKachel(figur.position);
+}
+
+// Würde die Figur (mit ihrer Breite) eine Kachel berühren?
+function figurBeruehrtKachel(k) {
+  const r = LOGIK.figurRadius;
+  return [[-r, -r], [r, -r], [r, r], [-r, r]].some(([ox, oz]) => {
+    const e = weltZuKachel({ x: figur.position.x + ox, z: figur.position.z + oz });
+    return e.x === k.x && e.z === k.z;
+  });
+}
+
+// Laufbefehl: Weg berechnen und losschicken. Kann auch während des Laufens aufgerufen werden.
+function schickeFigur(zielKachel) {
+  const start = figurKachel();
+  const { pfad, erreichbar } = findePfad(start, zielKachel);
+  figur.zielWunsch = { x: zielKachel.x, z: zielKachel.z };
+  figur.zielErreichbar = erreichbar;
+  if (!erreichbar) meldeEreignis("zielNichtErreichbar", { ...zielKachel });
+
+  const ende = pfad[pfad.length - 1];
+  if (ende.x === start.x && ende.z === start.z) {
+    if (figur.zustand === "laeuft") {
+      // Mitten im Laufen auf die eigene Kachel geklickt: zur Kachelmitte gehen und stehen bleiben
+      figur.wegpunkte = [kachelZuWelt(start.x, start.z)];
+      figur.ziel = ende;
+    } else if (erreichbar) {
+      meldeEreignis("hinweis", { text: "Die Figur steht bereits hier." });
+    }
+    return;
+  }
+
+  // Geglättete Wegpunkte; der erste ist die Startkachel selbst und wird übersprungen,
+  // außer die Figur steht nicht in der Mitte und muss erst um eine Ecke.
+  const punkte = glaettePfad(pfad);
+  punkte.shift();
+  if (!sichtlinieFrei(figur.position, punkte[0])) punkte.unshift(kachelZuWelt(start.x, start.z));
+  figur.wegpunkte = punkte;
+  figur.ziel = ende;
+  if (figur.zustand !== "laeuft") {
+    figur.zustand = "laeuft";
+    meldeEreignis("figurLaeuftLos", { ...ende });
+  }
+}
+
+// Wie weit ist es noch bis zum Ende des Weges? (in Kacheln)
+function restweg() {
+  let summe = 0, von = figur.position;
+  for (const p of figur.wegpunkte) { summe += Math.hypot(p.x - von.x, p.z - von.z); von = p; }
+  return summe;
+}
+
+// Kürzeste Drehung zwischen zwei Winkeln (damit sie sich nie "andersherum" um 350° dreht)
+function winkelDifferenz(von, nach) {
+  return Math.atan2(Math.sin(nach - von), Math.cos(nach - von));
+}
+
+// Wird jedes Bild aufgerufen: bewegt die Figur ein Stück entlang ihres Weges.
+function bewegeFigur(sekunden) {
+  if (figur.zustand === "laeuft") {
+    // Tempo: anlaufen, Höchsttempo halten, rechtzeitig vor dem Ziel abbremsen
+    const bremsTempo = Math.sqrt(2 * LOGIK.beschleunigung * restweg());
+    const zielTempo = Math.max(0.6, Math.min(LOGIK.laufTempo, bremsTempo));
+    figur.tempo = Math.min(zielTempo, figur.tempo + LOGIK.beschleunigung * sekunden);
+
+    // Strecke für dieses Bild ablaufen, ggf. über mehrere Wegpunkte hinweg
+    let schritt = figur.tempo * sekunden;
+    while (schritt > 0 && figur.wegpunkte.length > 0) {
+      const wp = figur.wegpunkte[0];
+      const dx = wp.x - figur.position.x, dz = wp.z - figur.position.z;
+      const abstand = Math.hypot(dx, dz);
+      if (abstand > 0.001) figur.blickZiel = Math.atan2(dx, dz);
+      if (abstand <= schritt) {
+        figur.position.x = wp.x;
+        figur.position.z = wp.z;
+        schritt -= abstand;
+        figur.wegpunkte.shift();
+      } else {
+        figur.position.x += (dx / abstand) * schritt;
+        figur.position.z += (dz / abstand) * schritt;
+        schritt = 0;
+      }
+    }
+    if (figur.wegpunkte.length === 0) {
+      figur.zustand = "steht";
+      figur.tempo = 0;
+      meldeEreignis("figurAngekommen", { ...figurKachel(), zielErreichbar: figur.zielErreichbar });
+    }
+  }
+  // Weich in Blickrichtung drehen
+  const weich = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.drehTempo * sekunden);
+  figur.blickwinkel += winkelDifferenz(figur.blickwinkel, figur.blickZiel) * weich;
+}
+
+// Das Raster hat sich geändert: Ist der restliche Weg noch frei? Sonst neu planen.
+// War das Wunschziel unerreichbar, wird auch neu geplant (vielleicht ist jetzt eine Lücke frei).
+spielEreignisse.addEventListener("rasterGeaendert", () => {
+  if (figur.zustand !== "laeuft" || !figur.zielWunsch) return;
+  let frei = true, von = figur.position;
+  for (const p of figur.wegpunkte) {
+    if (!sichtlinieFrei(von, p)) { frei = false; break; }
+    von = p;
+  }
+  if (!frei || !figur.zielErreichbar) schickeFigur(figur.zielWunsch);
+});
+
+// Test-Werkzeug (Shift + Klick): Block setzen oder entfernen. Ab Phase 3 ersetzt der Bau-Modus das.
+function schalteTestBlock(k) {
+  const kachel = holeKachel(k.x, k.z);
+  if (kachel.begehbar) {
+    if (figurBeruehrtKachel(k)) {
+      meldeEreignis("hinweis", { text: "Hier steht die Figur – kein Block möglich." });
+      return;
+    }
+    setzeBlockade(k.x, k.z, true, "testblock");
+  } else if (kachel.objekt === "testblock") {
+    setzeBlockade(k.x, k.z, false);
+  }
+}
+
 /* ============================================================================
    ABSCHNITT 7: HUD-Anbindung                                    [UI/UX-Agent]
    Die Infobox hört auf die Raster-Ereignisse und zeigt sie an.
@@ -742,13 +1384,44 @@ const kachelText = (d) => `Spalte ${d.x + 1} · Reihe ${d.z + 1}`;
 spielEreignisse.addEventListener("kachelHover", (e) => {
   hudHover.textContent = e.detail ? kachelText(e.detail) : "–";
 });
-spielEreignisse.addEventListener("auswahlGeaendert", (e) => {
-  const d = e.detail;
+// Zeigt die ausgewählte Kachel mit ihrem Zustand (frei / blockiert / belegt) an.
+function zeigeAuswahl(d) {
   if (!d) { hudAuswahl.textContent = "–"; return; }
-  const status = d.kachel.belegt ? "belegt" : "frei";
+  const kachel = holeKachel(d.x, d.z);
+  const status = !kachel.begehbar ? "blockiert" : kachel.belegt ? "belegt" : "frei";
+  const klasse = status === "frei" ? "status-frei" : "status-blockiert";
   hudAuswahl.innerHTML =
-    `<span class="auswahl-punkt"></span>${kachelText(d)} – <span class="status-frei">${status}</span>`;
+    `<span class="auswahl-punkt"></span>${kachelText(d)} – <span class="${klasse}">${status}</span>`;
+}
+spielEreignisse.addEventListener("auswahlGeaendert", (e) => zeigeAuswahl(e.detail));
+// Wird die ausgewählte Kachel blockiert oder freigegeben, Anzeige auffrischen
+spielEreignisse.addEventListener("rasterGeaendert", (e) => {
+  if (auswahlKachel && auswahlKachel.x === e.detail.x && auswahlKachel.z === e.detail.z) zeigeAuswahl(auswahlKachel);
 });
+
+// Zeile "Figur": steht wo / läuft wie weit. Wird jedes Bild aufgerufen, ändert aber
+// den Text nur, wenn sich wirklich etwas geändert hat.
+const hudFigur = document.getElementById("hud-figur");
+function aktualisiereFigurAnzeige() {
+  const text = figur.zustand === "laeuft"
+    ? `läuft · noch ${Math.ceil(restweg())} Kacheln`
+    : `steht · ${kachelText(figurKachel())}`;
+  if (hudFigur.textContent !== text) hudFigur.textContent = text;
+}
+
+// Kurze Hinweis-Meldung oben in der Mitte, verschwindet nach 2 Sekunden von selbst.
+const hudMeldung = document.getElementById("hud-meldung");
+let meldungTimer = null;
+function zeigeMeldung(text, warnung = false) {
+  hudMeldung.textContent = text;
+  hudMeldung.classList.toggle("warnung", warnung);
+  hudMeldung.classList.add("sichtbar");
+  clearTimeout(meldungTimer);
+  meldungTimer = setTimeout(() => hudMeldung.classList.remove("sichtbar"), 2000);
+}
+spielEreignisse.addEventListener("zielNichtErreichbar", () =>
+  zeigeMeldung("Ziel nicht erreichbar – die Figur läuft so nah wie möglich heran.", true));
+spielEreignisse.addEventListener("hinweis", (e) => zeigeMeldung(e.detail.text));
 
 // Schutz vor "Durchklicken": Mausaktionen auf der Bedienoberfläche erreichen das Raster nicht.
 for (const element of [document.getElementById("hud-info"), document.getElementById("hud-hilfe")]) {
@@ -769,6 +1442,11 @@ function spielschleife() {
   const zeit = uhr.elapsedTime;
 
   bewegeMitTastatur(sekunden);
+  fliegeKamera(sekunden);
+  bewegeFigur(sekunden);
+  aktualisiereFigur3d(sekunden, zeit);
+  aktualisierePfadUndMarken(sekunden, zeit);
+  aktualisiereFigurAnzeige();
 
   // Hover-Rahmen gleitet weich zum Ziel und blendet sanft ein/aus.
   const weich = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.hoverTempo * sekunden);
@@ -787,7 +1465,10 @@ document.getElementById("hud-lade").hidden = true; // Ladehinweis ausblenden
 spielschleife();
 
 // Für spätere Phasen und zum Ausprobieren in der Browser-Konsole erreichbar machen.
-window.tradeUp = { szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse };
+window.tradeUp = {
+  szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse,
+  figur, findePfad, setzeBlockade, schickeFigur,
+};
 </script>
 
 <!-- Falls Three.js nicht geladen werden kann (z. B. offline), einen Hinweis zeigen. -->

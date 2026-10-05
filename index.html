@@ -1061,6 +1061,23 @@
   .modus-wahl button[data-modus="gemischt"][aria-pressed="true"] { background: var(--farbe-gemischt); border-color: var(--farbe-gemischt); }
   .modus-wahl button:focus-visible { outline: 2px solid var(--farbe-text); outline-offset: 1px; }
   .modus-text { margin: 0 0 8px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  /* Phase 5b: Ressourcen-Reiter mit Import-/Export-Pfeilen */
+  .regel-tabelle { width: 100%; border-collapse: collapse; font-size: var(--groesse-klein); }
+  .regel-tabelle th { font-weight: 600; color: var(--farbe-text-leise); text-align: left; padding: 0 3px 3px; }
+  .regel-tabelle td { padding: 2px 3px; vertical-align: middle; }
+  .regel-tabelle .zahl { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .regel-tabelle .zahl .leise { color: var(--farbe-text-leise); font-weight: 500; }
+  .regel-tabelle .fix-knoepfe { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: middle; }
+  .regel-tabelle small.leise { color: var(--farbe-text-leise); }
+  .pfeil-knopf {                         /* ⇣ Import / ⇡ Export – aus: grau umrandet, an: farbig gefüllt */
+    min-width: 28px; height: 26px; padding: 0 4px;
+    font: inherit; font-size: 1rem; font-weight: 700; line-height: 1;
+    color: var(--farbe-text-leise); background: #fff;
+    border: 2px solid var(--farbe-rand); border-radius: 6px; cursor: pointer;
+  }
+  .pfeil-knopf.imp[aria-pressed="true"] { color: #fff; background: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+  .pfeil-knopf.exp[aria-pressed="true"] { color: #fff; background: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
+  .pfeil-knopf:focus-visible { outline: 2px solid var(--farbe-text); outline-offset: 1px; }
   .lager-tabelle { margin: 0; display: grid; grid-template-columns: 1fr auto auto auto; gap: 3px 8px; align-items: center; }
   .lager-tabelle dt, .lager-tabelle dd { margin: 0; }
   .lager-tabelle dd { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
@@ -1684,6 +1701,8 @@ const PRODUKTION = {
   ausschussUeberhitzt: 0.3,   // Wahrscheinlichkeit für Ausschuss bei überhitzten Blaupausen (0.3 = 30 %)
   greifZeit:           0.6,   // Sekunden, die ein Arbeiter zum Nehmen des Materials braucht
   auftragsIntervall:   0.5,   // so oft (in Sekunden) verteilt die Auftragsbörse neue Aufträge an freie Kuriere
+  standardSoll:        2,     // (Phase 5b) Sollmenge für Items, die von Hand auf Import stehen, aber keine Station braucht
+  exportPegel:         1,     // (Phase 5b) Kuriere holen Erzeugnisse ab, sobald so viele im Ausgabefach liegen (pro Station änderbar)
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
@@ -1706,6 +1725,7 @@ const ROHSTOFFE = [
 //   breite/tiefe – Größe in Kacheln bei Drehung 0 (breite = nach rechts, tiefe = nach vorn)
 //   zugang       – Kachel vor dem Gebäude [Spalte, Reihe] bei Drehung 0; hier stehen Kuriere und Arbeiter
 //   kapazitaet   – so viele Items passen hinein (bei Stationen: Größe des Ausgabefachs)
+//   eingangsfach – (Phase 5b, nur Stationen) so viele Items passen ins Eingangsfach, das Kuriere direkt füllen
 //   maxAnzahl    – höchstens so viele pro Halle (0 = unbegrenzt)
 //   preis        – Kaufpreis in Euro (Phase 5). Gebäude aus dem Depot aufzustellen ist kostenlos.
 //   freigeschaltet – false = (noch) nicht im Baumenü
@@ -1720,14 +1740,14 @@ const GEBAEUDE_TYPEN = [
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 20, maxAnzahl: 0, preis: 350, freigeschaltet: true,
     beschreibung: "Großes Zwischenlager, versorgt auch mehrere Stationen." },
   { typ: "werkbank", name: "Werkbank", symbol: "⚒", kategorie: "station", art: "werkbank",
-    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 4, maxAnzahl: 0, preis: 600, freigeschaltet: true,
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 4, eingangsfach: 6, maxAnzahl: 0, preis: 600, freigeschaltet: true,
     beschreibung: "Stellt Bauteile aus Rohstoffen her." },
   { typ: "montagetisch", name: "Montagetisch", symbol: "⚙", kategorie: "station", art: "montage",
-    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 2, maxAnzahl: 0, preis: 900, freigeschaltet: true,
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 2, eingangsfach: 16, maxAnzahl: 0, preis: 900, freigeschaltet: true,
     beschreibung: "Baut Produkte nach einer Blaupause aus dem Layout-Designer." },
   // Phase 5: zerlegt Bauteile oder Produkte in Forschungspunkte (kein Ausgabefach: kapazitaet 0)
   { typ: "forschungsstation", name: "Forschungsstation", symbol: "🔬", kategorie: "station", art: "forschung",
-    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 0, maxAnzahl: 0, preis: 1500, freigeschaltet: true,
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 0, eingangsfach: 4, maxAnzahl: 0, preis: 1500, freigeschaltet: true,
     beschreibung: "Zerlegt Bauteile oder Produkte und gewinnt daraus Forschungspunkte." },
 ];
 
@@ -1750,7 +1770,9 @@ const MITARBEITER_ROLLEN = {
   arbeiter: { name: "Arbeiter", lohn: 80 },
 };
 
-// Regeln für Zwischenlager (Phase 5). Jedes Zwischenlager hat einen dieser Modi:
+// Regeln für Zwischenlager (Phase 5). Seit Phase 5b ist der Modus die SCHNELLWAHL für die
+// Import-/Export-Pfeile pro Ressource (siehe Abschnitt 11b); einzelne Pfeile lassen sich von Hand umstellen.
+// Jedes Zwischenlager hat einen dieser Modi:
 //   eingang  – Input-only: Kuriere liefern nur hinein; Arbeiter entnehmen. Abgeholt werden nur Reste,
 //              die keine verknüpfte Station mehr braucht (z. B. nach einem Rezeptwechsel)
 //   ausgang  – Output-only: Arbeiter legen ihre Erzeugnisse ab; Kuriere holen ab und liefern nie hinein
@@ -1758,9 +1780,9 @@ const MITARBEITER_ROLLEN = {
 // Fixierte Items (📌) bleiben immer liegen: Im Eingang/Gemischt haben sie eine feste Sollmenge,
 // im Ausgang sind sie ein Annahmefilter (nur diese Erzeugnisse werden dort abgelegt).
 const LAGER_MODI = {
-  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#4a7fc1", text: "Input-only: Kuriere liefern nur und holen nur Reste ab, die keine Station mehr braucht." },
-  ausgang:  { name: "Ausgang",  symbol: "⇡", farbe: "#f08a3c", text: "Output-only: Arbeiter legen Erzeugnisse ab, Kuriere holen sie." },
-  gemischt: { name: "Gemischt", symbol: "⇅", farbe: "#8a948c", text: "Beides: Kuriere holen nur Überschuss ab." },
+  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#4a7fc1", text: "Material der Stationen auf ⇣ Import. Kuriere holen nur Reste ab, die keine Station mehr braucht." },
+  ausgang:  { name: "Ausgang",  symbol: "⇡", farbe: "#f08a3c", text: "Alles auf ⇡ Export: Arbeiter legen Erzeugnisse ab, Kuriere holen sie." },
+  gemischt: { name: "Gemischt", symbol: "⇅", farbe: "#8a948c", text: "Material auf ⇣ und ⇡: Puffer bis zum Soll, Kuriere holen den Überschuss ab." },
 };
 const STANDARD_LAGER_MODUS = "eingang";   // Modus neuer Zwischenlager
 // Vornamen für neue Mitarbeiter (werden der Reihe nach vergeben)
@@ -4073,7 +4095,9 @@ lz.overlay.addEventListener("click", (e) => {
        bestand: { metall: 2 },        // Inhalt (bei Stationen: das Ausgabefach)
        verknuepft: ["g9"],            // Station ↔ Zwischenlager
        rezept: "akku" | "bp-…" | null, pausiert, fortschritt, arbeiterId, version,
-       modus: "eingang" | "ausgang" | "gemischt", fixiert: { akku: 4 },   // nur Zwischenlager (Phase 5)
+       modus: "eingang" | "ausgang" | "gemischt",   // Schnellwahl der Lagerregeln (nur Zwischenlager, Phase 5)
+       regeln: { akku: { imp: true, exp: false, soll: 4 } },   // von Hand gesetzte Pfeile/Mengen (Phase 5b)
+       eingang: { metall: 2 },        // Eingangsfach einer Station (Phase 5b)
        rueckgabe: false }             // "Überschuss zurückschicken" läuft (Zwischenlager)
    ============================================================================ */
 const gebaeudeTypNach = new Map(GEBAEUDE_TYPEN.map((t) => [t.typ, t]));
@@ -4314,8 +4338,10 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     arbeiterId: null,
     status: "",
     version: 0,
-    modus: LAGER_MODI[extra.modus] ? extra.modus : STANDARD_LAGER_MODUS,   // Phase 5: Lagerregel (nur Zwischenlager)
-    fixiert: { ...(extra.fixiert || {}) },                                 // Phase 5: fixierte Items
+    modus: LAGER_MODI[extra.modus] ? extra.modus : STANDARD_LAGER_MODUS,   // Phase 5: Schnellwahl der Lagerregeln
+    // Phase 5b: von Hand gesetzte Pfeile/Mengen (ältere Spielstände: aus "fixiert" umgewandelt)
+    regeln: extra.regeln ? JSON.parse(JSON.stringify(extra.regeln)) : regelnAusFixierung(extra.modus, extra.fixiert),
+    eingang: { ...(extra.eingang || {}) },                                 // Phase 5b: Eingangsfach (nur Stationen)
     rueckgabe: false,                                                      // Phase 5: Überschuss wird zurückgeschickt
   };
   spiel.gebaeude.set(g.id, g);
@@ -4409,7 +4435,9 @@ function reisseAb(id, { inhaltInsDepot = false } = {}) {
   spiel.gebaeude.delete(id);                     // zuerst entfernen: laufende Aufträge merken es sofort
   for (const c of g.zellen) setzeBlockade(c.x, c.z, false);
   bucheInsLager(g.bestand, inhaltInsDepot);
+  bucheInsLager(g.eingang, inhaltInsDepot);      // Phase 5b: auch das Eingangsfach
   g.bestand = {};
+  g.eingang = {};
   spiel.depot.gebaeude[g.typ] = (spiel.depot.gebaeude[g.typ] || 0) + 1;
   for (const anderes of spiel.gebaeude.values()) anderes.verknuepft = anderes.verknuepft.filter((v) => v !== id);
   if (g.arbeiterId) {
@@ -4506,8 +4534,9 @@ function raeumeDepotInsHauptlager() {
 }
 
 // Berechnet aus allen laufenden Aufträgen, was schon "versprochen" ist:
-//   raus: Gebäude-ID → Items, die gleich jemand abholt
-//   rein: Gebäude-ID → Items, die gerade jemand bringt
+//   raus: Fach → Items, die gleich jemand abholt
+//   rein: Fach → Items, die gerade jemand bringt
+// Ein Fach ist die Gebäude-ID (Inhalt bzw. Ausgabefach) oder "<ID>:ein" (Eingangsfach einer Station, Phase 5b).
 function reservierungen() {
   const raus = new Map(), rein = new Map();
   const dazu = (map, id, item, n) => {
@@ -4520,12 +4549,12 @@ function reservierungen() {
     const a = p.auftrag;
     if (!a) continue;
     if (a.art === "material") {                    // Arbeiter holt Material für einen Durchgang
-      if (!a.abgeholt) for (const [i, n] of Object.entries(a.items)) dazu(raus, a.quelleId, i, n);
+      if (!a.abgeholt) for (const [i, n] of Object.entries(a.items)) dazu(raus, fachSchluessel(a.quelleId, a.quelleFach), i, n);
     } else if (a.art === "liefern" || a.art === "abholen" || a.art === "zurueck" || a.art === "erzeugnis") {
       // Kurier-Gang (mehrere Sorten möglich, Phase 5 "Sammelfahrt") oder Arbeiter bringt sein Erzeugnis weg
       for (const [i, n] of Object.entries(a.items)) {
-        if (!a.abgeholt) dazu(raus, a.quelleId, i, n);
-        dazu(rein, a.zielId, i, n);
+        if (!a.abgeholt) dazu(raus, fachSchluessel(a.quelleId, a.quelleFach), i, n);
+        dazu(rein, fachSchluessel(a.zielId, a.zielFach), i, n);
       }
     }
   }
@@ -4534,30 +4563,45 @@ function reservierungen() {
 const reserviert = (map, id, item) => (map.get(id) || {})[item] || 0;
 const reserviertSumme = (map, id) => summe(map.get(id) || {});
 
-// Wie viele Items eines Typs liegen noch frei (nicht schon versprochen) in einem Gebäude?
-function verfuegbar(g, item, res) {
-  return (g.bestand[item] || 0) - reserviert(res.raus, g.id, item);
+/* --- Fächer (Phase 5b) ---
+   Ein Gebäude hat das Fach "bestand" (Lager-Inhalt bzw. Ausgabefach einer Station).
+   Stationen haben zusätzlich das Fach "eingang": ihr Eingangsfach, das Kuriere direkt füllen. */
+function fachSchluessel(id, fach) {
+  return fach === "eingang" ? id + ":ein" : id;
 }
-// Wie viel Platz ist noch frei (abzüglich der Items, die gerade gebracht werden)?
-function freierPlatz(g, res) {
-  return kapazitaetVon(g) - summe(g.bestand) - reserviertSumme(res.rein, g.id);
+function fachInhalt(g, fach) {
+  return fach === "eingang" ? g.eingang : g.bestand;
+}
+function fachGroesse(g, fach) {
+  return fach === "eingang" ? typVon(g).eingangsfach || 0 : kapazitaetVon(g);
+}
+// Ändert den Inhalt eines Fachs und merkt sich, dass neu gezeichnet werden muss.
+function aendereFach(g, fach, item, delta) {
+  if (fach === "eingang") { bucheItems(g.eingang, { [item]: delta }); g.version++; spiel.version++; }
+  else aendereBestand(g, item, delta);
+}
+// Wie viele Items eines Typs liegen noch frei (nicht schon versprochen) in einem Fach?
+function verfuegbar(g, item, res, fach = "bestand") {
+  return (fachInhalt(g, fach)[item] || 0) - reserviert(res.raus, fachSchluessel(g.id, fach), item);
+}
+// Wie viel Platz ist in einem Fach noch frei (abzüglich der Items, die gerade gebracht werden)?
+function freierPlatz(g, res, fach = "bestand") {
+  return fachGroesse(g, fach) - summe(fachInhalt(g, fach)) - reserviertSumme(res.rein, fachSchluessel(g.id, fach));
 }
 
-/* --- Lagerregeln (Phase 5): Eingang / Ausgang / Gemischt und fixierte Items ---
+/* --- Lagerregeln (Phase 5b): Import- und Export-Pfeile pro Ressource ---
+   Jedes Zwischenlager und jede Station hat für jedes Item zwei Pfeile:
+     ⇣ Import – Kuriere bringen das Item bis zur Sollmenge (Station: in ihr Eingangsfach)
+     ⇡ Export – Kuriere holen das Item ab (Lager: was über dem Soll liegt;
+                Station: aus dem Ausgabefach, sobald der Export-Pegel erreicht ist)
+   Kein Pfeil = das Item bleibt liegen (Kuriere fassen es nicht an).
+   Ohne Eingriff gilt die Automatik (regelAuto). Was der Spieler von Hand setzt, steht in
+   g.regeln[item] = { imp?: true|false, exp?: true|false, soll?: Zahl }; fehlt ein Feld, gilt die Automatik.
+   g.modus (Eingang / Ausgang / Gemischt) ist die Schnellwahl, nach der sich die Automatik der Lager richtet.
    Alle Regeln für Kuriere stehen NUR in diesen Funktionen. Die Auftragsbörse fragt
-   für jede Quelle darfKurierAbholen() bzw. abholbar() und für jedes Ziel darfKurierLiefern(). */
+   abholbar() / darfKurierAbholen() für Quellen und bedarf() / darfKurierLiefern() für Ziele. */
 function lagerModus(g) {
   return LAGER_MODI[g.modus] ? g.modus : STANDARD_LAGER_MODUS;
-}
-// Darf ein Kurier dieses Item aus diesem Gebäude mitnehmen?
-function darfKurierAbholen(g, item) {
-  if (!istZwischenlager(g)) return true;              // Ausgabefächer der Stationen und das Hauptlager
-  const modus = lagerModus(g);
-  if (modus === "ausgang") return true;               // Ausgang: genau dafür ist es da
-  if (item in g.fixiert) return false;                // fixiert: bleibt IMMER liegen
-  // Eingang: nur nach "Überschuss zurückschicken" – oder wenn KEINE verknüpfte Station das Item
-  // (noch) braucht, z. B. nach einem Rezeptwechsel. Sonst verstopfen Reste das Lager für immer.
-  return modus === "gemischt" || g.rueckgabe || !gebrauchteItems(g).has(item);
 }
 // Welche Items braucht irgendeine verknüpfte Station (auch eine pausierte) für ihr Rezept?
 function gebrauchteItems(lager) {
@@ -4569,57 +4613,193 @@ function gebrauchteItems(lager) {
   }
   return items;
 }
-// Darf ein Kurier in dieses Gebäude liefern?
-function darfKurierLiefern(g) {
-  return !istZwischenlager(g) || lagerModus(g) !== "ausgang";
+// Welche Erzeugnisse stellen die verknüpften Stationen her?
+function erzeugteItems(lager) {
+  const items = new Set();
+  for (const sid of lager.verknuepft) {
+    const s = spiel.gebaeude.get(sid);
+    const r = s && rezeptVon(s);
+    if (r && r.ausgabe) items.add(r.ausgabe);
+  }
+  return items;
 }
-// Darf ein Arbeiter hier Material für seine Station entnehmen?
-function darfArbeiterEntnehmen(g) {
-  return istZwischenlager(g) && lagerModus(g) !== "ausgang";
+// Hat die Station ein verknüpftes Lager, aus dem ihr Arbeiter Material nehmen darf?
+function versorgtDurchLager(s) {
+  return s.verknuepft.some((id) => { const g = spiel.gebaeude.get(id); return g && darfArbeiterEntnehmen(g); });
+}
+// Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
+function regelAuto(g, item) {
+  if (istStation(g)) {
+    const r = rezeptVon(g);
+    // Material: direkt ins Eingangsfach liefern, wenn kein Lager die Station versorgt
+    if (r && item in r.eingaben) return { imp: !versorgtDurchLager(g), exp: false };
+    return { imp: false, exp: true };            // Erzeugnis abholen; Reste im Eingangsfach ebenso
+  }
+  const modus = lagerModus(g);
+  if (modus === "ausgang") return { imp: false, exp: true };
+  // "gebraucht": eine verknüpfte Station braucht es – oder der Spieler hat es selbst auf Import gestellt
+  const gebraucht = gebrauchteItems(g).has(item) || !!(g.regeln[item] && g.regeln[item].imp === true);
+  if (modus === "gemischt") return { imp: gebraucht, exp: true };
+  return { imp: gebraucht, exp: !gebraucht };    // Eingang: Reste, die keiner braucht, holen Kuriere ab
+}
+// Die gültigen Pfeile eines Items: { imp, exp, manuell } (manuell = der Spieler hat etwas gesetzt)
+function regelVon(g, item) {
+  const m = (g.regeln && g.regeln[item]) || {};
+  const auto = (m.imp === undefined || m.exp === undefined) ? regelAuto(g, item) : null;
+  return {
+    imp: m.imp !== undefined ? m.imp : auto.imp,
+    exp: m.exp !== undefined ? m.exp : auto.exp,
+    manuell: m.imp !== undefined || m.exp !== undefined || m.soll !== undefined,
+  };
+}
+
+// Darf ein Kurier dieses Item aus diesem Fach mitnehmen?
+function darfKurierAbholen(g, item, fach = "bestand") {
+  if (typVon(g).art === "hauptlager") return true;
+  const r = regelVon(g, item);
+  if (istStation(g)) return fach === "eingang" ? !r.imp : r.exp;   // Eingangsfach: nur Reste
+  if (r.exp) return true;
+  // "Überschuss zurückschicken": alles, was nicht ausdrücklich liegen bleiben soll
+  return !!g.rueckgabe && !(g.regeln[item] && g.regeln[item].exp === false);
+}
+// Darf ein Kurier dieses Item in dieses Fach liefern?
+function darfKurierLiefern(g, item, fach = "bestand") {
+  if (typVon(g).art === "hauptlager") return true;
+  if (istStation(g)) return fach === "eingang" && regelVon(g, item).imp;
+  return regelVon(g, item).imp;
+}
+// Darf ein Arbeiter hier Material für seine Station entnehmen? (ohne Item: grundsätzlich)
+// Reine Export-Ware (nur ⇡) ist für Kuriere bestimmt, nicht für Arbeiter.
+function darfArbeiterEntnehmen(g, item = null) {
+  if (!istZwischenlager(g)) return false;
+  if (item !== null) { const r = regelVon(g, item); return r.imp || !r.exp; }
+  return lagerModus(g) !== "ausgang" || Object.values(g.regeln).some((m) => m.imp === true);
 }
 // Nimmt dieses Lager das Erzeugnis einer verknüpften Station an?
+//   ja, wenn es exportiert wird (Ausgang/Gemischt oder ⇡ von Hand) – Kuriere holen es dann ab,
+//   oder wenn eine andere verknüpfte Station es braucht (⇣) und das Soll noch nicht erreicht ist.
 function nimmtErzeugnisAn(g, item) {
   if (!istZwischenlager(g)) return false;
-  const modus = lagerModus(g);
-  if (modus === "eingang") return false;
-  const filter = Object.keys(g.fixiert);
-  if (modus === "ausgang") return filter.length === 0 || filter.includes(item);   // Fixierung = Annahmefilter
-  return true;                                        // gemischt
+  const r = regelVon(g, item);
+  const handExport = g.regeln[item] && g.regeln[item].exp === true;
+  if (r.exp && (lagerModus(g) !== "eingang" || handExport)) return true;
+  return r.imp && (g.bestand[item] || 0) < (sollbestand(g)[item] || 0);
 }
 // Was dürfen Kuriere aus einem Zwischenlager abholen? (Item → Anzahl)
-//   Ausgang: alles · Gemischt: nur Überschuss · Eingang: nichts (außer bei "Überschuss zurückschicken")
+// Mit Import UND Export bleibt das Soll liegen, nur der Überschuss geht.
 function abholbar(g, res) {
   const ergebnis = {};
   if (!istZwischenlager(g)) return ergebnis;
-  const modus = lagerModus(g);
-  const soll = modus === "ausgang" ? {} : sollbestand(g);
+  const soll = sollbestand(g);
   for (const item of Object.keys(g.bestand)) {
     if (!darfKurierAbholen(g, item)) continue;
-    const n = verfuegbar(g, item, res) - (soll[item] || 0);
+    const n = verfuegbar(g, item, res) - (regelVon(g, item).imp ? soll[item] || 0 : 0);
     if (n > 0) ergebnis[item] = n;
   }
   return ergebnis;
 }
-// Regeln eines Zwischenlagers ändern
+// Reste im Eingangsfach einer Station (z. B. nach einem Rezeptwechsel). Item → Anzahl
+function abholbarEingang(s, res) {
+  const ergebnis = {};
+  for (const item of Object.keys(s.eingang || {})) {
+    const n = darfKurierAbholen(s, item, "eingang") ? verfuegbar(s, item, res, "eingang") : 0;
+    if (n > 0) ergebnis[item] = n;
+  }
+  return ergebnis;
+}
+// Export-Pegel einer Station: ab so vielen Erzeugnissen im Ausgabefach holen Kuriere ab
+function exportPegel(s, item) {
+  const m = s.regeln[item];
+  return Math.max(1, Math.min(kapazitaetVon(s) || 1, m && m.soll !== undefined ? m.soll : PRODUKTION.exportPegel));
+}
+
+// Welches Symbol zeigt ein Lager (⇣ Eingang, ⇡ Ausgang, ⇅ Gemischt)? Ergibt sich aus den gültigen
+// Pfeilen der Ressourcen, die zählen: Bedarf und Erzeugnisse der Stationen und von Hand Gesetztes.
+// Das automatische Abholen von Resten in einem Eingang-Lager zählt nicht als Export.
+function lagerAnzeigeModus(g) {
+  const modus = lagerModus(g);
+  const ids = new Set([...gebrauchteItems(g), ...erzeugteItems(g), ...Object.keys(g.regeln)]);
+  let imp = false, exp = false;
+  for (const item of ids) {
+    const r = regelVon(g, item);
+    if (r.imp) imp = true;
+    if (r.exp && (modus !== "eingang" || (g.regeln[item] && g.regeln[item].exp === true))) exp = true;
+  }
+  if (imp && exp) return "gemischt";
+  if (exp) return "ausgang";
+  if (imp) return "eingang";
+  return ids.size ? "keiner" : modus;
+}
+// Dasselbe für eine Station: Import ins Eingangsfach? Export aus dem Ausgabefach?
+function stationAnzeigeModus(s) {
+  const r = rezeptVon(s);
+  if (!r) return "keiner";
+  const imp = Object.keys(r.eingaben).some((i) => regelVon(s, i).imp);
+  const exp = !!r.ausgabe && regelVon(s, r.ausgabe).exp;
+  return imp && exp ? "gemischt" : imp ? "eingang" : exp ? "ausgang" : "keiner";
+}
+
+/* --- Pfeile und Mengen ändern --- */
+// Setzt einen Pfeil (feld "imp"/"exp", wert true/false) oder die Sollmenge (feld "soll", Zahl).
+// wert = null: zurück auf Automatik. Rückgabe: true/false
+function setzeRegel(id, item, feld, wert) {
+  const g = spiel.gebaeude.get(id);
+  if (!g || !(istZwischenlager(g) || istStation(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
+  const m = { ...(g.regeln[item] || {}) };
+  if (wert === null || wert === undefined) delete m[feld];
+  else if (feld === "soll") {
+    // Station: Material → Import-Pegel (Eingangsfach), Erzeugnis → Export-Pegel (Ausgabefach)
+    const r = istStation(g) ? rezeptVon(g) : null;
+    const grenze = r && item in r.eingaben ? fachGroesse(g, "eingang") : kapazitaetVon(g);
+    m.soll = Math.max(istStation(g) ? 1 : 0, Math.min(grenze, Math.round(wert)));
+  }
+  else m[feld] = !!wert;
+  if (Object.keys(m).length) g.regeln[item] = m;
+  else delete g.regeln[item];
+  // Von Hand Gesetztes bleibt, bis der Spieler "↺ zurück auf Automatik" drückt
+  meldeStruktur();
+  return true;
+}
+// Alles von Hand Gesetzte eines Items vergessen (wieder Automatik)
+function setzeRegelZurueck(id, item) {
+  const g = spiel.gebaeude.get(id);
+  if (!g || !g.regeln[item]) return false;
+  delete g.regeln[item];
+  meldeStruktur();
+  return true;
+}
+// Schnellwahl Eingang / Ausgang / Gemischt: setzt alle Pfeile auf einmal (von Hand gesetzte
+// Pfeile werden vergessen, von Hand gesetzte Mengen bleiben).
 function setzeLagerModus(id, modus) {
   const g = spiel.gebaeude.get(id);
   if (!g || !istZwischenlager(g) || !LAGER_MODI[modus]) return false;
   g.modus = modus;
   g.rueckgabe = false;
+  for (const [item, m] of Object.entries(g.regeln)) {
+    if (m.soll !== undefined) g.regeln[item] = { soll: m.soll };
+    else delete g.regeln[item];
+  }
   meldeStruktur();
   return true;
 }
-// Fixiert ein Item mit einer festen Sollmenge (menge = null hebt die Fixierung auf)
+// Alte Schnittstelle (Phase 5): "fixieren" = Import mit fester Menge, Kuriere holen es nie ab
 function setzeFixierung(id, item, menge) {
   const g = spiel.gebaeude.get(id);
   if (!g || !istZwischenlager(g)) return false;
-  if (menge === null || menge === undefined) delete g.fixiert[item];
-  else g.fixiert[item] = Math.max(0, Math.min(kapazitaetVon(g), Math.round(menge)));
+  if (menge === null || menge === undefined) return setzeRegelZurueck(id, item);
+  g.regeln[item] = { imp: true, exp: false, soll: Math.max(0, Math.min(kapazitaetVon(g), Math.round(menge))) };
   meldeStruktur();
   return true;
 }
-// "Überschuss zurückschicken": Kuriere bringen einmalig alles, was nicht gebraucht wird
-// und nicht fixiert ist, ins Hauptlager (auch aus Eingang-Lagern).
+// Wandelt die Lagerregeln aus Phase 5 (fixiert) in Pfeile um
+function regelnAusFixierung(modus, fixiert) {
+  const regeln = {};
+  if (modus === "ausgang") return regeln;        // Annahmefilter fällt weg: Ausgang nimmt alles an
+  for (const [item, n] of Object.entries(fixiert || {})) regeln[item] = { imp: true, exp: false, soll: n };
+  return regeln;
+}
+// "Überschuss zurückschicken": Kuriere bringen einmalig alles über dem Soll ins Hauptlager,
+// außer Items, deren Export von Hand ausgeschaltet ist.
 function schickeUeberschussZurueck(id) {
   const g = spiel.gebaeude.get(id);
   if (!g || !istZwischenlager(g)) return 0;
@@ -4630,45 +4810,72 @@ function schickeUeberschussZurueck(id) {
   return n;
 }
 
-// Sollbestand eines Zwischenlagers: Material für "vorratDurchgaenge" Durchgänge jeder
-// verknüpften Station, gedeckelt durch das Fassungsvermögen. Passt ein Rezept ins Lager,
-// bleibt beim Deckeln immer mindestens ein kompletter Durchgang übrig.
-// Phase 5: Ausgang-Lager haben kein Soll; fixierte Items haben ihre feste Menge.
-function sollbestand(lager) {
-  if (lagerModus(lager) === "ausgang") return {};
-  const soll = {};
-  const durchgang = {};                            // so viel braucht die gierigste Station für EINEN Durchgang
-  const fix = lager.fixiert || {};
-  for (const sid of lager.verknuepft) {
+// Sollbestand eines Zwischenlagers (nur Items mit Import): Material für "vorratDurchgaenge"
+// Durchgänge jeder verknüpften Station, gedeckelt durch das Fassungsvermögen. Beim Deckeln
+// bleibt immer mindestens ein kompletter Durchgang übrig. Von Hand gesetzte Mengen gelten fest.
+// Bei Stationen: Soll des Eingangsfachs (Import-Pegel).
+function sollbestand(g) {
+  if (istStation(g)) return sollEingangsfach(g);
+  const soll = {}, durchgang = {}, fest = {};
+  for (const [item, m] of Object.entries(g.regeln)) {
+    if (m.soll !== undefined && regelVon(g, item).imp) fest[item] = m.soll;
+  }
+  for (const sid of g.verknuepft) {
     const s = spiel.gebaeude.get(sid);
     if (!s || s.pausiert) continue;
     const r = rezeptVon(s);
     if (!r) continue;
     for (const [item, n] of Object.entries(r.eingaben)) {
-      if (item in fix) continue;
+      if (item in fest || !regelVon(g, item).imp) continue;
       soll[item] = (soll[item] || 0) + n * PRODUKTION.vorratDurchgaenge;
       durchgang[item] = Math.max(durchgang[item] || 0, n);
     }
   }
-  const frei = Math.max(0, kapazitaetVon(lager) - summe(fix)), gesamt = summe(soll);
+  // Von Hand auf Import gestellt, aber von keiner Station gebraucht: Standardmenge
+  for (const [item, m] of Object.entries(g.regeln)) {
+    if (m.imp === true && !(item in soll) && !(item in fest)) { soll[item] = PRODUKTION.standardSoll; durchgang[item] = 1; }
+  }
+  const frei = Math.max(0, kapazitaetVon(g) - summe(fest)), gesamt = summe(soll);
   if (gesamt > frei) {
     const faktor = frei / gesamt;
-    for (const item of Object.keys(soll)) {
-      // Nie weniger als ein kompletter Durchgang: sonst wartet der Arbeiter ewig auf das letzte Teil
-      soll[item] = Math.max(durchgang[item], Math.floor(soll[item] * faktor));
-    }
+    // Nie weniger als ein kompletter Durchgang: sonst wartet der Arbeiter ewig auf das letzte Teil
+    for (const item of Object.keys(soll)) soll[item] = Math.max(durchgang[item], Math.floor(soll[item] * faktor));
   }
-  for (const [item, n] of Object.entries(fix)) if (n > 0) soll[item] = n;
+  for (const [item, n] of Object.entries(fest)) if (n > 0) soll[item] = n;
+  return soll;
+}
+// Import-Pegel des Eingangsfachs einer Station: "vorratDurchgaenge" Durchgänge (oder die von
+// Hand gesetzte Menge), gedeckelt durch die Fachgröße, aber nie weniger als ein Durchgang.
+function sollEingangsfach(s) {
+  const soll = {};
+  const r = rezeptVon(s);
+  const groesse = fachGroesse(s, "eingang");
+  if (!r || s.pausiert || !groesse) return soll;
+  const durchgang = {};
+  for (const [item, n] of Object.entries(r.eingaben)) {
+    if (!regelVon(s, item).imp) continue;
+    const m = s.regeln[item];
+    soll[item] = m && m.soll !== undefined ? Math.max(n, m.soll) : n * PRODUKTION.vorratDurchgaenge;
+    durchgang[item] = n;
+  }
+  const gesamt = summe(soll);
+  if (gesamt > groesse) {
+    const faktor = groesse / gesamt;
+    for (const item of Object.keys(soll)) soll[item] = Math.max(durchgang[item], Math.floor(soll[item] * faktor));
+  }
   return soll;
 }
 
-// Was fehlt einem Zwischenlager noch? (Soll − Bestand − schon unterwegs, höchstens so viel wie Platz ist)
-function bedarf(lager, res) {
+// Was fehlt einem Fach noch? (Soll − Bestand − schon unterwegs, höchstens so viel wie Platz ist)
+// Zwischenlager: ihr Inhalt; Stationen: ihr Eingangsfach.
+function bedarf(g, res) {
   const ergebnis = {};
-  if (!darfKurierLiefern(lager)) return ergebnis;
-  let platz = freierPlatz(lager, res);
-  for (const [item, soll] of Object.entries(sollbestand(lager))) {
-    const fehlt = soll - (lager.bestand[item] || 0) - reserviert(res.rein, lager.id, item);
+  const fach = istStation(g) ? "eingang" : "bestand";
+  const inhalt = fachInhalt(g, fach);
+  let platz = freierPlatz(g, res, fach);
+  for (const [item, soll] of Object.entries(sollbestand(g))) {
+    if (!darfKurierLiefern(g, item, fach)) continue;
+    const fehlt = soll - (inhalt[item] || 0) - reserviert(res.rein, fachSchluessel(g.id, fach), item);
     if (fehlt > 0 && platz > 0) {
       const n = Math.min(fehlt, platz);
       ergebnis[item] = n;
@@ -4692,7 +4899,9 @@ function fertigwareImLager() {
    Kuriere:  frei → zurQuelle → laedt → zumZiel → entlaedt → frei
    Arbeiter: frei → zumLager → nimmt (→ wartetMaterial) → zurStation → arbeitet → frei
    Die Auftragsbörse verteilt zweimal pro Sekunde Aufträge an freie Kuriere:
-     "liefern" (Hauptlager → Zwischenlager) und "abholen" (Ausgabefach → Hauptlager).
+     "liefern" (Hauptlager → Zwischenlager bzw. Eingangsfach einer Station, Phase 5b)
+     und "abholen" (Ausgabefach bzw. Export-Ware → Hauptlager).
+   Arbeiter nehmen ihr Material aus dem eigenen Eingangsfach oder aus verknüpften Zwischenlagern.
    Die Logik läuft in festen Schritten (PRODUKTION.simSchritt), unabhängig von der Bildrate.
    ============================================================================ */
 
@@ -4925,8 +5134,10 @@ function beendeAuftrag(p) {
 /* --- Auftragsbörse für Kuriere --- */
 
 // Sucht den besten Auftrag für einen freien Kurier. Rückgabe: Auftrag oder null.
-//   "abholen": Ausgabefächer und abholbare Zwischenlager (Lagerregeln!) → Hauptlager
-//   "liefern": Hauptlager (mit "Direktlieferung" auch Ausgang-Lager/Ausgabefächer) → Zwischenlager mit Bedarf
+//   "abholen": Ausgabefächer (ab dem Export-Pegel), Export-Ware aus Zwischenlagern und Reste
+//              aus Eingangsfächern → Hauptlager
+//   "liefern": Hauptlager (mit "Direktlieferung" auch Ausgabefächer und Zwischenlager) → Zwischenlager
+//              bzw. Eingangsfach einer Station mit Bedarf (nur Items mit Import ⇣)
 // distanzGewicht: wie stark ein kurzer Weg zur Quelle zählt ("Disponent" bevorzugt nahe Quellen).
 function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   const hl = hauptlager();
@@ -4934,6 +5145,8 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   const kandidaten = [];
   let bester = null, besteWertung = -Infinity;
   const pruefe = (kandidat) => {
+    kandidat.quelleFach = kandidat.quelleFach || "bestand";
+    kandidat.zielFach = kandidat.zielFach || "bestand";
     kandidaten.push(kandidat);
     // Höchste Priorität gewinnt; bei Gleichstand der kürzere Weg zur Quelle
     const wertung = kandidat.prio * 10 - abstand(k, kandidat.quelle.zugang) * distanzGewicht;
@@ -4946,40 +5159,51 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
     for (const s of gebaeudeListe(istStation)) {
       const voll = kapazitaetVon(s) > 0 && summe(s.bestand) >= kapazitaetVon(s);
       for (const item of Object.keys(s.bestand)) {
+        if (!darfKurierAbholen(s, item)) continue;                         // Export aus: bleibt liegen
         const n = verfuegbar(s, item, res);
-        if (n > 0) pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, platzImLager), prio: voll ? 5 : 2 });
+        if (n <= 0 || (!voll && s.bestand[item] < exportPegel(s, item))) continue;   // Pegel noch nicht erreicht
+        pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, platzImLager), prio: voll ? 5 : 2 });
+      }
+      for (const [item, n] of Object.entries(abholbarEingang(s, res))) {   // Reste im Eingangsfach
+        pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, platzImLager), prio: 1.5 });
       }
     }
     for (const lager of gebaeudeListe(istZwischenlager)) {
       const voll = summe(lager.bestand) >= kapazitaetVon(lager);
-      const ausgang = lagerModus(lager) === "ausgang";
       for (const [item, n] of Object.entries(abholbar(lager, res))) {
-        pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, platzImLager), prio: ausgang ? (voll ? 5 : 2) : 1.5 });
+        // Reine Export-Ware drängt (sonst läuft das Lager voll), der Überschuss eines Puffers nicht
+        const prio = regelVon(lager, item).imp ? 1.5 : voll ? 5 : 2;
+        pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, platzImLager), prio });
       }
     }
   }
-  // "liefern": Zwischenlager mit Bedarf füllen (je leerer, desto wichtiger).
-  // Was ein Arbeiter gerade am Lager vermisst, kommt vor allem anderen (sonst steht er lange herum).
-  // Je länger ein Lager nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
+  // "liefern": Zwischenlager und Eingangsfächer mit Bedarf füllen (je leerer, desto wichtiger).
+  // Was ein Arbeiter gerade vermisst, kommt vor allem anderen (sonst steht er lange herum);
+  // wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank).
+  // Je länger ein Ziel nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
   const direkt = forschungAktiv("direktlieferung");
-  for (const lager of gebaeudeListe(istZwischenlager)) {
-    const soll = sollbestand(lager);
-    const vermisst = fehltWartenden(lager, res);
-    const wartezeit = Math.min(1, (spiel.zeit - (lager.zuletztBeliefert ?? -Infinity)) / PRODUKTION.lieferAlterung);
-    for (const [item, fehlt] of Object.entries(bedarf(lager, res))) {
-      const fuellung = ((lager.bestand[item] || 0) + reserviert(res.rein, lager.id, item)) / soll[item];
-      // Wartende: wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank)
+  const ziele = gebaeudeListe((g) => istZwischenlager(g) || (istStation(g) && fachGroesse(g, "eingang") > 0));
+  for (const ziel of ziele) {
+    const fach = istStation(ziel) ? "eingang" : "bestand";
+    const offen = bedarf(ziel, res);
+    if (!Object.keys(offen).length) continue;
+    const soll = sollbestand(ziel);
+    const vermisst = fehltWartenden(ziel, fach, res);
+    const wartezeit = Math.min(1, (spiel.zeit - (ziel.zuletztBeliefert ?? -Infinity)) / PRODUKTION.lieferAlterung);
+    for (const [item, fehlt] of Object.entries(offen)) {
+      const fuellung = ((fachInhalt(ziel, fach)[item] || 0) + reserviert(res.rein, fachSchluessel(ziel.id, fach), item)) / soll[item];
       const prio = item in vermisst ? 4.5 + Math.min(1, (spiel.zeit - vermisst[item]) / PRODUKTION.lieferAlterung)
                                   : 1 + 2 * (1 - fuellung) + wartezeit;
       if (hl) {
         const n = verfuegbar(hl, item, res);
-        if (n > 0) pruefe({ art: "liefern", quelle: hl, ziel: lager, item, max: Math.min(fehlt, n), prio });
+        if (n > 0) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio });
       }
       if (!direkt) continue;
       // Direktlieferung: aus Ausgabefächern und (abholbaren) Zwischenlagern, ohne Umweg übers Hauptlager
-      for (const quelle of gebaeudeListe((g) => g !== lager && (istStation(g) || istZwischenlager(g)))) {
-        const n = istStation(quelle) ? verfuegbar(quelle, item, res) : (abholbar(quelle, res)[item] || 0);
-        if (n > 0) pruefe({ art: "liefern", quelle, ziel: lager, item, max: Math.min(fehlt, n), prio: prio + 0.5 });
+      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)))) {
+        const n = istStation(quelle) ? (darfKurierAbholen(quelle, item) ? verfuegbar(quelle, item, res) : 0)
+                                     : (abholbar(quelle, res)[item] || 0);
+        if (n > 0) pruefe({ art: "liefern", quelle, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio: prio + 0.5 });
       }
     }
   }
@@ -4993,25 +5217,28 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
     for (const kd of kandidaten) {
       if (rest <= 0) break;
       if (kd.quelle !== bester.quelle || kd.ziel !== bester.ziel || items[kd.item]) continue;
+      if (kd.quelleFach !== bester.quelleFach || kd.zielFach !== bester.zielFach) continue;
       const n = Math.min(rest, kd.max);
       items[kd.item] = n;
       rest -= n;
     }
   }
-  // Mehrere Sorten zum Hauptlager: nicht mehr als dort Platz ist
-  return { art: bester.art, quelleId: bester.quelle.id, zielId: bester.ziel.id, items, abgeholt: false };
+  return {
+    art: bester.art, quelleId: bester.quelle.id, quelleFach: bester.quelleFach,
+    zielId: bester.ziel.id, zielFach: bester.zielFach, items, abgeholt: false,
+  };
 }
 
-// Welche Items vermissen die Arbeiter, die an diesem Lager auf Material warten (abzüglich schon
+// Welche Items vermissen die Arbeiter, die an diesem Fach auf Material warten (abzüglich schon
 // Gebrachtem)? Rückgabe: Item → Spielzeit, seit der am längsten Wartende darauf wartet.
-function fehltWartenden(lager, res) {
+function fehltWartenden(g, fach, res) {
   const fehlt = {};
   for (const p of mitarbeiter) {
     const a = p.auftrag;
-    if (p.rolle !== "arbeiter" || !a || a.art !== "warten" || a.quelleId !== lager.id) continue;
+    if (p.rolle !== "arbeiter" || !a || a.art !== "warten" || a.quelleId !== g.id || (a.quelleFach || "bestand") !== fach) continue;
     const seit = a.wartetSeit ?? spiel.zeit;
     for (const [item, n] of Object.entries(a.items)) {
-      if (n - verfuegbar(lager, item, res) - reserviert(res.rein, lager.id, item) > 0) {
+      if (n - verfuegbar(g, item, res, fach) - reserviert(res.rein, fachSchluessel(g.id, fach), item) > 0) {
         fehlt[item] = Math.min(fehlt[item] ?? Infinity, seit);
       }
     }
@@ -5053,9 +5280,10 @@ function schrittKurier(p, dt) {
       p.timer -= dt;
       if (p.timer > 0) break;
       const geladen = {};
+      const inhalt = fachInhalt(quelle, a.quelleFach);
       for (const [item, n] of Object.entries(a.items)) {
-        const m = darfKurierAbholen(quelle, item) ? Math.min(n, quelle.bestand[item] || 0) : 0;
-        if (m > 0) { aendereBestand(quelle, item, -m); geladen[item] = m; }
+        const m = darfKurierAbholen(quelle, item, a.quelleFach) ? Math.min(n, inhalt[item] || 0) : 0;
+        if (m > 0) { aendereFach(quelle, a.quelleFach, item, -m); geladen[item] = m; }
       }
       if (!summe(geladen)) return beendeAuftrag(p);
       p.traegt = geladen;
@@ -5076,16 +5304,17 @@ function schrittKurier(p, dt) {
       if (!ziel) return leiteUm(p);
       p.timer -= dt;
       if (p.timer > 0) break;
-      // Ablegen, soweit Platz ist; der Rest geht zurück ins Hauptlager
-      let platz = kapazitaetVon(ziel) - summe(ziel.bestand);
+      // Ablegen, soweit Platz ist (und das Item dort noch erwünscht ist); der Rest geht zurück ins Hauptlager
+      let platz = fachGroesse(ziel, a.zielFach) - summe(fachInhalt(ziel, a.zielFach));
       for (const [item, n] of Object.entries(p.traegt)) {
+        if (a.zielFach === "eingang" && !darfKurierLiefern(ziel, item, "eingang")) continue;   // Rezept unterwegs geändert
         const m = Math.min(n, Math.max(0, platz));
         if (m <= 0) continue;
-        aendereBestand(ziel, item, m);
+        aendereFach(ziel, a.zielFach, item, m);
         bucheItems(p.traegt, { [item]: m }, -1);
         platz -= m;
       }
-      if (istZwischenlager(ziel)) ziel.zuletztBeliefert = spiel.zeit;
+      if (istZwischenlager(ziel) || a.zielFach === "eingang") ziel.zuletztBeliefert = spiel.zeit;
       if (hatItems(p)) { a.items = { ...p.traegt }; return leiteUm(p); }
       // Phase 5: jeder Gang bringt Forschungspunkte und Erfahrung
       gibForschungspunkte(FORSCHUNG_WERTE.fpKurierGang);
@@ -5123,22 +5352,42 @@ function leiteUm(p) {
 
 /* --- Arbeiter --- */
 
-// Sucht unter den verknüpften Zwischenlagern eins aus: am liebsten das nächste, in dem
-// alles für einen Durchgang bereitliegt. Ausgang-Lager zählen nicht (Phase 5).
-// Rückgabe: { g, komplett } oder null (kein Lager verknüpft)
+// Woher nimmt der Arbeiter das Material für einen Durchgang? Am liebsten aus dem eigenen
+// Eingangsfach (Phase 5b, kein Laufweg), sonst aus dem nächsten verknüpften Lager, in dem alles
+// bereitliegt. Reine Ausgang-Lager zählen nicht.
+// Rückgabe: { g, fach, komplett } oder null (keine Quelle)
 function waehleLager(s, r, res) {
-  const lager = s.verknuepft.map((id) => spiel.gebaeude.get(id)).filter((g) => g && darfArbeiterEntnehmen(g));
-  if (!lager.length) return null;
-  lager.sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang));
-  const komplett = lager.find((g) => Object.entries(r.eingaben).every(([i, n]) => verfuegbar(g, i, res) >= n));
-  return komplett ? { g: komplett, komplett: true } : { g: lager[0], komplett: false };
+  const quellen = s.verknuepft.map((id) => spiel.gebaeude.get(id)).filter((g) => g && darfArbeiterEntnehmen(g))
+    .sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang))
+    .map((g) => ({ g, fach: "bestand" }));
+  const importiert = Object.keys(r.eingaben).some((i) => regelVon(s, i).imp);
+  if (fachGroesse(s, "eingang") > 0 && (importiert || summe(s.eingang) > 0)) quellen.unshift({ g: s, fach: "eingang" });
+  if (!quellen.length) return null;
+  const komplett = quellen.find((q) => Object.entries(r.eingaben).every(([i, n]) => nimmbar(q.g, q.fach, i, res) >= n));
+  if (komplett) return { ...komplett, komplett: true };
+  // Nichts komplett: dort warten, wohin Kuriere liefern (eigenes Eingangsfach mit Import, sonst das nächste Lager)
+  const warteOrt = (importiert && quellen.find((q) => q.fach === "eingang")) || quellen.find((q) => q.fach === "bestand") || quellen[0];
+  return { ...warteOrt, komplett: false };
+}
+// Wie viel darf ein Arbeiter von diesem Item aus diesem Fach nehmen?
+function nimmbar(g, fach, item, res) {
+  if (fach === "bestand" && !darfArbeiterEntnehmen(g, item)) return 0;
+  return verfuegbar(g, item, res, fach);
+}
+// Ist die Quelle eines Arbeiter-Auftrags noch gültig? Rückgabe: das Gebäude oder null
+function quelleGueltig(s, a) {
+  const q = spiel.gebaeude.get(a.quelleId);
+  if (!q) return null;
+  if (a.quelleFach === "eingang") return q === s ? q : null;
+  return sindVerknuepft(s, q) && darfArbeiterEntnehmen(q) ? q : null;
 }
 
-// Wohin mit dem fertigen Erzeugnis? Ein verknüpftes Ausgang-Lager (sonst Gemischt-Lager) mit Platz.
+// Wohin mit dem fertigen Erzeugnis? Ein verknüpftes Lager, das es annimmt und Platz hat (sonst null = Ausgabefach).
 function ausgabeLagerFuer(s, item, res) {
   const lager = s.verknuepft.map((id) => spiel.gebaeude.get(id))
     .filter((g) => g && nimmtErzeugnisAn(g, item) && freierPlatz(g, res) > 0);
-  lager.sort((a, b) => (lagerModus(a) === "ausgang" ? 0 : 1) - (lagerModus(b) === "ausgang" ? 0 : 1)
+  // Zuerst dorthin, wo eine andere Station es braucht (spart den Umweg übers Hauptlager), dann der kürzeste Weg
+  lager.sort((a, b) => (regelVon(a, item).imp ? 0 : 1) - (regelVon(b, item).imp ? 0 : 1)
     || abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang));
   return lager[0] || null;
 }
@@ -5216,7 +5465,7 @@ function schrittArbeiter(p, dt) {
         else if (istAngekommen(p, s.zugang)) schaueAuf(p, s);
         return;
       }
-      p.auftrag = { art: wahl.komplett ? "material" : "warten", quelleId: wahl.g.id, items: { ...r.eingaben }, rezept: r, abgeholt: false,
+      p.auftrag = { art: wahl.komplett ? "material" : "warten", quelleId: wahl.g.id, quelleFach: wahl.fach, items: { ...r.eingaben }, rezept: r, abgeholt: false,
                     wartetSeit: spiel.zeit };   // ab wann der Arbeiter auf Material wartet (Vorrang bei Kurieren)
       p.phase = "zumLager";
       geheZu(p, wahl.g.zugang);
@@ -5224,8 +5473,8 @@ function schrittArbeiter(p, dt) {
     }
 
     case "zumLager": {
-      const q = spiel.gebaeude.get(a.quelleId);
-      if (!q || !sindVerknuepft(s, q) || !darfArbeiterEntnehmen(q)) return beendeAuftrag(p);
+      const q = quelleGueltig(s, a);
+      if (!q) return beendeAuftrag(p);
       if (istAngekommen(p, q.zugang)) { p.phase = "nimmt"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, q); }
       else if (istFestgefahren(p, q.zugang)) beendeAuftrag(p);
       break;
@@ -5233,8 +5482,8 @@ function schrittArbeiter(p, dt) {
 
     case "nimmt":
     case "wartetMaterial": {
-      const q = spiel.gebaeude.get(a.quelleId);
-      if (!q || !sindVerknuepft(s, q) || !darfArbeiterEntnehmen(q)) return beendeAuftrag(p);
+      const q = quelleGueltig(s, a);
+      if (!q) return beendeAuftrag(p);
       p.timer -= dt;
       if (p.timer > 0) break;
       const r = rezeptVon(s);
@@ -5244,9 +5493,9 @@ function schrittArbeiter(p, dt) {
       }
       const res = reservierungen();
       const eigene = a.art === "material";           // eigene Reservierung zählt für mich als verfügbar
-      const alles = Object.entries(r.eingaben).every(([i, n]) => verfuegbar(q, i, res) + (eigene ? n : 0) >= n);
+      const alles = Object.entries(r.eingaben).every(([i, n]) => nimmbar(q, a.quelleFach, i, res) + (eigene ? n : 0) >= n);
       if (alles) {
-        for (const [i, n] of Object.entries(r.eingaben)) aendereBestand(q, i, -n);
+        for (const [i, n] of Object.entries(r.eingaben)) aendereFach(q, a.quelleFach, i, -n);
         p.traegt = { ...r.eingaben };
         a.art = "material";
         a.abgeholt = true;
@@ -5256,10 +5505,11 @@ function schrittArbeiter(p, dt) {
         a.art = "warten";
         p.phase = "wartetMaterial";
         p.timer = 0.5;
-        // Liegt in einem anderen verknüpften Lager alles bereit? Dann dorthin gehen.
+        // Liegt in einem anderen verknüpften Lager (oder im Eingangsfach) alles bereit? Dann dorthin gehen.
         const anderes = waehleLager(s, r, reservierungen());
-        if (anderes && anderes.komplett && anderes.g.id !== q.id) {
+        if (anderes && anderes.komplett && (anderes.g.id !== q.id || anderes.fach !== (a.quelleFach || "bestand"))) {
           a.quelleId = anderes.g.id;
+          a.quelleFach = anderes.fach;
           a.art = "material";
           p.phase = "zumLager";
           geheZu(p, anderes.g.zugang);
@@ -5324,7 +5574,8 @@ function stationsStatus(s) {
   if (s.pausiert) return "pausiert";
   const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
   if (!p) return "keinArbeiter";
-  if (!s.verknuepft.some((id) => spiel.gebaeude.has(id))) return "keinLager";
+  // Phase 5b: Eine Station mit Import ins eigene Eingangsfach braucht kein Lager
+  if (!versorgtDurchLager(s) && !Object.keys(r.eingaben).some((i) => regelVon(s, i).imp) && !summe(s.eingang)) return "keinLager";
   if (p.phase === "arbeitet") return p.auftrag && !ausgabeMoeglich(s, p.auftrag.rezept, reservierungen()) ? "ausgabeVoll" : "arbeitet";
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") return "bringtErzeugnis";
   if (p.phase === "wartetMaterial") return "wartetAufMaterial";
@@ -5386,7 +5637,7 @@ function schaltePauseUm() {
 // Was würde "Halle bereinigen" verschieben? (für das Bestätigungsfenster)
 function zaehleHalle() {
   let items = 0;
-  for (const g of spiel.gebaeude.values()) items += summe(g.bestand);
+  for (const g of spiel.gebaeude.values()) items += summe(g.bestand) + summe(g.eingang);
   for (const p of mitarbeiter) items += summe(p.traegt);
   return { gebaeude: spiel.gebaeude.size, items };
 }
@@ -5402,7 +5653,7 @@ function halleBereinigen() {
     gebaeude: liste.map((g) => ({
       typ: g.typ, x: g.x, z: g.z, drehung: g.drehung, rezept: g.rezept, pausiert: g.pausiert,
       verknuepft: g.verknuepft.map((id) => nummer.get(id)).filter((i) => i !== undefined),
-      arbeiter: g.arbeiterId, modus: g.modus, fixiert: { ...g.fixiert },
+      arbeiter: g.arbeiterId, modus: g.modus, regeln: JSON.parse(JSON.stringify(g.regeln)),
     })),
   };
   let items = 0;
@@ -5417,7 +5668,7 @@ function halleBereinigen() {
   }
   // 2. Alle Gebäude abbauen; ihr Inhalt geht direkt ins Depot
   for (const g of liste) {
-    items += summe(g.bestand);
+    items += summe(g.bestand) + summe(g.eingang);
     reisseAb(g.id, { inhaltInsDepot: true });
   }
   spiel.version++;
@@ -5444,7 +5695,7 @@ function stelleAufbauWiederHer() {
     ergebnis.gebaeude.rezept = e.rezept;
     ergebnis.gebaeude.pausiert = e.pausiert;
     if (LAGER_MODI[e.modus]) ergebnis.gebaeude.modus = e.modus;     // Phase 5: Lagerregeln mit wiederherstellen
-    ergebnis.gebaeude.fixiert = { ...(e.fixiert || {}) };
+    ergebnis.gebaeude.regeln = e.regeln ? JSON.parse(JSON.stringify(e.regeln)) : regelnAusFixierung(e.modus, e.fixiert);
   }
   schnappschuss.gebaeude.forEach((e, i) => {
     if (!neueIds[i]) return;
@@ -5480,7 +5731,7 @@ function spielstandDaten() {
     gebaeude: gebaeudeListe().map((g) => ({
       id: g.id, typ: g.typ, nummer: g.nummer, x: g.x, z: g.z, drehung: g.drehung,
       bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
-      modus: g.modus, fixiert: g.fixiert,
+      modus: g.modus, regeln: g.regeln, eingang: g.eingang,   // Phase 5b
     })),
     naechsteId: spiel.naechsteId,
     depot: spiel.depot,
@@ -5548,6 +5799,7 @@ function wendeSpielstandAn(d) {
       insDepot++;
       spiel.depot.gebaeude[e.typ] = (spiel.depot.gebaeude[e.typ] || 0) + 1;
       bucheItems(spiel.depot.items, e.bestand || {});
+      bucheItems(spiel.depot.items, e.eingang || {});
       continue;
     }
     stelleGebaeudeAuf(e.typ, e.x, e.z, e.drehung, e);
@@ -6480,6 +6732,7 @@ spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
     huelle, modell: bau.gruppe, fuellung, plaetze: bau.plaetze, wuerfel: bau.wuerfel, pfeil,
     status: istStation(g) ? baueStatusAnzeige() : null,
     lagerMarke: istZwischenlager(g) ? baueLagerMarke(g, huelle) : null,   // Phase 5: Eingang/Ausgang/Gemischt
+    stationsMarke: istStation(g) ? baueStationsMarke(g) : null,          // Phase 5b: Import/Export der Station
     alter: 0, verschwindet: false, version: -1, gebaeude: g, splitterTimer: 0,
   });
 });
@@ -6500,7 +6753,9 @@ spielEreignisse.addEventListener("gebaeudeVerschoben", (e) => {
 
 /* --- Lagerregeln sichtbar machen (Phase 5): farbiger Bodenrahmen + Schild mit Pfeil --- */
 const lagerModusTexturen = {};
-for (const [modus, info] of Object.entries(LAGER_MODI)) {
+// "keiner" (Phase 5b): weder Import noch Export
+const ANZEIGE_MODI = { ...LAGER_MODI, keiner: { symbol: "–", farbe: "#b4bab5" } };
+for (const [modus, info] of Object.entries(ANZEIGE_MODI)) {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
   const k = c.getContext("2d");
@@ -6524,13 +6779,23 @@ function baueLagerMarke(g, huelle) {
   form.holes.push(loch);
   const rahmenGeo = new THREE.ShapeGeometry(form);
   rahmenGeo.rotateX(-Math.PI / 2);
-  const rahmen = new THREE.Mesh(rahmenGeo, new THREE.MeshBasicMaterial({ color: LAGER_MODI[g.modus].farbe, transparent: true, opacity: 0.85, depthWrite: false }));
+  const modus = lagerAnzeigeModus(g);
+  const rahmen = new THREE.Mesh(rahmenGeo, new THREE.MeshBasicMaterial({ color: ANZEIGE_MODI[modus].farbe, transparent: true, opacity: 0.85, depthWrite: false }));
   rahmen.position.y = 0.012;
   huelle.add(rahmen);
-  const schild = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), new THREE.MeshBasicMaterial({ map: lagerModusTexturen[g.modus], transparent: true, depthTest: false }));
+  const schild = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), new THREE.MeshBasicMaterial({ map: lagerModusTexturen[modus], transparent: true, depthTest: false }));
   schild.renderOrder = 19;
   szene.add(schild);
-  return { rahmen, schild, modus: g.modus, hoehe: LAGER_SCHILD_HOEHE[g.typ] || 1.2 };
+  return { rahmen, schild, modus, hoehe: LAGER_SCHILD_HOEHE[g.typ] || 1.2 };
+}
+// Phase 5b: kleines Pfeil-Schild an Stationen (⇣ Import ins Eingangsfach, ⇡ Export, ⇅ beides, – keins).
+// Es sitzt an der Vorderkante, unterhalb des Status-Symbols.
+function baueStationsMarke(g) {
+  const modus = stationAnzeigeModus(g);
+  const schild = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26), new THREE.MeshBasicMaterial({ map: lagerModusTexturen[modus], transparent: true, depthTest: false }));
+  schild.renderOrder = 19;
+  szene.add(schild);
+  return { schild, modus, hoehe: 0.85 };
 }
 
 spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
@@ -6541,6 +6806,7 @@ spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
   szene.remove(eintrag.pfeil);
   if (eintrag.status) szene.remove(eintrag.status.anzeige);
   if (eintrag.lagerMarke) szene.remove(eintrag.lagerMarke.schild);
+  if (eintrag.stationsMarke) szene.remove(eintrag.stationsMarke.schild);
   zeichneFuellung(eintrag, {});
 });
 
@@ -6577,17 +6843,34 @@ function aktualisiereGebaeude3d(sekunden, zeit) {
       }
     }
     // Phase 5: Lagerregel (Farbe und Schild) und Schild-Position
+    // Phase 5b: Die Anzeige ergibt sich aus den Pfeilen; neu berechnen nur, wenn sich etwas geändert hat
     const lm = eintrag.lagerMarke;
     if (lm) {
-      if (lm.modus !== g.modus) {
-        lm.modus = g.modus;
-        lm.rahmen.material.color.set(LAGER_MODI[g.modus].farbe);
-        lm.schild.material.map = lagerModusTexturen[g.modus];
-        lm.schild.material.needsUpdate = true;
+      if (lm.struktur !== spiel.strukturVersion) {
+        lm.struktur = spiel.strukturVersion;
+        const modus = lagerAnzeigeModus(g);
+        if (lm.modus !== modus) {
+          lm.modus = modus;
+          lm.rahmen.material.color.set(ANZEIGE_MODI[modus].farbe);
+          lm.schild.material.map = lagerModusTexturen[modus];
+          lm.schild.material.needsUpdate = true;
+        }
       }
       const mitte = gebaeudeMitteWelt(g);
       lm.schild.position.set(mitte.x, rasterHoehe + lm.hoehe, mitte.z);
       lm.schild.quaternion.copy(kamera.quaternion);
+    }
+    const sm = eintrag.stationsMarke;
+    if (sm) {
+      if (sm.struktur !== spiel.strukturVersion) {
+        sm.struktur = spiel.strukturVersion;
+        const modus = stationAnzeigeModus(g);
+        if (sm.modus !== modus) { sm.modus = modus; sm.schild.material.map = lagerModusTexturen[modus]; sm.schild.material.needsUpdate = true; }
+      }
+      // An der Vorderkante (Richtung Zugang), damit es das Status-Symbol nicht verdeckt
+      const mitte = gebaeudeMitteWelt(g);
+      sm.schild.position.set(mitte.x + g.richtung.x * 0.45, rasterHoehe + sm.hoehe, mitte.z + g.richtung.z * 0.45);
+      sm.schild.quaternion.copy(kamera.quaternion);
     }
   }
 }
@@ -7345,16 +7628,17 @@ function zeichneInfo() {
       </select></label>`;
   } else if (istZwischenlager(g)) {
     const modus = lagerModus(g);
-    html += `<div class="info-block"><h3>Lagerregel</h3>
-        <div class="modus-wahl" role="group" aria-label="Lagerregel">
+    // Phase 5b: Schnellwahl setzt alle Pfeile auf einmal; einzelne Pfeile stehen im Ressourcen-Reiter
+    html += `<div class="info-block"><h3>Schnellwahl</h3>
+        <div class="modus-wahl" role="group" aria-label="Schnellwahl für alle Pfeile">
           ${Object.entries(LAGER_MODI).map(([id, m]) =>
             `<button type="button" data-aktion="modus" data-modus="${id}" aria-pressed="${modus === id}" title="${htmlSicher(m.text)}">${m.symbol} ${m.name}</button>`).join("")}
         </div>
-        <p class="modus-text">${htmlSicher(LAGER_MODI[modus].text)}${modus === "ausgang" ? " 📌 = nur diese Erzeugnisse annehmen." : " 📌 = feste Menge, Kuriere holen es nie ab."}</p>
-        <label class="info-feld">Item fixieren <select data-aktion="fixieren">
+        <p class="modus-text">${htmlSicher(LAGER_MODI[modus].text)}</p>
+        <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
           <option value="">– Item wählen –</option>
           ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
-            .filter((item) => !(item in g.fixiert))
+            .filter((item) => !regelZeilenIds(g).includes(item))
             .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
         </select></label>
       </div>`;
@@ -7373,8 +7657,8 @@ function zeichneInfo() {
     html += `<button class="lz-knopf" type="button" data-aktion="verknuepfen" aria-pressed="${!!verknuepfModus}">Verknüpfen</button>`;
   }
   if (istStation(g)) html += `<button class="lz-knopf" type="button" data-aktion="pause">${g.pausiert ? "Fortsetzen" : "Pausieren"}</button>`;
-  if (istZwischenlager(g) && lagerModus(g) !== "ausgang") {
-    html += `<button class="lz-knopf" type="button" data-aktion="rueckgabe" title="Kuriere bringen alles, was nicht gebraucht wird und nicht fixiert ist, ins Hauptlager">Überschuss zurückschicken</button>`;
+  if (istZwischenlager(g)) {
+    html += `<button class="lz-knopf" type="button" data-aktion="rueckgabe" title="Kuriere bringen einmalig alles über dem Soll ins Hauptlager (außer Ressourcen mit ausgeschaltetem Export)">Überschuss zurückschicken</button>`;
   }
   if (t.art === "hauptlager") html += `<button class="lz-knopf" type="button" data-aktion="lager">Lager-Fenster <kbd>I</kbd></button>`;
   html += `<button class="lz-knopf" type="button" data-aktion="verschieben">Verschieben <kbd>M</kbd></button>`;
@@ -7384,24 +7668,81 @@ function zeichneInfo() {
   aktualisiereInfoZahlen();
 }
 
-// Zeilen eines Zwischenlagers: Item | Ist | Soll | 📌 (fixieren) und − / + für fixierte Mengen
+/* --- Ressourcen-Reiter (Phase 5b): Import-/Export-Pfeile pro Ressource --- */
+// Welche Ressourcen zeigt der Reiter eines Zwischenlagers? Inhalt, Soll, Bedarf und Erzeugnisse
+// der verknüpften Stationen und alles, was von Hand eingestellt ist.
+function regelZeilenIds(g) {
+  return [...new Set([...Object.keys(g.bestand), ...Object.keys(sollbestand(g)), ...Object.keys(g.regeln),
+    ...gebrauchteItems(g), ...erzeugteItems(g)])];
+}
+// Ein Pfeil-Knopf: ⇣ Import oder ⇡ Export (an/aus)
+function pfeilKnopf(item, feld, an, titel) {
+  return `<button class="pfeil-knopf ${feld}" type="button" data-aktion="pfeil" data-feld="${feld}" data-item="${htmlSicher(item)}"
+    aria-pressed="${an}" title="${htmlSicher(titel)} (${an ? "an" : "aus"})">${feld === "imp" ? "⇣" : "⇡"}</button>`;
+}
+// Eine Zeile: Ressource | Ist / Soll (−/+) | ⇣ | ⇡ | ↺
+//   z = { item, ist, soll (oder null), sollText, imp (true/false oder null = kein Knopf), exp, manuell, notiz }
+function regelZeile(z) {
+  const info = itemInfo(z.item);
+  const id = htmlSicher(z.item);
+  const menge = z.soll === null ? `${z.ist}` : `${z.ist} <span class="leise">/ ${z.soll}</span>`;
+  const knoepfe = z.sollAenderbar ? `<span class="fix-knoepfe">
+      <button class="mini-knopf" type="button" data-aktion="soll-minus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} verringern">−</button>
+      <button class="mini-knopf" type="button" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} erhöhen">+</button></span>` : "";
+  return `<tr>
+    <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
+    <td class="zahl">${menge}${knoepfe}</td>
+    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, "Import: Kuriere bringen bis zum Soll")}</td>
+    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.station ? "Export: Kuriere holen ab, sobald der Pegel erreicht ist" : "Export: Kuriere holen ab, was über dem Soll liegt")}</td>
+    <td>${z.manuell ? `<button class="mini-knopf" type="button" data-aktion="auto" data-item="${id}" title="Zurück auf Automatik" aria-label="Zurück auf Automatik">↺</button>` : ""}</td>
+  </tr>`;
+}
+function regelTabelle(zeilen) {
+  if (!zeilen.length) return `<p class="info-leer">leer</p>`;
+  return `<table class="regel-tabelle"><thead><tr><th>Ressource</th><th class="zahl">Ist / Soll</th>
+    <th title="Import">⇣</th><th title="Export">⇡</th><th></th></tr></thead><tbody>${zeilen.join("")}</tbody></table>`;
+}
+// Ressourcen-Reiter eines Zwischenlagers
 function lagerZeilen(g) {
-  const ausgang = lagerModus(g) === "ausgang";
   const soll = sollbestand(g);
-  const ids = [...new Set([...Object.keys(g.bestand), ...Object.keys(soll), ...Object.keys(g.fixiert)])];
-  if (!ids.length) return `<p class="info-leer">leer</p>`;
+  const ids = regelZeilenIds(g);
   ids.sort((a, b) => (g.bestand[b] || 0) - (g.bestand[a] || 0) || itemInfo(a).name.localeCompare(itemInfo(b).name));
-  return `<dl class="lager-tabelle">` + ids.map((id) => {
-    const info = itemInfo(id);
-    const fix = id in g.fixiert;
-    const knoepfe = `<span class="fix-knoepfe">
-        ${fix && !ausgang ? `<button class="mini-knopf" type="button" data-aktion="fix-minus" data-item="${htmlSicher(id)}" aria-label="Feste Menge verringern">−</button>
-        <button class="mini-knopf" type="button" data-aktion="fix-plus" data-item="${htmlSicher(id)}" aria-label="Feste Menge erhöhen">+</button>` : ""}
-        <button class="pin-knopf" type="button" data-aktion="pin" data-item="${htmlSicher(id)}" aria-pressed="${fix}"
-          title="${fix ? "Fixierung aufheben" : ausgang ? "Nur dieses Erzeugnis annehmen" : "Fixieren: feste Menge, Kuriere holen es nie ab"}">📌</button></span>`;
-    return `<dt><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span></dt>` +
-      `<dd>${g.bestand[id] || 0}</dd><dd class="leise">${ausgang ? "" : `/ ${soll[id] || 0}`}</dd><dd>${knoepfe}</dd>`;
-  }).join("") + `</dl>`;
+  return regelTabelle(ids.map((item) => {
+    const r = regelVon(g, item);
+    const fest = g.regeln[item] && g.regeln[item].soll !== undefined;
+    return regelZeile({
+      item, ist: g.bestand[item] || 0, soll: r.imp ? soll[item] || 0 : null, sollAenderbar: r.imp, sollText: "Sollmenge",
+      imp: r.imp, exp: r.exp, manuell: r.manuell,
+      notiz: !r.imp && !r.exp ? "bleibt liegen" : fest ? "feste Menge" : "",
+    });
+  }));
+}
+// Ressourcen-Reiter einer Station: Material (Eingangsfach, Import-Pegel) und Erzeugnis (Export-Pegel)
+function stationsZeilen(s, r) {
+  const zeilen = [];
+  const soll = sollEingangsfach(s);
+  const hatFach = fachGroesse(s, "eingang") > 0;
+  for (const item of Object.keys(r.eingaben)) {
+    const regel = regelVon(s, item);
+    zeilen.push(regelZeile({
+      item, ist: s.eingang[item] || 0, soll: regel.imp ? soll[item] || 0 : null, sollAenderbar: regel.imp, sollText: "Import-Pegel",
+      imp: hatFach ? regel.imp : null, exp: null, manuell: regel.manuell, notiz: regel.imp ? "" : "aus dem Lager",
+    }));
+  }
+  if (r.ausgabe) {
+    const regel = regelVon(s, r.ausgabe);
+    zeilen.push(regelZeile({
+      item: r.ausgabe, ist: s.bestand[r.ausgabe] || 0, soll: regel.exp ? exportPegel(s, r.ausgabe) : null,
+      sollAenderbar: regel.exp, sollText: "Export-Pegel", imp: null, exp: regel.exp, manuell: regel.manuell, station: true,
+      notiz: regel.exp ? "Pegel" : "bleibt liegen",
+    }));
+  }
+  // Reste im Eingangsfach (Rezept gewechselt): Kuriere holen sie ab
+  for (const item of Object.keys(s.eingang)) {
+    if (item in r.eingaben) continue;
+    zeilen.push(regelZeile({ item, ist: s.eingang[item], soll: null, imp: null, exp: null, manuell: false, notiz: "Rest, wird abgeholt" }));
+  }
+  return regelTabelle(zeilen);
 }
 
 function aktualisiereInfoZahlen() {
@@ -7411,7 +7752,7 @@ function aktualisiereInfoZahlen() {
   if (performance.now() < infoKlickSperre) return;   // gerade wird geklickt: Knöpfe nicht austauschen
   const t = typVon(g);
   const verknuepfte = g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter(Boolean);
-  const lagerName = (v) => istZwischenlager(v) ? `${LAGER_MODI[lagerModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
+  const lagerName = (v) => istZwischenlager(v) ? `${LAGER_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
@@ -7424,9 +7765,10 @@ function aktualisiereInfoZahlen() {
     const quelle = wartender && wartender.auftrag && spiel.gebaeude.get(wartender.auftrag.quelleId);
     if (quelle) {
       const hl = hauptlager();
+      const inhalt = fachInhalt(quelle, wartender.auftrag.quelleFach);
       const fehlt = Object.entries(wartender.auftrag.items)
-        .filter(([item, n]) => (quelle.bestand[item] || 0) < n)
-        .map(([item, n]) => `${n - (quelle.bestand[item] || 0)}× ${htmlSicher(itemInfo(item).name)}`
+        .filter(([item, n]) => (inhalt[item] || 0) < n)
+        .map(([item, n]) => `${n - (inhalt[item] || 0)}× ${htmlSicher(itemInfo(item).name)}`
           + (hl && (hl.bestand[item] || 0) > 0 ? "" : " (nicht im Hauptlager)"));
       if (fehlt.length) html += `<p class="info-leer">Fehlt noch: ${fehlt.join(", ")}</p>`;
     }
@@ -7435,21 +7777,24 @@ function aktualisiereInfoZahlen() {
       html += `<div class="info-block"><h3>${r.fp ? "Pro Durchgang" : "Material pro Durchgang"} (${Math.round(r.zeit * 10) / 10} s)</h3>${itemZeilen(r.eingaben)}`;
       if (r.fp) html += `<p class="info-leer">→ ${zahlText(r.fp)} Forschungspunkte</p>`;
       html += `</div>`;
+      // Phase 5b: Import-/Export-Pegel
+      html += `<div class="info-block"><h3>Ressourcen · Eingangsfach ${summe(g.eingang)} / ${fachGroesse(g, "eingang")}</h3>${stationsZeilen(g, r)}</div>`;
       if (r.ausschuss) html += `<p class="info-warnung">⚠ Überhitzte Blaupause: ${Math.round(r.ausschuss * 100)} % Ausschuss.</p>`;
       const zuKlein = verknuepfte.filter((l) => istZwischenlager(l) && darfArbeiterEntnehmen(l) && kapazitaetVon(l) < summe(r.eingaben));
       if (zuKlein.length) html += `<p class="info-warnung">⚠ ${zuKlein.map(gebaeudeName).join(", ")} ist zu klein für einen Durchgang (${summe(r.eingaben)} Items).</p>`;
-      if (verknuepfte.length && !verknuepfte.some(darfArbeiterEntnehmen)) html += `<p class="info-warnung">⚠ Kein Eingang- oder Gemischt-Lager verknüpft: Der Arbeiter bekommt kein Material.</p>`;
+      if (stationsStatus(g) === "keinLager") html += `<p class="info-warnung">⚠ Weder Import ins Eingangsfach noch ein Lager mit Material: Der Arbeiter bekommt nichts.</p>`;
       if (r.ausgabe) {
         const ausgangLager = verknuepfte.filter((v) => nimmtErzeugnisAn(v, r.ausgabe));
-        html += `<div class="info-block"><h3>Erzeugnisse gehen</h3>${ausgangLager.length ? `ins Lager: ${ausgangLager.map(lagerName).join(", ")}` : "ins Ausgabefach (Kuriere holen sie ab)"}</div>`;
+        const fach = regelVon(g, r.ausgabe).exp ? `ins Ausgabefach (Kuriere holen ab ${exportPegel(g, r.ausgabe)} Stück ab)` : "ins Ausgabefach (Export aus: bleibt liegen)";
+        html += `<div class="info-block"><h3>Erzeugnisse gehen</h3>${ausgangLager.length ? `ins Lager: ${ausgangLager.map(lagerName).join(", ")}` : fach}</div>`;
       }
     }
     if (kapazitaetVon(g) > 0) html += `<div class="info-block"><h3>Ausgabefach ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${itemZeilen(g.bestand)}</div>`;
     html += `<div class="info-block"><h3>Zwischenlager</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
-      : `<span class="info-warnung">Keins verknüpft – stelle eine Kiste daneben oder klicke „Verknüpfen“.</span>`}</div>`;
+      : `<span class="leise">Keins verknüpft – Kuriere liefern direkt ins Eingangsfach.</span>`}</div>`;
   } else if (istZwischenlager(g)) {
     const ausgang = lagerModus(g) === "ausgang";
-    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)} · ${ausgang ? "Ist" : "Ist / Soll"}</h3>${lagerZeilen(g)}</div>`;
+    html += `<div class="info-block"><h3>Ressourcen · Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${lagerZeilen(g)}</div>`;
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
     html += `<div class="info-block"><h3>Verknüpft</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
       : `<span class="info-warnung">Keine Station verknüpft – ${ausgang ? "niemand legt hier etwas ab" : "Kuriere bringen nichts"}.</span>`}</div>`;
@@ -7480,10 +7825,10 @@ ob.infoInhalt.addEventListener("change", (e) => {
     if (e.target.value) weiseZu(e.target.value, g.id);
     else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
   }
-  if (e.target.dataset.aktion === "fixieren" && e.target.value) {
+  if (e.target.dataset.aktion === "ressource" && e.target.value) {     // Phase 5b: Ressource aufnehmen (Import an)
     const item = e.target.value;
-    setzeFixierung(g.id, item, lagerModus(g) === "ausgang" ? 0 : Math.max(1, sollbestand(g)[item] || g.bestand[item] || 1));
-    zeigeMeldung(`${itemInfo(item).name} ist in ${gebaeudeName(g)} fixiert.`);
+    setzeRegel(g.id, item, "imp", true);
+    zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
   e.target.blur();
 });
@@ -7508,12 +7853,20 @@ ob.infoInhalt.addEventListener("click", (e) => {
       setzeLagerModus(g.id, knopf.dataset.modus);
       zeigeMeldung(`${gebaeudeName(g)}: ${LAGER_MODI[knopf.dataset.modus].name} – ${LAGER_MODI[knopf.dataset.modus].text}`);
       break;
-    case "pin":
-      if (item in g.fixiert) setzeFixierung(g.id, item, null);
-      else setzeFixierung(g.id, item, lagerModus(g) === "ausgang" ? 0 : Math.max(1, sollbestand(g)[item] || g.bestand[item] || 1));
+    case "pfeil": {                                  // Phase 5b: Import/Export umschalten
+      const feld = knopf.dataset.feld;
+      setzeRegel(g.id, item, feld, !regelVon(g, item)[feld]);
       break;
-    case "fix-minus": setzeFixierung(g.id, item, (g.fixiert[item] || 0) - 1); break;
-    case "fix-plus": setzeFixierung(g.id, item, (g.fixiert[item] || 0) + 1); break;
+    }
+    case "soll-minus":
+    case "soll-plus": {                              // Phase 5b: Sollmenge bzw. Pegel ändern
+      const aktuell = istStation(g)
+        ? (item in (rezeptVon(g)?.eingaben || {}) ? sollEingangsfach(g)[item] || 0 : exportPegel(g, item))
+        : sollbestand(g)[item] || 0;
+      setzeRegel(g.id, item, "soll", aktuell + (knopf.dataset.aktion === "soll-plus" ? 1 : -1));
+      break;
+    }
+    case "auto": setzeRegelZurueck(g.id, item); break;
     case "rueckgabe": {
       const n = schickeUeberschussZurueck(g.id);
       zeigeMeldung(n ? `Kuriere bringen ${n} Items aus ${gebaeudeName(g)} zurück ins Hauptlager.` : "Hier liegt kein Überschuss.", !n);
@@ -8261,6 +8614,8 @@ window.tradeUp = {
   WIRTSCHAFT, PRODUKTKLASSEN, AUFTRAEGE, REPUTATION_STUFEN, KONKURRENZ, FORSCHUNG, LAGER_MODI,
   verschiebeGebaeude, setzeLagerModus, setzeFixierung, schickeUeberschussZurueck,
   darfKurierAbholen, darfKurierLiefern, darfArbeiterEntnehmen,
+  // Phase 5b: Import-/Export-Pfeile und Pegel
+  setzeRegel, setzeRegelZurueck, regelVon, bedarf, abholbar, exportPegel,
   bucheGeld, kaufeRohstoff, setzeAutoKauf, verkaufe, verkaufspreis, setzeAutoVerkauf, verkaufeDepotGebaeude,
   berechneBauteilwert, berechneMarktwert, nachfrageVon, tagesabschluss, aktuellerTag,
   erzeugeAngebot, nimmAuftragAn, liefereAuftrag, lieferbar, reputationsStufe, aendereReputation, rangliste,

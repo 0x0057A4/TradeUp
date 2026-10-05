@@ -1684,6 +1684,7 @@ const PRODUKTION = {
   ausschussUeberhitzt: 0.3,   // Wahrscheinlichkeit für Ausschuss bei überhitzten Blaupausen (0.3 = 30 %)
   greifZeit:           0.6,   // Sekunden, die ein Arbeiter zum Nehmen des Materials braucht
   auftragsIntervall:   0.5,   // so oft (in Sekunden) verteilt die Auftragsbörse neue Aufträge an freie Kuriere
+  lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
   spielstandVersion:   2,     // Format-Version des Spielstands (Phase 5: 2; ein Spielstand mit 1 wird umgewandelt)
@@ -1750,13 +1751,14 @@ const MITARBEITER_ROLLEN = {
 };
 
 // Regeln für Zwischenlager (Phase 5). Jedes Zwischenlager hat einen dieser Modi:
-//   eingang  – Input-only: Kuriere liefern nur hinein und holen NIE etwas ab; Arbeiter entnehmen
+//   eingang  – Input-only: Kuriere liefern nur hinein; Arbeiter entnehmen. Abgeholt werden nur Reste,
+//              die keine verknüpfte Station mehr braucht (z. B. nach einem Rezeptwechsel)
 //   ausgang  – Output-only: Arbeiter legen ihre Erzeugnisse ab; Kuriere holen ab und liefern nie hinein
 //   gemischt – beides; Kuriere holen nur Überschuss ab (was keine verknüpfte Station braucht)
 // Fixierte Items (📌) bleiben immer liegen: Im Eingang/Gemischt haben sie eine feste Sollmenge,
 // im Ausgang sind sie ein Annahmefilter (nur diese Erzeugnisse werden dort abgelegt).
 const LAGER_MODI = {
-  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#4a7fc1", text: "Input-only: Kuriere liefern nur, holen nie etwas ab." },
+  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#4a7fc1", text: "Input-only: Kuriere liefern nur und holen nur Reste ab, die keine Station mehr braucht." },
   ausgang:  { name: "Ausgang",  symbol: "⇡", farbe: "#f08a3c", text: "Output-only: Arbeiter legen Erzeugnisse ab, Kuriere holen sie." },
   gemischt: { name: "Gemischt", symbol: "⇅", farbe: "#8a948c", text: "Beides: Kuriere holen nur Überschuss ab." },
 };
@@ -4553,7 +4555,19 @@ function darfKurierAbholen(g, item) {
   const modus = lagerModus(g);
   if (modus === "ausgang") return true;               // Ausgang: genau dafür ist es da
   if (item in g.fixiert) return false;                // fixiert: bleibt IMMER liegen
-  return modus === "gemischt" || g.rueckgabe;          // Eingang: nur nach "Überschuss zurückschicken"
+  // Eingang: nur nach "Überschuss zurückschicken" – oder wenn KEINE verknüpfte Station das Item
+  // (noch) braucht, z. B. nach einem Rezeptwechsel. Sonst verstopfen Reste das Lager für immer.
+  return modus === "gemischt" || g.rueckgabe || !gebrauchteItems(g).has(item);
+}
+// Welche Items braucht irgendeine verknüpfte Station (auch eine pausierte) für ihr Rezept?
+function gebrauchteItems(lager) {
+  const items = new Set();
+  for (const sid of lager.verknuepft) {
+    const s = spiel.gebaeude.get(sid);
+    const r = s && rezeptVon(s);
+    if (r) for (const item of Object.keys(r.eingaben)) items.add(item);
+  }
+  return items;
 }
 // Darf ein Kurier in dieses Gebäude liefern?
 function darfKurierLiefern(g) {
@@ -4578,7 +4592,6 @@ function abholbar(g, res) {
   const ergebnis = {};
   if (!istZwischenlager(g)) return ergebnis;
   const modus = lagerModus(g);
-  if (modus === "eingang" && !g.rueckgabe) return ergebnis;
   const soll = modus === "ausgang" ? {} : sollbestand(g);
   for (const item of Object.keys(g.bestand)) {
     if (!darfKurierAbholen(g, item)) continue;
@@ -4624,6 +4637,7 @@ function schickeUeberschussZurueck(id) {
 function sollbestand(lager) {
   if (lagerModus(lager) === "ausgang") return {};
   const soll = {};
+  const durchgang = {};                            // so viel braucht die gierigste Station für EINEN Durchgang
   const fix = lager.fixiert || {};
   for (const sid of lager.verknuepft) {
     const s = spiel.gebaeude.get(sid);
@@ -4631,15 +4645,17 @@ function sollbestand(lager) {
     const r = rezeptVon(s);
     if (!r) continue;
     for (const [item, n] of Object.entries(r.eingaben)) {
-      if (!(item in fix)) soll[item] = (soll[item] || 0) + n * PRODUKTION.vorratDurchgaenge;
+      if (item in fix) continue;
+      soll[item] = (soll[item] || 0) + n * PRODUKTION.vorratDurchgaenge;
+      durchgang[item] = Math.max(durchgang[item] || 0, n);
     }
   }
   const frei = Math.max(0, kapazitaetVon(lager) - summe(fix)), gesamt = summe(soll);
   if (gesamt > frei) {
     const faktor = frei / gesamt;
     for (const item of Object.keys(soll)) {
-      soll[item] = Math.max(frei > 0 ? 1 : 0, Math.floor(soll[item] * faktor));
-      if (!soll[item]) delete soll[item];
+      // Nie weniger als ein kompletter Durchgang: sonst wartet der Arbeiter ewig auf das letzte Teil
+      soll[item] = Math.max(durchgang[item], Math.floor(soll[item] * faktor));
     }
   }
   for (const [item, n] of Object.entries(fix)) if (n > 0) soll[item] = n;
@@ -4942,13 +4958,19 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       }
     }
   }
-  // "liefern": Zwischenlager mit Bedarf füllen (je leerer, desto wichtiger)
+  // "liefern": Zwischenlager mit Bedarf füllen (je leerer, desto wichtiger).
+  // Was ein Arbeiter gerade am Lager vermisst, kommt vor allem anderen (sonst steht er lange herum).
+  // Je länger ein Lager nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
   const direkt = forschungAktiv("direktlieferung");
   for (const lager of gebaeudeListe(istZwischenlager)) {
     const soll = sollbestand(lager);
+    const vermisst = fehltWartenden(lager, res);
+    const wartezeit = Math.min(1, (spiel.zeit - (lager.zuletztBeliefert ?? -Infinity)) / PRODUKTION.lieferAlterung);
     for (const [item, fehlt] of Object.entries(bedarf(lager, res))) {
       const fuellung = ((lager.bestand[item] || 0) + reserviert(res.rein, lager.id, item)) / soll[item];
-      const prio = 1 + 2 * (1 - fuellung);
+      // Wartende: wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank)
+      const prio = item in vermisst ? 4.5 + Math.min(1, (spiel.zeit - vermisst[item]) / PRODUKTION.lieferAlterung)
+                                  : 1 + 2 * (1 - fuellung) + wartezeit;
       if (hl) {
         const n = verfuegbar(hl, item, res);
         if (n > 0) pruefe({ art: "liefern", quelle: hl, ziel: lager, item, max: Math.min(fehlt, n), prio });
@@ -4978,6 +5000,23 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   }
   // Mehrere Sorten zum Hauptlager: nicht mehr als dort Platz ist
   return { art: bester.art, quelleId: bester.quelle.id, zielId: bester.ziel.id, items, abgeholt: false };
+}
+
+// Welche Items vermissen die Arbeiter, die an diesem Lager auf Material warten (abzüglich schon
+// Gebrachtem)? Rückgabe: Item → Spielzeit, seit der am längsten Wartende darauf wartet.
+function fehltWartenden(lager, res) {
+  const fehlt = {};
+  for (const p of mitarbeiter) {
+    const a = p.auftrag;
+    if (p.rolle !== "arbeiter" || !a || a.art !== "warten" || a.quelleId !== lager.id) continue;
+    const seit = a.wartetSeit ?? spiel.zeit;
+    for (const [item, n] of Object.entries(a.items)) {
+      if (n - verfuegbar(lager, item, res) - reserviert(res.rein, lager.id, item) > 0) {
+        fehlt[item] = Math.min(fehlt[item] ?? Infinity, seit);
+      }
+    }
+  }
+  return fehlt;
 }
 
 function starteKurierAuftrag(p, auftrag) {
@@ -5046,6 +5085,7 @@ function schrittKurier(p, dt) {
         bucheItems(p.traegt, { [item]: m }, -1);
         platz -= m;
       }
+      if (istZwischenlager(ziel)) ziel.zuletztBeliefert = spiel.zeit;
       if (hatItems(p)) { a.items = { ...p.traegt }; return leiteUm(p); }
       // Phase 5: jeder Gang bringt Forschungspunkte und Erfahrung
       gibForschungspunkte(FORSCHUNG_WERTE.fpKurierGang);
@@ -5176,7 +5216,8 @@ function schrittArbeiter(p, dt) {
         else if (istAngekommen(p, s.zugang)) schaueAuf(p, s);
         return;
       }
-      p.auftrag = { art: wahl.komplett ? "material" : "warten", quelleId: wahl.g.id, items: { ...r.eingaben }, rezept: r, abgeholt: false };
+      p.auftrag = { art: wahl.komplett ? "material" : "warten", quelleId: wahl.g.id, items: { ...r.eingaben }, rezept: r, abgeholt: false,
+                    wartetSeit: spiel.zeit };   // ab wann der Arbeiter auf Material wartet (Vorrang bei Kurieren)
       p.phase = "zumLager";
       geheZu(p, wahl.g.zugang);
       break;
@@ -7378,6 +7419,17 @@ function aktualisiereInfoZahlen() {
     const r = rezeptVon(g);
     html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
     if (art === "arbeitet") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
+    // Worauf wartet der Arbeiter genau? (und ob das Hauptlager überhaupt etwas davon hat)
+    const wartender = art === "wartetAufMaterial" && mitarbeiter.find((m) => m.id === g.arbeiterId);
+    const quelle = wartender && wartender.auftrag && spiel.gebaeude.get(wartender.auftrag.quelleId);
+    if (quelle) {
+      const hl = hauptlager();
+      const fehlt = Object.entries(wartender.auftrag.items)
+        .filter(([item, n]) => (quelle.bestand[item] || 0) < n)
+        .map(([item, n]) => `${n - (quelle.bestand[item] || 0)}× ${htmlSicher(itemInfo(item).name)}`
+          + (hl && (hl.bestand[item] || 0) > 0 ? "" : " (nicht im Hauptlager)"));
+      if (fehlt.length) html += `<p class="info-leer">Fehlt noch: ${fehlt.join(", ")}</p>`;
+    }
     html += `</div>`;
     if (r) {
       html += `<div class="info-block"><h3>${r.fp ? "Pro Durchgang" : "Material pro Durchgang"} (${Math.round(r.zeit * 10) / 10} s)</h3>${itemZeilen(r.eingaben)}`;

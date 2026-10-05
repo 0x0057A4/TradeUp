@@ -2,15 +2,21 @@
 
 Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
 
-## Stand: Phase 3 – Der Produkt-Layout-Designer
+## Stand: Phase 4 – Erste Produktion & Kuriere
 
 - **Phase 1:** Startlevel **Garage** (16 × 48 Kacheln), isometrische Kamera, Hover und Auswahl
-- **Phase 2:** Spielfigur mit A*-Pathfinding, Test-Blöcke per `Shift` + Klick
+- **Phase 2:** Spielfigur mit A*-Pathfinding (die Test-Blöcke wurden in Phase 4 durch den Bau-Modus ersetzt)
 - **Phase 3:** Produkt-Layout-Designer als 2D-Fenster über der Garage:
   - Produkt-Raster 4 × 4 (16 Kacheln), 8 Bauteile in Tetris-Formen per Drag & Drop (Maus und Touch)
   - Bauteile drehen, verschieben, entfernen, Rückgängig/Wiederholen
   - Hitze-Berechnung: Bauteile heizen direkt angrenzende Kacheln auf, Kühlkörper kühlen; liegt mehr Hitze auf einem Teil als seine Toleranz, ist es überhitzt (rot)
   - Designs als **Blaupause** speichern (im Browser, bleibt nach dem Neuladen erhalten), laden, umbenennen, duplizieren, löschen
+- **Phase 4:** Erste Produktion & Kuriere:
+  - **Baumenü** (`B`): Hauptlager (3 × 2), Kiste (1 × 1) und Schrank (2 × 1) als Zwischenlager, Werkbank und Montagetisch (je 2 × 1) mit Vorschau, Drehen und Zugangspfeil; Gebäude, die jemanden einsperren würden, lassen sich nicht bauen
+  - **Kuriere** tragen Rohstoffe und Bauteile vom Hauptlager in die Zwischenlager (anfangs 1 Item pro Gang) und Fertiges aus den Ausgabefächern zurück; Kurier-Stufen (Hände, Sackkarre, Hubwagen) sind vorbereitet
+  - **Arbeiter** holen Material nur aus den verknüpften Zwischenlagern und produzieren: Werkbank = Bauteile aus Metall, Kunststoff, Silizium; Montagetisch = Produkte nach einer Blaupause (überhitzte Blaupausen: 30 % Ausschuss)
+  - **Halle bereinigen**: baut alles ab, Maschinen und Items kommen ins Depot; „Aufbau wiederherstellen“ stellt alles zurück
+  - Info-Fenster per Klick auf ein Gebäude, Lager-Fenster (`I`), Personal, Spieltempo (`P`, `1`–`3`), automatischer Spielstand im Browser
 
 ## Spiel starten
 
@@ -33,8 +39,14 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Auswahl aufheben | `Esc` |
 | Kamera verschieben | rechte (oder mittlere) Maustaste ziehen, `W A S D`, Pfeiltasten |
 | Zoomen | Mausrad |
-| Figur hinschicken | Linksklick |
-| Test-Block setzen / entfernen | `Shift` + Linksklick |
+| Figur hinschicken | Linksklick auf freien Boden |
+| Gebäude-Info öffnen | Linksklick auf ein Gebäude |
+| Baumenü öffnen / schließen | Knopf „Bauen“, `B` |
+| Gebäude aufstellen | Karte im Baumenü wählen, Linksklick (mit `Shift` mehrere) |
+| Gebäude drehen | `R` oder Rechtsklick (ohne zu ziehen) |
+| Abriss-Werkzeug | `X`, dann Gebäude anklicken |
+| Lager-Fenster | Knopf „Lager“, `I` |
+| Pause / Tempo 1×, 2×, 3× | `P`, `1`, `2`, `3` |
 | Kamera auf die Figur | `Leertaste` |
 | Layout-Designer öffnen / schließen | Knopf in der Infobox, `L`, `Esc` |
 
@@ -56,7 +68,8 @@ Alles, was du ändern darfst, steht in `index.html` in Blöcken mit der Übersch
 - **Bedienoberfläche** (im `<style>`-Bereich ganz oben): Farben, Schriften und Abstände der Infobox als CSS-Variablen.
 - **Abschnitt 1 – 3D & Grafik** (`const GRAFIK`): Farben der Szene, Kamerawinkel, Zoomgrenzen, Licht, Schatten, Fugenbreite.
 - **Abschnitt 2 – Raster & Logik** (`const LEVELS`, `const LOGIK`): Name und Größe der Level, Laufgeschwindigkeit und Pathfinding.
-- **Abschnitt 2c – Layout-Designer** (`const LAYOUT`, `const BAUTEILE`): Größe des Produkt-Rasters und der Bauteil-Katalog mit Form, Stufe, Hitze, Kühlung, Toleranz und Farbe.
+- **Abschnitt 2c – Layout-Designer** (`const LAYOUT`, `const BAUTEILE`): Größe des Produkt-Rasters und der Bauteil-Katalog mit Form, Stufe, Hitze, Kühlung, Toleranz, Farbe sowie Rezept und Zeit an der Werkbank.
+- **Abschnitt 2d – Produktion & Logistik** (`const PRODUKTION`, `ROHSTOFFE`, `GEBAEUDE_TYPEN`, `KURIER_STUFEN`): Startbestand, Gebäudegrößen und Fassungsvermögen, Montagezeiten, Ausschussquote, Mitarbeiterzahl und die Kurier-Stufen (Traglast, Tempo, Ladezeit).
 
 ## Aufbau der Datei
 

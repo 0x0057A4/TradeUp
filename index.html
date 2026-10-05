@@ -6,14 +6,17 @@
 <title>Trade Up</title>
 <!--
   ============================================================================
-  TRADE UP – Phase 3: Der Produkt-Layout-Designer (Startlevel "Garage")
-  (Phase 1: Technisches Fundament & Bau-Raster · Phase 2: Spieler & Pathfinding)
+  TRADE UP – Phase 4: Erste Produktion & Kuriere (Startlevel "Garage")
+  (Phase 1: Fundament & Bau-Raster · Phase 2: Spieler & Pathfinding ·
+   Phase 3: Produkt-Layout-Designer)
   ============================================================================
   Diese EINE Datei enthält das komplette Spiel:
-    1. <style>   → Aussehen der Bedienoberfläche (HUD, Layout-Designer) [UI/UX-Agent]
-    2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe, Designer) [UI/UX-Agent]
+    1. <style>   → Aussehen der Bedienoberfläche (HUD, Designer, Baumenü) [UI/UX-Agent]
+    2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe, Designer,
+                   Baumenü, Info-Fenster, Lager-Fenster)             [UI/UX-Agent]
     3. <script>  → 3D-Grafik, Raster-Logik, Pathfinding, Spielfigur, Steuerung,
-                   Layout-Designer mit Hitze-Berechnung und Blaupausen
+                   Layout-Designer mit Hitze-Berechnung und Blaupausen,
+                   Gebäude, Lager, Kuriere, Arbeiter und Produktion
                                                                 [3D-, Logik- & UI/UX-Agent]
 
   So startest du das Spiel:
@@ -75,6 +78,13 @@
     --lz-ampel-gruen: #4f9d69;          /* Status-Ampel: alles in Ordnung */
     --lz-ampel-gelb: #e3a92b;           /* Status-Ampel: knapp an der Grenze */
     --lz-ampel-rot: #e0533d;            /* Status-Ampel: mindestens ein Teil überhitzt */
+
+    /* --- Produktion & Kuriere (Phase 4) --- */
+    --bau-breite: 900px;                /* höchste Breite des Baumenüs am unteren Rand */
+    --bau-symbol-hintergrund: #f6f2ea;  /* Hintergrund der Symbole auf den Gebäude-Karten */
+    --info-breite: 320px;               /* Breite des Info-Fensters rechts */
+    --farbe-kurier: #f08a3c;            /* Erkennungsfarbe der Kuriere (orange Weste) */
+    --farbe-arbeiter: #5a9a5e;          /* Erkennungsfarbe der Arbeiter (grüner Overall) */
   }
 
   /* Elemente mit dem Attribut "hidden" sind immer unsichtbar */
@@ -683,6 +693,282 @@
   @media (prefers-reduced-motion: reduce) {
     .lz-teilzelle.ueberhitzt { animation: none; }
   }
+
+  /* ==========================================================================
+     PRODUKTION & KURIERE (Phase 4)                                 [UI/UX-Agent]
+     Baumenü (unten), Info-Fenster (rechts), Lager-Fenster und Bestätigungsfenster.
+     Alle Farben/Größen oben in :root (--bau-..., --info-...).
+     ========================================================================== */
+
+  /* --- Knöpfe "Bauen" und "Lager" in der Infobox --- */
+  .hud-knopfreihe { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .hud-knopf-leise { color: var(--farbe-text); background: #fff; border: 1px solid var(--farbe-rand); }
+  .hud-knopf-leise kbd { background: var(--lz-zelle-farbe); }
+  .hud-knopf[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--farbe-text); }
+
+  /* --- Tempo-Knöpfe in der Infobox --- */
+  .tempo-knoepfe { display: inline-flex; gap: 3px; }
+  .tempo-knoepfe button {
+    min-width: 30px;
+    padding: 2px 6px;
+    font: inherit;
+    font-size: var(--groesse-klein);
+    font-weight: 700;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .tempo-knoepfe button[aria-pressed="true"] { color: #fff; background: var(--farbe-akzent); border-color: var(--farbe-akzent); }
+  .tempo-knoepfe button:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+
+  /* --- Baumenü: Leiste am unteren Rand --- */
+  #bau-leiste {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--abstand-rand) + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 5;
+    width: min(var(--bau-breite), calc(100% - 2 * var(--abstand-rand)));
+    box-sizing: border-box;
+    padding: 10px 12px 8px;
+    background: var(--farbe-karte);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--rundung);
+    box-shadow: var(--schatten);
+    backdrop-filter: blur(6px);
+    user-select: none;
+  }
+  .bau-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .bau-kopf .bau-platz { flex: 1; }
+  .bau-reiter { display: inline-flex; gap: 4px; }
+  .bau-reiter button {
+    padding: 6px 12px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    font-weight: 700;
+    color: var(--farbe-text-leise);
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .bau-reiter button[aria-selected="true"] { color: var(--farbe-text); background: #fff; border-color: var(--farbe-rand); }
+  .bau-reiter button:focus-visible { outline: 2px solid var(--farbe-akzent); }
+  .bau-gefahr { color: var(--farbe-warnung); }
+  .bau-gefahr:hover:not(:disabled) { border-color: var(--farbe-warnung) !important; }
+  .bau-inhalt {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  /* Eine Gebäude-Karte im Baumenü */
+  .bau-karte {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 34px auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 150px;
+    padding: 7px 10px;
+    font: inherit;
+    text-align: left;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .bau-karte:hover:not(:disabled) { border-color: var(--farbe-akzent); }
+  .bau-karte:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .bau-karte[aria-pressed="true"] { background: #fff1e4; border-color: var(--farbe-akzent); box-shadow: inset 0 0 0 1px var(--farbe-akzent); }
+  .bau-karte:disabled { opacity: 0.45; cursor: default; }
+  .bau-karte b { display: block; font-size: var(--groesse-text); }
+  .bau-karte small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .bau-karte .bau-depot { color: var(--farbe-frei); font-weight: 700; }
+  .bau-symbol {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    background: var(--bau-symbol-hintergrund);
+  }
+  .bau-tipp {
+    margin: 6px 2px 0;
+    min-height: 1.2em;
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text-leise);
+  }
+  .bau-tipp.warnung { color: var(--farbe-warnung); font-weight: 700; }
+  .bau-tipp kbd, .info-knoepfe kbd {
+    padding: 0 4px;
+    font-family: var(--schrift-text);
+    font-size: var(--groesse-klein);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 4px;
+  }
+
+  /* Personal-Reiter */
+  .personal { display: grid; gap: 8px; width: 100%; }
+  .personal-kopf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--groesse-text); }
+  .personal-kopf b { margin-right: auto; }
+  .personal-liste {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 6px;
+    max-height: 150px;
+    overflow: auto;
+  }
+  .personal-liste li {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    align-items: center;
+    gap: 2px 8px;
+    padding: 6px 8px;
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+    font-size: var(--groesse-text);
+  }
+  .personal-liste small { grid-column: 2 / 4; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .personal-liste .personal-status { grid-column: 2 / 4; font-size: var(--groesse-klein); font-weight: 700; }
+  .personal-punkt { width: 10px; height: 10px; border-radius: 50%; }
+  .personal-punkt.kurier { background: var(--farbe-kurier); }
+  .personal-punkt.arbeiter { background: var(--farbe-arbeiter); }
+  .personal-schloss { opacity: 0.6; }
+
+  /* --- Info-Fenster rechts (angeklicktes Gebäude) --- */
+  #info-panel {
+    position: fixed;
+    top: calc(var(--abstand-rand) + env(safe-area-inset-top, 0px));
+    right: var(--abstand-rand);
+    z-index: 6;
+    width: var(--info-breite);
+    max-width: calc(100% - 2 * var(--abstand-rand));
+    max-height: calc(100% - 2 * var(--abstand-rand) - 150px);
+    overflow: auto;
+    box-sizing: border-box;
+    padding: var(--abstand-innen);
+    background: var(--farbe-karte);
+    border: 1px solid var(--farbe-rand);
+    border-radius: var(--rundung);
+    box-shadow: var(--schatten);
+    backdrop-filter: blur(6px);
+  }
+  .info-kopf { display: flex; align-items: center; gap: 8px; }
+  .info-kopf h2 { flex: 1; margin: 0; font-family: var(--schrift-titel); font-weight: 600; font-size: 1.1rem; }
+  .info-unter { margin: 2px 0 10px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .info-feld {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 8px;
+    font-size: var(--groesse-klein);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+  }
+  .info-feld select {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 8px;
+  }
+  .info-feld select:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .info-block { margin: 10px 0; font-size: var(--groesse-text); }
+  .info-block h3 {
+    margin: 0 0 4px;
+    font-size: var(--groesse-klein);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+  }
+  .info-zeilen { margin: 0; display: grid; grid-template-columns: 1fr auto auto; gap: 3px 10px; }
+  .info-zeilen.zwei { grid-template-columns: 1fr auto; }
+  .info-zeilen dt, .info-zeilen dd { margin: 0; }
+  .info-zeilen dd { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .info-zeilen .leise { color: var(--farbe-text-leise); font-weight: 500; }
+  .info-item { display: inline-flex; align-items: center; gap: 6px; }
+  .info-item::before {
+    content: "";
+    width: 0.75em;
+    height: 0.75em;
+    border-radius: 3px;
+    background: var(--item-farbe, #ccc);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  }
+  .info-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+  .info-status::before { content: ""; width: 0.7em; height: 0.7em; border-radius: 50%; background: currentColor; }
+  .info-status.gruen { color: var(--lz-ampel-gruen); }
+  .info-status.gelb { color: var(--lz-ampel-gelb); }
+  .info-status.rot { color: var(--lz-ampel-rot); }
+  .info-status.grau { color: var(--farbe-text-leise); }
+  .info-balken { height: 8px; margin-top: 6px; background: var(--lz-zelle-farbe); border-radius: 999px; overflow: hidden; }
+  .info-balken span { display: block; height: 100%; background: var(--farbe-akzent); border-radius: 999px; }
+  .info-warnung { margin: 6px 0; font-size: var(--groesse-klein); font-weight: 700; color: var(--farbe-warnung); }
+  .info-leer { color: var(--farbe-text-leise); font-size: var(--groesse-klein); }
+  .info-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+
+  /* --- Lager-Fenster und Bestätigungsfenster (über der Szene, wie der Layout-Designer) --- */
+  .modal-schleier {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow: auto;
+    background: var(--lz-abdunkeln);
+  }
+  #dialog-overlay { z-index: 20; }
+  .modal-fenster {
+    width: min(680px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    background: var(--lz-fenster);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 20px;
+    box-shadow: 0 18px 50px rgba(30, 38, 34, 0.28);
+    outline: none;
+  }
+  .lager-spalten { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 16px 18px; }
+  .lager-spalten h3 {
+    margin: 0 0 8px;
+    font-size: var(--groesse-klein);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+  }
+  .lager-spalten .info-block:first-of-type { margin-top: 0; }
+  .lager-hinweis { margin: 0 18px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lager-hinweis.warnung { color: var(--farbe-warnung); font-weight: 700; }
+  #dialog .modal-fenster, #dialog { width: min(420px, 100%); }
+  #dialog .dialog-text { margin: 0; padding: 14px 18px 4px; font-size: var(--groesse-text); line-height: 1.45; }
+  .lz-knopf-gefahr { color: #fff; background: var(--farbe-warnung); border-color: var(--farbe-warnung); }
+  .lz-knopf-gefahr:hover:not(:disabled) { filter: brightness(1.06); }
+
+  /* Schmale Bildschirme */
+  @media (max-width: 720px) {
+    #info-panel { top: auto; bottom: calc(var(--abstand-rand) + 150px); left: var(--abstand-rand); right: var(--abstand-rand); width: auto; max-height: 45vh; }
+    .lager-spalten { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -704,9 +990,26 @@
     <dd id="hud-auswahl">–</dd>
     <dt>Figur</dt>
     <dd id="hud-figur">–</dd>
+    <!-- Phase 4: Spieltempo und produzierte Ware -->
+    <dt>Tempo</dt>
+    <dd>
+      <span class="tempo-knoepfe" role="group" aria-label="Spieltempo">
+        <button type="button" data-tempo="0" aria-pressed="false" aria-label="Pause (P)" title="Pause (P)">❚❚</button>
+        <button type="button" data-tempo="1" aria-pressed="true" title="Normales Tempo (1)">1×</button>
+        <button type="button" data-tempo="2" aria-pressed="false" title="Doppeltes Tempo (2)">2×</button>
+        <button type="button" data-tempo="3" aria-pressed="false" title="Dreifaches Tempo (3)">3×</button>
+      </span>
+    </dd>
+    <dt>Fertigware</dt>
+    <dd id="hud-fertigware">0</dd>
   </dl>
+  <!-- Phase 4: Baumenü und Lager-Fenster -->
+  <div class="hud-knopfreihe">
+    <button id="hud-bauen" class="hud-knopf" type="button" aria-pressed="false">Bauen <kbd>B</kbd></button>
+    <button id="hud-lager" class="hud-knopf hud-knopf-leise" type="button">Lager <kbd>I</kbd></button>
+  </div>
   <!-- Öffnet den Produkt-Layout-Designer (Phase 3) -->
-  <button id="hud-designer" class="hud-knopf" type="button">Layout-Designer <kbd>L</kbd></button>
+  <button id="hud-designer" class="hud-knopf hud-knopf-leise" type="button">Layout-Designer <kbd>L</kbd></button>
 </section>
 
 <!-- ================== PRODUKT-LAYOUT-DESIGNER (Phase 3) ================== -->
@@ -762,19 +1065,85 @@
   <div id="lz-geist" hidden aria-hidden="true"></div>
 </div>
 
+<!-- ================== BAUMENÜ (Phase 4) ================== -->
+<!-- Leiste am unteren Rand. Die Karten im Inhalt baut das Skript in Abschnitt 13 auf. -->
+<section id="bau-leiste" hidden aria-label="Baumenü">
+  <div class="bau-kopf">
+    <div class="bau-reiter" role="tablist" aria-label="Kategorie">
+      <button type="button" role="tab" data-reiter="lager" aria-selected="true">Lager</button>
+      <button type="button" role="tab" data-reiter="stationen" aria-selected="false">Stationen</button>
+      <button type="button" role="tab" data-reiter="personal" aria-selected="false">Personal</button>
+    </div>
+    <span class="bau-platz"></span>
+    <button id="bau-abriss" class="lz-knopf" type="button" aria-pressed="false">Abriss <kbd>X</kbd></button>
+    <button id="bau-wiederherstellen" class="lz-knopf" type="button" hidden>Aufbau wiederherstellen</button>
+    <button id="bau-bereinigen" class="lz-knopf bau-gefahr" type="button">Halle bereinigen</button>
+    <button id="bau-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Baumenü schließen">✕</button>
+  </div>
+  <div id="bau-inhalt" class="bau-inhalt"></div>
+  <p id="bau-tipp" class="bau-tipp" aria-live="polite"></p>
+</section>
+
+<!-- ================== INFO-FENSTER (Phase 4) ================== -->
+<!-- Erscheint rechts, wenn ein Gebäude angeklickt wird. -->
+<aside id="info-panel" hidden aria-labelledby="info-titel">
+  <div class="info-kopf">
+    <h2 id="info-titel"></h2>
+    <button id="info-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Info schließen">✕</button>
+  </div>
+  <p id="info-unter" class="info-unter"></p>
+  <div id="info-inhalt"></div>
+</aside>
+
+<!-- ================== LAGER-FENSTER (Phase 4) ================== -->
+<div id="lager-overlay" class="modal-schleier" hidden>
+  <section id="lager-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="lager-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="lager-titel">Lager</h2>
+      <span class="lz-platz" style="flex:1"></span>
+      <button id="lager-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Lager schließen">✕</button>
+    </header>
+    <div class="lager-spalten">
+      <div id="lager-haupt"></div>
+      <div id="lager-depot"></div>
+    </div>
+    <p id="lager-hinweis" class="lager-hinweis"></p>
+    <footer class="lz-fuss">
+      <button id="lager-lieferung" class="lz-knopf" type="button">Testlieferung +20</button>
+      <button id="lager-wiederherstellen" class="lz-knopf" type="button">Letzten Aufbau wiederherstellen</button>
+      <span class="lz-platz"></span>
+      <button id="lager-zuruecksetzen" class="lz-knopf bau-gefahr" type="button">Spielstand zurücksetzen</button>
+    </footer>
+  </section>
+</div>
+
+<!-- ================== BESTÄTIGUNGSFENSTER (Phase 4) ================== -->
+<div id="dialog-overlay" class="modal-schleier" hidden>
+  <section id="dialog" class="modal-fenster" role="alertdialog" aria-modal="true" aria-labelledby="dialog-titel" aria-describedby="dialog-text" tabindex="-1">
+    <header class="lz-kopf"><h2 id="dialog-titel"></h2></header>
+    <p id="dialog-text" class="dialog-text"></p>
+    <footer class="lz-fuss">
+      <span class="lz-platz"></span>
+      <button id="dialog-abbrechen" class="lz-knopf" type="button">Abbrechen</button>
+      <button id="dialog-ok" class="lz-knopf lz-knopf-gefahr" type="button"></button>
+    </footer>
+  </section>
+</div>
+
 <!-- Kurze Hinweis-Meldung (z. B. "Ziel nicht erreichbar") -->
 <div id="hud-meldung" role="status"></div>
 
 <!-- Hilfeleiste mit der Steuerung -->
 <footer id="hud-hilfe">
-  <span><kbd>Klick</kbd> hinlaufen</span>
-  <span><kbd>Shift</kbd>+<kbd>Klick</kbd> Test-Block</span>
-  <span><kbd>Leertaste</kbd> Figur zeigen</span>
-  <span><kbd>L</kbd> Layout-Designer</span>
+  <span><kbd>Klick</kbd> laufen / Info</span>
+  <span><kbd>B</kbd> Bauen</span>
+  <span><kbd>I</kbd> Lager</span>
+  <span><kbd>L</kbd> Designer</span>
+  <span><kbd>P</kbd><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Tempo</span>
+  <span><kbd>Leertaste</kbd> Figur</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
   <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> bewegen</span>
   <span><kbd>Rad</kbd> zoomen</span>
-  <span><kbd>Esc</kbd> abwählen</span>
 </footer>
 
 <!-- Ladehinweis (verschwindet, sobald die 3D-Szene läuft) -->
@@ -843,13 +1212,38 @@ const GRAFIK = {
   drehTempo:         12,        // Wie schnell sich die Figur in Laufrichtung dreht (höher = schneller)
   schrittLaenge:     0.35,      // Länge eines Schritts in Kacheln (für die Geh-Animation)
 
-  // --- Pfad-Anzeige, Zielmarke, Test-Blöcke (Phase 2) ---
+  // --- Pfad-Anzeige und Zielmarke (Phase 2) ---
   pfadAnzeigen:         true,      // Punkte für den geplanten Weg zeigen (true) oder nicht (false)
   pfadPunktAbstand:     0.4,       // Abstand der Pfad-Punkte in Kacheln
   farbePfad:            "#f08a3c", // Farbe der Pfad-Punkte und der Zielmarke
   farbeNichtErreichbar: "#e0533d", // Farbe der Warn-Markierung bei "Ziel nicht erreichbar"
-  farbeTestBlock:       "#9aa3a8", // Farbe der grauen Test-Blöcke
-  testBlockHoehe:       0.6,       // Höhe eines Test-Blocks
+
+  // --- Gebäude (Phase 4) ---
+  farbeHolz:          "#c8955a",   // Kisten, Paletten, Werkbank-Platte
+  farbeHolzDunkel:    "#9c6b3c",   // Eckleisten, Latten
+  farbeMetall:        "#aeb8bf",   // Schrank, Schraubstock, Ränder
+  farbeMetallDunkel:  "#6f7c86",   // Tischbeine, Rückwände
+  farbeLagerBoden:    "#d9d4c7",   // Bodenplatte des Hauptlagers
+  farbeRegalPfosten:  "#4a6fa5",   // Pfosten des Hochregals (Blau)
+  farbeRegalTraeger:  "#f08a3c",   // Querträger des Hochregals (Orange)
+  farbeRegalBoden:    "#c7cdd2",   // Regalböden
+  farbeGlas:          "#cfe8f5",   // Glasfenster in den Schranktüren
+  farbeMontageplatte: "#e7e2d6",   // helle Platte des Montagetischs
+  farbeMontagematte:  "#5a9a5e",   // grüne Arbeitsmatte auf dem Montagetisch
+  farbeLampe:         "#f5c542",   // Lampenschirm am Montagetisch
+  farbeProdukt:       "#f08a3c",   // Farbe fertiger Produkte (Würfel im Lager)
+  farbeZugang:        "#f08a3c",   // Pfeil auf der Zugangskachel vor jedem Gebäude
+  farbeVorschauOk:    "#4f9d69",   // Bau-Vorschau: passt
+  farbeVorschauFehler:"#e0533d",   // Bau-Vorschau: passt nicht / Abriss-Markierung
+  farbeVerknuepfung:  "#4a7fc1",   // gestrichelte Linien zwischen verknüpften Gebäuden
+  statusHoehe:        1.75,        // Höhe der schwebenden Status-Symbole über den Stationen
+
+  // --- Mitarbeiter (Phase 4) ---
+  farbeKurierKoerper:   "#5d6670", // Kuriere: dunkelgraue Kleidung ...
+  farbeKurierWeste:     "#f08a3c", // ... mit oranger Warnweste ...
+  farbeKurierHelm:      "#f08a3c", // ... und orangem Helm
+  farbeArbeiterKoerper: "#5a9a5e", // Arbeiter: grüner Overall ...
+  farbeArbeiterHelm:    "#f4f4f4", // ... und weißer Helm
 };
 
 /* ============================================================================
@@ -898,24 +1292,115 @@ const LAYOUT = {
 //   toleranz  – so viel Hitze verträgt das Teil; darüber ist es überhitzt
 //   farbe, symbol – Aussehen im Designer
 //   freigeschaltet – später über die Forschung; in Phase 3 sind alle Teile verfügbar
+//   rezept    – (Phase 4) so viele Rohstoffe braucht die Werkbank für EIN Bauteil
+//   zeit      – (Phase 4) so viele Sekunden arbeitet ein Arbeiter an einem Bauteil
 const BAUTEILE = [
   { typ: "kabelbruecke", name: "Kabelbrücke", form: [[0, 0]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 4, farbe: "#c3cad0", symbol: "≈", freigeschaltet: true },
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 4, farbe: "#c3cad0", symbol: "≈", freigeschaltet: true,
+    rezept: { metall: 1 }, zeit: 3 },
   { typ: "taster", name: "Taster", form: [[0, 0], [1, 0]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#f2a65a", symbol: "◉", freigeschaltet: true },
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#f2a65a", symbol: "◉", freigeschaltet: true,
+    rezept: { kunststoff: 1 }, zeit: 3 },
   { typ: "akku", name: "Akku", form: [[0, 0], [1, 0], [2, 0]],
-    stufe: 1, hitze: 1, kuehlung: 0, toleranz: 2, farbe: "#8cc96b", symbol: "▮", freigeschaltet: true },
+    stufe: 1, hitze: 1, kuehlung: 0, toleranz: 2, farbe: "#8cc96b", symbol: "▮", freigeschaltet: true,
+    rezept: { metall: 1, kunststoff: 1 }, zeit: 5 },
   { typ: "platine", name: "Platine", form: [[0, 0], [0, 1], [1, 1]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#5fae8f", symbol: "⌗", freigeschaltet: true },
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#5fae8f", symbol: "⌗", freigeschaltet: true,
+    rezept: { silizium: 1, kunststoff: 1 }, zeit: 5 },
   { typ: "display", name: "Display", form: [[0, 0], [1, 0], [0, 1], [1, 1]],
-    stufe: 2, hitze: 1, kuehlung: 0, toleranz: 3, farbe: "#6fa8dc", symbol: "▭", freigeschaltet: true },
+    stufe: 2, hitze: 1, kuehlung: 0, toleranz: 3, farbe: "#6fa8dc", symbol: "▭", freigeschaltet: true,
+    rezept: { silizium: 1, kunststoff: 2 }, zeit: 7 },
   { typ: "netzteil", name: "Netzteil", form: [[1, 0], [2, 0], [0, 1], [1, 1]],
-    stufe: 2, hitze: 2, kuehlung: 0, toleranz: 4, farbe: "#e6c34d", symbol: "ϟ", freigeschaltet: true },
+    stufe: 2, hitze: 2, kuehlung: 0, toleranz: 4, farbe: "#e6c34d", symbol: "ϟ", freigeschaltet: true,
+    rezept: { metall: 2, silizium: 1 }, zeit: 7 },
   { typ: "prozessor", name: "Prozessor", form: [[0, 0], [1, 0], [2, 0], [1, 1]],
-    stufe: 3, hitze: 3, kuehlung: 0, toleranz: 5, farbe: "#b48ad9", symbol: "▣", freigeschaltet: true },
+    stufe: 3, hitze: 3, kuehlung: 0, toleranz: 5, farbe: "#b48ad9", symbol: "▣", freigeschaltet: true,
+    rezept: { silizium: 2, metall: 1 }, zeit: 10 },
   { typ: "kuehlkoerper", name: "Kühlkörper", form: [[0, 0]],
-    stufe: 1, hitze: 0, kuehlung: 2, toleranz: 9, farbe: "#9fd6e8", symbol: "❄", freigeschaltet: true },
+    stufe: 1, hitze: 0, kuehlung: 2, toleranz: 9, farbe: "#9fd6e8", symbol: "❄", freigeschaltet: true,
+    rezept: { metall: 2 }, zeit: 4 },
 ];
+
+/* ============================================================================
+   ABSCHNITT 2d: KONFIGURATION – Produktion & Logistik (Phase 4)  [Logik-Agent]
+   Gebäude, Rohstoffe, Mitarbeiter und Kurier-Stufen. Alle Werte sind
+   Platzhalter und dürfen frei geändert werden.
+   ============================================================================ */
+const PRODUKTION = {
+  simSchritt:          0.1,   // Sekunden pro Simulationsschritt (10 Schritte pro Sekunde, unabhängig von der Bildrate)
+  verknuepfRadius:     6,     // Stationen und Zwischenlager in höchstens so vielen Kacheln Laufweg werden automatisch verknüpft
+  vorratDurchgaenge:   2,     // Zwischenlager halten Material für so viele Durchgänge jeder verknüpften Station bereit
+  maxMitarbeiter:      8,     // höchstens so viele Kuriere + Arbeiter pro Halle
+  startKuriere:        1,     // Mitarbeiter beim allerersten Start
+  startArbeiter:       2,
+  startBestand: { metall: 40, kunststoff: 40, silizium: 20 }, // Inhalt des Hauptlagers beim allerersten Start
+  startHauptlager: { x: 6, z: 1, drehung: 0 },                // wo das Hauptlager beim allerersten Start steht
+  testLieferung:       20,    // so viel von jedem Rohstoff bringt der Knopf "Testlieferung" (bis die Wirtschaft kommt)
+  montageGrundzeit:    4,     // Sekunden für ein Produkt am Montagetisch ...
+  montageZeitProTeil:  1.5,   // ... plus so viele Sekunden pro Bauteil in der Blaupause
+  ausschussUeberhitzt: 0.3,   // Wahrscheinlichkeit für Ausschuss bei überhitzten Blaupausen (0.3 = 30 %)
+  greifZeit:           0.6,   // Sekunden, die ein Arbeiter zum Nehmen des Materials braucht
+  auftragsIntervall:   0.5,   // so oft (in Sekunden) verteilt die Auftragsbörse neue Aufträge an freie Kuriere
+  speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
+  speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
+  spielstandVersion:   1,     // Format-Version des Spielstands
+};
+
+// Rohstoffe: kommen ins Hauptlager und werden an der Werkbank zu Bauteilen verarbeitet.
+const ROHSTOFFE = [
+  { id: "metall",     name: "Metall",     farbe: "#9aa3ab" },
+  { id: "kunststoff", name: "Kunststoff", farbe: "#f4f1ea" },
+  { id: "silizium",   name: "Silizium",   farbe: "#5b7fc4" },
+];
+
+// Gebäude im Baumenü. Jedes Gebäude hat:
+//   typ          – interner Name (nicht ändern, sonst passen gespeicherte Spielstände nicht mehr)
+//   name, symbol, beschreibung – Anzeige im Baumenü und im Info-Fenster
+//   kategorie    – Reiter im Baumenü: "lager" oder "station"
+//   art          – Rolle in der Logistik: "hauptlager", "zwischenlager", "werkbank", "montage"
+//   breite/tiefe – Größe in Kacheln bei Drehung 0 (breite = nach rechts, tiefe = nach vorn)
+//   zugang       – Kachel vor dem Gebäude [Spalte, Reihe] bei Drehung 0; hier stehen Kuriere und Arbeiter
+//   kapazitaet   – so viele Items passen hinein (bei Stationen: Größe des Ausgabefachs)
+//   maxAnzahl    – höchstens so viele pro Halle (0 = unbegrenzt)
+//   preis, freigeschaltet – für die spätere Wirtschaft und Forschung (in Phase 4 alles kostenlos)
+const GEBAEUDE_TYPEN = [
+  { typ: "hauptlager", name: "Hauptlager", symbol: "▤", kategorie: "lager", art: "hauptlager",
+    breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 300, maxAnzahl: 1, preis: 0, freigeschaltet: true,
+    beschreibung: "Zentrales Lager. Kuriere holen hier Material und bringen Fertiges zurück." },
+  { typ: "kiste", name: "Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
+    breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 8, maxAnzahl: 0, preis: 0, freigeschaltet: true,
+    beschreibung: "Kleines Zwischenlager neben einer Station." },
+  { typ: "schrank", name: "Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 20, maxAnzahl: 0, preis: 0, freigeschaltet: true,
+    beschreibung: "Großes Zwischenlager, versorgt auch mehrere Stationen." },
+  { typ: "werkbank", name: "Werkbank", symbol: "⚒", kategorie: "station", art: "werkbank",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 4, maxAnzahl: 0, preis: 0, freigeschaltet: true,
+    beschreibung: "Stellt Bauteile aus Rohstoffen her." },
+  { typ: "montagetisch", name: "Montagetisch", symbol: "⚙", kategorie: "station", art: "montage",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 2, maxAnzahl: 0, preis: 0, freigeschaltet: true,
+    beschreibung: "Baut Produkte nach einer Blaupause aus dem Layout-Designer." },
+];
+
+// Kurier-Stufen: Die Transport-Logik rechnet NUR mit diesen drei Werten der Stufe,
+// nie mit einer festen Zahl. Das spätere Sackkarren-Upgrade ist damit nur
+// "kurier.stufe = 1" (in der Browser-Konsole: tradeUp.setzeKurierStufe("m1", 1)).
+//   traglast    – so viele Items trägt ein Kurier pro Gang
+//   tempoFaktor – Laufgeschwindigkeit im Verhältnis zur Spielfigur (1 = gleich schnell)
+//   ladezeit    – Sekunden zum Aufladen bzw. Abladen
+const KURIER_STUFEN = [
+  { stufe: 0, name: "Hände",     traglast: 1,  tempoFaktor: 1.00, ladezeit: 0.6, freigeschaltet: true  },
+  { stufe: 1, name: "Sackkarre", traglast: 4,  tempoFaktor: 0.85, ladezeit: 0.9, freigeschaltet: false },
+  { stufe: 2, name: "Hubwagen",  traglast: 10, tempoFaktor: 0.75, ladezeit: 1.2, freigeschaltet: false },
+];
+
+// Mitarbeiter-Rollen. "lohn" ist für die spätere Wirtschaft vorbereitet und wird noch nicht abgezogen.
+const MITARBEITER_ROLLEN = {
+  kurier:   { name: "Kurier",   lohn: 0 },
+  arbeiter: { name: "Arbeiter", lohn: 0 },
+};
+// Vornamen für neue Mitarbeiter (werden der Reihe nach vergeben)
+const MITARBEITER_NAMEN = ["Anna", "Ben", "Clara", "David", "Emma", "Finn", "Greta", "Hugo",
+                           "Ida", "Jonas", "Lena", "Max", "Nora", "Ole", "Paula", "Rudi"];
 
 /* ============================================================================
    ABSCHNITT 3: Szene, Kamera, Licht                                [3D-Agent]
@@ -991,8 +1476,8 @@ szene.add(sonne);
 
 /* ============================================================================
    ABSCHNITT 4: Raster-Daten & Koordinaten                       [Logik-Agent]
-   Hier wird gespeichert, was auf jeder Kachel liegt. Aktuell können nur
-   Test-Blöcke gesetzt werden; der spätere Maschinen-Bau-Modus trägt hier Maschinen ein.
+   Hier wird gespeichert, was auf jeder Kachel liegt. Gebäude (Phase 4) tragen
+   hier ihre ID als "objekt" ein und machen ihre Kacheln unbegehbar.
    Koordinaten: x = Spalte (0 bis breite-1), z = Reihe (0 bis tiefe-1).
    ============================================================================ */
 const level = LEVELS[START_LEVEL];
@@ -1004,7 +1489,7 @@ for (let x = 0; x < level.breite; x++) {
   for (let z = 0; z < level.tiefe; z++) {
     rasterDaten[x][z] = {
       belegt: false,    // Steht hier schon etwas?
-      objekt: null,     // Was steht hier? (später: z. B. eine Maschine)
+      objekt: null,     // Was steht hier? (ID eines Gebäudes, z. B. "g3")
       begehbar: true,   // Darf man hier entlanglaufen? (getrennt von "belegt", weil z. B.
                         // ein Kabelkanal belegt, aber begehbar sein kann)
     };
@@ -1326,104 +1811,151 @@ szene.add(hoverRahmen);
 const rahmenZiel = hoverRahmen.position.clone(); // wohin der Rahmen gleiten soll (gleiche Höhe)
 
 /* ============================================================================
-   ABSCHNITT 5b: Spielfigur – Modell & Animation                    [3D-Agent]
-   Die Figur wird aus einfachen Grundformen zusammengesetzt (keine Modelldatei).
-   Ihre "Vorderseite" zeigt in Richtung +z; dorthin schauen auch die Augen.
+   ABSCHNITT 5b: Figuren – Modell & Animation                       [3D-Agent]
+   Spielfigur, Kuriere und Arbeiter nutzen dasselbe Modell aus Grundformen
+   (keine Modelldatei), nur in anderen Farben. Ihre "Vorderseite" zeigt in
+   Richtung +z; dorthin schauen auch die Augen.
    ============================================================================ */
-// Matt-Material mit flacher Schattierung = typischer Low-Poly-Look
-const figurMaterial = (farbe) =>
-  new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.75, flatShading: true });
-
-const figur3d = new THREE.Group();            // die ganze Figur (wird bewegt und gedreht)
-const figurOberkoerper = new THREE.Group();   // alles außer den Füßen (wippt und neigt sich)
-figur3d.add(figurOberkoerper);
-
-// Füße: zwei kleine Quader, die beim Laufen vor und zurück schwingen
-function baueFuss(seite) {
-  const fuss = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.17), figurMaterial(GRAFIK.farbeFigurSchuhe));
-  fuss.position.set(seite * 0.085, 0.035, 0.02);
-  figur3d.add(fuss);
-  return fuss;
+// Matt-Material mit flacher Schattierung = typischer Low-Poly-Look.
+// Pro Farbe gibt es nur EIN Material, das sich alle Modelle teilen (spart Grafikspeicher).
+const materialSpeicher = new Map();
+function figurMaterial(farbe) {
+  if (!materialSpeicher.has(farbe)) {
+    materialSpeicher.set(farbe, new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.75, flatShading: true }));
+  }
+  return materialSpeicher.get(farbe);
 }
-const fussLinks = baueFuss(-1);
-const fussRechts = baueFuss(1);
 
-// Körper: eine Kapsel (Zylinder mit runden Enden) in Arbeitskleidungs-Farbe
-const koerper = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.22, 3, 10), figurMaterial(GRAFIK.farbeFigurKoerper));
-koerper.position.y = 0.34;
-figurOberkoerper.add(koerper);
+// Baut eine Figur und hängt sie in die Szene.
+//   farben: { koerper, helm, weste (optional, z. B. für Kuriere) }
+// Rückgabe: alle beweglichen Teile, damit aktualisiereFigurModell() sie animieren kann.
+function baueFigurModell(farben) {
+  const gruppe = new THREE.Group();        // die ganze Figur (wird bewegt und gedreht)
+  const oberkoerper = new THREE.Group();   // alles außer den Füßen (wippt und neigt sich)
+  gruppe.add(oberkoerper);
 
-// Kopf mit Augen und gelbem Bauhelm
-const kopf = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), figurMaterial(GRAFIK.farbeFigurHaut));
-kopf.position.y = 0.72;
-figurOberkoerper.add(kopf);
-for (const seite of [-1, 1]) {
-  const auge = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), figurMaterial(GRAFIK.farbeFigurSchuhe));
-  auge.position.set(seite * 0.05, 0.73, 0.128);
-  figurOberkoerper.add(auge);
+  // Füße: zwei kleine Quader, die beim Laufen vor und zurück schwingen
+  const baueFuss = (seite) => {
+    const fuss = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.17), figurMaterial(GRAFIK.farbeFigurSchuhe));
+    fuss.position.set(seite * 0.085, 0.035, 0.02);
+    gruppe.add(fuss);
+    return fuss;
+  };
+  const fussLinks = baueFuss(-1);
+  const fussRechts = baueFuss(1);
+
+  // Körper: eine Kapsel (Zylinder mit runden Enden) in Arbeitskleidungs-Farbe
+  const koerper = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.22, 3, 10), figurMaterial(farben.koerper));
+  koerper.position.y = 0.34;
+  oberkoerper.add(koerper);
+
+  // Warnweste (nur Kuriere): ein etwas breiterer, kurzer Zylinder um den Bauch
+  if (farben.weste) {
+    const weste = new THREE.Mesh(new THREE.CylinderGeometry(0.182, 0.182, 0.2, 10), figurMaterial(farben.weste));
+    weste.position.y = 0.37;
+    oberkoerper.add(weste);
+  }
+
+  // Kopf mit Augen und Bauhelm
+  const kopf = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), figurMaterial(GRAFIK.farbeFigurHaut));
+  kopf.position.y = 0.72;
+  oberkoerper.add(kopf);
+  for (const seite of [-1, 1]) {
+    const auge = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), figurMaterial(GRAFIK.farbeFigurSchuhe));
+    auge.position.set(seite * 0.05, 0.73, 0.128);
+    oberkoerper.add(auge);
+  }
+  const helm = new THREE.Mesh(
+    new THREE.SphereGeometry(0.155, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), // obere Halbkugel
+    figurMaterial(farben.helm)
+  );
+  helm.position.y = 0.75;
+  oberkoerper.add(helm);
+  const helmKrempe = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 14), figurMaterial(farben.helm));
+  helmKrempe.position.set(0, 0.75, 0.02);
+  oberkoerper.add(helmKrempe);
+
+  // Arme: drehen sich an der Schulter (Drehpunkt = Gruppe), Hand am Ende
+  const baueArm = (seite) => {
+    const schulter = new THREE.Group();
+    schulter.position.set(seite * 0.2, 0.5, 0);
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.14, 2, 6), figurMaterial(farben.koerper));
+    arm.position.y = -0.09;
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), figurMaterial(GRAFIK.farbeFigurHaut));
+    hand.position.y = -0.2;
+    schulter.add(arm, hand);
+    oberkoerper.add(schulter);
+    return schulter;
+  };
+  const armLinks = baueArm(-1);
+  const armRechts = baueArm(1);
+
+  // "Hand-Punkt": Hier hängen getragene Items (Phase 4). Ein späteres Sackkarren-
+  // Modell wird ebenfalls hier eingehängt.
+  const trage = new THREE.Group();
+  trage.position.set(0, 0.36, 0.27);
+  oberkoerper.add(trage);
+
+  // Alle Teile werfen Schatten; Gesamtgröße auf GRAFIK.figurGroesse bringen (Modell ist ca. 0,9 hoch).
+  gruppe.traverse((teil) => { if (teil.isMesh) teil.castShadow = true; });
+  gruppe.scale.setScalar(GRAFIK.figurGroesse / 0.9);
+  szene.add(gruppe);
+
+  return { gruppe, oberkoerper, fussLinks, fussRechts, armLinks, armRechts, trage,
+           schrittPhase: 0,        // Fortschritt der Geh-Animation (läuft mit der Geschwindigkeit mit)
+           trageSchluessel: "" };  // was gerade in den Händen gezeichnet ist
 }
-const helm = new THREE.Mesh(
-  new THREE.SphereGeometry(0.155, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), // obere Halbkugel
-  figurMaterial(GRAFIK.farbeFigurHelm)
-);
-helm.position.y = 0.75;
-figurOberkoerper.add(helm);
-const helmKrempe = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 14), figurMaterial(GRAFIK.farbeFigurHelm));
-helmKrempe.position.set(0, 0.75, 0.02);
-figurOberkoerper.add(helmKrempe);
 
-// Arme: drehen sich an der Schulter (Drehpunkt = Gruppe), Hand am Ende
-function baueArm(seite) {
-  const schulter = new THREE.Group();
-  schulter.position.set(seite * 0.2, 0.5, 0);
-  const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.14, 2, 6), figurMaterial(GRAFIK.farbeFigurKoerper));
-  arm.position.y = -0.09;
-  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), figurMaterial(GRAFIK.farbeFigurHaut));
-  hand.position.y = -0.2;
-  schulter.add(arm, hand);
-  figurOberkoerper.add(schulter);
-  return schulter;
-}
-const armLinks = baueArm(-1);
-const armRechts = baueArm(1);
+// Die Spielfigur (blaue Arbeitskleidung, gelber Helm)
+const figurModell = baueFigurModell({ koerper: GRAFIK.farbeFigurKoerper, helm: GRAFIK.farbeFigurHelm });
 
-// Alle Teile werfen Schatten; Gesamtgröße auf GRAFIK.figurGroesse bringen (Modell ist ca. 0,9 hoch).
-figur3d.traverse((teil) => { if (teil.isMesh) teil.castShadow = true; });
-figur3d.scale.setScalar(GRAFIK.figurGroesse / 0.9);
-szene.add(figur3d);
-
-let schrittPhase = 0;   // Fortschritt der Geh-Animation (läuft mit der Geschwindigkeit mit)
-
-// Überträgt Position und Blickrichtung der Figur auf das 3D-Modell und animiert es.
-function aktualisiereFigur3d(sekunden, zeit) {
-  figur3d.position.set(figur.position.x, rasterHoehe, figur.position.z);
-  figur3d.rotation.y = figur.blickwinkel;
+// Überträgt Position und Blickrichtung einer Person auf ihr 3D-Modell und animiert es.
+//   sekunden     – vergangene Zeit (bei Mitarbeitern die Spielzeit, also inkl. Tempo)
+//   hoechstTempo – Laufgeschwindigkeit, bei der die Animation voll ausschlägt
+//   haltung      – "normal", "traegt" (Arme nach vorn) oder "arbeitet" (Arme werkeln)
+function aktualisiereFigurModell(p, m, sekunden, zeit, hoechstTempo, haltung = "normal") {
+  m.gruppe.position.set(p.position.x, rasterHoehe, p.position.z);
+  m.gruppe.rotation.y = p.blickwinkel;
 
   // Wie stark gelaufen wird: 0 = steht, 1 = volles Tempo
-  const staerke = Math.min(1, figur.tempo / LOGIK.laufTempo);
+  const staerke = Math.min(1, p.tempo / hoechstTempo);
   // Ein voller Animations-Zyklus (2 Schritte) = 2 × Schrittlänge. So "rutschen" die Füße nicht.
-  schrittPhase += (figur.tempo * sekunden / GRAFIK.schrittLaenge) * Math.PI;
-  const s = Math.sin(schrittPhase);
+  m.schrittPhase += (p.tempo * sekunden / GRAFIK.schrittLaenge) * Math.PI;
+  const s = Math.sin(m.schrittPhase);
 
   // Füße schwingen abwechselnd vor und zurück und heben sich leicht an
-  fussLinks.position.z = 0.02 + s * 0.09 * staerke;
-  fussRechts.position.z = 0.02 - s * 0.09 * staerke;
-  fussLinks.position.y = 0.035 + Math.max(0, Math.cos(schrittPhase)) * 0.04 * staerke;
-  fussRechts.position.y = 0.035 + Math.max(0, -Math.cos(schrittPhase)) * 0.04 * staerke;
+  m.fussLinks.position.z = 0.02 + s * 0.09 * staerke;
+  m.fussRechts.position.z = 0.02 - s * 0.09 * staerke;
+  m.fussLinks.position.y = 0.035 + Math.max(0, Math.cos(m.schrittPhase)) * 0.04 * staerke;
+  m.fussRechts.position.y = 0.035 + Math.max(0, -Math.cos(m.schrittPhase)) * 0.04 * staerke;
 
-  // Arme schwingen gegengleich zu den Füßen
-  armLinks.rotation.x = -s * 0.7 * staerke;
-  armRechts.rotation.x = s * 0.7 * staerke;
+  // Arme: beim Tragen nach vorn gestreckt, beim Arbeiten werkeln sie, sonst schwingen sie gegengleich zu den Füßen
+  if (haltung === "traegt") {
+    m.armLinks.rotation.x = -1.1;
+    m.armRechts.rotation.x = -1.1;
+  } else if (haltung === "arbeitet") {
+    const werkeln = wenigerAnimation ? 0 : Math.sin(zeit * 11);
+    m.armLinks.rotation.x = -0.9 + werkeln * 0.25;
+    m.armRechts.rotation.x = -0.9 - werkeln * 0.25;
+  } else {
+    m.armLinks.rotation.x = -s * 0.7 * staerke;
+    m.armRechts.rotation.x = s * 0.7 * staerke;
+  }
 
   // Oberkörper wippt beim Laufen, neigt sich etwas nach vorn und "atmet" im Stand
   const wippen = wenigerAnimation ? 0 : Math.abs(s) * 0.025 * staerke;
-  const atmen = wenigerAnimation ? 0 : Math.sin(zeit * 2.2) * 0.008 * (1 - staerke);
-  figurOberkoerper.position.y = wippen + atmen;
-  figurOberkoerper.rotation.x = 0.1 * staerke;
+  const atmen = wenigerAnimation ? 0 : Math.sin(zeit * 2.2 + (p.atemVersatz || 0)) * 0.008 * (1 - staerke);
+  m.oberkoerper.position.y = wippen + atmen;
+  m.oberkoerper.rotation.x = 0.1 * staerke + (haltung === "arbeitet" ? 0.12 : 0);
+}
+
+// Die Spielfigur wird jedes Bild aktualisiert (Abschnitt 10).
+function aktualisiereFigur3d(sekunden, zeit) {
+  aktualisiereFigurModell(figur, figurModell, sekunden, zeit, LOGIK.laufTempo);
 }
 
 /* ============================================================================
-   ABSCHNITT 5c: Pfad-Anzeige, Zielmarke & Test-Blöcke              [3D-Agent]
+   ABSCHNITT 5c: Pfad-Anzeige & Zielmarke                           [3D-Agent]
    ============================================================================ */
 // Pfad-Punkte: kleine runde Scheiben auf dem Boden, alle als ein Objekt (schnell)
 const MAX_PFAD_PUNKTE = 400;
@@ -1456,54 +1988,16 @@ let warnZeit = 0;   // wie lange die Warn-Markierung noch sichtbar ist (Sekunden
 
 spielEreignisse.addEventListener("zielNichtErreichbar", (e) => {
   const mitte = kachelZuWelt(e.detail.x, e.detail.z);
-  warnMarke.position.set(mitte.x, rasterHoehe + GRAFIK.testBlockHoehe + 0.02, mitte.z);
-  // Liegt auf der Kachel kein Block, Markierung auf den Boden legen
-  if (holeKachel(e.detail.x, e.detail.z).begehbar) warnMarke.position.y = rasterHoehe + 0.02;
+  // Auf freiem Boden liegt die Markierung flach auf, über einem Gebäude schwebt sie darüber
+  const frei = holeKachel(e.detail.x, e.detail.z).begehbar;
+  warnMarke.position.set(mitte.x, rasterHoehe + (frei ? 0.02 : 1.6), mitte.z);
   warnZeit = 1.2;
-});
-
-// Test-Blöcke: graue Quader mit abgerundeten Kanten
-const blockForm = new THREE.Shape();
-const bh = 0.38, br = 0.08;   // halbe Breite, Eckenrundung
-blockForm.moveTo(-bh + br, -bh);
-blockForm.lineTo(bh - br, -bh);   blockForm.quadraticCurveTo(bh, -bh, bh, -bh + br);
-blockForm.lineTo(bh, bh - br);    blockForm.quadraticCurveTo(bh, bh, bh - br, bh);
-blockForm.lineTo(-bh + br, bh);   blockForm.quadraticCurveTo(-bh, bh, -bh, bh - br);
-blockForm.lineTo(-bh, -bh + br);  blockForm.quadraticCurveTo(-bh, -bh, -bh + br, -bh);
-const kante = 0.04;
-const blockGeometrie = new THREE.ExtrudeGeometry(blockForm, {
-  depth: GRAFIK.testBlockHoehe - 2 * kante,
-  bevelEnabled: true, bevelThickness: kante, bevelSize: kante, bevelSegments: 2, curveSegments: 4,
-});
-blockGeometrie.rotateX(-Math.PI / 2);          // hochkant stellen (Höhe zeigt nach oben)
-blockGeometrie.translate(0, kante, 0);         // Unterkante genau auf den Boden
-const blockMaterial = figurMaterial(GRAFIK.farbeTestBlock);
-const testBloecke = new Map();                 // "x,z" → { mesh, alter, verschwindet }
-
-// Reagiert auf Änderungen im Raster: Block-Modell erzeugen oder entfernen.
-spielEreignisse.addEventListener("rasterGeaendert", (e) => {
-  const { x, z, kachel } = e.detail;
-  const schluessel = `${x},${z}`;
-  const vorhanden = testBloecke.get(schluessel);
-  if (kachel.objekt === "testblock" && !vorhanden) {
-    const mesh = new THREE.Mesh(blockGeometrie, blockMaterial);
-    const mitte = kachelZuWelt(x, z);
-    mesh.position.set(mitte.x, rasterHoehe, mitte.z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.scale.setScalar(0.001);
-    szene.add(mesh);
-    testBloecke.set(schluessel, { mesh, alter: 0, verschwindet: false });
-  } else if (kachel.objekt !== "testblock" && vorhanden) {
-    vorhanden.verschwindet = true;
-    vorhanden.alter = 0;
-  }
 });
 
 // "Aufploppen": wächst schnell über 100 % hinaus und federt zurück
 const federnd = (t) => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
 
-// Animiert Pfad-Punkte, Zielmarke, Warn-Markierung und Test-Blöcke (jedes Bild).
+// Animiert Pfad-Punkte, Zielmarke und Warn-Markierung (jedes Bild).
 function aktualisierePfadUndMarken(sekunden, zeit) {
   // --- Pfad-Punkte: vom Ziel rückwärts verteilt, damit sie beim Laufen stillstehen ---
   let anzahl = 0;
@@ -1546,17 +2040,6 @@ function aktualisierePfadUndMarken(sekunden, zeit) {
     warnMarke.material.opacity = 0.9 * blinken * Math.min(1, warnZeit / 0.3);
   }
 
-  // --- Test-Blöcke aufploppen bzw. schrumpfen lassen ---
-  for (const [schluessel, block] of testBloecke) {
-    block.alter += sekunden;
-    const t = Math.min(1, block.alter / 0.25);
-    if (block.verschwindet) {
-      block.mesh.scale.setScalar(Math.max(0.001, 1 - t));
-      if (t >= 1) { szene.remove(block.mesh); testBloecke.delete(schluessel); }
-    } else {
-      block.mesh.scale.setScalar(wenigerAnimation ? 1 : Math.max(0.001, federnd(t)));
-    }
-  }
 }
 
 /* ============================================================================
@@ -1631,6 +2114,7 @@ const maus = {
   linksUnten: false,      // linke Taste gedrückt?
   startX: 0, startY: 0,   // wo die linke Taste gedrückt wurde
   verschiebt: false,      // wird gerade mit rechter/mittlerer Taste verschoben?
+  rechtsStartX: 0, rechtsStartY: 0, // wo die rechte/mittlere Taste gedrückt wurde
   ankerPunkt: null,       // Bodenpunkt, der beim Verschieben unter der Maus "kleben" bleibt
   letzteX: 0, letzteY: 0, // letzte bekannte Mausposition
 };
@@ -1645,6 +2129,7 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
   } else if (e.button === 1 || e.button === 2) {
     // Rechte oder mittlere Taste: Kamera verschieben beginnen.
     maus.verschiebt = true;
+    maus.rechtsStartX = e.clientX; maus.rechtsStartY = e.clientY;   // für "Rechtsklick ohne Ziehen" (Phase 4: drehen)
     kameraFlugZiel = null;   // eigenes Verschieben bricht das Zentrieren ab
     maus.ankerPunkt = punktUnterMaus(e.clientX, e.clientY);
     zeichenflaeche.setPointerCapture(e.pointerId);
@@ -1677,16 +2162,17 @@ zeichenflaeche.addEventListener("pointerup", (e) => {
       const k = kachelUnterMaus(e.clientX, e.clientY);
       if (k) {
         meldeEreignis("kachelKlick", { ...k, kachel: holeKachel(k.x, k.z), shift: e.shiftKey });
-        if (e.shiftKey) {
-          schalteTestBlock(k);       // Shift + Klick: Test-Block setzen oder entfernen
-        } else {
-          setzeAuswahl(k);           // Klick: Kachel auswählen ...
-          schickeFigur(k);           // ... und die Figur dorthin laufen lassen
-        }
+        // Abschnitt 13 entscheidet: bauen, abreißen, Gebäude-Info öffnen oder die Figur hinschicken
+        behandleKachelKlick(k, e.shiftKey);
       }
     }
   }
   if (e.button === 1 || e.button === 2) {
+    // Rechtsklick ohne zu ziehen: im Bau-Modus wird damit gedreht (Abschnitt 13)
+    if (e.button === 2 && maus.verschiebt &&
+        Math.hypot(e.clientX - maus.rechtsStartX, e.clientY - maus.rechtsStartY) <= GRAFIK.klickToleranz) {
+      meldeEreignis("rechtsKlick", { x: e.clientX, y: e.clientY });
+    }
     maus.verschiebt = false;
     maus.ankerPunkt = null;
   }
@@ -1799,76 +2285,112 @@ function fliegeKamera(sekunden) {
 }
 
 /* ============================================================================
-   ABSCHNITT 6b: Bewegungs-Steuerung der Figur                   [Logik-Agent]
-   Hier wird entschieden, WOHIN die Figur läuft und wie schnell.
-   Wie sie dabei aussieht, regelt Abschnitt 5b.
-   Ereignisse: figurLaeuftLos, figurAngekommen, zielNichtErreichbar, hinweis
+   ABSCHNITT 6b: Bewegungs-Steuerung von Figur & Mitarbeitern    [Logik-Agent]
+   Hier wird entschieden, WOHIN eine Person läuft und wie schnell. Seit Phase 4
+   gilt das für die Spielfigur UND alle Kuriere und Arbeiter. Wie sie dabei
+   aussehen, regelt Abschnitt 5b.
+   Ereignisse (nur Spielfigur): figurLaeuftLos, figurAngekommen, zielNichtErreichbar, hinweis
    ============================================================================ */
 const startKachel = { x: Math.floor(level.breite / 2), z: Math.floor(level.tiefe / 2) };
-const figur = {
-  position: kachelZuWelt(startKachel.x, startKachel.z), // aktuelle Position auf dem Boden
-  wegpunkte: [],        // 3D-Punkte, die noch abgelaufen werden
-  zielWunsch: null,     // die angeklickte Kachel {x, z}
-  ziel: null,           // die Kachel, zu der wirklich gelaufen wird (bei "nicht erreichbar": die nächstgelegene)
-  zielErreichbar: true, // konnte das Wunschziel erreicht werden?
-  tempo: 0,             // aktuelle Geschwindigkeit (Kacheln pro Sekunde)
-  blickwinkel: 0,       // aktuelle Drehung (Bogenmaß)
-  blickZiel: 0,         // Drehung, in die sie sich gerade dreht
-  zustand: "steht",     // "steht" oder "laeuft"
-};
 
-// Auf welcher Kachel steht die Figur gerade?
-function figurKachel() {
-  return weltZuKachel(figur.position);
+// Legt eine Person auf einer Kachel an. "extra" ergänzt eigene Felder (z. B. Name, Rolle).
+function erstellePerson(kachel, extra = {}) {
+  return {
+    position: kachelZuWelt(kachel.x, kachel.z), // aktuelle Position auf dem Boden
+    wegpunkte: [],        // 3D-Punkte, die noch abgelaufen werden
+    zielWunsch: null,     // die gewünschte Zielkachel {x, z}
+    ziel: null,           // die Kachel, zu der wirklich gelaufen wird (bei "nicht erreichbar": die nächstgelegene)
+    zielErreichbar: true, // konnte das Wunschziel erreicht werden?
+    tempo: 0,             // aktuelle Geschwindigkeit (Kacheln pro Sekunde)
+    blickwinkel: 0,       // aktuelle Drehung (Bogenmaß)
+    blickZiel: 0,         // Drehung, in die sie sich gerade dreht
+    zustand: "steht",     // "steht" oder "laeuft"
+    ...extra,
+  };
 }
 
-// Würde die Figur (mit ihrer Breite) eine Kachel berühren?
-function figurBeruehrtKachel(k) {
+// Die Spielfigur (du selbst) und die Liste aller Mitarbeiter (Kuriere und Arbeiter, Abschnitt 11c)
+const figur = erstellePerson(startKachel, { istSpieler: true });
+const mitarbeiter = [];
+
+// Alle Personen auf dem Raster: Spielfigur + Mitarbeiter
+function allePersonen() {
+  return [figur, ...mitarbeiter];
+}
+
+// Auf welcher Kachel steht eine Person gerade?
+function personKachel(p) {
+  return weltZuKachel(p.position);
+}
+function figurKachel() {
+  return personKachel(figur);
+}
+
+// Würde eine Person (mit ihrer Breite) eine Kachel berühren?
+function personBeruehrtKachel(p, k) {
   const r = LOGIK.figurRadius;
   return [[-r, -r], [r, -r], [r, r], [-r, r]].some(([ox, oz]) => {
-    const e = weltZuKachel({ x: figur.position.x + ox, z: figur.position.z + oz });
+    const e = weltZuKachel({ x: p.position.x + ox, z: p.position.z + oz });
     return e.x === k.x && e.z === k.z;
   });
 }
+function figurBeruehrtKachel(k) {
+  return personBeruehrtKachel(figur, k);
+}
 
 // Laufbefehl: Weg berechnen und losschicken. Kann auch während des Laufens aufgerufen werden.
-function schickeFigur(zielKachel) {
-  const start = figurKachel();
+// Nur die Spielfigur meldet Hinweise ("nicht erreichbar", "steht bereits hier").
+function schickePerson(p, zielKachel) {
+  const start = personKachel(p);
   const { pfad, erreichbar } = findePfad(start, zielKachel);
-  figur.zielWunsch = { x: zielKachel.x, z: zielKachel.z };
-  figur.zielErreichbar = erreichbar;
-  if (!erreichbar) meldeEreignis("zielNichtErreichbar", { ...zielKachel });
+  p.zielWunsch = { x: zielKachel.x, z: zielKachel.z };
+  p.zielErreichbar = erreichbar;
+  if (!erreichbar && p.istSpieler) meldeEreignis("zielNichtErreichbar", { ...zielKachel });
 
   const ende = pfad[pfad.length - 1];
   if (ende.x === start.x && ende.z === start.z) {
-    if (figur.zustand === "laeuft") {
-      // Mitten im Laufen auf die eigene Kachel geklickt: zur Kachelmitte gehen und stehen bleiben
-      figur.wegpunkte = [kachelZuWelt(start.x, start.z)];
-      figur.ziel = ende;
-    } else if (erreichbar) {
+    if (p.zustand === "laeuft") {
+      // Mitten im Laufen auf die eigene Kachel geschickt: zur Kachelmitte gehen und stehen bleiben
+      p.wegpunkte = [kachelZuWelt(start.x, start.z)];
+      p.ziel = ende;
+    } else if (erreichbar && p.istSpieler) {
       meldeEreignis("hinweis", { text: "Die Figur steht bereits hier." });
     }
     return;
   }
 
   // Geglättete Wegpunkte; der erste ist die Startkachel selbst und wird übersprungen,
-  // außer die Figur steht nicht in der Mitte und muss erst um eine Ecke.
+  // außer die Person steht nicht in der Mitte und muss erst um eine Ecke.
   const punkte = glaettePfad(pfad);
   punkte.shift();
-  if (!sichtlinieFrei(figur.position, punkte[0])) punkte.unshift(kachelZuWelt(start.x, start.z));
-  figur.wegpunkte = punkte;
-  figur.ziel = ende;
-  if (figur.zustand !== "laeuft") {
-    figur.zustand = "laeuft";
-    meldeEreignis("figurLaeuftLos", { ...ende });
+  if (!sichtlinieFrei(p.position, punkte[0])) punkte.unshift(kachelZuWelt(start.x, start.z));
+  p.wegpunkte = punkte;
+  p.ziel = ende;
+  if (p.zustand !== "laeuft") {
+    p.zustand = "laeuft";
+    if (p.istSpieler) meldeEreignis("figurLaeuftLos", { ...ende });
   }
+}
+function schickeFigur(zielKachel) {
+  schickePerson(figur, zielKachel);
+}
+
+// Hält eine Person sofort an (z. B. bei "Halle bereinigen").
+function haltePersonAn(p) {
+  p.wegpunkte = [];
+  p.zielWunsch = null;
+  p.zustand = "steht";
+  p.tempo = 0;
 }
 
 // Wie weit ist es noch bis zum Ende des Weges? (in Kacheln)
-function restweg() {
-  let summe = 0, von = figur.position;
-  for (const p of figur.wegpunkte) { summe += Math.hypot(p.x - von.x, p.z - von.z); von = p; }
+function restwegVon(p) {
+  let summe = 0, von = p.position;
+  for (const w of p.wegpunkte) { summe += Math.hypot(w.x - von.x, w.z - von.z); von = w; }
   return summe;
+}
+function restweg() {
+  return restwegVon(figur);
 }
 
 // Kürzeste Drehung zwischen zwei Winkeln (damit sie sich nie "andersherum" um 350° dreht)
@@ -1876,68 +2398,62 @@ function winkelDifferenz(von, nach) {
   return Math.atan2(Math.sin(nach - von), Math.cos(nach - von));
 }
 
-// Wird jedes Bild aufgerufen: bewegt die Figur ein Stück entlang ihres Weges.
-function bewegeFigur(sekunden) {
-  if (figur.zustand === "laeuft") {
+// Bewegt eine Person ein Stück entlang ihres Weges.
+//   sekunden     – vergangene Zeit (bei Mitarbeitern: Spielzeit inkl. Tempo-Faktor)
+//   hoechstTempo – Höchstgeschwindigkeit dieser Person (Kacheln pro Sekunde)
+function bewegePerson(p, sekunden, hoechstTempo) {
+  if (p.zustand === "laeuft") {
     // Tempo: anlaufen, Höchsttempo halten, rechtzeitig vor dem Ziel abbremsen
-    const bremsTempo = Math.sqrt(2 * LOGIK.beschleunigung * restweg());
-    const zielTempo = Math.max(0.6, Math.min(LOGIK.laufTempo, bremsTempo));
-    figur.tempo = Math.min(zielTempo, figur.tempo + LOGIK.beschleunigung * sekunden);
+    const bremsTempo = Math.sqrt(2 * LOGIK.beschleunigung * restwegVon(p));
+    const zielTempo = Math.max(0.6, Math.min(hoechstTempo, bremsTempo));
+    p.tempo = Math.min(zielTempo, p.tempo + LOGIK.beschleunigung * sekunden);
 
     // Strecke für dieses Bild ablaufen, ggf. über mehrere Wegpunkte hinweg
-    let schritt = figur.tempo * sekunden;
-    while (schritt > 0 && figur.wegpunkte.length > 0) {
-      const wp = figur.wegpunkte[0];
-      const dx = wp.x - figur.position.x, dz = wp.z - figur.position.z;
+    let schritt = p.tempo * sekunden;
+    while (schritt > 0 && p.wegpunkte.length > 0) {
+      const wp = p.wegpunkte[0];
+      const dx = wp.x - p.position.x, dz = wp.z - p.position.z;
       const abstand = Math.hypot(dx, dz);
-      if (abstand > 0.001) figur.blickZiel = Math.atan2(dx, dz);
+      if (abstand > 0.001) p.blickZiel = Math.atan2(dx, dz);
       if (abstand <= schritt) {
-        figur.position.x = wp.x;
-        figur.position.z = wp.z;
+        p.position.x = wp.x;
+        p.position.z = wp.z;
         schritt -= abstand;
-        figur.wegpunkte.shift();
+        p.wegpunkte.shift();
       } else {
-        figur.position.x += (dx / abstand) * schritt;
-        figur.position.z += (dz / abstand) * schritt;
+        p.position.x += (dx / abstand) * schritt;
+        p.position.z += (dz / abstand) * schritt;
         schritt = 0;
       }
     }
-    if (figur.wegpunkte.length === 0) {
-      figur.zustand = "steht";
-      figur.tempo = 0;
-      meldeEreignis("figurAngekommen", { ...figurKachel(), zielErreichbar: figur.zielErreichbar });
+    if (p.wegpunkte.length === 0) {
+      p.zustand = "steht";
+      p.tempo = 0;
+      if (p.istSpieler) meldeEreignis("figurAngekommen", { ...personKachel(p), zielErreichbar: p.zielErreichbar });
     }
   }
   // Weich in Blickrichtung drehen
   const weich = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.drehTempo * sekunden);
-  figur.blickwinkel += winkelDifferenz(figur.blickwinkel, figur.blickZiel) * weich;
+  p.blickwinkel += winkelDifferenz(p.blickwinkel, p.blickZiel) * weich;
+}
+function bewegeFigur(sekunden) {
+  bewegePerson(figur, sekunden, LOGIK.laufTempo);
 }
 
-// Das Raster hat sich geändert: Ist der restliche Weg noch frei? Sonst neu planen.
-// War das Wunschziel unerreichbar, wird auch neu geplant (vielleicht ist jetzt eine Lücke frei).
+// Das Raster hat sich geändert (z. B. ein Gebäude wurde gebaut): Ist der restliche Weg
+// jeder laufenden Person noch frei? Sonst neu planen. War das Wunschziel unerreichbar,
+// wird auch neu geplant (vielleicht ist jetzt eine Lücke frei).
 spielEreignisse.addEventListener("rasterGeaendert", () => {
-  if (figur.zustand !== "laeuft" || !figur.zielWunsch) return;
-  let frei = true, von = figur.position;
-  for (const p of figur.wegpunkte) {
-    if (!sichtlinieFrei(von, p)) { frei = false; break; }
-    von = p;
-  }
-  if (!frei || !figur.zielErreichbar) schickeFigur(figur.zielWunsch);
-});
-
-// Test-Werkzeug (Shift + Klick): Block setzen oder entfernen. Wird ersetzt, sobald der Maschinen-Bau-Modus kommt.
-function schalteTestBlock(k) {
-  const kachel = holeKachel(k.x, k.z);
-  if (kachel.begehbar) {
-    if (figurBeruehrtKachel(k)) {
-      meldeEreignis("hinweis", { text: "Hier steht die Figur – kein Block möglich." });
-      return;
+  for (const p of allePersonen()) {
+    if (p.zustand !== "laeuft" || !p.zielWunsch) continue;
+    let frei = true, von = p.position;
+    for (const w of p.wegpunkte) {
+      if (!sichtlinieFrei(von, w)) { frei = false; break; }
+      von = w;
     }
-    setzeBlockade(k.x, k.z, true, "testblock");
-  } else if (kachel.objekt === "testblock") {
-    setzeBlockade(k.x, k.z, false);
+    if (!frei || !p.zielErreichbar) schickePerson(p, p.zielWunsch);
   }
-}
+});
 
 /* ============================================================================
    ABSCHNITT 7: HUD-Anbindung                                    [UI/UX-Agent]
@@ -1958,7 +2474,9 @@ spielEreignisse.addEventListener("kachelHover", (e) => {
 function zeigeAuswahl(d) {
   if (!d) { hudAuswahl.textContent = "–"; return; }
   const kachel = holeKachel(d.x, d.z);
-  const status = !kachel.begehbar ? "blockiert" : kachel.belegt ? "belegt" : "frei";
+  const gebaeude = kachel.objekt ? spiel.gebaeude.get(kachel.objekt) : null;   // Phase 4
+  const status = gebaeude ? htmlSicher(gebaeudeName(gebaeude))
+               : !kachel.begehbar ? "blockiert" : kachel.belegt ? "belegt" : "frei";
   const klasse = status === "frei" ? "status-frei" : "status-blockiert";
   hudAuswahl.innerHTML =
     `<span class="auswahl-punkt"></span>${kachelText(d)} – <span class="${klasse}">${status}</span>`;
@@ -2951,7 +3469,7 @@ window.addEventListener("keydown", (e) => {
   const taste = e.key.toLowerCase();
 
   if (!designer.offen) {
-    if (taste === "l" && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if (taste === "l" && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey && !eingaben3dGesperrt) {
       e.preventDefault();
       e.stopImmediatePropagation();
       oeffneDesigner();
@@ -3008,6 +3526,2228 @@ lz.overlay.addEventListener("click", (e) => {
 
 
 /* ============================================================================
+   ABSCHNITT 11: Gebäude – Bauen, Prüfen, Abreißen (Phase 4)      [Logik-Agent]
+   Reine Logik ohne 3D und ohne HTML. Die Darstellung hört auf die Ereignisse:
+     gebaeudeGebaut, gebaeudeEntfernt, strukturGeaendert, mitarbeiterGeaendert,
+     halleBereinigt
+   Ein Gebäude sieht so aus:
+     { id: "g7", typ: "kiste", nummer: 2, x, z, drehung,     // Ankerpunkt = linke obere Kachel
+       zellen: [{x, z}], zugang: {x, z}, richtung: {x, z}, mitte: {x, z},
+       bestand: { metall: 2 },        // Inhalt (bei Stationen: das Ausgabefach)
+       verknuepft: ["g9"],            // Station ↔ Zwischenlager
+       rezept: "akku" | "bp-…" | null, pausiert, fortschritt, arbeiterId, version }
+   ============================================================================ */
+const gebaeudeTypNach = new Map(GEBAEUDE_TYPEN.map((t) => [t.typ, t]));
+
+// Alle Items, die es gibt: Rohstoffe und Bauteile. Produkte heißen "p:<Blaupausen-ID>".
+const ITEMS = new Map();
+for (const r of ROHSTOFFE) ITEMS.set(r.id, { ...r, art: "rohstoff" });
+for (const b of BAUTEILE) ITEMS.set(b.typ, { id: b.typ, name: b.name, farbe: b.farbe, art: "bauteil" });
+
+// Der gesamte Zustand der Halle (wird auch gespeichert, siehe Abschnitt 11d).
+const spiel = {
+  gebaeude: new Map(),          // id → Gebäude
+  naechsteId: 1,
+  depot: { gebaeude: {}, items: {} },  // Lager AUSSERHALB des Rasters: abgebaute Maschinen und Items
+  naechstePersonId: 1,
+  tempo: 1,                     // 0 = Pause, 1, 2, 3
+  tempoVorPause: 1,
+  produktNamen: {},             // Blaupausen-ID → Name (bleibt, auch wenn die Blaupause gelöscht wird)
+  statistik: { produziert: 0, ausschuss: 0 },
+  schnappschuss: null,          // letzter Aufbau vor "Halle bereinigen"
+  version: 0,                   // zählt jede Bestandsänderung (die Anzeige zeichnet dann neu)
+  strukturVersion: 0,           // zählt Bau, Abriss, Verknüpfungen, Rezepte, Personal
+};
+
+// Name, Farbe und Art eines Items
+function itemInfo(id) {
+  if (ITEMS.has(id)) return ITEMS.get(id);
+  if (id.startsWith("p:")) {
+    return { id, name: spiel.produktNamen[id.slice(2)] || "Produkt", farbe: GRAFIK.farbeProdukt, art: "produkt" };
+  }
+  return { id, name: id, farbe: "#cccccc", art: "unbekannt" };
+}
+
+/* --- Kleine Helfer für Bestände (Objekte wie { metall: 3, akku: 1 }) --- */
+function summe(bestand) {
+  let s = 0;
+  for (const n of Object.values(bestand)) s += n;
+  return s;
+}
+function hatItems(p) {
+  return summe(p.traegt) > 0;
+}
+// Bucht Items in einen Bestand (faktor -1 = herausnehmen). Leere Einträge verschwinden.
+function bucheItems(ziel, items, faktor = 1) {
+  for (const [id, n] of Object.entries(items)) {
+    ziel[id] = (ziel[id] || 0) + n * faktor;
+    if (ziel[id] <= 0) delete ziel[id];
+  }
+}
+// Ändert den Bestand eines Gebäudes und merkt sich, dass neu gezeichnet werden muss.
+function aendereBestand(g, item, delta) {
+  bucheItems(g.bestand, { [item]: delta });
+  g.version++;
+  spiel.version++;
+}
+function meldeStruktur() {
+  spiel.strukturVersion++;
+  spiel.version++;
+  meldeEreignis("strukturGeaendert", {});
+}
+
+/* --- Abfragen --- */
+function typVon(g) { return gebaeudeTypNach.get(g.typ); }
+function istStation(g) { return typVon(g).kategorie === "station"; }
+function istZwischenlager(g) { return typVon(g).art === "zwischenlager"; }
+function kapazitaetVon(g) { return typVon(g).kapazitaet; }
+function hauptlager() {
+  for (const g of spiel.gebaeude.values()) if (typVon(g).art === "hauptlager") return g;
+  return null;
+}
+function gebaeudeListe(filter = () => true) {
+  return [...spiel.gebaeude.values()].filter(filter);
+}
+function anzahlTyp(typ) {
+  return gebaeudeListe((g) => g.typ === typ).length;
+}
+// Anzeigename, z. B. "Kiste 2" (das Hauptlager gibt es nur einmal und hat keine Nummer)
+function gebaeudeName(g) {
+  const t = typVon(g);
+  return t.maxAnzahl === 1 ? t.name : `${t.name} ${g.nummer}`;
+}
+// Kleinste freie Nummer für einen Gebäudetyp (Kiste 1, Kiste 2, ...)
+function freieNummer(typ) {
+  const vergeben = new Set(gebaeudeListe((g) => g.typ === typ).map((g) => g.nummer));
+  let n = 1;
+  while (vergeben.has(n)) n++;
+  return n;
+}
+// Manhattan-Abstand zwischen zwei Kacheln (schnelle Schätzung für "was ist näher?")
+function abstand(a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.z - b.z);
+}
+// Echte Laufweg-Länge zwischen zwei Kacheln (Infinity, wenn unerreichbar)
+function wegLaenge(a, b) {
+  if (a.x === b.x && a.z === b.z) return 0;
+  const { pfad, erreichbar } = findePfad(a, b);
+  if (!erreichbar) return Infinity;
+  let laenge = 0;
+  for (let i = 1; i < pfad.length; i++) {
+    const diagonal = pfad[i].x !== pfad[i - 1].x && pfad[i].z !== pfad[i - 1].z;
+    laenge += diagonal ? LOGIK.kostenDiagonal : LOGIK.kostenGerade;
+  }
+  return laenge;
+}
+
+/* --- Geometrie: welche Kacheln belegt ein Gebäude? --- */
+
+// Kacheln, Zugang, Blickrichtung und Mitte eines Gebäudes mit Ankerpunkt (x, z) und Drehung.
+// Form, Zugang und Richtung werden GEMEINSAM gedreht (wie dreheForm in Abschnitt 8)
+// und danach so verschoben, dass die linke obere Kachel auf dem Ankerpunkt liegt.
+function gebaeudeGeometrie(typ, x, z, drehung) {
+  const t = gebaeudeTypNach.get(typ);
+  const form = [];
+  for (let dz = 0; dz < t.tiefe; dz++) for (let dx = 0; dx < t.breite; dx++) form.push([dx, dz]);
+  let punkte = [...form, t.zugang];
+  let richtung = [0, 1];                        // bei Drehung 0 zeigt die Vorderseite nach +z
+  const schritte = ((Math.round(drehung / 90) % 4) + 4) % 4;
+  for (let i = 0; i < schritte; i++) {
+    punkte = punkte.map(([a, b]) => [-b, a]);   // 90° im Uhrzeigersinn
+    richtung = [-richtung[1], richtung[0]];
+  }
+  const minX = Math.min(...punkte.slice(0, form.length).map((q) => q[0]));
+  const minZ = Math.min(...punkte.slice(0, form.length).map((q) => q[1]));
+  const verschoben = punkte.map(([a, b]) => ({ x: x + a - minX, z: z + b - minZ }));
+  const zellen = verschoben.slice(0, form.length);
+  return {
+    zellen,
+    zugang: verschoben[form.length],
+    richtung: { x: richtung[0], z: richtung[1] },
+    mitte: {
+      x: zellen.reduce((s, c) => s + c.x, 0) / zellen.length,
+      z: zellen.reduce((s, c) => s + c.z, 0) / zellen.length,
+    },
+  };
+}
+
+// Ankerpunkt so wählen, dass die Kachel unter der Maus in der Mitte des Gebäudes liegt.
+function ankerFuerMitte(typ, drehung, kachel) {
+  const geo = gebaeudeGeometrie(typ, 0, 0, drehung);
+  const breite = Math.max(...geo.zellen.map((c) => c.x)) + 1;
+  const tiefe = Math.max(...geo.zellen.map((c) => c.z)) + 1;
+  return { x: kachel.x - Math.floor((breite - 1) / 2), z: kachel.z - Math.floor((tiefe - 1) / 2) };
+}
+
+/* --- Prüfen: darf hier gebaut werden? --- */
+
+// Flutfüllung: Bleiben nach dem Bau alle Zugänge und alle Personen miteinander verbunden?
+// Diagonal laufen darf man nur, wenn beide geraden Nachbarn frei sind (wie im A*);
+// deshalb genügt eine Flutfüllung über die 4 geraden Nachbarn.
+function bleibtAllesErreichbar(geo) {
+  const B = level.breite, T = level.tiefe;
+  const frei = new Uint8Array(B * T);
+  for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
+  for (const c of geo.zellen) frei[c.x * T + c.z] = 0;
+
+  const erreicht = new Uint8Array(B * T);
+  const stapel = [geo.zugang.x * T + geo.zugang.z];
+  erreicht[stapel[0]] = 1;
+  while (stapel.length) {
+    const nr = stapel.pop();
+    const x = Math.floor(nr / T), z = nr % T;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, nz = z + dz;
+      if (nx < 0 || nz < 0 || nx >= B || nz >= T) continue;
+      const nNr = nx * T + nz;
+      if (frei[nNr] && !erreicht[nNr]) { erreicht[nNr] = 1; stapel.push(nNr); }
+    }
+  }
+  const ziele = gebaeudeListe().map((g) => g.zugang);
+  for (const p of allePersonen()) {
+    const k = personKachel(p);
+    if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
+  }
+  return ziele.every((k) => erreicht[k.x * T + k.z]);
+}
+
+// Prüft einen Bauplatz. Rückgabe: { passt, gruende: [Text], geo }
+function passtGebaeude(typ, x, z, drehung) {
+  const t = gebaeudeTypNach.get(typ);
+  const geo = gebaeudeGeometrie(typ, x, z, drehung);
+  const gruende = [];
+  for (const c of geo.zellen) {
+    const k = holeKachel(c.x, c.z);
+    if (!k) gruende.push("Das Gebäude ragt aus der Halle.");
+    else if (k.belegt || !k.begehbar) gruende.push("Der Platz ist schon belegt.");
+    else if (allePersonen().some((p) => personBeruehrtKachel(p, c))) gruende.push("Hier steht gerade jemand.");
+  }
+  if (!istBegehbar(geo.zugang.x, geo.zugang.z)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
+  if (t.maxAnzahl && anzahlTyp(typ) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
+  if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
+  if (gruende.length === 0 && !bleibtAllesErreichbar(geo)) {
+    gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
+  }
+  return { passt: gruende.length === 0, gruende: [...new Set(gruende)], geo };
+}
+
+/* --- Bauen und Abreißen --- */
+
+// Stellt ein Gebäude auf, ohne zu prüfen (wird auch beim Laden des Spielstands benutzt).
+function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
+  const geo = gebaeudeGeometrie(typ, x, z, drehung);
+  const g = {
+    id: extra.id || "g" + spiel.naechsteId++,
+    typ, nummer: extra.nummer || freieNummer(typ), x, z, drehung,
+    ...geo,
+    bestand: { ...(extra.bestand || {}) },
+    verknuepft: [...(extra.verknuepft || [])],
+    rezept: extra.rezept || null,
+    pausiert: !!extra.pausiert,
+    fortschritt: 0,
+    arbeiterId: null,
+    status: "",
+    version: 0,
+  };
+  spiel.gebaeude.set(g.id, g);
+  for (const c of geo.zellen) setzeBlockade(c.x, c.z, true, g.id);
+  meldeEreignis("gebaeudeGebaut", { gebaeude: g });
+  return g;
+}
+
+// Baut ein Gebäude (mit Prüfung). Ein Gebäude aus dem Depot wird zuerst verwendet.
+// Rückgabe: { ok: true, gebaeude, verknuepft: [Gebäude] } oder { ok: false, gruende }
+function baueGebaeude(typ, x, z, drehung = 0, { autoVerknuepfen = true } = {}) {
+  if (!gebaeudeTypNach.has(typ)) return { ok: false, gruende: ["Unbekannter Gebäudetyp."] };
+  const pruefung = passtGebaeude(typ, x, z, drehung);
+  if (!pruefung.passt) return { ok: false, gruende: pruefung.gruende };
+  if (spiel.depot.gebaeude[typ] > 0) {
+    spiel.depot.gebaeude[typ]--;
+    if (!spiel.depot.gebaeude[typ]) delete spiel.depot.gebaeude[typ];
+  }
+  const g = stelleGebaeudeAuf(typ, x, z, drehung);
+  // Ein neues Hauptlager holt sich alle Items aus dem Depot (soweit Platz ist)
+  if (typVon(g).art === "hauptlager") raeumeDepotInsHauptlager();
+  const verknuepft = autoVerknuepfen ? verknuepfeAutomatisch(g) : [];
+  meldeStruktur();
+  return { ok: true, gebaeude: g, verknuepft };
+}
+
+// Reißt ein Gebäude ab: Das Gebäude kommt ins Depot, sein Inhalt ins Hauptlager
+// (soweit Platz ist) oder ebenfalls ins Depot. Rückgabe: das abgerissene Gebäude oder null.
+function reisseAb(id, { inhaltInsDepot = false } = {}) {
+  const g = spiel.gebaeude.get(id);
+  if (!g) return null;
+  spiel.gebaeude.delete(id);                     // zuerst entfernen: laufende Aufträge merken es sofort
+  for (const c of g.zellen) setzeBlockade(c.x, c.z, false);
+  bucheInsLager(g.bestand, inhaltInsDepot);
+  g.bestand = {};
+  spiel.depot.gebaeude[g.typ] = (spiel.depot.gebaeude[g.typ] || 0) + 1;
+  for (const anderes of spiel.gebaeude.values()) anderes.verknuepft = anderes.verknuepft.filter((v) => v !== id);
+  if (g.arbeiterId) {
+    const p = mitarbeiter.find((m) => m.id === g.arbeiterId);
+    if (p) p.stationId = null;
+  }
+  meldeEreignis("gebaeudeEntfernt", { gebaeude: g });
+  meldeStruktur();
+  return g;
+}
+
+/* --- Verknüpfungen Station ↔ Zwischenlager --- */
+
+function sindVerknuepft(a, b) {
+  return a.verknuepft.includes(b.id);
+}
+// Verknüpft zwei Gebäude oder löst die Verknüpfung. Nur Station ↔ Zwischenlager ist erlaubt.
+// Rückgabe: "verknuepft", "geloest" oder null (nicht erlaubt)
+function schalteVerknuepfung(idA, idB) {
+  const a = spiel.gebaeude.get(idA), b = spiel.gebaeude.get(idB);
+  if (!a || !b) return null;
+  const passt = (istStation(a) && istZwischenlager(b)) || (istZwischenlager(a) && istStation(b));
+  if (!passt) return null;
+  let ergebnis;
+  if (sindVerknuepft(a, b)) {
+    a.verknuepft = a.verknuepft.filter((v) => v !== b.id);
+    b.verknuepft = b.verknuepft.filter((v) => v !== a.id);
+    ergebnis = "geloest";
+  } else {
+    a.verknuepft.push(b.id);
+    b.verknuepft.push(a.id);
+    ergebnis = "verknuepft";
+  }
+  meldeStruktur();
+  return ergebnis;
+}
+
+// Neue Station: nächstgelegenes Zwischenlager (Laufweg ≤ verknuepfRadius) verknüpfen.
+// Neues Zwischenlager: alle Stationen in Reichweite verknüpfen, die noch kein Lager haben.
+// Rückgabe: Liste der neu verknüpften Gebäude.
+function verknuepfeAutomatisch(g) {
+  const radius = PRODUKTION.verknuepfRadius;
+  const neu = [];
+  if (istStation(g)) {
+    let bestes = null, besterWeg = Infinity;
+    for (const lager of gebaeudeListe(istZwischenlager)) {
+      if (abstand(lager.zugang, g.zugang) > radius * 2) continue;   // grob vorsortieren, spart A*
+      const weg = wegLaenge(g.zugang, lager.zugang);
+      if (weg <= radius && weg < besterWeg) { bestes = lager; besterWeg = weg; }
+    }
+    if (bestes) { schalteVerknuepfung(g.id, bestes.id); neu.push(bestes); }
+  } else if (istZwischenlager(g)) {
+    for (const station of gebaeudeListe(istStation)) {
+      if (station.verknuepft.length > 0 || abstand(station.zugang, g.zugang) > radius * 2) continue;
+      if (wegLaenge(g.zugang, station.zugang) <= radius) { schalteVerknuepfung(g.id, station.id); neu.push(station); }
+    }
+  }
+  return neu;
+}
+
+/* ============================================================================
+   ABSCHNITT 11b: Lager, Depot & Bestände (Phase 4)               [Logik-Agent]
+   - Hauptlager: zentrales Lager im Raster (genau eins pro Halle)
+   - Zwischenlager (Kiste, Schrank): versorgen ihre verknüpften Stationen
+   - Depot: Lager AUSSERHALB des Rasters (abgebaute Maschinen und Items)
+   Reservierungen werden nicht gespeichert, sondern bei Bedarf aus den laufenden
+   Aufträgen der Mitarbeiter berechnet. So können sie nie "hängen bleiben".
+   ============================================================================ */
+
+// Bucht Items ins Hauptlager (soweit Platz ist), den Rest ins Depot.
+// Mit nurDepot = true geht alles direkt ins Depot.
+function bucheInsLager(items, nurDepot = false) {
+  const hl = nurDepot ? null : hauptlager();
+  for (const [item, n] of Object.entries(items)) {
+    let rest = n;
+    if (hl) {
+      const platz = Math.max(0, kapazitaetVon(hl) - summe(hl.bestand));
+      const rein = Math.min(rest, platz);
+      if (rein > 0) aendereBestand(hl, item, rein);
+      rest -= rein;
+    }
+    if (rest > 0) bucheItems(spiel.depot.items, { [item]: rest });
+  }
+  spiel.version++;
+}
+
+// Ein (neues) Hauptlager holt sich alle Items aus dem Depot, soweit Platz ist.
+function raeumeDepotInsHauptlager() {
+  const hl = hauptlager();
+  if (!hl) return;
+  const items = spiel.depot.items;
+  spiel.depot.items = {};
+  bucheInsLager(items);
+}
+
+// "Testlieferung": bringt von jedem Rohstoff etwas (bis die Wirtschaft kommt).
+// Rückgabe: { insHauptlager, insDepot } (Anzahl Items)
+function testLieferung() {
+  const hl = hauptlager();
+  const vorher = hl ? summe(hl.bestand) : 0;
+  const items = {};
+  for (const r of ROHSTOFFE) items[r.id] = PRODUKTION.testLieferung;
+  bucheInsLager(items);
+  const insHauptlager = hl ? summe(hl.bestand) - vorher : 0;
+  return { insHauptlager, insDepot: summe(items) - insHauptlager };
+}
+
+// Berechnet aus allen laufenden Aufträgen, was schon "versprochen" ist:
+//   raus: Gebäude-ID → Items, die gleich jemand abholt
+//   rein: Gebäude-ID → Items, die gerade jemand bringt
+function reservierungen() {
+  const raus = new Map(), rein = new Map();
+  const dazu = (map, id, item, n) => {
+    if (!id || n <= 0) return;
+    if (!map.has(id)) map.set(id, {});
+    const e = map.get(id);
+    e[item] = (e[item] || 0) + n;
+  };
+  for (const p of mitarbeiter) {
+    const a = p.auftrag;
+    if (!a) continue;
+    if (a.art === "material") {                    // Arbeiter holt Material für einen Durchgang
+      if (!a.abgeholt) for (const [i, n] of Object.entries(a.items)) dazu(raus, a.quelleId, i, n);
+    } else if (a.art === "liefern" || a.art === "abholen" || a.art === "zurueck") {   // Kurier
+      if (!a.abgeholt) dazu(raus, a.quelleId, a.item, a.menge);
+      dazu(rein, a.zielId, a.item, a.menge);
+    }
+  }
+  return { raus, rein };
+}
+const reserviert = (map, id, item) => (map.get(id) || {})[item] || 0;
+const reserviertSumme = (map, id) => summe(map.get(id) || {});
+
+// Wie viele Items eines Typs liegen noch frei (nicht schon versprochen) in einem Gebäude?
+function verfuegbar(g, item, res) {
+  return (g.bestand[item] || 0) - reserviert(res.raus, g.id, item);
+}
+// Wie viel Platz ist noch frei (abzüglich der Items, die gerade gebracht werden)?
+function freierPlatz(g, res) {
+  return kapazitaetVon(g) - summe(g.bestand) - reserviertSumme(res.rein, g.id);
+}
+
+// Sollbestand eines Zwischenlagers: Material für "vorratDurchgaenge" Durchgänge jeder
+// verknüpften Station, gedeckelt durch das Fassungsvermögen. Passt ein Rezept ins Lager,
+// bleibt beim Deckeln immer mindestens ein kompletter Durchgang übrig.
+function sollbestand(lager) {
+  const soll = {};
+  for (const sid of lager.verknuepft) {
+    const s = spiel.gebaeude.get(sid);
+    if (!s || s.pausiert) continue;
+    const r = rezeptVon(s);
+    if (!r) continue;
+    for (const [item, n] of Object.entries(r.eingaben)) soll[item] = (soll[item] || 0) + n * PRODUKTION.vorratDurchgaenge;
+  }
+  const kap = kapazitaetVon(lager), gesamt = summe(soll);
+  if (gesamt > kap) {
+    const faktor = kap / gesamt;
+    for (const item of Object.keys(soll)) soll[item] = Math.max(1, Math.floor(soll[item] * faktor));
+  }
+  return soll;
+}
+
+// Was fehlt einem Zwischenlager noch? (Soll − Bestand − schon unterwegs, höchstens so viel wie Platz ist)
+function bedarf(lager, res) {
+  const ergebnis = {};
+  let platz = freierPlatz(lager, res);
+  for (const [item, soll] of Object.entries(sollbestand(lager))) {
+    const fehlt = soll - (lager.bestand[item] || 0) - reserviert(res.rein, lager.id, item);
+    if (fehlt > 0 && platz > 0) {
+      const n = Math.min(fehlt, platz);
+      ergebnis[item] = n;
+      platz -= n;
+    }
+  }
+  return ergebnis;
+}
+
+// Fertigware im Hauptlager (für das HUD)
+function fertigwareImLager() {
+  const hl = hauptlager();
+  if (!hl) return 0;
+  let n = 0;
+  for (const [item, menge] of Object.entries(hl.bestand)) if (item.startsWith("p:")) n += menge;
+  return n;
+}
+
+/* ============================================================================
+   ABSCHNITT 11c: Mitarbeiter, Aufträge & Produktion (Phase 4)    [Logik-Agent]
+   Kuriere:  frei → zurQuelle → laedt → zumZiel → entlaedt → frei
+   Arbeiter: frei → zumLager → nimmt (→ wartetMaterial) → zurStation → arbeitet → frei
+   Die Auftragsbörse verteilt zweimal pro Sekunde Aufträge an freie Kuriere:
+     "liefern" (Hauptlager → Zwischenlager) und "abholen" (Ausgabefach → Hauptlager).
+   Die Logik läuft in festen Schritten (PRODUKTION.simSchritt), unabhängig von der Bildrate.
+   ============================================================================ */
+
+/* --- Rezepte --- */
+
+// Blaupausen werden nicht bei jedem Schritt aus dem Browser-Speicher gelesen,
+// sondern hier zwischengespeichert und bei Änderungen erneuert.
+let blaupausenNachId = new Map();
+function erneuereBlaupausenSpeicher() {
+  blaupausenNachId = new Map(ladeBlaupausen().map((bp) => [bp.id, bp]));
+  for (const bp of blaupausenNachId.values()) {
+    if (spiel.produktNamen[bp.id] !== undefined || gebaeudeListe((g) => g.rezept === bp.id).length) {
+      spiel.produktNamen[bp.id] = bp.name;   // Umbenennungen übernehmen
+    }
+  }
+}
+spielEreignisse.addEventListener("blaupausenGeaendert", () => { erneuereBlaupausenSpeicher(); meldeStruktur(); });
+
+// Was braucht eine Station für EINEN Durchgang, was kommt heraus, wie lange dauert es?
+// Rückgabe: { schluessel, name, eingaben: { item: n }, ausgabe, zeit, ausschuss } oder null
+function rezeptVon(s) {
+  if (!s.rezept) return null;
+  const art = typVon(s).art;
+  if (art === "werkbank") {
+    const b = bauteilNachTyp.get(s.rezept);
+    if (!b || !b.rezept) return null;
+    return { schluessel: "b:" + b.typ, name: b.name, eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit, ausschuss: 0 };
+  }
+  if (art === "montage") {
+    const bp = blaupausenNachId.get(s.rezept);
+    if (!bp) return null;
+    const eingaben = {};
+    for (const t of bp.teile) if (bauteilNachTyp.has(t.typ)) eingaben[t.typ] = (eingaben[t.typ] || 0) + 1;
+    const teile = summe(eingaben);
+    if (!teile) return null;
+    return {
+      schluessel: "p:" + bp.id, name: bp.name, eingaben, ausgabe: "p:" + bp.id,
+      zeit: PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile,
+      ausschuss: bp.werte && bp.werte.ueberhitzt ? PRODUKTION.ausschussUeberhitzt : 0,
+    };
+  }
+  return null;
+}
+
+// Setzt das Rezept einer Station (Bauteil-Typ für die Werkbank, Blaupausen-ID für den Montagetisch).
+function setzeRezept(id, rezept) {
+  const s = spiel.gebaeude.get(id);
+  if (!s || !istStation(s)) return false;
+  s.rezept = rezept || null;
+  s.fortschritt = 0;
+  if (rezept && typVon(s).art === "montage" && blaupausenNachId.has(rezept)) {
+    spiel.produktNamen[rezept] = blaupausenNachId.get(rezept).name;
+  }
+  meldeStruktur();
+  return true;
+}
+function schaltePause(id) {
+  const s = spiel.gebaeude.get(id);
+  if (!s || !istStation(s)) return false;
+  s.pausiert = !s.pausiert;
+  meldeStruktur();
+  return true;
+}
+
+/* --- Personal --- */
+
+function kurierStufe(p) {
+  return KURIER_STUFEN.find((st) => st.stufe === p.stufe) || KURIER_STUFEN[0];
+}
+function laufTempoVon(p) {
+  return LOGIK.laufTempo * (p.rolle === "kurier" ? kurierStufe(p).tempoFaktor : 1);
+}
+// Wo tauchen neue Mitarbeiter auf? Vor dem Hauptlager, sonst neben der Spielfigur.
+function startKachelFuerPersonen() {
+  const hl = hauptlager();
+  return hl ? { ...hl.zugang } : figurKachel();
+}
+function naechsterName() {
+  const vergeben = new Set(mitarbeiter.map((p) => p.name));
+  return MITARBEITER_NAMEN.find((n) => !vergeben.has(n)) || `Person ${spiel.naechstePersonId}`;
+}
+
+// Stellt einen Kurier oder Arbeiter ein. Rückgabe: die neue Person oder null (Höchstzahl erreicht)
+function stelleEin(rolle, daten = {}) {
+  if (!MITARBEITER_ROLLEN[rolle] || mitarbeiter.length >= PRODUKTION.maxMitarbeiter) return null;
+  const kachel = daten.kachel || startKachelFuerPersonen();
+  const p = erstellePerson(kachel, {
+    id: daten.id || "m" + spiel.naechstePersonId++,
+    name: daten.name || naechsterName(),
+    rolle,
+    stufe: daten.stufe || 0,     // Kurier-Stufe (0 = Hände)
+    stationId: null,             // Arbeiter: zugeordnete Station
+    traegt: {},                  // Items in den Händen
+    auftrag: null,               // laufender Auftrag
+    phase: "frei",               // Schritt im Ablauf (siehe Kopf dieses Abschnitts)
+    timer: 0,                    // Restzeit für Laden, Greifen, Warten
+    zielKachel: null,            // wohin die Person gerade geschickt wurde
+    atemVersatz: Math.random() * 6,   // damit nicht alle im Gleichtakt "atmen"
+  });
+  // Neue Leute stehen nebeneinander statt aufeinander
+  p.position.x += ((mitarbeiter.length % 3) - 1) * 0.28;
+  mitarbeiter.push(p);
+  meldeEreignis("mitarbeiterGeaendert", {});
+  meldeStruktur();
+  return p;
+}
+
+// Gibt zurück, was eine Person trägt (ins Hauptlager bzw. Depot), und bricht ihren Auftrag ab.
+function setzePersonZurueck(p) {
+  if (hatItems(p)) bucheInsLager(p.traegt);
+  p.traegt = {};
+  p.auftrag = null;
+  p.phase = "frei";
+}
+
+function entlasse(id) {
+  const p = mitarbeiter.find((m) => m.id === id);
+  if (!p) return false;
+  setzePersonZurueck(p);
+  const s = p.stationId && spiel.gebaeude.get(p.stationId);
+  if (s) s.arbeiterId = null;
+  mitarbeiter.splice(mitarbeiter.indexOf(p), 1);
+  meldeEreignis("mitarbeiterGeaendert", {});
+  meldeStruktur();
+  return true;
+}
+
+// Ordnet einen Arbeiter einer Station zu (station = null: Zuordnung lösen).
+function weiseZu(personId, stationId) {
+  const p = mitarbeiter.find((m) => m.id === personId);
+  if (!p || p.rolle !== "arbeiter") return false;
+  const neu = stationId ? spiel.gebaeude.get(stationId) : null;
+  if (stationId && (!neu || !istStation(neu))) return false;
+  const alt = p.stationId && spiel.gebaeude.get(p.stationId);
+  if (alt) alt.arbeiterId = null;
+  if (neu && neu.arbeiterId) {                     // bisheriger Arbeiter der Station wird frei
+    const vorher = mitarbeiter.find((m) => m.id === neu.arbeiterId);
+    if (vorher) { setzePersonZurueck(vorher); vorher.stationId = null; vorher.manuellFrei = false; }   // sucht sich eine andere freie Station
+  }
+  setzePersonZurueck(p);
+  p.stationId = neu ? neu.id : null;
+  p.manuellFrei = !neu;                            // bewusst ohne Station: nicht automatisch neu zuordnen
+  if (neu) neu.arbeiterId = p.id;
+  meldeStruktur();
+  return true;
+}
+
+// Freie Arbeiter (nicht bewusst freigestellt) bekommen die nächstgelegene Station ohne Arbeiter.
+function weiseArbeiterAutomatischZu() {
+  const offen = gebaeudeListe((g) => istStation(g) && !g.arbeiterId);
+  if (!offen.length) return;
+  for (const p of mitarbeiter) {
+    if (p.rolle !== "arbeiter" || p.stationId || p.manuellFrei || !offen.length) continue;
+    const k = personKachel(p);
+    offen.sort((a, b) => abstand(a.zugang, k) - abstand(b.zugang, k));
+    const s = offen.shift();
+    p.stationId = s.id;
+    s.arbeiterId = p.id;
+    meldeStruktur();
+  }
+}
+
+// Setzt die Kurier-Stufe (0 = Hände, 1 = Sackkarre, 2 = Hubwagen). Für Tests auch ohne Freischaltung.
+function setzeKurierStufe(id, stufe) {
+  const p = mitarbeiter.find((m) => m.id === id);
+  if (!p || p.rolle !== "kurier" || !KURIER_STUFEN.some((st) => st.stufe === stufe)) return false;
+  p.stufe = stufe;
+  meldeStruktur();
+  return true;
+}
+
+/* --- Bewegung zu Gebäuden --- */
+
+function geheZu(p, kachel) {
+  p.zielKachel = { x: kachel.x, z: kachel.z };
+  schickePerson(p, kachel);
+}
+function istAngekommen(p, kachel) {
+  if (p.zustand !== "steht") return false;
+  const k = personKachel(p);
+  return k.x === kachel.x && k.z === kachel.z;
+}
+// Steht die Person, ist aber nicht am Ziel? Dann war das Ziel nicht erreichbar.
+function istFestgefahren(p, kachel) {
+  return p.zustand === "steht" && !istAngekommen(p, kachel);
+}
+// Person schaut auf ein Gebäude (vom Zugang aus liegt es entgegen der Gebäude-Richtung).
+function schaueAuf(p, g) {
+  p.blickZiel = Math.atan2(-g.richtung.x, -g.richtung.z);
+}
+function beendeAuftrag(p) {
+  p.auftrag = null;
+  p.phase = "frei";
+}
+
+/* --- Auftragsbörse für Kuriere --- */
+
+function verteileAuftraege() {
+  const freie = mitarbeiter.filter((p) => p.rolle === "kurier" && p.phase === "frei");
+  const hl = hauptlager();
+  if (!freie.length || !hl) return;
+
+  for (const p of freie) {
+    const res = reservierungen();
+    const st = kurierStufe(p);
+    const k = personKachel(p);
+    let bester = null, besteWertung = -Infinity;
+    const pruefe = (kandidat) => {
+      // Höchste Priorität gewinnt; bei Gleichstand der kürzere Weg zur Quelle
+      const wertung = kandidat.prio * 10 - abstand(k, kandidat.quelle.zugang) * 0.05;
+      if (wertung > besteWertung) { bester = kandidat; besteWertung = wertung; }
+    };
+
+    // "abholen": Ausgabefächer der Stationen leeren (volle Fächer zuerst, sonst steht die Station still)
+    const platzImLager = freierPlatz(hl, res);
+    if (platzImLager > 0) {
+      for (const s of gebaeudeListe(istStation)) {
+        const voll = summe(s.bestand) >= kapazitaetVon(s);
+        for (const item of Object.keys(s.bestand)) {
+          const n = verfuegbar(s, item, res);
+          if (n > 0) pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, platzImLager), prio: voll ? 5 : 2 });
+        }
+      }
+    }
+    // "liefern": Zwischenlager mit Bedarf füllen (je leerer, desto wichtiger)
+    for (const lager of gebaeudeListe(istZwischenlager)) {
+      const soll = sollbestand(lager);
+      for (const [item, fehlt] of Object.entries(bedarf(lager, res))) {
+        const n = verfuegbar(hl, item, res);
+        if (n <= 0) continue;
+        const fuellung = ((lager.bestand[item] || 0) + reserviert(res.rein, lager.id, item)) / soll[item];
+        pruefe({ art: "liefern", quelle: hl, ziel: lager, item, max: Math.min(fehlt, n), prio: 1 + 2 * (1 - fuellung) });
+      }
+    }
+    if (!bester) return;   // für niemanden etwas zu tun
+
+    const menge = Math.min(st.traglast, bester.max);
+    p.auftrag = { art: bester.art, quelleId: bester.quelle.id, zielId: bester.ziel.id, item: bester.item, menge, abgeholt: false };
+    p.phase = "zurQuelle";
+    geheZu(p, bester.quelle.zugang);
+  }
+}
+
+// Ein Schritt im Ablauf eines Kuriers.
+function schrittKurier(p, dt) {
+  const a = p.auftrag;
+  if (!a) { p.phase = "frei"; return; }
+  const quelle = a.quelleId ? spiel.gebaeude.get(a.quelleId) : null;
+  const ziel = spiel.gebaeude.get(a.zielId);
+  const st = kurierStufe(p);
+
+  switch (p.phase) {
+    case "zurQuelle":
+      if (!quelle || !ziel) return beendeAuftrag(p);          // noch nichts getragen: einfach abbrechen
+      if (istAngekommen(p, quelle.zugang)) { p.phase = "laedt"; p.timer = st.ladezeit; schaueAuf(p, quelle); }
+      else if (istFestgefahren(p, quelle.zugang)) beendeAuftrag(p);
+      break;
+
+    case "laedt": {
+      if (!quelle || !ziel) return beendeAuftrag(p);
+      p.timer -= dt;
+      if (p.timer > 0) break;
+      const n = Math.min(a.menge, quelle.bestand[a.item] || 0);
+      if (n <= 0) return beendeAuftrag(p);
+      aendereBestand(quelle, a.item, -n);
+      p.traegt = { [a.item]: n };
+      a.menge = n;
+      a.abgeholt = true;
+      p.phase = "zumZiel";
+      geheZu(p, ziel.zugang);
+      break;
+    }
+
+    case "zumZiel":
+      if (!ziel) return leiteUm(p);
+      if (istAngekommen(p, ziel.zugang)) { p.phase = "entlaedt"; p.timer = st.ladezeit; schaueAuf(p, ziel); }
+      else if (istFestgefahren(p, ziel.zugang)) leiteUm(p);
+      break;
+
+    case "entlaedt":
+      if (!ziel) return leiteUm(p);
+      p.timer -= dt;
+      if (p.timer > 0) break;
+      if (kapazitaetVon(ziel) - summe(ziel.bestand) < a.menge) return leiteUm(p);
+      aendereBestand(ziel, a.item, a.menge);
+      p.traegt = {};
+      beendeAuftrag(p);
+      break;
+
+    default:
+      beendeAuftrag(p);
+  }
+}
+
+// Das Ziel ist weg oder voll: Item zurück ins Hauptlager bringen, notfalls ins Depot buchen.
+// So geht nie ein Item verloren.
+function leiteUm(p) {
+  const a = p.auftrag;
+  const hl = hauptlager();
+  if (hl && a.zielId !== hl.id && freierPlatz(hl, reservierungen()) >= a.menge) {
+    p.auftrag = { art: "zurueck", quelleId: null, zielId: hl.id, item: a.item, menge: a.menge, abgeholt: true };
+    p.phase = "zumZiel";
+    geheZu(p, hl.zugang);
+    return;
+  }
+  bucheItems(spiel.depot.items, p.traegt);
+  p.traegt = {};
+  spiel.version++;
+  beendeAuftrag(p);
+}
+
+/* --- Arbeiter --- */
+
+// Sucht unter den verknüpften Zwischenlagern eins aus: am liebsten das nächste, in dem
+// alles für einen Durchgang bereitliegt. Rückgabe: { g, komplett } oder null (kein Lager verknüpft)
+function waehleLager(s, r, res) {
+  const lager = s.verknuepft.map((id) => spiel.gebaeude.get(id)).filter((g) => g && istZwischenlager(g));
+  if (!lager.length) return null;
+  lager.sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang));
+  const komplett = lager.find((g) => Object.entries(r.eingaben).every(([i, n]) => verfuegbar(g, i, res) >= n));
+  return komplett ? { g: komplett, komplett: true } : { g: lager[0], komplett: false };
+}
+
+// Ein Schritt im Ablauf eines Arbeiters.
+function schrittArbeiter(p, dt) {
+  const s = p.stationId ? spiel.gebaeude.get(p.stationId) : null;
+  if (!s) {                                      // keine (oder abgerissene) Station
+    if (hatItems(p) || p.auftrag) setzePersonZurueck(p);
+    p.stationId = null;
+    return;
+  }
+  const a = p.auftrag;
+
+  switch (p.phase) {
+    case "frei": {
+      if (hatItems(p)) setzePersonZurueck(p);    // Material eines alten Auftrags zurückgeben
+      const r = rezeptVon(s);
+      const res = reservierungen();
+      const wahl = r && !s.pausiert ? waehleLager(s, r, res) : null;
+      if (!wahl) {
+        // Nichts zu tun: an der Station warten (alle 2 Sekunden erneut versuchen, falls der Weg versperrt war)
+        if (p.zustand === "steht" && !istAngekommen(p, s.zugang) && (p.timer -= dt) <= 0) { geheZu(p, s.zugang); p.timer = 2; }
+        else if (istAngekommen(p, s.zugang)) schaueAuf(p, s);
+        return;
+      }
+      p.auftrag = { art: wahl.komplett ? "material" : "warten", quelleId: wahl.g.id, items: { ...r.eingaben }, rezept: r, abgeholt: false };
+      p.phase = "zumLager";
+      geheZu(p, wahl.g.zugang);
+      break;
+    }
+
+    case "zumLager": {
+      const q = spiel.gebaeude.get(a.quelleId);
+      if (!q || !sindVerknuepft(s, q)) return beendeAuftrag(p);
+      if (istAngekommen(p, q.zugang)) { p.phase = "nimmt"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, q); }
+      else if (istFestgefahren(p, q.zugang)) beendeAuftrag(p);
+      break;
+    }
+
+    case "nimmt":
+    case "wartetMaterial": {
+      const q = spiel.gebaeude.get(a.quelleId);
+      if (!q || !sindVerknuepft(s, q)) return beendeAuftrag(p);
+      p.timer -= dt;
+      if (p.timer > 0) break;
+      const r = rezeptVon(s);
+      if (!r || s.pausiert) return beendeAuftrag(p);
+      if (r.schluessel !== a.rezept.schluessel) {   // Rezept wurde unterwegs geändert
+        a.rezept = r; a.items = { ...r.eingaben }; a.art = "warten";
+      }
+      const res = reservierungen();
+      const eigene = a.art === "material";           // eigene Reservierung zählt für mich als verfügbar
+      const alles = Object.entries(r.eingaben).every(([i, n]) => verfuegbar(q, i, res) + (eigene ? n : 0) >= n);
+      if (alles) {
+        for (const [i, n] of Object.entries(r.eingaben)) aendereBestand(q, i, -n);
+        p.traegt = { ...r.eingaben };
+        a.art = "material";
+        a.abgeholt = true;
+        p.phase = "zurStation";
+        geheZu(p, s.zugang);
+      } else {
+        a.art = "warten";
+        p.phase = "wartetMaterial";
+        p.timer = 0.5;
+        // Liegt in einem anderen verknüpften Lager alles bereit? Dann dorthin gehen.
+        const anderes = waehleLager(s, r, reservierungen());
+        if (anderes && anderes.komplett && anderes.g.id !== q.id) {
+          a.quelleId = anderes.g.id;
+          a.art = "material";
+          p.phase = "zumLager";
+          geheZu(p, anderes.g.zugang);
+        }
+      }
+      break;
+    }
+
+    case "zurStation":
+      if (istAngekommen(p, s.zugang)) { schaueAuf(p, s); p.phase = "arbeitet"; s.fortschritt = 0; }
+      else if (istFestgefahren(p, s.zugang)) setzePersonZurueck(p);
+      break;
+
+    case "arbeitet": {
+      if (summe(s.bestand) >= kapazitaetVon(s)) break;   // Ausgabefach voll: warten, bis ein Kurier abholt
+      s.fortschritt += dt / a.rezept.zeit;
+      if (s.fortschritt < 1) break;
+      s.fortschritt = 0;
+      p.traegt = {};
+      if (a.rezept.ausschuss > 0 && Math.random() < a.rezept.ausschuss) {
+        spiel.statistik.ausschuss++;
+        meldeEreignis("ausschuss", { station: s, rezept: a.rezept });
+      } else {
+        aendereBestand(s, a.rezept.ausgabe, 1);
+        spiel.statistik.produziert++;
+      }
+      spiel.version++;
+      beendeAuftrag(p);
+      break;
+    }
+
+    default:
+      beendeAuftrag(p);
+  }
+}
+
+/* --- Status der Stationen (für Symbole und Info-Fenster) --- */
+//   arbeitet, holtMaterial, wartetAufMaterial, ausgabeVoll, keinArbeiter,
+//   keinRezept, rezeptFehlt, keinLager, pausiert
+function stationsStatus(s) {
+  if (!s.rezept) return "keinRezept";
+  if (!rezeptVon(s)) return "rezeptFehlt";
+  if (s.pausiert) return "pausiert";
+  const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
+  if (!p) return "keinArbeiter";
+  if (!s.verknuepft.some((id) => spiel.gebaeude.has(id))) return "keinLager";
+  if (p.phase === "arbeitet") return summe(s.bestand) >= kapazitaetVon(s) ? "ausgabeVoll" : "arbeitet";
+  if (p.phase === "wartetMaterial") return "wartetAufMaterial";
+  return "holtMaterial";
+}
+
+/* --- Simulation --- */
+
+let simRest = 0;            // noch nicht verbrauchte Spielzeit (Sekunden)
+let auftragsTimer = 0;      // bis zur nächsten Runde der Auftragsbörse
+
+// Ein fester Simulationsschritt
+function simSchritt(dt) {
+  weiseArbeiterAutomatischZu();
+  auftragsTimer -= dt;
+  if (auftragsTimer <= 0) { auftragsTimer = PRODUKTION.auftragsIntervall; verteileAuftraege(); }
+  for (const p of mitarbeiter) {
+    if (p.rolle === "kurier") schrittKurier(p, dt);
+    else schrittArbeiter(p, dt);
+  }
+  for (const s of gebaeudeListe(istStation)) s.status = stationsStatus(s);
+}
+
+// Wird jedes Bild mit der vergangenen SPIELzeit aufgerufen (Pause = 0, 2× = doppelt so viel).
+// Die Bewegung läuft flüssig mit jedem Bild, die Entscheidungen in festen Schritten.
+function simuliere(simSekunden) {
+  for (const p of mitarbeiter) bewegePerson(p, simSekunden, laufTempoVon(p));
+  simRest += simSekunden;
+  let schritte = 0;
+  while (simRest >= PRODUKTION.simSchritt && schritte < 10) {
+    simRest -= PRODUKTION.simSchritt;
+    simSchritt(PRODUKTION.simSchritt);
+    schritte++;
+  }
+  if (schritte === 10) simRest = 0;   // Rechner kommt nicht hinterher: lieber kurz langsamer als ruckeln
+}
+
+function setzeTempo(tempo) {
+  if (![0, 1, 2, 3].includes(tempo)) return;
+  spiel.tempo = tempo;
+  if (tempo > 0) spiel.tempoVorPause = tempo;
+  meldeEreignis("tempoGeaendert", { tempo });
+}
+function schaltePauseUm() {
+  setzeTempo(spiel.tempo === 0 ? spiel.tempoVorPause || 1 : 0);
+}
+
+/* ============================================================================
+   ABSCHNITT 11d: Halle bereinigen, Schnappschuss & Spielstand    [Logik-Agent]
+   ============================================================================ */
+
+// Was würde "Halle bereinigen" verschieben? (für das Bestätigungsfenster)
+function zaehleHalle() {
+  let items = 0;
+  for (const g of spiel.gebaeude.values()) items += summe(g.bestand);
+  for (const p of mitarbeiter) items += summe(p.traegt);
+  return { gebaeude: spiel.gebaeude.size, items };
+}
+
+// "Halle bereinigen": baut ALLES ab (auch das Hauptlager). Maschinen und sämtliche Items
+// wandern ins Depot. Der alte Aufbau wird als Schnappschuss gemerkt.
+// Rückgabe: { gebaeude, items } (Anzahl) oder null, wenn die Halle schon leer ist
+function halleBereinigen() {
+  if (spiel.gebaeude.size === 0) return null;
+  const liste = gebaeudeListe();
+  const nummer = new Map(liste.map((g, i) => [g.id, i]));
+  spiel.schnappschuss = {
+    gebaeude: liste.map((g) => ({
+      typ: g.typ, x: g.x, z: g.z, drehung: g.drehung, rezept: g.rezept, pausiert: g.pausiert,
+      verknuepft: g.verknuepft.map((id) => nummer.get(id)).filter((i) => i !== undefined),
+      arbeiter: g.arbeiterId,
+    })),
+  };
+  let items = 0;
+  // 1. Alle brechen ab; was sie tragen (auch Material in Arbeit) geht ins Depot
+  for (const p of mitarbeiter) {
+    items += summe(p.traegt);
+    bucheItems(spiel.depot.items, p.traegt);
+    p.traegt = {};
+    p.auftrag = null;
+    p.phase = "frei";
+    haltePersonAn(p);
+  }
+  // 2. Alle Gebäude abbauen; ihr Inhalt geht direkt ins Depot
+  for (const g of liste) {
+    items += summe(g.bestand);
+    reisseAb(g.id, { inhaltInsDepot: true });
+  }
+  spiel.version++;
+  meldeEreignis("halleBereinigt", { gebaeude: liste.length, items });
+  return { gebaeude: liste.length, items };
+}
+
+// Stellt den Aufbau vor dem letzten "Halle bereinigen" wieder her (Gebäude, Verknüpfungen,
+// Rezepte, Arbeiter). Plätze, die inzwischen belegt sind, werden übersprungen.
+// Rückgabe: { gebaut, uebersprungen } oder null (kein Schnappschuss)
+function stelleAufbauWiederHer() {
+  const schnappschuss = spiel.schnappschuss;
+  if (!schnappschuss) return null;
+  // Das Hauptlager zuerst, damit es die Items aus dem Depot aufnimmt
+  const reihenfolge = schnappschuss.gebaeude.map((e, i) => i)
+    .sort((a, b) => (schnappschuss.gebaeude[b].typ === "hauptlager") - (schnappschuss.gebaeude[a].typ === "hauptlager"));
+  const neueIds = [];
+  let uebersprungen = 0;
+  for (const i of reihenfolge) {
+    const e = schnappschuss.gebaeude[i];
+    const ergebnis = baueGebaeude(e.typ, e.x, e.z, e.drehung, { autoVerknuepfen: false });
+    if (!ergebnis.ok) { uebersprungen++; continue; }
+    neueIds[i] = ergebnis.gebaeude.id;
+    ergebnis.gebaeude.rezept = e.rezept;
+    ergebnis.gebaeude.pausiert = e.pausiert;
+  }
+  schnappschuss.gebaeude.forEach((e, i) => {
+    if (!neueIds[i]) return;
+    for (const j of e.verknuepft) {
+      const a = spiel.gebaeude.get(neueIds[i]), b = neueIds[j] && spiel.gebaeude.get(neueIds[j]);
+      if (a && b && !sindVerknuepft(a, b)) schalteVerknuepfung(a.id, b.id);
+    }
+    const p = e.arbeiter && mitarbeiter.find((m) => m.id === e.arbeiter);
+    if (p && !p.stationId) weiseZu(p.id, neueIds[i]);
+  });
+  spiel.schnappschuss = null;
+  meldeStruktur();
+  return { gebaut: neueIds.filter(Boolean).length, uebersprungen };
+}
+
+/* --- Spielstand im Browser speichern ---
+   Gespeichert werden Gebäude mit Inhalt, Depot, Mitarbeiter, Verknüpfungen, Rezepte
+   und der Schnappschuss. Laufende Gänge nicht: Was Mitarbeiter gerade tragen, liegt
+   nach dem Laden wieder im Hauptlager (bzw. im Depot). */
+let spielstandSpeicherbar = true;    // false, sobald der Browser-Speicher einmal versagt hat
+let spielstandAktiv = false;         // erst nach dem Laden speichern (sonst würde ein leerer Stand gespeichert)
+
+function spielstandDaten() {
+  const unterwegs = {};
+  for (const p of mitarbeiter) bucheItems(unterwegs, p.traegt);
+  return {
+    version: PRODUKTION.spielstandVersion,
+    gespeichert: new Date().toISOString(),
+    level: level.name,
+    gebaeude: gebaeudeListe().map((g) => ({
+      id: g.id, typ: g.typ, nummer: g.nummer, x: g.x, z: g.z, drehung: g.drehung,
+      bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
+    })),
+    naechsteId: spiel.naechsteId,
+    depot: spiel.depot,
+    mitarbeiter: mitarbeiter.map((p) => ({
+      id: p.id, name: p.name, rolle: p.rolle, stufe: p.stufe, stationId: p.stationId,
+      manuellFrei: !!p.manuellFrei, kachel: personKachel(p),
+    })),
+    naechstePersonId: spiel.naechstePersonId,
+    produktNamen: spiel.produktNamen,
+    statistik: spiel.statistik,
+    schnappschuss: spiel.schnappschuss,
+    unterwegs,
+  };
+}
+
+function speichereSpielstand() {
+  if (!spielstandAktiv || !spielstandSpeicherbar) return false;
+  try {
+    window.localStorage.setItem(PRODUKTION.speicherSchluessel, JSON.stringify(spielstandDaten()));
+    return true;
+  } catch (fehler) {
+    spielstandSpeicherbar = false;
+    meldeEreignis("hinweis", { text: "Der Spielstand kann in diesem Browser nicht gespeichert werden." });
+    return false;
+  }
+}
+
+function leseSpielstand() {
+  try {
+    const text = window.localStorage.getItem(PRODUKTION.speicherSchluessel);
+    if (!text) return null;
+    const daten = JSON.parse(text);
+    return daten && daten.version === PRODUKTION.spielstandVersion && Array.isArray(daten.gebaeude) ? daten : null;
+  } catch (fehler) {
+    spielstandSpeicherbar = false;
+    return null;
+  }
+}
+
+// Baut die Halle aus gespeicherten Daten wieder auf.
+function wendeSpielstandAn(d) {
+  spiel.naechsteId = d.naechsteId || 1;
+  spiel.naechstePersonId = d.naechstePersonId || 1;
+  spiel.produktNamen = d.produktNamen || {};
+  spiel.statistik = { produziert: 0, ausschuss: 0, ...(d.statistik || {}) };
+  spiel.depot = { gebaeude: { ...(d.depot?.gebaeude || {}) }, items: { ...(d.depot?.items || {}) } };
+  spiel.schnappschuss = d.schnappschuss || null;
+  for (const e of d.gebaeude) {
+    if (!gebaeudeTypNach.has(e.typ)) continue;
+    const geo = gebaeudeGeometrie(e.typ, e.x, e.z, e.drehung);
+    const frei = geo.zellen.every((c) => istBegehbar(c.x, c.z));
+    if (!frei) {                                 // passt nicht mehr (z. B. anderes Level): ins Depot
+      spiel.depot.gebaeude[e.typ] = (spiel.depot.gebaeude[e.typ] || 0) + 1;
+      bucheItems(spiel.depot.items, e.bestand || {});
+      continue;
+    }
+    stelleGebaeudeAuf(e.typ, e.x, e.z, e.drehung, e);
+  }
+  // Verknüpfungen auf noch vorhandene Gebäude beschränken
+  for (const g of spiel.gebaeude.values()) g.verknuepft = g.verknuepft.filter((id) => spiel.gebaeude.has(id));
+  for (const m of d.mitarbeiter || []) {
+    const kachel = m.kachel && istBegehbar(m.kachel.x, m.kachel.z) ? m.kachel : undefined;
+    const p = stelleEin(m.rolle, { id: m.id, name: m.name, stufe: m.stufe, kachel });
+    if (!p) continue;
+    p.manuellFrei = !!m.manuellFrei;
+    const s = m.stationId && spiel.gebaeude.get(m.stationId);
+    if (s && istStation(s) && !s.arbeiterId) { p.stationId = s.id; s.arbeiterId = p.id; }
+  }
+  bucheInsLager(d.unterwegs || {});
+}
+
+// Allererster Start: Hauptlager mit Startbestand, Kuriere und Arbeiter davor.
+function starteNeuesSpiel() {
+  const st = PRODUKTION.startHauptlager;
+  const ergebnis = baueGebaeude("hauptlager", st.x, st.z, st.drehung);
+  if (ergebnis.ok) bucheItems(ergebnis.gebaeude.bestand, PRODUKTION.startBestand);
+  else bucheItems(spiel.depot.items, PRODUKTION.startBestand);
+  for (let i = 0; i < PRODUKTION.startKuriere; i++) stelleEin("kurier");
+  for (let i = 0; i < PRODUKTION.startArbeiter; i++) stelleEin("arbeiter");
+}
+
+// Wird einmal beim Laden der Seite aufgerufen (Abschnitt 10).
+function starteSpiel() {
+  erneuereBlaupausenSpeicher();
+  const gespeichert = leseSpielstand();
+  if (gespeichert) wendeSpielstandAn(gespeichert);
+  else starteNeuesSpiel();
+  spielstandAktiv = true;
+  meldeStruktur();
+  setInterval(speichereSpielstand, PRODUKTION.speicherIntervall * 1000);
+  // Beim Schließen oder Wegklicken der Seite noch einmal speichern
+  window.addEventListener("pagehide", speichereSpielstand);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) speichereSpielstand(); });
+}
+
+// Löscht den gespeicherten Spielstand und lädt die Seite neu (Neustart).
+function setzeSpielstandZurueck() {
+  spielstandAktiv = false;            // verhindert, dass beim Neuladen wieder gespeichert wird
+  try { window.localStorage.removeItem(PRODUKTION.speicherSchluessel); } catch (fehler) { /* egal */ }
+  window.location.reload();
+}
+
+/* ============================================================================
+   ABSCHNITT 12: 3D – Gebäude, Mitarbeiter, Füllstände (Phase 4)    [3D-Agent]
+   Alle Modelle bestehen aus Grundformen im Low-Poly-Stil. Ein Gebäude wird mit
+   seiner Vorderseite nach +z gebaut (dorthin zeigt der Zugang) und um seine
+   Mitte gedreht. Die Logik (Abschnitt 11) kennt die 3D-Welt nicht; hier wird
+   nur auf ihre Ereignisse gehört.
+   ============================================================================ */
+
+// Hilfsfunktion: Quader mit Unterkante auf Höhe "yUnten" an eine Gruppe hängen.
+// "material" ersetzt die Farbe (z. B. durch das durchsichtige Vorschau-Material).
+function quader(gruppe, breite, hoehe, tiefe, farbe, x, yUnten, z, material = null) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(breite, hoehe, tiefe), material || figurMaterial(farbe));
+  mesh.position.set(x, yUnten + hoehe / 2, z);
+  mesh.castShadow = !material;
+  mesh.receiveShadow = !material;
+  gruppe.add(mesh);
+  return mesh;
+}
+
+// Bauplan jedes Gebäudes. Rückgabe: { gruppe, plaetze: [Positionen für Füllstand-Würfel], wuerfel: Kantenlänge }
+// Maße in Kacheln; der Boden liegt bei y = 0, die Mitte der Grundfläche bei x = z = 0.
+const MODELLE = {
+  // Hauptlager (3 × 2): Hochregal hinten, zwei Paletten vorn
+  hauptlager(m) {
+    const g = new THREE.Group(), plaetze = [];
+    quader(g, 2.92, 0.04, 1.92, GRAFIK.farbeLagerBoden, 0, 0, 0, m);
+    for (const x of [-1.4, -0.47, 0.47, 1.4]) {
+      for (const z of [-0.88, -0.3]) quader(g, 0.06, 1.55, 0.06, GRAFIK.farbeRegalPfosten, x, 0.04, z, m);
+    }
+    for (const y of [0.12, 0.62, 1.12]) {
+      quader(g, 2.86, 0.04, 0.6, GRAFIK.farbeRegalBoden, 0, y, -0.59, m);
+      quader(g, 2.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.29, m);
+      quader(g, 2.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.89, m);
+      for (let i = 0; i < 6; i++) plaetze.push(new THREE.Vector3(-1.2 + i * 0.48, y + 0.04 + 0.15, -0.59));
+    }
+    for (const px of [-0.75, 0.75]) {
+      quader(g, 1.1, 0.12, 0.8, GRAFIK.farbeHolz, px, 0.04, 0.45, m);
+      for (let lage = 0; lage < 2; lage++) {
+        for (let iz = 0; iz < 2; iz++) {
+          for (let ix = 0; ix < 3; ix++) plaetze.push(new THREE.Vector3(px - 0.34 + ix * 0.34, 0.16 + 0.15 + lage * 0.31, 0.29 + iz * 0.32));
+        }
+      }
+    }
+    return { gruppe: g, plaetze, wuerfel: 0.3 };
+  },
+
+  // Kiste (1 × 1): offene Holzkiste mit Eckleisten
+  kiste(m) {
+    const g = new THREE.Group(), plaetze = [];
+    quader(g, 0.8, 0.05, 0.8, GRAFIK.farbeHolzDunkel, 0, 0, 0, m);
+    for (const z of [-0.375, 0.375]) quader(g, 0.8, 0.46, 0.05, GRAFIK.farbeHolz, 0, 0.05, z, m);
+    for (const x of [-0.375, 0.375]) quader(g, 0.05, 0.46, 0.7, GRAFIK.farbeHolz, x, 0.05, 0, m);
+    for (const x of [-0.385, 0.385]) for (const z of [-0.385, 0.385]) quader(g, 0.08, 0.53, 0.08, GRAFIK.farbeHolzDunkel, x, 0.02, z, m);
+    for (const z of [-0.39, 0.39]) quader(g, 0.82, 0.06, 0.04, GRAFIK.farbeHolzDunkel, 0, 0.3, z, m);
+    for (let lage = 0; lage < 2; lage++) {
+      for (const x of [-0.16, 0.16]) for (const z of [-0.16, 0.16]) plaetze.push(new THREE.Vector3(x, 0.05 + 0.135 + lage * 0.28, z));
+    }
+    return { gruppe: g, plaetze, wuerfel: 0.27 };
+  },
+
+  // Schrank (2 × 1): Blechschrank mit zwei Glastüren, zwei Böden
+  schrank(m) {
+    const g = new THREE.Group(), plaetze = [];
+    const B = 1.9, T = 0.72, H = 1.45, zm = -0.08;
+    quader(g, B, 0.05, T, GRAFIK.farbeMetall, 0, 0, zm, m);
+    quader(g, B, 0.05, T, GRAFIK.farbeMetall, 0, H - 0.05, zm, m);
+    for (const x of [-(B / 2 - 0.025), B / 2 - 0.025]) quader(g, 0.05, H, T, GRAFIK.farbeMetall, x, 0, zm, m);
+    quader(g, B, H, 0.04, GRAFIK.farbeMetallDunkel, 0, 0, zm - T / 2 + 0.02, m);
+    quader(g, B - 0.1, 0.04, T - 0.06, GRAFIK.farbeMetall, 0, 0.72, zm, m);
+    // Zwei Türen: Rahmen aus Blech, Mitte aus Glas (damit man den Inhalt sieht)
+    const glas = m || new THREE.MeshStandardMaterial({ color: GRAFIK.farbeGlas, transparent: true, opacity: 0.28, roughness: 0.1, depthWrite: false });
+    const zTuer = zm + T / 2 + 0.02;
+    for (const seite of [-1, 1]) {
+      const mx = seite * B / 4;
+      quader(g, B / 2 - 0.02, 0.08, 0.03, GRAFIK.farbeMetallDunkel, mx, 0.03, zTuer, m);
+      quader(g, B / 2 - 0.02, 0.08, 0.03, GRAFIK.farbeMetallDunkel, mx, H - 0.11, zTuer, m);
+      quader(g, 0.06, H - 0.06, 0.03, GRAFIK.farbeMetallDunkel, seite * (B / 2 - 0.04), 0.03, zTuer, m);
+      quader(g, 0.04, H - 0.06, 0.03, GRAFIK.farbeMetallDunkel, seite * 0.03, 0.03, zTuer, m);
+      const scheibe = quader(g, B / 2 - 0.1, H - 0.24, 0.015, GRAFIK.farbeGlas, mx, 0.11, zTuer, glas);
+      scheibe.castShadow = false;
+      quader(g, 0.03, 0.18, 0.04, GRAFIK.farbeMetall, seite * 0.09, 0.62, zTuer + 0.03, m);   // Griff
+    }
+    for (const yBoden of [0.05, 0.76]) {
+      for (let ix = 0; ix < 5; ix++) {
+        for (let iz = 0; iz < 2; iz++) plaetze.push(new THREE.Vector3(-0.72 + ix * 0.36, yBoden + 0.125, zm - 0.14 + iz * 0.28));
+      }
+    }
+    return { gruppe: g, plaetze, wuerfel: 0.25 };
+  },
+
+  // Werkbank (2 × 1): Holzplatte, Lochwand, Schraubstock, Hammer, Ausgabefach links
+  werkbank(m) {
+    const g = new THREE.Group(), plaetze = [];
+    const H = 0.75;
+    for (const x of [-0.88, 0.88]) for (const z of [-0.3, 0.3]) quader(g, 0.08, H - 0.08, 0.08, GRAFIK.farbeMetallDunkel, x, 0, z, m);
+    quader(g, 1.8, 0.04, 0.64, GRAFIK.farbeHolzDunkel, 0, 0.18, 0, m);
+    quader(g, 1.9, 0.08, 0.8, GRAFIK.farbeHolz, 0, H - 0.08, 0, m);
+    quader(g, 1.9, 0.55, 0.04, GRAFIK.farbeLagerBoden, 0, H, -0.38, m);
+    for (let i = 0; i < 4; i++) quader(g, 0.04, 0.16, 0.03, GRAFIK.farbeMetallDunkel, -0.1 + i * 0.22, H + 0.28, -0.35, m); // Werkzeug an der Wand
+    quader(g, 0.24, 0.12, 0.18, GRAFIK.farbeMetall, 0.62, H, -0.16, m);           // Schraubstock
+    quader(g, 0.05, 0.1, 0.22, GRAFIK.farbeMetallDunkel, 0.62, H + 0.12, -0.16, m);
+    quader(g, 0.38, 0.035, 0.05, GRAFIK.farbeHolzDunkel, 0.2, H, 0.18, m);        // Hammer: Stiel ...
+    quader(g, 0.06, 0.06, 0.15, GRAFIK.farbeMetallDunkel, 0.39, H, 0.18, m);      // ... und Kopf
+    // Ausgabefach: flache Schale mit Rand
+    quader(g, 0.56, 0.03, 0.46, GRAFIK.farbeMetallDunkel, -0.58, H, 0, m);
+    for (const z of [-0.215, 0.215]) quader(g, 0.56, 0.06, 0.03, GRAFIK.farbeMetall, -0.58, H, z, m);
+    for (const x of [-0.845, -0.315]) quader(g, 0.03, 0.06, 0.46, GRAFIK.farbeMetall, x, H, 0, m);
+    for (const x of [-0.7, -0.46]) for (const z of [-0.1, 0.1]) plaetze.push(new THREE.Vector3(x, H + 0.03 + 0.09, z));
+    return { gruppe: g, plaetze, wuerfel: 0.18 };
+  },
+
+  // Montagetisch (2 × 1): helle Platte, grüne Matte, Arbeitslampe, Ausgabefach links
+  montagetisch(m) {
+    const g = new THREE.Group(), plaetze = [];
+    const H = 0.75;
+    for (const x of [-0.88, 0.88]) for (const z of [-0.3, 0.3]) quader(g, 0.08, H - 0.08, 0.08, GRAFIK.farbeMetallDunkel, x, 0, z, m);
+    quader(g, 1.9, 0.07, 0.8, GRAFIK.farbeMontageplatte, 0, H - 0.07, 0, m);
+    quader(g, 0.95, 0.012, 0.52, GRAFIK.farbeMontagematte, 0.25, H, 0.02, m);
+    // Lampe: Fuß, Stange, Arm, Schirm
+    quader(g, 0.16, 0.03, 0.16, GRAFIK.farbeMetallDunkel, 0.78, H, -0.28, m);
+    quader(g, 0.04, 0.55, 0.04, GRAFIK.farbeMetallDunkel, 0.78, H + 0.03, -0.28, m);
+    quader(g, 0.42, 0.035, 0.035, GRAFIK.farbeMetallDunkel, 0.58, H + 0.55, -0.28, m);
+    const schirm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.12, 0.13, 10, 1, true), m || figurMaterial(GRAFIK.farbeLampe));
+    schirm.position.set(0.38, H + 0.5, -0.28);
+    schirm.castShadow = !m;
+    g.add(schirm);
+    // Ausgabefach
+    quader(g, 0.5, 0.03, 0.46, GRAFIK.farbeMetallDunkel, -0.6, H, 0, m);
+    for (const z of [-0.215, 0.215]) quader(g, 0.5, 0.06, 0.03, GRAFIK.farbeMetall, -0.6, H, z, m);
+    for (const x of [-0.835, -0.365]) quader(g, 0.03, 0.06, 0.46, GRAFIK.farbeMetall, x, H, 0, m);
+    for (const x of [-0.72, -0.48]) plaetze.push(new THREE.Vector3(x, H + 0.03 + 0.11, 0));
+    return { gruppe: g, plaetze, wuerfel: 0.22 };
+  },
+};
+
+// Mitte eines Gebäudes in der 3D-Welt (die Formel aus kachelZuWelt gilt auch für halbe Kacheln)
+function gebaeudeMitteWelt(g) {
+  return kachelZuWelt(g.mitte.x, g.mitte.z);
+}
+// Drehung des Modells: Vorderseite (+z) zeigt in Richtung des Zugangs
+function gebaeudeWinkel(richtung) {
+  return Math.atan2(richtung.x, richtung.z);
+}
+
+// Pfeil auf der Zugangskachel (zeigt zum Gebäude)
+const pfeilForm = new THREE.Shape();
+pfeilForm.moveTo(0, -0.26);
+pfeilForm.lineTo(0.2, 0.06);
+pfeilForm.lineTo(0.07, 0.06);
+pfeilForm.lineTo(0.07, 0.24);
+pfeilForm.lineTo(-0.07, 0.24);
+pfeilForm.lineTo(-0.07, 0.06);
+pfeilForm.lineTo(-0.2, 0.06);
+const pfeilGeometrie = new THREE.ShapeGeometry(pfeilForm);
+pfeilGeometrie.rotateX(-Math.PI / 2);   // flach hinlegen, Spitze zeigt nach +z
+const pfeilMaterial = new THREE.MeshBasicMaterial({ color: GRAFIK.farbeZugang, transparent: true, opacity: 0.45, depthWrite: false });
+function baueZugangsPfeil(zugang, richtung, material = pfeilMaterial) {
+  const pfeil = new THREE.Mesh(pfeilGeometrie, material);
+  const mitte = kachelZuWelt(zugang.x, zugang.z);
+  pfeil.position.set(mitte.x, rasterHoehe + 0.013, mitte.z);
+  pfeil.rotation.y = gebaeudeWinkel({ x: -richtung.x, z: -richtung.z });
+  return pfeil;
+}
+
+/* --- Status-Symbole über den Stationen (kleine runde Schilder, immer zur Kamera gedreht) --- */
+const STATUS_ANZEIGE = {
+  arbeitet:          { farbe: "#4f9d69", text: "arbeitet",            ampel: "gruen" },
+  holtMaterial:      { farbe: "#4a7fc1", text: "holt Material",       ampel: "gruen" },
+  wartetAufMaterial: { farbe: "#e3a92b", text: "wartet auf Material", ampel: "gelb"  },
+  ausgabeVoll:       { farbe: "#e0533d", text: "Ausgabe voll",        ampel: "rot"   },
+  keinArbeiter:      { farbe: "#8a948c", text: "kein Arbeiter",       ampel: "grau"  },
+  keinRezept:        { farbe: "#8a948c", text: "kein Rezept gewählt", ampel: "grau"  },
+  rezeptFehlt:       { farbe: "#e0533d", text: "Blaupause fehlt",     ampel: "rot"   },
+  keinLager:         { farbe: "#e3a92b", text: "kein Zwischenlager verknüpft", ampel: "gelb" },
+  pausiert:          { farbe: "#8a948c", text: "pausiert",            ampel: "grau"  },
+};
+// Zeichnet die Schilder einmal auf kleine Bilder (Canvas) – keine Bilddateien nötig.
+const statusTexturen = {};
+for (const [art, info] of Object.entries(STATUS_ANZEIGE)) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const k = c.getContext("2d");
+  k.fillStyle = "#ffffff";
+  k.beginPath(); k.arc(64, 64, 56, 0, Math.PI * 2); k.fill();
+  k.lineWidth = 10; k.strokeStyle = info.farbe; k.stroke();
+  k.fillStyle = info.farbe; k.strokeStyle = info.farbe;
+  if (art === "arbeitet") {                       // Zahnrad
+    k.save(); k.translate(64, 64);
+    for (let i = 0; i < 8; i++) { k.rotate(Math.PI / 4); k.fillRect(-7, -34, 14, 14); }
+    k.beginPath(); k.arc(0, 0, 24, 0, Math.PI * 2); k.fill();
+    k.fillStyle = "#ffffff"; k.beginPath(); k.arc(0, 0, 9, 0, Math.PI * 2); k.fill();
+    k.restore();
+  } else if (art === "holtMaterial") {            // drei Punkte
+    for (const x of [40, 64, 88]) { k.beginPath(); k.arc(x, 64, 8, 0, Math.PI * 2); k.fill(); }
+  } else if (art === "ausgabeVoll") {             // volles Quadrat
+    k.fillRect(38, 38, 52, 52);
+  } else if (art === "keinArbeiter") {            // Person
+    k.beginPath(); k.arc(64, 46, 14, 0, Math.PI * 2); k.fill();
+    k.beginPath(); k.ellipse(64, 88, 26, 18, 0, Math.PI, 0); k.fill();
+  } else if (art === "pausiert") {                // Pause-Zeichen
+    k.fillRect(44, 38, 14, 52); k.fillRect(70, 38, 14, 52);
+  } else if (art === "keinLager") {               // zwei Kettenglieder
+    k.lineWidth = 9;
+    k.beginPath(); k.ellipse(50, 64, 20, 12, -0.6, 0, Math.PI * 2); k.stroke();
+    k.beginPath(); k.ellipse(78, 64, 20, 12, -0.6, 0, Math.PI * 2); k.stroke();
+  } else {                                        // Ausrufe- bzw. Fragezeichen
+    k.font = "bold 76px sans-serif"; k.textAlign = "center"; k.textBaseline = "middle";
+    k.fillText(art === "wartetAufMaterial" || art === "rezeptFehlt" ? "!" : "?", 64, 68);
+  }
+  statusTexturen[art] = new THREE.CanvasTexture(c);
+  statusTexturen[art].colorSpace = THREE.SRGBColorSpace;
+}
+const statusGeometrie = new THREE.PlaneGeometry(0.55, 0.55);
+const RING_SEGMENTE = 40;
+const ringGeometrie = new THREE.RingGeometry(0.31, 0.37, RING_SEGMENTE, 1);
+const ringMaterial = new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauOk, transparent: true, depthTest: false });
+const ringHintergrundMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.7, depthTest: false });
+
+function baueStatusAnzeige() {
+  const anzeige = new THREE.Group();
+  const schild = new THREE.Mesh(statusGeometrie, new THREE.MeshBasicMaterial({ map: statusTexturen.keinRezept, transparent: true, depthTest: false }));
+  schild.renderOrder = 21;
+  const hintergrund = new THREE.Mesh(ringGeometrie, ringHintergrundMaterial);
+  hintergrund.renderOrder = 20;
+  // Fortschrittsring: beginnt oben und läuft im Uhrzeigersinn (gespiegelt und gedreht)
+  const ring = new THREE.Mesh(ringGeometrie.clone(), ringMaterial);
+  ring.rotation.z = -Math.PI / 2;
+  ring.scale.x = -1;
+  ring.renderOrder = 22;
+  anzeige.add(hintergrund, schild, ring);
+  anzeige.scale.setScalar(0.85);
+  szene.add(anzeige);
+  return { anzeige, schild, ring, hintergrund, art: "" };
+}
+
+/* --- Füllstand: kleine farbige Würfel in Lagern und Ausgabefächern --- */
+const wuerfelGeometrien = new Map();
+function wuerfelGeometrie(kante) {
+  if (!wuerfelGeometrien.has(kante)) wuerfelGeometrien.set(kante, new THREE.BoxGeometry(kante, kante, kante));
+  return wuerfelGeometrien.get(kante);
+}
+// Verteilt den Bestand auf die freien Plätze. Gibt es mehr Items als Plätze,
+// wird anteilig gerundet (jede Sorte bekommt mindestens einen Würfel).
+function zeichneFuellung(eintrag, bestand) {
+  const { fuellung, plaetze, wuerfel } = eintrag;
+  while (fuellung.children.length) fuellung.remove(fuellung.children[0]);
+  const gesamt = summe(bestand);
+  if (!gesamt) return;
+  const sorten = Object.entries(bestand).sort((a, b) => b[1] - a[1]);
+  let liste = [];
+  for (const [item, n] of sorten) {
+    const anzahl = gesamt <= plaetze.length ? n : Math.max(1, Math.round(n * plaetze.length / gesamt));
+    for (let i = 0; i < anzahl; i++) liste.push(item);
+  }
+  liste = liste.slice(0, plaetze.length);
+  liste.forEach((item, i) => {
+    const mesh = new THREE.Mesh(wuerfelGeometrie(wuerfel), figurMaterial(itemInfo(item).farbe));
+    mesh.position.copy(plaetze[i]);
+    mesh.rotation.y = ((i * 37) % 11 - 5) * 0.04;    // leicht schief, wirkt lebendiger
+    mesh.castShadow = true;
+    fuellung.add(mesh);
+  });
+}
+
+/* --- Gebäude erscheinen und verschwinden --- */
+const gebaeude3d = new Map();   // Gebäude-ID → { huelle, modell, fuellung, plaetze, wuerfel, pfeil, status, alter, verschwindet, version }
+
+spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
+  const g = e.detail.gebaeude;
+  const bau = MODELLE[g.typ](null);
+  const huelle = new THREE.Group();
+  const mitte = gebaeudeMitteWelt(g);
+  huelle.position.set(mitte.x, rasterHoehe, mitte.z);
+  huelle.rotation.y = gebaeudeWinkel(g.richtung);
+  huelle.add(bau.gruppe);
+  const fuellung = new THREE.Group();
+  bau.gruppe.add(fuellung);
+  bau.gruppe.scale.setScalar(0.001);
+  szene.add(huelle);
+  const pfeil = baueZugangsPfeil(g.zugang, g.richtung);
+  szene.add(pfeil);
+  gebaeude3d.set(g.id, {
+    huelle, modell: bau.gruppe, fuellung, plaetze: bau.plaetze, wuerfel: bau.wuerfel, pfeil,
+    status: istStation(g) ? baueStatusAnzeige() : null,
+    alter: 0, verschwindet: false, version: -1, gebaeude: g,
+  });
+});
+
+spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
+  const eintrag = gebaeude3d.get(e.detail.gebaeude.id);
+  if (!eintrag) return;
+  eintrag.verschwindet = true;
+  eintrag.alter = 0;
+  szene.remove(eintrag.pfeil);
+  if (eintrag.status) szene.remove(eintrag.status.anzeige);
+  zeichneFuellung(eintrag, {});
+});
+
+// Jedes Bild: Auf-/Abbau-Animation, Füllstände, Status-Symbole
+function aktualisiereGebaeude3d(sekunden, zeit) {
+  for (const [id, eintrag] of gebaeude3d) {
+    eintrag.alter += sekunden;
+    const t = Math.min(1, eintrag.alter / 0.3);
+    if (eintrag.verschwindet) {
+      eintrag.modell.scale.setScalar(Math.max(0.001, 1 - t));
+      if (t >= 1) { szene.remove(eintrag.huelle); gebaeude3d.delete(id); }
+      continue;
+    }
+    eintrag.modell.scale.setScalar(wenigerAnimation || t >= 1 ? 1 : Math.max(0.001, federnd(t)));
+    const g = eintrag.gebaeude;
+    if (eintrag.version !== g.version) { eintrag.version = g.version; zeichneFuellung(eintrag, g.bestand); }
+
+    // Status-Schild über Stationen: schwebt leicht, zeigt zur Kamera, Ring = Fortschritt
+    const st = eintrag.status;
+    if (st) {
+      const art = g.status || stationsStatus(g);
+      if (st.art !== art) { st.art = art; st.schild.material.map = statusTexturen[art]; st.schild.material.needsUpdate = true; }
+      const schweben = wenigerAnimation ? 0 : Math.sin(zeit * 2 + g.mitte.x) * 0.05;
+      const mitte = gebaeudeMitteWelt(g);
+      st.anzeige.position.set(mitte.x, rasterHoehe + GRAFIK.statusHoehe + schweben, mitte.z);
+      st.anzeige.quaternion.copy(kamera.quaternion);
+      const fortschritt = art === "arbeitet" ? g.fortschritt : 0;
+      st.ring.visible = st.hintergrund.visible = art === "arbeitet";
+      st.ring.geometry.setDrawRange(0, Math.round(fortschritt * RING_SEGMENTE) * 6);
+    }
+  }
+}
+
+/* --- Mitarbeiter-Modelle --- */
+const mitarbeiter3d = new Map();   // Personen-ID → Modell (aus baueFigurModell)
+
+// Gleicht die Modelle mit der Mitarbeiter-Liste ab (Einstellen/Entlassen).
+spielEreignisse.addEventListener("mitarbeiterGeaendert", () => {
+  const ids = new Set(mitarbeiter.map((p) => p.id));
+  for (const [id, modell] of mitarbeiter3d) {
+    if (!ids.has(id)) { szene.remove(modell.gruppe); mitarbeiter3d.delete(id); }
+  }
+  for (const p of mitarbeiter) {
+    if (mitarbeiter3d.has(p.id)) continue;
+    const farben = p.rolle === "kurier"
+      ? { koerper: GRAFIK.farbeKurierKoerper, helm: GRAFIK.farbeKurierHelm, weste: GRAFIK.farbeKurierWeste }
+      : { koerper: GRAFIK.farbeArbeiterKoerper, helm: GRAFIK.farbeArbeiterHelm };
+    mitarbeiter3d.set(p.id, baueFigurModell(farben));
+  }
+});
+
+// Getragene Items als kleine Würfel vor der Brust (gestapelt, höchstens 10 sichtbar)
+function zeichneGetragenes(modell, traegt) {
+  const schluessel = JSON.stringify(traegt);
+  if (modell.trageSchluessel === schluessel) return;
+  modell.trageSchluessel = schluessel;
+  const t = modell.trage;
+  while (t.children.length) t.remove(t.children[0]);
+  const liste = [];
+  for (const [item, n] of Object.entries(traegt)) for (let i = 0; i < n; i++) liste.push(item);
+  liste.slice(0, 10).forEach((item, i) => {
+    const w = new THREE.Mesh(wuerfelGeometrie(0.16), figurMaterial(itemInfo(item).farbe));
+    w.position.set(((i % 2) - 0.5) * (liste.length > 1 ? 0.17 : 0), 0.08 + Math.floor(i / 2) * 0.165, 0);
+    w.castShadow = true;
+    t.add(w);
+  });
+}
+
+function aktualisiereMitarbeiter3d(simSekunden, zeit) {
+  for (const p of mitarbeiter) {
+    const modell = mitarbeiter3d.get(p.id);
+    if (!modell) continue;
+    zeichneGetragenes(modell, p.traegt);
+    const haltung = p.phase === "arbeitet" ? "arbeitet" : hatItems(p) ? "traegt" : "normal";
+    aktualisiereFigurModell(p, modell, simSekunden, zeit, laufTempoVon(p), haltung);
+  }
+}
+
+/* --- Bau-Vorschau, Abriss-Markierung, Auswahl und Verknüpfungslinien --- */
+const vorschauMaterial = new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauOk, transparent: true, opacity: 0.45, depthWrite: false });
+const vorschauPfeilMaterial = new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauOk, transparent: true, opacity: 0.8, depthWrite: false });
+const vorschau = { huelle: null, pfeil: null, schluessel: "" };
+
+// Zeigt das halbtransparente Gebäude unter der Maus (info = null blendet es aus).
+//   info: { typ, drehung, geo, passt }
+function zeigeBauVorschau(info) {
+  const schluessel = info ? `${info.typ}|${info.drehung}` : "";
+  if (vorschau.schluessel !== schluessel) {
+    if (vorschau.huelle) szene.remove(vorschau.huelle);
+    vorschau.huelle = null;
+    if (info) {
+      vorschau.huelle = new THREE.Group();
+      vorschau.huelle.add(MODELLE[info.typ](vorschauMaterial).gruppe);
+      vorschau.huelle.renderOrder = 5;
+      szene.add(vorschau.huelle);
+    }
+    vorschau.schluessel = schluessel;
+  }
+  if (vorschau.pfeil) { szene.remove(vorschau.pfeil); vorschau.pfeil = null; }
+  if (!info) return;
+  const farbe = info.passt ? GRAFIK.farbeVorschauOk : GRAFIK.farbeVorschauFehler;
+  vorschauMaterial.color.set(farbe);
+  vorschauPfeilMaterial.color.set(farbe);
+  const mitte = kachelZuWelt(info.geo.mitte.x, info.geo.mitte.z);
+  vorschau.huelle.position.set(mitte.x, rasterHoehe + 0.01, mitte.z);
+  vorschau.huelle.rotation.y = gebaeudeWinkel(info.geo.richtung);
+  vorschau.pfeil = baueZugangsPfeil(info.geo.zugang, info.geo.richtung, vorschauPfeilMaterial);
+  vorschau.pfeil.position.y += 0.005;
+  szene.add(vorschau.pfeil);
+}
+
+// Rote, durchsichtige Haube über einem Gebäude, das gleich abgerissen würde
+const abrissMarke = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauFehler, transparent: true, opacity: 0.3, depthWrite: false })
+);
+abrissMarke.visible = false;
+szene.add(abrissMarke);
+function zeigeAbrissMarke(g) {
+  abrissMarke.visible = !!g;
+  if (!g) return;
+  const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
+  const breite = Math.max(...xs) - Math.min(...xs) + 1, tiefe = Math.max(...zs) - Math.min(...zs) + 1;
+  const mitte = gebaeudeMitteWelt(g);
+  abrissMarke.scale.set(breite * 0.98, 1.7, tiefe * 0.98);
+  abrissMarke.position.set(mitte.x, rasterHoehe + 0.85, mitte.z);
+}
+
+// Orangefarbener Rahmen um das ausgewählte Gebäude + gestrichelte Linien zu verknüpften Gebäuden
+const auswahl3d = new THREE.Group();
+szene.add(auswahl3d);
+function zeigeGebaeudeAuswahl(g) {
+  while (auswahl3d.children.length) {
+    const kind = auswahl3d.children[0];
+    kind.geometry.dispose();
+    kind.material.dispose();
+    auswahl3d.remove(kind);
+  }
+  if (!g) return;
+  const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
+  const links = kachelZuWelt(Math.min(...xs), Math.min(...zs)), rechts = kachelZuWelt(Math.max(...xs), Math.max(...zs));
+  const r = 0.56, y = rasterHoehe + 0.02;
+  const rahmen = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(links.x - r, y, links.z - r), new THREE.Vector3(rechts.x + r, y, links.z - r),
+      new THREE.Vector3(rechts.x + r, y, rechts.z + r), new THREE.Vector3(links.x - r, y, rechts.z + r),
+    ]),
+    new THREE.LineBasicMaterial({ color: GRAFIK.farbeKachelAuswahl })
+  );
+  auswahl3d.add(rahmen);
+  const punkte = [];
+  const von = gebaeudeMitteWelt(g);
+  for (const id of g.verknuepft) {
+    const anderes = spiel.gebaeude.get(id);
+    if (!anderes) continue;
+    const nach = gebaeudeMitteWelt(anderes);
+    punkte.push(new THREE.Vector3(von.x, y + 0.02, von.z), new THREE.Vector3(nach.x, y + 0.02, nach.z));
+  }
+  if (punkte.length) {
+    const linien = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(punkte),
+      new THREE.LineDashedMaterial({ color: GRAFIK.farbeVerknuepfung, dashSize: 0.3, gapSize: 0.18 })
+    );
+    linien.computeLineDistances();
+    auswahl3d.add(linien);
+  }
+}
+
+/* ============================================================================
+   ABSCHNITT 13: Baumenü, Info-, Lager- & Personal-Fenster (Phase 4) [UI/UX-Agent]
+   Übersetzt Klicks und Tasten in Aufrufe der Logik (Abschnitt 11) und zeigt
+   deren Zustand an. Zeichnet nur neu, wenn sich etwas geändert hat:
+     - strukturVersion (Bau, Abriss, Rezepte, Personal) → Knöpfe und Listen neu
+     - version (Bestände) → nur die Zahlen
+   ============================================================================ */
+const $ = (id) => document.getElementById(id);
+const ob = {
+  bauLeiste: $("bau-leiste"), bauInhalt: $("bau-inhalt"), bauTipp: $("bau-tipp"),
+  bauAbriss: $("bau-abriss"), bauBereinigen: $("bau-bereinigen"), bauWiederherstellen: $("bau-wiederherstellen"),
+  bauReiter: [...document.querySelectorAll("#bau-leiste [data-reiter]")],
+  hudBauen: $("hud-bauen"), hudLager: $("hud-lager"), hilfe: $("hud-hilfe"),
+  hudFertigware: $("hud-fertigware"), tempoKnoepfe: [...document.querySelectorAll("[data-tempo]")],
+  info: $("info-panel"), infoTitel: $("info-titel"), infoUnter: $("info-unter"), infoInhalt: $("info-inhalt"),
+  lagerOverlay: $("lager-overlay"), lagerFenster: $("lager-fenster"), lagerHaupt: $("lager-haupt"),
+  lagerDepot: $("lager-depot"), lagerHinweis: $("lager-hinweis"), lagerWiederherstellen: $("lager-wiederherstellen"),
+  dialogOverlay: $("dialog-overlay"), dialog: $("dialog"), dialogTitel: $("dialog-titel"), dialogText: $("dialog-text"),
+  dialogOk: $("dialog-ok"), dialogAbbrechen: $("dialog-abbrechen"),
+};
+
+const bau = {
+  offen: false,
+  reiter: "lager",          // "lager", "stationen" oder "personal"
+  werkzeug: null,           // { art: "bauen", typ, drehung } oder { art: "abriss" } oder null
+  letzteDrehung: {},        // je Gebäudetyp die zuletzt benutzte Drehung
+};
+let auswahlGebaeudeId = null; // Gebäude im Info-Fenster
+let verknuepfModus = null;    // { vonId }, solange "Verknüpfen" aktiv ist
+let lagerOffen = false;
+let dialogOffen = false;
+let dialogAktion = null;
+let vorschauErgebnis = null;  // Ergebnis von passtGebaeude für die Bau-Vorschau
+const anzeige = { struktur: -1, version: -1, timer: 0, infoStrukturFehlt: false };
+
+// Liste von Items als Zeilen: Name | Menge (| Soll)
+function itemZeilen(bestand, soll = null) {
+  const ids = [...new Set([...Object.keys(bestand), ...Object.keys(soll || {})])];
+  if (!ids.length) return `<p class="info-leer">leer</p>`;
+  ids.sort((a, b) => (bestand[b] || 0) - (bestand[a] || 0) || itemInfo(a).name.localeCompare(itemInfo(b).name));
+  return `<dl class="info-zeilen${soll ? "" : " zwei"}">` + ids.map((id) => {
+    const info = itemInfo(id);
+    return `<dt><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span></dt>` +
+      `<dd>${bestand[id] || 0}</dd>` + (soll ? `<dd class="leise">/ ${soll[id] || 0}</dd>` : "");
+  }).join("") + `</dl>`;
+}
+// Items nach Art gruppiert (Rohstoffe, Bauteile, Fertigware)
+function itemGruppen(bestand) {
+  const gruppen = { rohstoff: {}, bauteil: {}, produkt: {} };
+  for (const [id, n] of Object.entries(bestand)) {
+    const art = itemInfo(id).art;
+    (gruppen[art] || gruppen.bauteil)[id] = n;
+  }
+  return [["Rohstoffe", gruppen.rohstoff], ["Bauteile", gruppen.bauteil], ["Fertigware", gruppen.produkt]]
+    .filter(([, g]) => Object.keys(g).length)
+    .map(([titel, g]) => `<div class="info-block"><h3>${titel}</h3>${itemZeilen(g)}</div>`).join("")
+    || `<p class="info-leer">leer</p>`;
+}
+const textVon = (items) => Object.entries(items).map(([id, n]) => `${n} × ${itemInfo(id).name}`).join(", ");
+
+/* --- Baumenü --- */
+
+function oeffneBau() {
+  if (bau.offen) return;
+  bau.offen = true;
+  ob.bauLeiste.hidden = false;
+  ob.hilfe.hidden = true;
+  ob.hudBauen.setAttribute("aria-pressed", "true");
+  zeichneBauInhalt();
+  aktualisiereBauTipp();
+}
+function schliesseBau() {
+  if (!bau.offen) return;
+  bau.offen = false;
+  setzeWerkzeug(null);
+  ob.bauLeiste.hidden = true;
+  ob.hilfe.hidden = false;
+  ob.hudBauen.setAttribute("aria-pressed", "false");
+}
+function schalteBau() {
+  if (bau.offen) schliesseBau(); else oeffneBau();
+}
+
+function setzeWerkzeug(werkzeug) {
+  bau.werkzeug = werkzeug;
+  if (werkzeug) verknuepfModus = null;
+  ob.bauAbriss.setAttribute("aria-pressed", String(!!werkzeug && werkzeug.art === "abriss"));
+  for (const karte of ob.bauInhalt.querySelectorAll("[data-typ]")) {
+    karte.setAttribute("aria-pressed", String(!!werkzeug && werkzeug.art === "bauen" && werkzeug.typ === karte.dataset.typ));
+  }
+  aktualisiereVorschau();
+  aktualisiereAbrissMarke();
+}
+function waehleBauTyp(typ) {
+  if (bau.werkzeug && bau.werkzeug.art === "bauen" && bau.werkzeug.typ === typ) { setzeWerkzeug(null); return; }
+  setzeWerkzeug({ art: "bauen", typ, drehung: bau.letzteDrehung[typ] || 0 });
+}
+function dreheWerkzeug() {
+  const w = bau.werkzeug;
+  if (!w || w.art !== "bauen") return;
+  w.drehung = (w.drehung + 90) % 360;
+  bau.letzteDrehung[w.typ] = w.drehung;
+  aktualisiereVorschau();
+}
+function schalteAbriss() {
+  if (!bau.offen) oeffneBau();
+  setzeWerkzeug(bau.werkzeug && bau.werkzeug.art === "abriss" ? null : { art: "abriss" });
+}
+
+// Inhalt des Baumenüs (Karten oder Personal-Liste)
+function zeichneBauInhalt() {
+  for (const knopf of ob.bauReiter) knopf.setAttribute("aria-selected", String(knopf.dataset.reiter === bau.reiter));
+  ob.bauWiederherstellen.hidden = !spiel.schnappschuss;
+  ob.bauBereinigen.disabled = spiel.gebaeude.size === 0;
+  if (bau.reiter === "personal") { zeichnePersonal(); return; }
+  const kategorie = bau.reiter === "lager" ? "lager" : "station";
+  ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet).map((t) => {
+    const imDepot = spiel.depot.gebaeude[t.typ] || 0;
+    const voll = t.maxAnzahl && anzahlTyp(t.typ) >= t.maxAnzahl;
+    const gewaehlt = bau.werkzeug && bau.werkzeug.art === "bauen" && bau.werkzeug.typ === t.typ;
+    return `<button class="bau-karte" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll ? "disabled" : ""}
+        title="${htmlSicher(t.beschreibung)}">
+        <span class="bau-symbol" aria-hidden="true">${t.symbol}</span>
+        <span><b>${t.name}</b>
+          <small>${t.breite} × ${t.tiefe} Kacheln · ${t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : `Fach ${t.kapazitaet}`}</small>
+          ${voll ? "<small>steht schon in der Halle</small>" : imDepot ? `<small class="bau-depot">im Depot: ${imDepot}</small>` : "<small>kostenlos</small>"}
+        </span></button>`;
+  }).join("");
+}
+
+// Personal-Reiter: einstellen, entlassen, Zustand
+function personZustandText(p) {
+  const name = (id) => { const g = id && spiel.gebaeude.get(id); return g ? gebaeudeName(g) : "?"; };
+  const a = p.auftrag;
+  if (p.rolle === "kurier") {
+    if (!a) return "frei";
+    const was = textVon(a.abgeholt ? p.traegt : { [a.item]: a.menge });
+    if (!a.abgeholt) return `holt ${was} aus ${name(a.quelleId)}`;
+    return `bringt ${was} ${a.art === "liefern" ? "zu" : "ins"} ${name(a.zielId)}`;
+  }
+  if (!p.stationId) return p.manuellFrei ? "ohne Station" : "sucht eine Station";
+  const s = spiel.gebaeude.get(p.stationId);
+  switch (p.phase) {
+    case "zumLager": return `geht zu ${name(a && a.quelleId)}`;
+    case "nimmt": return `nimmt Material aus ${name(a && a.quelleId)}`;
+    case "wartetMaterial": return `wartet an ${name(a && a.quelleId)} auf Material`;
+    case "zurStation": return `trägt Material zu ${gebaeudeName(s)}`;
+    case "arbeitet": return summe(s.bestand) >= kapazitaetVon(s) ? `wartet: Ausgabefach voll` : `arbeitet an ${gebaeudeName(s)} (${Math.round(s.fortschritt * 100)} %)`;
+    default: return STATUS_ANZEIGE[stationsStatus(s)].text;
+  }
+}
+function zeichnePersonal() {
+  const anzahl = mitarbeiter.length, max = PRODUKTION.maxMitarbeiter;
+  const zeilen = mitarbeiter.map((p) => {
+    const station = p.stationId && spiel.gebaeude.get(p.stationId);
+    const st = kurierStufe(p);
+    // Nächste Kurier-Stufe als Vorschau (mit Schloss, solange sie nicht freigeschaltet ist)
+    const naechste = KURIER_STUFEN.find((k) => k.stufe === p.stufe + 1);
+    const gesperrt = naechste
+      ? `<span class="personal-schloss" title="${naechste.name}: trägt ${naechste.traglast} Items${naechste.freigeschaltet ? "" : " – noch gesperrt"}">${naechste.freigeschaltet ? "" : "🔒 "}${naechste.name}</span>`
+      : "";
+    const unter = p.rolle === "kurier"
+      ? `Kurier · ${st.name} (${st.traglast} Item${st.traglast === 1 ? "" : "s"}/Gang)${gesperrt ? " · " + gesperrt : ""}`
+      : `Arbeiter · ${station ? htmlSicher(gebaeudeName(station)) : "keine Station"}`;
+    return `<li data-id="${p.id}">
+        <span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)}</b>
+        <button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen">✕</button>
+        <small>${unter}</small>
+        <span class="personal-status" data-status-id="${p.id}">${htmlSicher(personZustandText(p))}</span>
+      </li>`;
+  }).join("");
+  ob.bauInhalt.innerHTML = `<div class="personal">
+      <div class="personal-kopf">
+        <b>Mitarbeiter ${anzahl} / ${max}</b>
+        <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="kurier" ${anzahl >= max ? "disabled" : ""}>+ Kurier</button>
+        <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="arbeiter" ${anzahl >= max ? "disabled" : ""}>+ Arbeiter</button>
+      </div>
+      <ul class="personal-liste">${zeilen || `<li class="info-leer">Noch niemand eingestellt.</li>`}</ul>
+    </div>`;
+}
+function aktualisierePersonalStatus() {
+  for (const el of ob.bauInhalt.querySelectorAll("[data-status-id]")) {
+    const p = mitarbeiter.find((m) => m.id === el.dataset.statusId);
+    const text = p ? personZustandText(p) : "";
+    if (el.textContent !== text) el.textContent = text;
+  }
+}
+
+// Hinweiszeile unter dem Baumenü
+function aktualisiereBauTipp() {
+  if (!bau.offen) return;
+  const w = bau.werkzeug;
+  let html = "", warnung = false;
+  if (verknuepfModus) {
+    html = "Verknüpfen: Station oder Zwischenlager anklicken (nochmal klicken löst die Verknüpfung) · <kbd>Esc</kbd> fertig";
+  } else if (w && w.art === "bauen") {
+    const t = gebaeudeTypNach.get(w.typ);
+    if (vorschauErgebnis && !vorschauErgebnis.passt) {
+      html = `Hier geht das nicht: ${htmlSicher(vorschauErgebnis.gruende[0])}`;
+      warnung = true;
+    } else {
+      html = `${t.name}: Klicken zum Aufstellen · <kbd>R</kbd> / Rechtsklick drehen · <kbd>Shift</kbd> mehrere · <kbd>Esc</kbd> abbrechen`;
+    }
+  } else if (w && w.art === "abriss") {
+    html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · <kbd>Esc</kbd> abbrechen";
+  } else if (bau.reiter === "personal") {
+    html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
+  } else {
+    html = "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
+  }
+  if (ob.bauTipp.innerHTML !== html) ob.bauTipp.innerHTML = html;
+  ob.bauTipp.classList.toggle("warnung", warnung);
+}
+
+// Bau-Vorschau unter der Maus aktualisieren
+function aktualisiereVorschau() {
+  const w = bau.werkzeug;
+  if (!bau.offen || !w || w.art !== "bauen" || !hoverKachel || eingaben3dGesperrt) {
+    vorschauErgebnis = null;
+    zeigeBauVorschau(null);
+  } else {
+    const anker = ankerFuerMitte(w.typ, w.drehung, hoverKachel);
+    vorschauErgebnis = passtGebaeude(w.typ, anker.x, anker.z, w.drehung);
+    zeigeBauVorschau({ typ: w.typ, drehung: w.drehung, geo: vorschauErgebnis.geo, passt: vorschauErgebnis.passt });
+  }
+  aktualisiereBauTipp();
+}
+function gebaeudeUnter(k) {
+  const kachel = k && holeKachel(k.x, k.z);
+  return kachel && kachel.objekt ? spiel.gebaeude.get(kachel.objekt) || null : null;
+}
+function aktualisiereAbrissMarke() {
+  const abriss = bau.offen && bau.werkzeug && bau.werkzeug.art === "abriss";
+  zeigeAbrissMarke(abriss && !eingaben3dGesperrt ? gebaeudeUnter(hoverKachel) : null);
+}
+spielEreignisse.addEventListener("kachelHover", () => { aktualisiereVorschau(); aktualisiereAbrissMarke(); });
+
+// Linksklick auf eine Kachel (aufgerufen aus Abschnitt 6)
+function behandleKachelKlick(k, shift) {
+  const g = gebaeudeUnter(k);
+  // 1. Verknüpfen-Modus: angeklicktes Gebäude verknüpfen bzw. lösen
+  if (verknuepfModus) {
+    if (!g) { beendeVerknuepfen(); return; }
+    if (g.id === verknuepfModus.vonId) return;
+    const von = spiel.gebaeude.get(verknuepfModus.vonId);
+    const ergebnis = schalteVerknuepfung(verknuepfModus.vonId, g.id);
+    if (!ergebnis) zeigeMeldung("Verknüpft werden können nur Stationen mit Zwischenlagern (Kiste, Schrank).", true);
+    else zeigeMeldung(`${gebaeudeName(von)} und ${gebaeudeName(g)} ${ergebnis === "verknuepft" ? "verknüpft" : "getrennt"}.`);
+    return;
+  }
+  // 2. Bauen
+  const w = bau.offen ? bau.werkzeug : null;
+  if (w && w.art === "bauen") {
+    const anker = ankerFuerMitte(w.typ, w.drehung, k);
+    const ergebnis = baueGebaeude(w.typ, anker.x, anker.z, w.drehung);
+    if (!ergebnis.ok) { zeigeMeldung(`Hier geht das nicht: ${ergebnis.gruende[0]}`, true); return; }
+    const neu = ergebnis.gebaeude;
+    const mit = ergebnis.verknuepft.length ? ` – verknüpft mit ${ergebnis.verknuepft.map(gebaeudeName).join(", ")}` : "";
+    zeigeMeldung(`${gebaeudeName(neu)} aufgestellt${mit}.`);
+    if (!shift) setzeWerkzeug(null); else aktualisiereVorschau();
+    return;
+  }
+  // 3. Abreißen
+  if (w && w.art === "abriss") {
+    if (!g) { zeigeMeldung("Hier steht kein Gebäude.", true); return; }
+    const name = gebaeudeName(g);
+    const inhalt = summe(g.bestand);
+    reisseAb(g.id);
+    zeigeMeldung(`${name} abgerissen und ins Depot gelegt${inhalt ? ` (${inhalt} Items eingelagert)` : ""}.`);
+    aktualisiereAbrissMarke();
+    return;
+  }
+  // 4. Gebäude angeklickt: Info-Fenster
+  if (g) { setzeAuswahl(null); waehleGebaeude(g.id); return; }
+  // 5. Freie Kachel: auswählen und (außerhalb des Bau-Modus) hinlaufen
+  waehleGebaeude(null);
+  setzeAuswahl(k);
+  if (!bau.offen) schickeFigur(k);
+}
+spielEreignisse.addEventListener("rechtsKlick", () => { if (bau.offen && bau.werkzeug) dreheWerkzeug(); });
+
+// Klicks im Baumenü
+ob.bauLeiste.addEventListener("click", (e) => {
+  const reiter = e.target.closest("[data-reiter]");
+  if (reiter) { bau.reiter = reiter.dataset.reiter; setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); return; }
+  const karte = e.target.closest("[data-typ]");
+  if (karte) { waehleBauTyp(karte.dataset.typ); aktualisiereBauTipp(); return; }
+  const knopf = e.target.closest("[data-aktion]");
+  if (!knopf) return;
+  if (knopf.dataset.aktion === "einstellen") {
+    const p = stelleEin(knopf.dataset.rolle);
+    if (p) zeigeMeldung(`${p.name} ist jetzt ${MITARBEITER_ROLLEN[p.rolle].name} in der Halle.`);
+  } else if (knopf.dataset.aktion === "entlassen") {
+    // Sicherheitsabfrage ohne Popup: erster Klick fragt, zweiter entlässt
+    if (!knopf.classList.contains("bestaetigen")) {
+      knopf.classList.add("bestaetigen");
+      knopf.textContent = "Sicher?";
+      setTimeout(() => { if (knopf.isConnected) { knopf.classList.remove("bestaetigen"); knopf.textContent = "✕"; } }, 3000);
+      return;
+    }
+    const p = mitarbeiter.find((m) => m.id === knopf.closest("li").dataset.id);
+    if (p && entlasse(p.id)) zeigeMeldung(`${p.name} wurde entlassen.`);
+  }
+});
+ob.bauAbriss.addEventListener("click", schalteAbriss);
+$("bau-schliessen").addEventListener("click", schliesseBau);
+ob.hudBauen.addEventListener("click", schalteBau);
+ob.bauBereinigen.addEventListener("click", frageHalleBereinigen);
+ob.bauWiederherstellen.addEventListener("click", aufbauWiederherstellen);
+
+/* --- Halle bereinigen & wiederherstellen --- */
+function frageHalleBereinigen() {
+  const { gebaeude, items } = zaehleHalle();
+  if (!gebaeude) { zeigeMeldung("Die Halle ist schon leer."); return; }
+  frage({
+    titel: "Halle bereinigen?",
+    text: `${gebaeude} Gebäude und ${items} Items werden ins Depot verschoben. Alle Mitarbeiter brechen ihre Arbeit ab. ` +
+          `Mit „Aufbau wiederherstellen“ stellst du danach alles wieder an seinen Platz.`,
+    ok: "Halle bereinigen",
+  }, () => {
+    const ergebnis = halleBereinigen();
+    if (ergebnis) zeigeMeldung(`Halle bereinigt: ${ergebnis.gebaeude} Gebäude und ${ergebnis.items} Items liegen im Depot.`);
+    waehleGebaeude(null);
+  });
+}
+function aufbauWiederherstellen() {
+  const ergebnis = stelleAufbauWiederHer();
+  if (!ergebnis) { zeigeMeldung("Es gibt keinen gemerkten Aufbau.", true); return; }
+  zeigeMeldung(ergebnis.uebersprungen
+    ? `${ergebnis.gebaut} Gebäude wiederhergestellt, ${ergebnis.uebersprungen} passten nicht mehr (liegen im Depot).`
+    : `Aufbau wiederhergestellt (${ergebnis.gebaut} Gebäude).`, ergebnis.uebersprungen > 0);
+}
+
+/* --- Info-Fenster --- */
+function waehleGebaeude(id) {
+  auswahlGebaeudeId = id && spiel.gebaeude.has(id) ? id : null;
+  verknuepfModus = null;
+  const g = auswahlGebaeudeId ? spiel.gebaeude.get(auswahlGebaeudeId) : null;
+  zeigeGebaeudeAuswahl(g);
+  ob.info.hidden = !g;
+  if (g) zeichneInfo();
+  aktualisiereBauTipp();
+}
+function beendeVerknuepfen() {
+  verknuepfModus = null;
+  if (auswahlGebaeudeId) zeichneInfo();
+  aktualisiereBauTipp();
+}
+
+// Baut das ganze Info-Fenster (Auswahlfelder + Knöpfe). Die Zahlen darin
+// erneuert aktualisiereInfoZahlen() laufend, ohne die Knöpfe anzufassen.
+function zeichneInfo() {
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!g) { waehleGebaeude(null); return; }
+  const t = typVon(g);
+  ob.infoTitel.textContent = gebaeudeName(g);
+  ob.infoUnter.textContent = t.beschreibung;
+  let html = "";
+  if (t.art === "werkbank") {
+    html += `<label class="info-feld">Rezept <select data-aktion="rezept">
+        <option value="">– kein Rezept –</option>
+        ${BAUTEILE.filter((b) => b.rezept && b.freigeschaltet).map((b) =>
+          `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${b.name} (${textVon(b.rezept)} · ${b.zeit} s)</option>`).join("")}
+      </select></label>`;
+  } else if (t.art === "montage") {
+    const liste = [...blaupausenNachId.values()].sort((a, b) => a.name.localeCompare(b.name));
+    const fehlt = g.rezept && !blaupausenNachId.has(g.rezept);
+    html += `<label class="info-feld">Blaupause <select data-aktion="rezept">
+        <option value="">– keine Blaupause –</option>
+        ${fehlt ? `<option value="${htmlSicher(g.rezept)}" selected>⚠ gelöscht: ${htmlSicher(spiel.produktNamen[g.rezept] || "?")}</option>` : ""}
+        ${liste.map((bp) => `<option value="${htmlSicher(bp.id)}" ${g.rezept === bp.id ? "selected" : ""}>` +
+          `${bp.werte && bp.werte.ueberhitzt ? "⚠ " : ""}${htmlSicher(bp.name)} (${bp.teile.length} Teile${bp.werte && bp.werte.ueberhitzt ? `, ${Math.round(PRODUKTION.ausschussUeberhitzt * 100)} % Ausschuss` : ""})</option>`).join("")}
+      </select></label>
+      ${liste.length ? "" : `<p class="info-leer">Noch keine Blaupause gespeichert – öffne den Layout-Designer (<kbd>L</kbd>).</p>`}`;
+  }
+  if (istStation(g)) {
+    html += `<label class="info-feld">Arbeiter <select data-aktion="arbeiter">
+        <option value="">– niemand –</option>
+        ${mitarbeiter.filter((p) => p.rolle === "arbeiter").map((p) => {
+          const andere = p.stationId && p.stationId !== g.id && spiel.gebaeude.get(p.stationId);
+          return `<option value="${p.id}" ${g.arbeiterId === p.id ? "selected" : ""}>${htmlSicher(p.name)}${andere ? ` (jetzt: ${htmlSicher(gebaeudeName(andere))})` : ""}</option>`;
+        }).join("")}
+      </select></label>`;
+  }
+  html += `<div id="info-zahlen"></div><div class="info-knoepfe">`;
+  if (istStation(g) || istZwischenlager(g)) {
+    html += `<button class="lz-knopf" type="button" data-aktion="verknuepfen" aria-pressed="${!!verknuepfModus}">Verknüpfen</button>`;
+  }
+  if (istStation(g)) html += `<button class="lz-knopf" type="button" data-aktion="pause">${g.pausiert ? "Fortsetzen" : "Pausieren"}</button>`;
+  if (t.art === "hauptlager") html += `<button class="lz-knopf" type="button" data-aktion="lager">Lager-Fenster <kbd>I</kbd></button>`;
+  html += `<button class="lz-knopf bau-gefahr" type="button" data-aktion="abreissen">Abreißen</button></div>`;
+  ob.infoInhalt.innerHTML = html;
+  anzeige.infoStrukturFehlt = false;
+  aktualisiereInfoZahlen();
+}
+
+function aktualisiereInfoZahlen() {
+  const ziel = $("info-zahlen");
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!ziel || !g) return;
+  const t = typVon(g);
+  const verknuepfteNamen = g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter(Boolean).map((v) => htmlSicher(gebaeudeName(v)));
+  let html = "";
+  if (istStation(g)) {
+    const art = g.status || stationsStatus(g);
+    const st = STATUS_ANZEIGE[art];
+    const r = rezeptVon(g);
+    html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
+    if (art === "arbeitet") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
+    html += `</div>`;
+    if (r) {
+      html += `<div class="info-block"><h3>Material pro Durchgang (${Math.round(r.zeit * 10) / 10} s)</h3>${itemZeilen(r.eingaben)}</div>`;
+      if (r.ausschuss) html += `<p class="info-warnung">⚠ Überhitzte Blaupause: ${Math.round(r.ausschuss * 100)} % Ausschuss.</p>`;
+      const zuKlein = g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter((l) => l && kapazitaetVon(l) < summe(r.eingaben));
+      if (zuKlein.length) html += `<p class="info-warnung">⚠ ${zuKlein.map(gebaeudeName).join(", ")} ist zu klein für einen Durchgang (${summe(r.eingaben)} Items).</p>`;
+    }
+    html += `<div class="info-block"><h3>Ausgabefach ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${itemZeilen(g.bestand)}</div>`;
+    html += `<div class="info-block"><h3>Zwischenlager</h3>${verknuepfteNamen.length ? verknuepfteNamen.join(", ")
+      : `<span class="info-warnung">Keins verknüpft – stelle eine Kiste daneben oder klicke „Verknüpfen“.</span>`}</div>`;
+  } else if (istZwischenlager(g)) {
+    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)} · Ist / Soll</h3>${itemZeilen(g.bestand, sollbestand(g))}</div>`;
+    html += `<div class="info-block"><h3>Versorgt</h3>${verknuepfteNamen.length ? verknuepfteNamen.join(", ")
+      : `<span class="info-warnung">Keine Station verknüpft – Kuriere bringen nichts.</span>`}</div>`;
+  } else if (t.art === "hauptlager") {
+    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3></div>${itemGruppen(g.bestand)}`;
+  }
+  if (ziel.innerHTML !== html) ziel.innerHTML = html;
+}
+
+// Auswahlfelder und Knöpfe im Info-Fenster
+ob.infoInhalt.addEventListener("change", (e) => {
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!g) return;
+  if (e.target.dataset.aktion === "rezept") setzeRezept(g.id, e.target.value || null);
+  if (e.target.dataset.aktion === "arbeiter") {
+    if (e.target.value) weiseZu(e.target.value, g.id);
+    else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
+  }
+  e.target.blur();
+});
+ob.infoInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-aktion]");
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!knopf || !g) return;
+  switch (knopf.dataset.aktion) {
+    case "verknuepfen":
+      if (verknuepfModus) { beendeVerknuepfen(); return; }
+      setzeWerkzeug(null);
+      verknuepfModus = { vonId: g.id };
+      knopf.setAttribute("aria-pressed", "true");
+      zeigeMeldung(istStation(g) ? "Jetzt ein Zwischenlager anklicken (Esc: fertig)." : "Jetzt eine Station anklicken (Esc: fertig).");
+      aktualisiereBauTipp();
+      break;
+    case "pause": schaltePause(g.id); break;
+    case "lager": oeffneLager(); break;
+    case "abreissen": {
+      const name = gebaeudeName(g);
+      reisseAb(g.id);
+      zeigeMeldung(`${name} abgerissen und ins Depot gelegt.`);
+      waehleGebaeude(null);
+      break;
+    }
+  }
+});
+$("info-schliessen").addEventListener("click", () => waehleGebaeude(null));
+
+/* --- Lager-Fenster --- */
+function aktualisiereSperre() {
+  sperre3dEingaben(lagerOffen || dialogOffen);
+  aktualisiereVorschau();
+  aktualisiereAbrissMarke();
+}
+function oeffneLager() {
+  if (lagerOffen || designer.offen) return;
+  lagerOffen = true;
+  ob.lagerOverlay.hidden = false;
+  aktualisiereSperre();
+  zeichneLager();
+  ob.lagerFenster.focus({ preventScroll: true });
+}
+function schliesseLager() {
+  if (!lagerOffen) return;
+  lagerOffen = false;
+  ob.lagerOverlay.hidden = true;
+  aktualisiereSperre();
+  ob.hudLager.focus({ preventScroll: true });
+}
+function zeichneLager() {
+  const hl = hauptlager();
+  ob.lagerHaupt.innerHTML = `<h3>Hauptlager${hl ? ` · ${summe(hl.bestand)} / ${kapazitaetVon(hl)}` : ""}</h3>` +
+    (hl ? itemGruppen(hl.bestand) : `<p class="info-warnung">Kein Hauptlager aufgestellt – Kuriere haben nichts zu tun. Baumenü (B) → Lager.</p>`);
+  const maschinen = Object.entries(spiel.depot.gebaeude).filter(([, n]) => n > 0);
+  ob.lagerDepot.innerHTML = `<h3>Depot (außerhalb der Halle)</h3>
+    <div class="info-block"><h3>Maschinen</h3>${maschinen.length
+      ? `<dl class="info-zeilen zwei">${maschinen.map(([typ, n]) => `<dt>${gebaeudeTypNach.get(typ)?.name || typ}</dt><dd>${n}</dd>`).join("")}</dl>`
+      : `<p class="info-leer">keine</p>`}</div>
+    <div class="info-block"><h3>Items</h3></div>${itemGruppen(spiel.depot.items)}`;
+  ob.lagerWiederherstellen.disabled = !spiel.schnappschuss;
+  const statistik = `Produziert: ${spiel.statistik.produziert} · Ausschuss: ${spiel.statistik.ausschuss}`;
+  ob.lagerHinweis.textContent = spielstandSpeicherbar
+    ? `${statistik} · Der Spielstand wird automatisch im Browser gespeichert.`
+    : `${statistik} · Achtung: Der Browser-Speicher ist gesperrt, der Spielstand geht beim Neuladen verloren.`;
+  ob.lagerHinweis.classList.toggle("warnung", !spielstandSpeicherbar);
+}
+$("lager-schliessen").addEventListener("click", schliesseLager);
+ob.hudLager.addEventListener("click", oeffneLager);
+$("lager-lieferung").addEventListener("click", () => {
+  const { insHauptlager, insDepot } = testLieferung();
+  zeigeMeldung(insDepot ? `Lieferung: ${insHauptlager} ins Hauptlager, ${insDepot} ins Depot (kein Platz).` : `Lieferung: ${insHauptlager} Rohstoffe ins Hauptlager.`, insDepot > 0);
+  zeichneLager();
+});
+ob.lagerWiederherstellen.addEventListener("click", () => { aufbauWiederherstellen(); zeichneLager(); });
+$("lager-zuruecksetzen").addEventListener("click", () => frage({
+  titel: "Spielstand zurücksetzen?",
+  text: "Die ganze Halle, das Depot und alle Mitarbeiter werden gelöscht und das Spiel beginnt von vorn. Deine Blaupausen bleiben erhalten.",
+  ok: "Zurücksetzen",
+}, setzeSpielstandZurueck));
+ob.lagerOverlay.addEventListener("click", (e) => { if (e.target === ob.lagerOverlay) schliesseLager(); });
+
+/* --- Bestätigungsfenster --- */
+function frage({ titel, text, ok }, beiOk) {
+  ob.dialogTitel.textContent = titel;
+  ob.dialogText.textContent = text;
+  ob.dialogOk.textContent = ok;
+  dialogAktion = beiOk;
+  dialogOffen = true;
+  ob.dialogOverlay.hidden = false;
+  aktualisiereSperre();
+  ob.dialogAbbrechen.focus({ preventScroll: true });   // sichere Wahl vorauswählen
+}
+function schliesseDialog(bestaetigt) {
+  if (!dialogOffen) return;
+  dialogOffen = false;
+  ob.dialogOverlay.hidden = true;
+  const aktion = dialogAktion;
+  dialogAktion = null;
+  aktualisiereSperre();
+  if (bestaetigt && aktion) aktion();
+}
+ob.dialogOk.addEventListener("click", () => schliesseDialog(true));
+ob.dialogAbbrechen.addEventListener("click", () => schliesseDialog(false));
+ob.dialogOverlay.addEventListener("click", (e) => { if (e.target === ob.dialogOverlay) schliesseDialog(false); });
+
+/* --- Tempo --- */
+function zeigeTempo() {
+  for (const knopf of ob.tempoKnoepfe) knopf.setAttribute("aria-pressed", String(Number(knopf.dataset.tempo) === spiel.tempo));
+}
+for (const knopf of ob.tempoKnoepfe) knopf.addEventListener("click", () => setzeTempo(Number(knopf.dataset.tempo)));
+spielEreignisse.addEventListener("tempoGeaendert", zeigeTempo);
+
+/* --- Meldungen aus der Logik --- */
+spielEreignisse.addEventListener("ausschuss", (e) =>
+  zeigeMeldung(`Ausschuss an ${gebaeudeName(e.detail.station)}: „${e.detail.rezept.name}“ war überhitzt.`, true));
+spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
+  if (e.detail.gebaeude.id === auswahlGebaeudeId) waehleGebaeude(null);
+  if (verknuepfModus && verknuepfModus.vonId === e.detail.gebaeude.id) beendeVerknuepfen();
+});
+spielEreignisse.addEventListener("rasterGeaendert", () => { if (bau.werkzeug) aktualisiereVorschau(); });
+
+/* --- Tastatur (Capture-Phase, läuft vor der 3D-Steuerung) --- */
+window.addEventListener("keydown", (e) => {
+  if (designer.offen) return;                           // der Layout-Designer hat seine eigenen Tasten
+  const ziel = e.target;
+  if (ziel instanceof HTMLInputElement || ziel instanceof HTMLSelectElement || ziel instanceof HTMLTextAreaElement) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const taste = e.key.toLowerCase();
+  const erledigt = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+
+  if (dialogOffen) {                                    // Bestätigungsfenster: nur Esc (Enter löst den fokussierten Knopf aus)
+    if (taste === "escape") { erledigt(); schliesseDialog(false); }
+    return;
+  }
+  if (lagerOffen) {
+    if (taste === "escape" || taste === "i") { erledigt(); schliesseLager(); }
+    return;
+  }
+  switch (taste) {
+    case "b": erledigt(); schalteBau(); break;
+    case "i": erledigt(); oeffneLager(); break;
+    case "x": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
+    case "r": if (bau.offen && bau.werkzeug) { erledigt(); dreheWerkzeug(); } break;
+    case "p": erledigt(); schaltePauseUm(); break;
+    case "1": case "2": case "3": erledigt(); setzeTempo(Number(taste)); break;
+    case "escape":
+      if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
+      else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
+      else if (bau.offen) { erledigt(); schliesseBau(); }
+      else if (auswahlGebaeudeId) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
+      break;
+  }
+}, true);
+
+// Schutz vor "Durchklicken": Mausaktionen auf den neuen Fenstern erreichen das Raster nicht.
+for (const element of [ob.bauLeiste, ob.info, ob.lagerOverlay, ob.dialogOverlay]) {
+  for (const art of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "contextmenu"]) {
+    element.addEventListener(art, (e) => e.stopPropagation());
+  }
+  element.addEventListener("pointerenter", () => setzeHover(null));
+}
+
+/* --- Laufende Aktualisierung (aus der Spielschleife, höchstens 4-mal pro Sekunde) --- */
+function aktualisiereOberflaeche(sekunden) {
+  anzeige.timer -= sekunden;
+  if (anzeige.timer > 0) return;
+  anzeige.timer = 0.25;
+
+  if (anzeige.struktur !== spiel.strukturVersion) {
+    anzeige.struktur = spiel.strukturVersion;
+    if (bau.offen) zeichneBauInhalt();
+    if (auswahlGebaeudeId) {
+      const g = spiel.gebaeude.get(auswahlGebaeudeId);
+      zeigeGebaeudeAuswahl(g);                         // Verknüpfungslinien können sich geändert haben
+      anzeige.infoStrukturFehlt = true;
+    }
+    if (lagerOffen) zeichneLager();
+  }
+  // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
+  if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !(document.activeElement instanceof HTMLSelectElement && ob.info.contains(document.activeElement))) {
+    zeichneInfo();
+  }
+  if (auswahlGebaeudeId) aktualisiereInfoZahlen();
+  if (bau.offen && bau.reiter === "personal") aktualisierePersonalStatus();
+  if (anzeige.version !== spiel.version) {
+    anzeige.version = spiel.version;
+    if (lagerOffen) zeichneLager();
+  }
+  const fertig = String(fertigwareImLager());
+  if (ob.hudFertigware.textContent !== fertig) ob.hudFertigware.textContent = fertig;
+  // Personen bewegen sich: Bauplatz unter der Maus erneut prüfen
+  if (bau.offen && bau.werkzeug && bau.werkzeug.art === "bauen") aktualisiereVorschau();
+}
+
+/* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
@@ -3023,6 +5763,13 @@ function spielschleife() {
   aktualisierePfadUndMarken(sekunden, zeit);
   aktualisiereFigurAnzeige();
 
+  // Phase 4: Mitarbeiter und Produktion laufen in Spielzeit (Pause = 0, 2× = doppelt so schnell)
+  const spielSekunden = sekunden * spiel.tempo;
+  simuliere(spielSekunden);
+  aktualisiereGebaeude3d(sekunden, zeit);
+  aktualisiereMitarbeiter3d(spielSekunden, zeit);
+  aktualisiereOberflaeche(sekunden);
+
   // Hover-Rahmen gleitet weich zum Ziel und blendet sanft ein/aus.
   const weich = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.hoverTempo * sekunden);
   hoverRahmen.position.lerp(rahmenZiel, weich);
@@ -3036,6 +5783,7 @@ function spielschleife() {
   requestAnimationFrame(spielschleife);
 }
 
+starteSpiel();                                      // Phase 4: Spielstand laden oder neue Halle einrichten
 document.getElementById("hud-lade").hidden = true; // Ladehinweis ausblenden
 spielschleife();
 
@@ -3048,6 +5796,12 @@ window.tradeUp = {
   entferneTeil, verschiebeTeil, berechneHitze, bewerteLayout, speichereBlaupause,
   ladeBlaupausen, ladeBlaupauseInsLayout, loescheBlaupause, dupliziereBlaupause,
   benenneBlaupauseUm, oeffneDesigner, schliesseDesigner,
+  // Phase 4: Produktion & Kuriere
+  PRODUKTION, GEBAEUDE_TYPEN, KURIER_STUFEN, spiel, mitarbeiter, baueGebaeude, passtGebaeude,
+  reisseAb, schalteVerknuepfung, setzeRezept, stelleEin, entlasse, weiseZu, setzeKurierStufe,
+  halleBereinigen, stelleAufbauWiederHer, testLieferung, setzeTempo, speichereSpielstand,
+  reservierungen, sollbestand, rezeptVon, stationsStatus, oeffneBau, schliesseBau, oeffneLager,
+  simuliere,   // simuliere(sekunden): Spielzeit vorspulen (zum Testen in der Konsole)
 };
 </script>
 

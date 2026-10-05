@@ -6,14 +6,15 @@
 <title>Trade Up</title>
 <!--
   ============================================================================
-  TRADE UP – Phase 2: Der Spieler & Pathfinding (Startlevel "Garage")
-  (Phase 1: Technisches Fundament & Bau-Raster)
+  TRADE UP – Phase 3: Der Produkt-Layout-Designer (Startlevel "Garage")
+  (Phase 1: Technisches Fundament & Bau-Raster · Phase 2: Spieler & Pathfinding)
   ============================================================================
   Diese EINE Datei enthält das komplette Spiel:
-    1. <style>   → Aussehen der Bedienoberfläche (HUD)          [UI/UX-Agent]
-    2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe) [UI/UX-Agent]
-    3. <script>  → 3D-Grafik, Raster-Logik, Pathfinding, Spielfigur und Steuerung
-                                                                [3D- & Logik-Agent]
+    1. <style>   → Aussehen der Bedienoberfläche (HUD, Layout-Designer) [UI/UX-Agent]
+    2. <div>     → Die Bedienoberfläche selbst (Infobox, Hilfe, Designer) [UI/UX-Agent]
+    3. <script>  → 3D-Grafik, Raster-Logik, Pathfinding, Spielfigur, Steuerung,
+                   Layout-Designer mit Hitze-Berechnung und Blaupausen
+                                                                [3D-, Logik- & UI/UX-Agent]
 
   So startest du das Spiel:
     - Datei im Browser öffnen (Doppelklick) ODER
@@ -58,6 +59,22 @@
     --abstand-innen: 14px;              /* Innenabstand der Infobox */
     --rundung: 14px;                    /* Wie rund die Ecken der Karten sind */
     --schatten: 0 6px 20px rgba(47, 58, 52, 0.12); /* weicher Schatten unter den Karten */
+
+    /* --- Produkt-Layout-Designer (Phase 3) --- */
+    --lz-zelle: 68px;                   /* Kantenlänge einer Kachel im Produkt-Raster */
+    --lz-luecke: 3px;                   /* Abstand zwischen den Kacheln (halbe Fugenbreite) */
+    --lz-rundung: 8px;                  /* Eckenrundung der Kacheln und Bauteile */
+    --lz-fenster: #fffdf8;              /* Hintergrund des Designer-Fensters */
+    --lz-abdunkeln: rgba(38, 46, 42, 0.38); /* Schleier über der 3D-Szene, solange der Designer offen ist */
+    --lz-raster-rahmen: #ddd6c8;        /* Rahmen ("Platinen-Träger") um das Produkt-Raster */
+    --lz-zelle-farbe: #f6f2ea;          /* Farbe einer leeren Kachel im Produkt-Raster */
+    --lz-ok: #4f9d69;                   /* Vorschau: Teil passt */
+    --lz-hitze-1: rgba(247, 209, 84, 0.55);  /* Hitze 1 (warm, gelb) */
+    --lz-hitze-2: rgba(243, 156, 74, 0.62);  /* Hitze 2 (heiß, orange) */
+    --lz-hitze-3: rgba(224, 83, 61, 0.66);   /* Hitze 3 und mehr (sehr heiß, rot) */
+    --lz-ampel-gruen: #4f9d69;          /* Status-Ampel: alles in Ordnung */
+    --lz-ampel-gelb: #e3a92b;           /* Status-Ampel: knapp an der Grenze */
+    --lz-ampel-rot: #e0533d;            /* Status-Ampel: mindestens ein Teil überhitzt */
   }
 
   /* Elemente mit dem Attribut "hidden" sind immer unsichtbar */
@@ -159,6 +176,7 @@
     font-weight: 700;
     text-align: center;
     opacity: 0;
+    z-index: 30;                 /* liegt auch über dem Layout-Designer */
     pointer-events: none;        /* Meldung fängt keine Klicks ab */
     transition: opacity 0.2s, transform 0.2s;
   }
@@ -230,6 +248,441 @@
   @media (max-width: 480px) {
     #hud-hilfe { display: none; }
   }
+
+  /* --- Knopf "Layout-Designer" in der Infobox --- */
+  .hud-knopf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font: inherit;
+    font-weight: 700;
+    font-size: var(--groesse-text);
+    color: #fff;
+    background: var(--farbe-akzent);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .hud-knopf:hover { filter: brightness(1.06); }
+  .hud-knopf:focus-visible { outline: 3px solid var(--farbe-text); outline-offset: 2px; }
+  .hud-knopf kbd {
+    padding: 0 5px;
+    font-family: var(--schrift-text);
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text);
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 4px;
+  }
+
+  /* ==========================================================================
+     PRODUKT-LAYOUT-DESIGNER (Phase 3)                              [UI/UX-Agent]
+     Ein 2D-Fenster über der 3D-Szene. Alle Farben/Größen oben in :root (--lz-...).
+     ========================================================================== */
+
+  /* Die 3D-Szene wird weich unscharf, solange der Designer offen ist [3D-Agent] */
+  #spielfeld { transition: filter 0.25s; }
+  body.designer-offen #spielfeld { filter: blur(3px) saturate(0.8); }
+  @media (prefers-reduced-motion: reduce) { #spielfeld { transition: none; } }
+
+  /* Ganzflächiger Schleier: fängt ALLE Klicks ab, damit nichts das 3D-Raster erreicht */
+  #layout-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow: auto;
+    background: var(--lz-abdunkeln);
+  }
+  /* Während des Ziehens überall die "Greifhand" zeigen und keinen Text markieren */
+  body.lz-zieht, body.lz-zieht * { cursor: grabbing !important; user-select: none; }
+
+  /* Das eigentliche Fenster */
+  #lz-fenster {
+    width: min(800px, 100%);
+    max-height: 100%;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--lz-fenster);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 20px;
+    box-shadow: 0 18px 50px rgba(30, 38, 34, 0.28);
+    outline: none;
+  }
+
+  /* Kopfzeile: Titel, Name des Designs, Schließen */
+  .lz-kopf {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--farbe-rand);
+  }
+  .lz-kopf h2 {
+    margin: 0;
+    flex: 0 0 auto;
+    font-family: var(--schrift-titel);
+    font-weight: 600;
+    font-size: 1.15rem;
+  }
+  .lz-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text-leise);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .lz-name input {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 8px;
+  }
+  .lz-name input:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+
+  /* Drei Spalten: Bauteile | Raster | Bewertung & Blaupausen */
+  .lz-inhalt {
+    display: grid;
+    grid-template-columns: 200px 1fr 230px;
+    gap: 18px;
+    padding: 16px 18px;
+  }
+  .lz-spalte { min-width: 0; }
+  .lz-spalte h3 {
+    margin: 0 0 8px;
+    font-size: var(--groesse-klein);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+  }
+  .lz-spalte h3 + * { margin-top: 0; }
+  .lz-info h3:not(:first-child) { margin-top: 18px; }
+
+  /* Bauteil-Leiste */
+  #lz-palette {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .lz-bauteil {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 46px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    font: inherit;
+    text-align: left;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+    cursor: grab;
+    touch-action: none;          /* Finger zieht das Teil, statt die Seite zu scrollen */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .lz-bauteil:hover { border-color: var(--farbe-akzent); }
+  .lz-bauteil:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-bauteil b { display: block; font-size: var(--groesse-text); }
+  .lz-bauteil small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  /* Kleine Vorschau der Form in der Leiste */
+  .lz-mini { display: grid; gap: 1px; justify-content: center; align-content: center; }
+  .lz-mini span { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Mitte: das Produkt-Raster */
+  .lz-mitte {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .lz-rahmen {
+    padding: 8px;
+    background: var(--lz-raster-rahmen);
+    border-radius: 16px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+  /* Alle Ebenen (leere Kacheln, Bauteile, Vorschau, Hitze) liegen im selben CSS-Grid
+     übereinander; was später im HTML steht, liegt oben. */
+  .lz-raster {
+    display: grid;
+    grid-template-columns: repeat(var(--lz-spalten), var(--lz-zelle));
+    grid-template-rows: repeat(var(--lz-reihen), var(--lz-zelle));
+  }
+  .lz-raster > * { min-width: 0; min-height: 0; }
+  .lz-zelle {
+    margin: var(--lz-luecke);
+    background: var(--lz-zelle-farbe);
+    border-radius: var(--lz-rundung);
+  }
+
+  /* Bauteil-Kachel: Ränder/Ecken setzt das Skript, damit zusammenhängende
+     Kacheln eines Teils wie EIN Stein aussehen. --lz-rand-farbe färbt die Außenkante. */
+  @property --lz-rand-farbe { syntax: "<color>"; inherits: true; initial-value: transparent; }
+  .lz-teilzelle {
+    --lz-rand-farbe: transparent;
+    position: relative;
+    display: grid;
+    place-items: center;
+    font-size: 1.35rem;
+    line-height: 1;
+    color: rgba(30, 38, 34, 0.6);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .lz-teilzelle.ausgewaehlt { --lz-rand-farbe: var(--farbe-text); }
+  .lz-teilzelle.ueberhitzt {
+    --lz-rand-farbe: var(--lz-ampel-rot);
+    animation: lz-pulsieren 0.9s ease-in-out infinite alternate;
+  }
+  @keyframes lz-pulsieren {
+    from { --lz-rand-farbe: rgba(224, 83, 61, 1); }
+    to   { --lz-rand-farbe: rgba(224, 83, 61, 0.25); }
+  }
+  .lz-teilzelle.vorschau { opacity: 0.6; }
+  .lz-warnsymbol {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 0.85rem;
+    color: var(--lz-ampel-rot);
+    text-shadow: 0 0 3px #fff;
+  }
+
+  /* Vorschau beim Ziehen: rote Kacheln = passt hier nicht */
+  .lz-vorschau-fehler {
+    margin: var(--lz-luecke);
+    border-radius: var(--lz-rundung);
+    background: rgba(224, 83, 61, 0.28);
+    box-shadow: inset 0 0 0 3px var(--lz-ampel-rot);
+    pointer-events: none;
+  }
+
+  /* Hitze-Ansicht: Farbton + Zahl auf jeder warmen Kachel */
+  .lz-hitze {
+    margin: var(--lz-luecke);
+    border-radius: var(--lz-rundung);
+    display: grid;
+    place-items: end;
+    padding: 3px 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #4a1f10;
+    pointer-events: none;
+  }
+  .lz-hitze.h1 { background: var(--lz-hitze-1); }
+  .lz-hitze.h2 { background: var(--lz-hitze-2); }
+  .lz-hitze.h3 { background: var(--lz-hitze-3); color: #fff; }
+
+  /* Das "Geister-Teil", das beim Ziehen am Mauszeiger hängt */
+  #lz-geist {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 5;
+    display: grid;
+    opacity: 0.85;
+    pointer-events: none;
+    filter: drop-shadow(0 8px 10px rgba(30, 38, 34, 0.3));
+  }
+
+  .lz-tipp {
+    margin: 0;
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text-leise);
+    text-align: center;
+  }
+
+  /* Allgemeine Knöpfe im Designer */
+  .lz-knopf {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    font-weight: 700;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .lz-knopf:hover:not(:disabled) { border-color: var(--farbe-akzent); }
+  .lz-knopf:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-knopf:disabled { opacity: 0.4; cursor: default; }
+  .lz-knopf[aria-pressed="true"] { background: #fff1e4; border-color: var(--farbe-akzent); }
+  .lz-knopf-haupt { color: #fff; background: var(--farbe-akzent); border-color: var(--farbe-akzent); }
+  .lz-knopf-haupt:hover:not(:disabled) { filter: brightness(1.06); }
+  .lz-knopf-rund {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .lz-knopf kbd, .lz-tipp kbd {
+    padding: 0 5px;
+    font-family: var(--schrift-text);
+    font-size: var(--groesse-klein);
+    background: var(--lz-zelle-farbe);
+    border: 1px solid var(--farbe-rand);
+    border-radius: 4px;
+  }
+
+  /* Bewertung (rechte Spalte) */
+  #lz-bewertung {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 10px;
+    font-size: var(--groesse-text);
+  }
+  #lz-bewertung dt { color: var(--farbe-text-leise); }
+  #lz-bewertung dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .lz-ampel { display: inline-flex; align-items: center; gap: 6px; }
+  .lz-ampel::before {
+    content: "";
+    width: 0.7em;
+    height: 0.7em;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .lz-ampel.gruen { color: var(--lz-ampel-gruen); }
+  .lz-ampel.gelb { color: var(--lz-ampel-gelb); }
+  .lz-ampel.rot { color: var(--lz-ampel-rot); }
+  #lz-bewertung .lz-status-zeile {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding: 6px 10px;
+    text-align: left;
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+  }
+  #lz-bewertung .lz-liste-ueberhitzt { grid-column: 1 / -1; text-align: left; color: var(--lz-ampel-rot); font-weight: 700; }
+
+  /* Blaupausen-Liste */
+  #lz-speicher-hinweis {
+    margin: 0 0 8px;
+    font-size: var(--groesse-klein);
+    color: var(--lz-ampel-rot);
+  }
+  #lz-blaupausen {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+    max-height: 230px;
+    overflow: auto;
+  }
+  #lz-blaupausen li {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+  }
+  #lz-blaupausen li.aktiv { background: #fff1e4; border-color: rgba(240, 138, 60, 0.4); }
+  #lz-blaupausen .lz-leer { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-bp-laden {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    font-weight: 700;
+    text-align: left;
+    color: var(--farbe-text);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .lz-bp-laden span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lz-bp-laden small { display: block; font-weight: 500; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-bp-laden .lz-bp-warn { color: var(--lz-ampel-rot); }
+  .lz-bp-laden:hover { background: rgba(47, 58, 52, 0.06); }
+  .lz-bp-laden:focus-visible, .lz-symbol-knopf:focus-visible { outline: 2px solid var(--farbe-akzent); }
+  .lz-bp-name-eingabe {
+    flex: 1;
+    min-width: 0;
+    padding: 4px 6px;
+    font: inherit;
+    font-weight: 700;
+    border: 1px solid var(--farbe-akzent);
+    border-radius: 6px;
+  }
+  .lz-symbol-knopf {
+    flex: 0 0 auto;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 4px;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--farbe-text-leise);
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .lz-symbol-knopf:hover { color: var(--farbe-text); background: rgba(47, 58, 52, 0.08); }
+  .lz-symbol-knopf.bestaetigen { color: #fff; background: var(--lz-ampel-rot); font-size: var(--groesse-klein); font-weight: 700; }
+
+  /* Fußzeile mit Aktionen */
+  .lz-fuss {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px 16px;
+    border-top: 1px solid var(--farbe-rand);
+  }
+  .lz-fuss .lz-platz { flex: 1; }
+
+  /* Schmale Bildschirme: alles untereinander, Bauteil-Leiste waagerecht zum Wischen */
+  @media (max-width: 780px) {
+    :root { --lz-zelle: 60px; }
+    #layout-overlay { padding: 8px; }
+    .lz-kopf { flex-wrap: wrap; }
+    .lz-name { order: 3; flex-basis: 100%; }
+    .lz-inhalt { grid-template-columns: 1fr; }
+    .lz-teile { order: 2; }
+    .lz-mitte { order: 1; }
+    .lz-info { order: 3; }
+    #lz-palette { grid-auto-flow: column; grid-auto-columns: 160px; overflow-x: auto; padding-bottom: 4px; }
+    .lz-bauteil { touch-action: pan-x; } /* waagerecht wischen = Leiste scrollen, nach oben ziehen = Teil nehmen */
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lz-teilzelle.ueberhitzt { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -252,7 +705,62 @@
     <dt>Figur</dt>
     <dd id="hud-figur">–</dd>
   </dl>
+  <!-- Öffnet den Produkt-Layout-Designer (Phase 3) -->
+  <button id="hud-designer" class="hud-knopf" type="button">Layout-Designer <kbd>L</kbd></button>
 </section>
+
+<!-- ================== PRODUKT-LAYOUT-DESIGNER (Phase 3) ================== -->
+<!-- Liegt als 2D-Fenster über der 3D-Szene. Inhalte (Bauteile, Raster, Listen)
+     baut das Skript in Abschnitt 9 auf. -->
+<div id="layout-overlay" hidden>
+  <section id="lz-fenster" role="dialog" aria-modal="true" aria-labelledby="lz-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="lz-titel">Produkt-Layout-Designer</h2>
+      <label class="lz-name">Name <input id="lz-name" type="text" maxlength="40" autocomplete="off" spellcheck="false"></label>
+      <button id="lz-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Designer schließen">✕</button>
+    </header>
+
+    <div class="lz-inhalt">
+      <!-- Linke Spalte: Bauteile zum Herausziehen -->
+      <aside class="lz-spalte lz-teile">
+        <h3>Bauteile</h3>
+        <ul id="lz-palette"></ul>
+      </aside>
+
+      <!-- Mitte: das Produkt-Raster -->
+      <div class="lz-mitte">
+        <div class="lz-rahmen">
+          <div id="lz-raster" class="lz-raster" aria-label="Produkt-Raster"></div>
+        </div>
+        <button id="lz-hitze-knopf" class="lz-knopf" type="button" aria-pressed="false">Hitze-Ansicht <kbd>H</kbd></button>
+        <p class="lz-tipp">
+          Ziehen: platzieren · <kbd>R</kbd> / Rechtsklick: drehen<br>
+          Doppelklick / <kbd>Entf</kbd>: entfernen · Pfeiltasten: verschieben
+        </p>
+      </div>
+
+      <!-- Rechte Spalte: Bewertung und gespeicherte Blaupausen -->
+      <aside class="lz-spalte lz-info">
+        <h3>Bewertung</h3>
+        <dl id="lz-bewertung" aria-live="polite"></dl>
+        <h3>Blaupausen</h3>
+        <p id="lz-speicher-hinweis" hidden>Der Browser-Speicher ist gesperrt: Blaupausen bleiben nur bis zum Neuladen erhalten.</p>
+        <ul id="lz-blaupausen"></ul>
+      </aside>
+    </div>
+
+    <footer class="lz-fuss">
+      <button id="lz-neu" class="lz-knopf" type="button">Neues Design</button>
+      <button id="lz-leeren" class="lz-knopf" type="button">Leeren</button>
+      <button id="lz-zurueck" class="lz-knopf" type="button" aria-label="Rückgängig (Strg+Z)" title="Rückgängig (Strg+Z)">↶</button>
+      <button id="lz-vor" class="lz-knopf" type="button" aria-label="Wiederholen (Strg+Y)" title="Wiederholen (Strg+Y)">↷</button>
+      <span class="lz-platz"></span>
+      <button id="lz-speichern" class="lz-knopf lz-knopf-haupt" type="button">Als Blaupause speichern</button>
+    </footer>
+  </section>
+  <!-- Das Teil, das beim Ziehen am Mauszeiger hängt -->
+  <div id="lz-geist" hidden aria-hidden="true"></div>
+</div>
 
 <!-- Kurze Hinweis-Meldung (z. B. "Ziel nicht erreichbar") -->
 <div id="hud-meldung" role="status"></div>
@@ -262,6 +770,7 @@
   <span><kbd>Klick</kbd> hinlaufen</span>
   <span><kbd>Shift</kbd>+<kbd>Klick</kbd> Test-Block</span>
   <span><kbd>Leertaste</kbd> Figur zeigen</span>
+  <span><kbd>L</kbd> Layout-Designer</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
   <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> bewegen</span>
   <span><kbd>Rad</kbd> zoomen</span>
@@ -367,6 +876,48 @@ const LOGIK = {
 };
 
 /* ============================================================================
+   ABSCHNITT 2c: KONFIGURATION – Produkt-Layout-Designer (Phase 3) [Logik-Agent]
+   Hier stellst du die Größe des Produkt-Rasters und alle Bauteile ein.
+   ============================================================================ */
+const LAYOUT = {
+  breite: 4,                 // Kacheln nebeneinander im Produkt-Raster
+  hoehe:  4,                 // Kacheln untereinander (4 × 4 = 16 Kacheln)
+  verlaufSchritte: 30,       // Wie viele Schritte "Rückgängig" sich merkt
+  warnAbstand: 1,            // Gelbe Ampel, wenn die Hitze auf einem Teil nur noch so weit unter seiner Toleranz liegt
+  speicherSchluessel: "tradeup.blaupausen", // Name, unter dem der Browser die Blaupausen speichert
+  blaupausenVersion: 1,      // Format-Version der Blaupausen (für spätere Phasen)
+};
+
+// Der Bauteil-Katalog. Jedes Bauteil hat:
+//   typ       – interner Name (nicht ändern, sonst passen gespeicherte Blaupausen nicht mehr)
+//   name      – Anzeigename
+//   form      – belegte Kacheln als [Spalte, Reihe], links oben = [0, 0]
+//   stufe     – Technologie-Stufe 1–3 (höhere Stufen erzeugen Hitze)
+//   hitze     – um so viel heizt das Teil jede direkt angrenzende Kachel auf
+//   kuehlung  – um so viel kühlt das Teil jede direkt angrenzende Kachel (Kühlkörper)
+//   toleranz  – so viel Hitze verträgt das Teil; darüber ist es überhitzt
+//   farbe, symbol – Aussehen im Designer
+//   freigeschaltet – später über die Forschung; in Phase 3 sind alle Teile verfügbar
+const BAUTEILE = [
+  { typ: "kabelbruecke", name: "Kabelbrücke", form: [[0, 0]],
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 4, farbe: "#c3cad0", symbol: "≈", freigeschaltet: true },
+  { typ: "taster", name: "Taster", form: [[0, 0], [1, 0]],
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#f2a65a", symbol: "◉", freigeschaltet: true },
+  { typ: "akku", name: "Akku", form: [[0, 0], [1, 0], [2, 0]],
+    stufe: 1, hitze: 1, kuehlung: 0, toleranz: 2, farbe: "#8cc96b", symbol: "▮", freigeschaltet: true },
+  { typ: "platine", name: "Platine", form: [[0, 0], [0, 1], [1, 1]],
+    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#5fae8f", symbol: "⌗", freigeschaltet: true },
+  { typ: "display", name: "Display", form: [[0, 0], [1, 0], [0, 1], [1, 1]],
+    stufe: 2, hitze: 1, kuehlung: 0, toleranz: 3, farbe: "#6fa8dc", symbol: "▭", freigeschaltet: true },
+  { typ: "netzteil", name: "Netzteil", form: [[1, 0], [2, 0], [0, 1], [1, 1]],
+    stufe: 2, hitze: 2, kuehlung: 0, toleranz: 4, farbe: "#e6c34d", symbol: "ϟ", freigeschaltet: true },
+  { typ: "prozessor", name: "Prozessor", form: [[0, 0], [1, 0], [2, 0], [1, 1]],
+    stufe: 3, hitze: 3, kuehlung: 0, toleranz: 5, farbe: "#b48ad9", symbol: "▣", freigeschaltet: true },
+  { typ: "kuehlkoerper", name: "Kühlkörper", form: [[0, 0]],
+    stufe: 1, hitze: 0, kuehlung: 2, toleranz: 9, farbe: "#9fd6e8", symbol: "❄", freigeschaltet: true },
+];
+
+/* ============================================================================
    ABSCHNITT 3: Szene, Kamera, Licht                                [3D-Agent]
    ============================================================================ */
 
@@ -441,7 +992,7 @@ szene.add(sonne);
 /* ============================================================================
    ABSCHNITT 4: Raster-Daten & Koordinaten                       [Logik-Agent]
    Hier wird gespeichert, was auf jeder Kachel liegt. Aktuell können nur
-   Test-Blöcke gesetzt werden; ab Phase 3 trägt der Bau-Modus hier Maschinen ein.
+   Test-Blöcke gesetzt werden; der spätere Maschinen-Bau-Modus trägt hier Maschinen ein.
    Koordinaten: x = Spalte (0 bis breite-1), z = Reihe (0 bis tiefe-1).
    ============================================================================ */
 const level = LEVELS[START_LEVEL];
@@ -1085,6 +1636,7 @@ const maus = {
 };
 
 zeichenflaeche.addEventListener("pointerdown", (e) => {
+  if (eingaben3dGesperrt) return;
   maus.letzteX = e.clientX; maus.letzteY = e.clientY;
   if (e.button === 0) {
     // Linke Taste: möglicher Klick – erst beim Loslassen entscheiden.
@@ -1101,6 +1653,7 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
 });
 
 zeichenflaeche.addEventListener("pointermove", (e) => {
+  if (eingaben3dGesperrt) return;
   maus.letzteX = e.clientX; maus.letzteY = e.clientY;
   if (maus.verschiebt && maus.ankerPunkt) {
     // Den Bodenpunkt unter der Maus festhalten: Kamera so verschieben, dass er mitwandert.
@@ -1115,6 +1668,7 @@ zeichenflaeche.addEventListener("pointermove", (e) => {
 });
 
 zeichenflaeche.addEventListener("pointerup", (e) => {
+  if (eingaben3dGesperrt) return;
   if (e.button === 0 && maus.linksUnten) {
     maus.linksUnten = false;
     const bewegt = Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY);
@@ -1149,6 +1703,7 @@ zeichenflaeche.addEventListener("contextmenu", (e) => e.preventDefault());
 // Mausrad: Zoomen zur Mausposition hin (der Punkt unter der Maus bleibt stehen).
 zeichenflaeche.addEventListener("wheel", (e) => {
   e.preventDefault();
+  if (eingaben3dGesperrt) return;
   const vorher = punktUnterMaus(e.clientX, e.clientY);
   const faktor = e.deltaY < 0 ? GRAFIK.zoomSchritt : 1 / GRAFIK.zoomSchritt;
   kamera.zoom = THREE.MathUtils.clamp(kamera.zoom * faktor, GRAFIK.zoomMin, GRAFIK.zoomMax);
@@ -1165,6 +1720,7 @@ zeichenflaeche.addEventListener("wheel", (e) => {
 // Tastatur: W A S D / Pfeiltasten bewegen die Kamera, Esc hebt die Auswahl auf.
 const gedrueckteTasten = new Set();
 window.addEventListener("keydown", (e) => {
+  if (eingaben3dGesperrt) return;    // Layout-Designer offen: 3D-Steuerung ruht
   if (e.key === "Escape") { setzeAuswahl(null); return; }
   if (e.key === " ") {               // Leertaste: Kamera auf die Figur zentrieren
     e.preventDefault();              // verhindert, dass der Browser die Seite scrollt
@@ -1175,6 +1731,20 @@ window.addEventListener("keydown", (e) => {
 });
 window.addEventListener("keyup", (e) => gedrueckteTasten.delete(e.key.toLowerCase()));
 window.addEventListener("blur", () => gedrueckteTasten.clear()); // Fenster verlässt Fokus: nichts "klemmt"
+
+// Sperrt (an = true) oder entsperrt alle Eingaben der 3D-Szene, z. B. solange der
+// Layout-Designer offen ist. Gedrückte Tasten, Maus-Zustand und Hover werden
+// zurückgesetzt, damit nach dem Schließen nichts "klemmt". Die Spielschleife läuft weiter.
+let eingaben3dGesperrt = false;
+function sperre3dEingaben(an) {
+  eingaben3dGesperrt = an;
+  gedrueckteTasten.clear();
+  maus.linksUnten = false;
+  maus.verschiebt = false;
+  maus.ankerPunkt = null;
+  if (an) setzeHover(null);
+  document.body.classList.toggle("designer-offen", an); // Szene weich unscharf (siehe CSS)
+}
 
 // Bildschirm-Richtungen auf den Boden übertragen ("oben" im Bild = von der Kamera weg).
 const richtungVor = new THREE.Vector3(-kameraVersatz.x, 0, -kameraVersatz.z).normalize();
@@ -1355,7 +1925,7 @@ spielEreignisse.addEventListener("rasterGeaendert", () => {
   if (!frei || !figur.zielErreichbar) schickeFigur(figur.zielWunsch);
 });
 
-// Test-Werkzeug (Shift + Klick): Block setzen oder entfernen. Ab Phase 3 ersetzt der Bau-Modus das.
+// Test-Werkzeug (Shift + Klick): Block setzen oder entfernen. Wird ersetzt, sobald der Maschinen-Bau-Modus kommt.
 function schalteTestBlock(k) {
   const kachel = holeKachel(k.x, k.z);
   if (kachel.begehbar) {
@@ -1433,7 +2003,1012 @@ for (const element of [document.getElementById("hud-info"), document.getElementB
 }
 
 /* ============================================================================
-   ABSCHNITT 8: Spielschleife (Render-Loop)                         [3D-Agent]
+   ABSCHNITT 8: Produkt-Layout – Raster & Platzieren (Phase 3)    [Logik-Agent]
+   Reine Daten, kein HTML: So kann die Produktion später dieselben Funktionen
+   nutzen. Koordinaten im Produkt-Raster: x = Spalte, y = Reihe (ab 0, y nach unten).
+
+   Ein Layout sieht so aus:
+     { breite: 4, hoehe: 4,
+       zellen: [null, "t3", "t3", null, ...],   // je Kachel: welche Teil-ID liegt hier
+       teile:  { t3: { typ: "prozessor", x: 1, y: 0, drehung: 90 } },
+       naechsteNummer: 4 }                       // für die nächste Teil-ID
+   Ereignisse: layoutGeaendert, blaupausenGeaendert
+   ============================================================================ */
+const bauteilNachTyp = new Map(BAUTEILE.map((b) => [b.typ, b]));
+
+// Ein leeres Produkt-Raster in der eingestellten Größe.
+function erstelleLeeresLayout() {
+  return {
+    breite: LAYOUT.breite,
+    hoehe: LAYOUT.hoehe,
+    zellen: new Array(LAYOUT.breite * LAYOUT.hoehe).fill(null),
+    teile: {},
+    naechsteNummer: 1,
+  };
+}
+
+// Tiefe Kopie (für "Rückgängig" und für die Vorschau beim Ziehen).
+function kopiereLayout(layout) {
+  return JSON.parse(JSON.stringify(layout));
+}
+
+// Position einer Kachel in der Liste "zellen".
+function zellenNummer(layout, x, y) {
+  return y * layout.breite + x;
+}
+
+// Liegt die Kachel innerhalb des Produkt-Rasters?
+function istImLayout(layout, x, y) {
+  return x >= 0 && x < layout.breite && y >= 0 && y < layout.hoehe;
+}
+
+// Dreht eine Form im Uhrzeigersinn um 0, 90, 180 oder 270 Grad und schiebt sie
+// danach wieder nach links oben, sodass die kleinste Spalte und Reihe 0 sind.
+function dreheForm(form, drehung) {
+  let zellen = form.map(([x, y]) => [x, y]);
+  const schritte = ((Math.round(drehung / 90) % 4) + 4) % 4;
+  for (let i = 0; i < schritte; i++) {
+    zellen = zellen.map(([x, y]) => [-y, x]);   // 90° im Uhrzeigersinn (Reihe zeigt nach unten)
+  }
+  const minX = Math.min(...zellen.map((z) => z[0]));
+  const minY = Math.min(...zellen.map((z) => z[1]));
+  return zellen.map(([x, y]) => [x - minX, y - minY]);
+}
+
+// Wie breit und hoch ist eine Form (in Kacheln)?
+function formGroesse(form) {
+  return {
+    breite: Math.max(...form.map((z) => z[0])) + 1,
+    hoehe: Math.max(...form.map((z) => z[1])) + 1,
+  };
+}
+
+// Alle Kacheln, die ein Teil mit Ankerpunkt (x, y) und Drehung belegen würde.
+function zellenVonTeil(typ, x, y, drehung) {
+  return dreheForm(bauteilNachTyp.get(typ).form, drehung).map(([fx, fy]) => ({ x: x + fx, y: y + fy }));
+}
+
+// Prüft, ob ein Teil an diese Stelle passt: alle Kacheln im Raster und frei.
+// "ignoriereId" erlaubt beim Verschieben, dass das Teil seinen alten Platz überlappt.
+// Rückgabe: { passt, zellen: [{ x, y, imRaster, frei }] } – die Zellen braucht die rote Vorschau.
+function passtTeil(layout, typ, x, y, drehung, ignoriereId = null) {
+  const zellen = zellenVonTeil(typ, x, y, drehung).map((z) => {
+    const imRaster = istImLayout(layout, z.x, z.y);
+    const belegtVon = imRaster ? layout.zellen[zellenNummer(layout, z.x, z.y)] : null;
+    return { ...z, imRaster, frei: imRaster && (belegtVon === null || belegtVon === ignoriereId) };
+  });
+  return { passt: zellen.every((z) => z.frei), zellen };
+}
+
+// Legt ein neues Teil ins Layout. Rückgabe: die neue Teil-ID oder null, wenn es nicht passt.
+function platziereTeil(layout, typ, x, y, drehung = 0) {
+  if (!bauteilNachTyp.has(typ) || !passtTeil(layout, typ, x, y, drehung).passt) return null;
+  const id = "t" + layout.naechsteNummer++;
+  layout.teile[id] = { typ, x, y, drehung };
+  for (const z of zellenVonTeil(typ, x, y, drehung)) layout.zellen[zellenNummer(layout, z.x, z.y)] = id;
+  return id;
+}
+
+// Nimmt ein Teil aus dem Layout. Rückgabe: true, wenn es das Teil gab.
+function entferneTeil(layout, id) {
+  const teil = layout.teile[id];
+  if (!teil) return false;
+  for (const z of zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung)) {
+    layout.zellen[zellenNummer(layout, z.x, z.y)] = null;
+  }
+  delete layout.teile[id];
+  return true;
+}
+
+// Verschiebt und/oder dreht ein liegendes Teil. Rückgabe: true, wenn es gepasst hat.
+function verschiebeTeil(layout, id, x, y, drehung) {
+  const teil = layout.teile[id];
+  if (!teil || !passtTeil(layout, teil.typ, x, y, drehung, id).passt) return false;
+  for (const z of zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung)) {
+    layout.zellen[zellenNummer(layout, z.x, z.y)] = null;
+  }
+  Object.assign(teil, { x, y, drehung });
+  for (const z of zellenVonTeil(teil.typ, x, y, drehung)) layout.zellen[zellenNummer(layout, z.x, z.y)] = id;
+  return true;
+}
+
+// Sucht die erste freie Stelle für ein Teil (von links oben, alle Drehungen).
+// Rückgabe: { x, y, drehung } oder null, wenn es nirgends passt.
+function findeFreienPlatz(layout, typ) {
+  for (const drehung of [0, 90, 180, 270]) {
+    for (let y = 0; y < layout.hoehe; y++) {
+      for (let x = 0; x < layout.breite; x++) {
+        if (passtTeil(layout, typ, x, y, drehung).passt) return { x, y, drehung };
+      }
+    }
+  }
+  return null;
+}
+
+/* --- Der Designer-Zustand: das Layout, an dem gerade gearbeitet wird --- */
+const designer = {
+  layout: erstelleLeeresLayout(),
+  verlauf: [],          // frühere Layouts für "Rückgängig"
+  zukunft: [],          // rückgängig gemachte Layouts für "Wiederholen"
+  name: "",             // Name des Designs (steht oben im Fenster)
+  blaupauseId: null,    // welche gespeicherte Blaupause gerade bearbeitet wird (oder null = neu)
+  offen: false,         // ist das Designer-Fenster sichtbar?
+};
+
+// Meldet allen Zuhörern (z. B. der Oberfläche), dass sich das Layout geändert hat.
+function meldeLayoutGeaendert() {
+  meldeEreignis("layoutGeaendert", { layout: designer.layout });
+}
+
+// Führt eine Änderung am aktuellen Layout aus und merkt sich den Stand davor.
+// "aenderung" bekommt das Layout und gibt bei Erfolg etwas "Wahres" zurück (z. B. die neue ID).
+// Schlägt sie fehl, bleibt alles wie es war und es entsteht kein Rückgängig-Schritt.
+function aendereLayout(aenderung) {
+  const vorher = kopiereLayout(designer.layout);
+  const ergebnis = aenderung(designer.layout);
+  if (!ergebnis) { designer.layout = vorher; return ergebnis; }
+  designer.verlauf.push(vorher);
+  if (designer.verlauf.length > LAYOUT.verlaufSchritte) designer.verlauf.shift();
+  designer.zukunft = [];
+  meldeLayoutGeaendert();
+  return ergebnis;
+}
+
+// Rückgängig (Strg+Z) und Wiederholen (Strg+Y). Rückgabe: true, wenn etwas passiert ist.
+function rueckgaengig() {
+  if (designer.verlauf.length === 0) return false;
+  designer.zukunft.push(kopiereLayout(designer.layout));
+  designer.layout = designer.verlauf.pop();
+  meldeLayoutGeaendert();
+  return true;
+}
+function wiederholen() {
+  if (designer.zukunft.length === 0) return false;
+  designer.verlauf.push(kopiereLayout(designer.layout));
+  designer.layout = designer.zukunft.pop();
+  meldeLayoutGeaendert();
+  return true;
+}
+
+/* ============================================================================
+   ABSCHNITT 8b: Hitze-Berechnung (Phase 3)                       [Logik-Agent]
+   Regeln (bewusst einfach, damit Spieler sie durchschauen):
+     1. Jedes Bauteil heizt jede DIREKT angrenzende Kachel (oben, unten, links,
+        rechts; nicht die eigenen) um seinen Hitzewert auf. Quellen addieren sich.
+     2. Kühlkörper senken jede angrenzende Kachel um ihren Kühlwert (nie unter 0).
+     3. Liegt auf irgendeiner Kachel eines Teils mehr Hitze als seine Toleranz,
+        ist das Teil überhitzt.
+   ============================================================================ */
+const VIER_RICHTUNGEN = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+// Alle Kacheln direkt neben einem Teil (ohne seine eigenen), jede nur einmal.
+function nachbarKachelnVonTeil(layout, teil) {
+  const eigene = zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung);
+  const eigeneNummern = new Set(eigene.map((z) => zellenNummer(layout, z.x, z.y)));
+  const nachbarn = new Set();
+  for (const z of eigene) {
+    for (const [dx, dy] of VIER_RICHTUNGEN) {
+      const nx = z.x + dx, ny = z.y + dy;
+      if (!istImLayout(layout, nx, ny)) continue;
+      const nr = zellenNummer(layout, nx, ny);
+      if (!eigeneNummern.has(nr)) nachbarn.add(nr);
+    }
+  }
+  return [...nachbarn];
+}
+
+// Berechnet die Hitze auf jeder Kachel und welche Teile überhitzt sind.
+// Rückgabe: {
+//   proKachel:   [Hitze je Kachel, gleiche Reihenfolge wie layout.zellen],
+//   maxProTeil:  { teilId: höchste Hitze auf einer seiner Kacheln },
+//   ueberhitzt:  [Teil-IDs über ihrer Toleranz],
+//   gefaehrdet:  [Teil-IDs knapp unter ihrer Toleranz (gelbe Ampel)],
+//   gesamtHitze: Summe aller Hitzewerte minus Kühlung (nie unter 0),
+//   heissesteKachel: { x, y, wert } }
+function berechneHitze(layout) {
+  const proKachel = new Array(layout.zellen.length).fill(0);
+  let gesamtHitze = 0;
+
+  for (const teil of Object.values(layout.teile)) {
+    const bauteil = bauteilNachTyp.get(teil.typ);
+    const wirkung = bauteil.hitze - bauteil.kuehlung;   // positiv = heizt, negativ = kühlt
+    gesamtHitze += wirkung;
+    if (wirkung === 0) continue;
+    for (const nr of nachbarKachelnVonTeil(layout, teil)) proKachel[nr] += wirkung;
+  }
+  for (let i = 0; i < proKachel.length; i++) proKachel[i] = Math.max(0, proKachel[i]);
+
+  const maxProTeil = {}, ueberhitzt = [], gefaehrdet = [];
+  for (const [id, teil] of Object.entries(layout.teile)) {
+    const bauteil = bauteilNachTyp.get(teil.typ);
+    let hoechste = 0;
+    for (const z of zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung)) {
+      hoechste = Math.max(hoechste, proKachel[zellenNummer(layout, z.x, z.y)]);
+    }
+    maxProTeil[id] = hoechste;
+    if (hoechste > bauteil.toleranz) ueberhitzt.push(id);
+    else if (hoechste > 0 && hoechste >= bauteil.toleranz - LAYOUT.warnAbstand) gefaehrdet.push(id);
+  }
+
+  let heissesteNr = 0;
+  proKachel.forEach((wert, nr) => { if (wert > proKachel[heissesteNr]) heissesteNr = nr; });
+  return {
+    proKachel, maxProTeil, ueberhitzt, gefaehrdet,
+    gesamtHitze: Math.max(0, gesamtHitze),
+    heissesteKachel: {
+      x: heissesteNr % layout.breite,
+      y: Math.floor(heissesteNr / layout.breite),
+      wert: proKachel[heissesteNr],
+    },
+  };
+}
+
+// Fasst ein Layout für die Anzeige (und später für die Produktion) zusammen.
+// status: "gruen" = nichts überhitzt, "gelb" = knapp an der Grenze, "rot" = mindestens ein Teil überhitzt
+function bewerteLayout(layout) {
+  const hitze = berechneHitze(layout);
+  return {
+    belegung: layout.zellen.filter((z) => z !== null).length,
+    kacheln: layout.zellen.length,
+    teileAnzahl: Object.keys(layout.teile).length,
+    gesamtHitze: hitze.gesamtHitze,
+    heissesteKachel: hitze.heissesteKachel,
+    ueberhitzt: hitze.ueberhitzt,
+    status: hitze.ueberhitzt.length ? "rot" : hitze.gefaehrdet.length ? "gelb" : "gruen",
+    hitze,
+  };
+}
+
+/* ============================================================================
+   ABSCHNITT 8c: Blaupausen-Speicher (Phase 3)                    [Logik-Agent]
+   Blaupausen werden im Browser gespeichert (localStorage) und überstehen das
+   Neuladen. Ist der Speicher gesperrt (privates Fenster, manche Vorschauen),
+   bleiben sie im Arbeitsspeicher, bis die Seite neu geladen wird.
+
+   Format einer Blaupause:
+     { id, name, version: 1, raster: { breite, hoehe },
+       teile: [{ typ, x, y, drehung }],
+       werte: { gesamtHitze, ueberhitzt, belegung },
+       erstellt, geaendert }      // Zeitangaben als ISO-Text
+   ============================================================================ */
+let speicherVerfuegbar = true;      // false, sobald der Browser-Speicher einmal versagt hat
+let blaupausenNotfall = [];         // Ersatz-Speicher im Arbeitsspeicher
+
+// Liest alle Blaupausen (neueste zuerst bleibt der Oberfläche überlassen).
+function ladeBlaupausen() {
+  if (!speicherVerfuegbar) return blaupausenNotfall.map((b) => ({ ...b }));
+  try {
+    const text = window.localStorage.getItem(LAYOUT.speicherSchluessel);
+    const liste = text ? JSON.parse(text) : [];
+    blaupausenNotfall = Array.isArray(liste) ? liste.filter((b) => b && b.id && Array.isArray(b.teile)) : [];
+  } catch (fehler) {
+    speicherVerfuegbar = false;
+  }
+  return blaupausenNotfall.map((b) => ({ ...b }));
+}
+
+// Schreibt die komplette Liste zurück und meldet "blaupausenGeaendert".
+function schreibeBlaupausen(liste) {
+  blaupausenNotfall = liste;
+  if (speicherVerfuegbar) {
+    try {
+      window.localStorage.setItem(LAYOUT.speicherSchluessel, JSON.stringify(liste));
+    } catch (fehler) {
+      speicherVerfuegbar = false;
+    }
+  }
+  meldeEreignis("blaupausenGeaendert", { liste, speicherVerfuegbar });
+}
+
+// Speichert ein Layout als Blaupause. Mit "id" wird diese Blaupause überschrieben,
+// ohne "id" (oder wenn es sie nicht mehr gibt) entsteht eine neue. Rückgabe: die Blaupause.
+function speichereBlaupause(layout, name, id = null) {
+  const liste = ladeBlaupausen();
+  const bewertung = bewerteLayout(layout);
+  const jetzt = new Date().toISOString();
+  const vorhanden = id ? liste.find((b) => b.id === id) : null;
+  const blaupause = {
+    id: vorhanden ? vorhanden.id : `bp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: (name || "").trim() || naechsterEntwurfsName(),
+    version: LAYOUT.blaupausenVersion,
+    raster: { breite: layout.breite, hoehe: layout.hoehe },
+    teile: Object.values(layout.teile).map(({ typ, x, y, drehung }) => ({ typ, x, y, drehung })),
+    werte: {
+      gesamtHitze: bewertung.gesamtHitze,
+      ueberhitzt: bewertung.ueberhitzt.length > 0,
+      belegung: bewertung.belegung,
+    },
+    erstellt: vorhanden ? vorhanden.erstellt : jetzt,
+    geaendert: jetzt,
+  };
+  if (vorhanden) liste[liste.indexOf(vorhanden)] = blaupause;
+  else liste.push(blaupause);
+  schreibeBlaupausen(liste);
+  return blaupause;
+}
+
+// Baut aus einer gespeicherten Blaupause wieder ein Layout.
+// Unbekannte Bauteile oder Teile, die (z. B. nach einer Rastergrößen-Änderung)
+// nicht mehr passen, werden übersprungen. Rückgabe: { layout, blaupause, uebersprungen } oder null.
+function ladeBlaupauseInsLayout(id) {
+  const blaupause = ladeBlaupausen().find((b) => b.id === id);
+  if (!blaupause) return null;
+  const layout = erstelleLeeresLayout();
+  let uebersprungen = 0;
+  for (const t of blaupause.teile) {
+    if (!platziereTeil(layout, t.typ, t.x, t.y, t.drehung || 0)) uebersprungen++;
+  }
+  return { layout, blaupause, uebersprungen };
+}
+
+// Löscht eine Blaupause. Rückgabe: true, wenn es sie gab.
+function loescheBlaupause(id) {
+  const liste = ladeBlaupausen();
+  const neu = liste.filter((b) => b.id !== id);
+  if (neu.length === liste.length) return false;
+  schreibeBlaupausen(neu);
+  return true;
+}
+
+// Gibt einer Blaupause einen neuen Namen. Rückgabe: true bei Erfolg.
+function benenneBlaupauseUm(id, name) {
+  const liste = ladeBlaupausen();
+  const blaupause = liste.find((b) => b.id === id);
+  if (!blaupause || !name.trim()) return false;
+  blaupause.name = name.trim();
+  blaupause.geaendert = new Date().toISOString();
+  schreibeBlaupausen(liste);
+  return true;
+}
+
+// Legt eine Kopie an ("Name (Kopie)"). Rückgabe: die neue Blaupause oder null.
+function dupliziereBlaupause(id) {
+  const liste = ladeBlaupausen();
+  const original = liste.find((b) => b.id === id);
+  if (!original) return null;
+  const jetzt = new Date().toISOString();
+  const kopie = {
+    ...JSON.parse(JSON.stringify(original)),
+    id: `bp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: `${original.name} (Kopie)`,
+    erstellt: jetzt,
+    geaendert: jetzt,
+  };
+  liste.push(kopie);
+  schreibeBlaupausen(liste);
+  return kopie;
+}
+
+// Vorschlag für den Namen eines neuen Designs: "Entwurf 1", "Entwurf 2", ...
+function naechsterEntwurfsName() {
+  const namen = new Set(ladeBlaupausen().map((b) => b.name));
+  let nummer = 1;
+  while (namen.has(`Entwurf ${nummer}`)) nummer++;
+  return `Entwurf ${nummer}`;
+}
+
+/* ============================================================================
+   ABSCHNITT 9: Layout-Overlay – Aufbau & Drag & Drop (Phase 3)   [UI/UX-Agent]
+   Zeichnet das Designer-Fenster und übersetzt Maus, Finger und Tastatur in
+   Aufrufe der Layout-Logik (Abschnitt 8). Drag & Drop läuft über Pointer-Events,
+   damit Maus, Stift und Touch gleich funktionieren.
+   ============================================================================ */
+const lz = {
+  overlay:     document.getElementById("layout-overlay"),
+  fenster:     document.getElementById("lz-fenster"),
+  raster:      document.getElementById("lz-raster"),
+  palette:     document.getElementById("lz-palette"),
+  bewertung:   document.getElementById("lz-bewertung"),
+  blaupausen:  document.getElementById("lz-blaupausen"),
+  speicherHinweis: document.getElementById("lz-speicher-hinweis"),
+  name:        document.getElementById("lz-name"),
+  geist:       document.getElementById("lz-geist"),
+  hitzeKnopf:  document.getElementById("lz-hitze-knopf"),
+  zurueck:     document.getElementById("lz-zurueck"),
+  vor:         document.getElementById("lz-vor"),
+  hudKnopf:    document.getElementById("hud-designer"),
+};
+lz.raster.style.setProperty("--lz-spalten", LAYOUT.breite);
+lz.raster.style.setProperty("--lz-reihen", LAYOUT.hoehe);
+lz.raster.setAttribute("aria-label", `Produkt-Raster ${LAYOUT.breite} × ${LAYOUT.hoehe}`);
+
+const ZIEH_SCHWELLE = 5;     // Pixel, ab denen aus einem Klick ein Ziehen wird
+const ui = {
+  hitzeAnsicht: false,       // Hitze-Ansicht dauerhaft an?
+  auswahlId: null,           // ausgewähltes Teil im Raster
+  ziehen: null,              // laufender Zieh-Vorgang (siehe beginneZiehen)
+  letztesZiehenEnde: 0,      // Zeitpunkt, damit nach dem Ziehen kein "Klick" nachfeuert
+};
+
+// Kurzbeschreibung eines Bauteils, z. B. "Stufe 3 · Hitze 3 · Tol. 5"
+function bauteilWerteText(b) {
+  const wirkung = b.kuehlung ? `Kühlt ${b.kuehlung}` : `Hitze ${b.hitze}`;
+  return `Stufe ${b.stufe} · ${wirkung} · Tol. ${b.toleranz}`;
+}
+
+// Macht Text sicher für HTML (Namen kommen vom Spieler).
+function htmlSicher(text) {
+  return String(text).replace(/[&<>"']/g, (z) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[z]);
+}
+
+// HTML für die Kacheln EINES Teils. Benachbarte Kacheln desselben Teils
+// verschmelzen (kein Abstand, keine Rundung, keine Kante dazwischen), sodass es
+// wie ein zusammenhängender Tetris-Stein aussieht.
+//   zellen: [{ x, y }] in Raster-Koordinaten (beginnend bei 0)
+function teilZellenHtml(typ, zellen, { id = null, klassen = "", titel = "", warnung = false } = {}) {
+  const b = bauteilNachTyp.get(typ);
+  const belegt = new Set(zellen.map((z) => `${z.x},${z.y}`));
+  // Das Symbol sitzt auf der Kachel, die der Mitte des Teils am nächsten liegt.
+  const mx = zellen.reduce((s, z) => s + z.x, 0) / zellen.length;
+  const my = zellen.reduce((s, z) => s + z.y, 0) / zellen.length;
+  let symbolZelle = zellen[0];
+  for (const z of zellen) {
+    if (Math.hypot(z.x - mx, z.y - my) < Math.hypot(symbolZelle.x - mx, symbolZelle.y - my)) symbolZelle = z;
+  }
+  const luecke = "var(--lz-luecke)", rund = "var(--lz-rundung)", rand = "var(--lz-rand-farbe)";
+  return zellen.map((z) => {
+    const offen = {
+      oben:   belegt.has(`${z.x},${z.y - 1}`),
+      unten:  belegt.has(`${z.x},${z.y + 1}`),
+      links:  belegt.has(`${z.x - 1},${z.y}`),
+      rechts: belegt.has(`${z.x + 1},${z.y}`),
+    };
+    // Außenkanten bekommen eine Linie in --lz-rand-farbe (Auswahl/Überhitzung),
+    // unten zusätzlich einen dunklen Streifen für den leichten 3D-Effekt.
+    const schatten = [];
+    if (!offen.oben)   schatten.push(`inset 0 3px 0 ${rand}`);
+    if (!offen.unten)  schatten.push(`inset 0 -3px 0 ${rand}`, "inset 0 -7px 0 rgba(0,0,0,0.13)");
+    if (!offen.links)  schatten.push(`inset 3px 0 0 ${rand}`);
+    if (!offen.rechts) schatten.push(`inset -3px 0 0 ${rand}`);
+    const stil = [
+      `grid-column:${z.x + 1}`, `grid-row:${z.y + 1}`,
+      `background:${b.farbe}`,
+      `margin:${offen.oben ? 0 : luecke} ${offen.rechts ? 0 : luecke} ${offen.unten ? 0 : luecke} ${offen.links ? 0 : luecke}`,
+      `border-radius:${!offen.oben && !offen.links ? rund : 0} ${!offen.oben && !offen.rechts ? rund : 0} ` +
+        `${!offen.unten && !offen.rechts ? rund : 0} ${!offen.unten && !offen.links ? rund : 0}`,
+      `box-shadow:${schatten.length ? schatten.join(",") : "none"}`,
+    ].join(";");
+    const inhalt = z === symbolZelle
+      ? `<span aria-hidden="true">${b.symbol}</span>${warnung ? '<span class="lz-warnsymbol" aria-hidden="true">⚠</span>' : ""}`
+      : "";
+    return `<div class="lz-teilzelle ${klassen}"${id ? ` data-teil="${id}"` : ""} style="${stil}"` +
+      `${titel ? ` title="${htmlSicher(titel)}"` : ""}>${inhalt}</div>`;
+  }).join("");
+}
+
+/* --- Bauteil-Leiste aufbauen (einmalig) --- */
+lz.palette.innerHTML = BAUTEILE.filter((b) => b.freigeschaltet).map((b) => {
+  const form = b.form;
+  const groesse = formGroesse(form);
+  const belegt = new Set(form.map(([x, y]) => `${x},${y}`));
+  let mini = "";
+  for (let y = 0; y < groesse.hoehe; y++) {
+    for (let x = 0; x < groesse.breite; x++) {
+      mini += `<span style="background:${belegt.has(`${x},${y}`) ? b.farbe : "transparent"}"></span>`;
+    }
+  }
+  return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}"
+      aria-label="${b.name} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
+      <span class="lz-mini" style="grid-template-columns:repeat(${groesse.breite},10px)">${mini}</span>
+      <span><b>${b.name}</b><small>${bauteilWerteText(b)}</small></span>
+    </button></li>`;
+}).join("");
+
+/* --- Raster und Bewertung zeichnen --- */
+
+// Zeichnet das Produkt-Raster neu. Während des Ziehens wird eine Vorschau
+// gezeigt: das Layout so, als läge das gezogene Teil schon an der Zielstelle.
+function zeichneDesigner() {
+  if (!designer.offen) return;
+  const z = ui.ziehen && ui.ziehen.gestartet ? ui.ziehen : null;
+  let anzeige = designer.layout;
+  let vorschauId = null, fehlZellen = [];
+  if (z) {
+    anzeige = kopiereLayout(designer.layout);
+    if (z.teilId) entferneTeil(anzeige, z.teilId);       // das gezogene Teil "schwebt"
+    if (z.ziel) {
+      const pruefung = passtTeil(anzeige, z.typ, z.ziel.x, z.ziel.y, z.drehung);
+      if (pruefung.passt) vorschauId = platziereTeil(anzeige, z.typ, z.ziel.x, z.ziel.y, z.drehung);
+      else fehlZellen = pruefung.zellen.filter((c) => c.imRaster);
+    }
+  }
+  if (ui.auswahlId && !designer.layout.teile[ui.auswahlId]) ui.auswahlId = null;
+
+  const bewertung = bewerteLayout(anzeige);
+  const { hitze } = bewertung;
+  let html = "";
+
+  // Ebene 1: leere Kacheln
+  for (let y = 0; y < anzeige.hoehe; y++) {
+    for (let x = 0; x < anzeige.breite; x++) {
+      html += `<div class="lz-zelle" data-x="${x}" data-y="${y}" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`;
+    }
+  }
+  // Ebene 2: Bauteile
+  for (const [id, teil] of Object.entries(anzeige.teile)) {
+    const b = bauteilNachTyp.get(teil.typ);
+    const ueberhitzt = hitze.ueberhitzt.includes(id);
+    const klassen = [
+      ueberhitzt ? "ueberhitzt" : "",
+      id === ui.auswahlId ? "ausgewaehlt" : "",
+      id === vorschauId ? "vorschau" : "",
+    ].join(" ");
+    const titel = `${b.name} – ${bauteilWerteText(b)} – Hitze hier: ${hitze.maxProTeil[id]}` +
+      (ueberhitzt ? " – ÜBERHITZT" : "");
+    html += teilZellenHtml(teil.typ, zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung),
+      { id: id === vorschauId ? null : id, klassen, titel, warnung: ueberhitzt });
+  }
+  // Ebene 3: rote Kacheln, wenn das gezogene Teil hier nicht passt
+  for (const c of fehlZellen) {
+    html += `<div class="lz-vorschau-fehler" style="grid-column:${c.x + 1};grid-row:${c.y + 1}"></div>`;
+  }
+  // Ebene 4: Hitze-Ansicht (dauerhaft per Knopf, beim Ziehen automatisch)
+  if (ui.hitzeAnsicht || z) {
+    hitze.proKachel.forEach((wert, nr) => {
+      if (wert <= 0) return;
+      const x = nr % anzeige.breite, y = Math.floor(nr / anzeige.breite);
+      html += `<div class="lz-hitze h${Math.min(3, wert)}" style="grid-column:${x + 1};grid-row:${y + 1}">${wert}</div>`;
+    });
+  }
+  lz.raster.innerHTML = html;
+
+  zeichneBewertung(bewertung, anzeige);
+  lz.zurueck.disabled = designer.verlauf.length === 0;
+  lz.vor.disabled = designer.zukunft.length === 0;
+}
+
+// Rechte Spalte: Belegung, Hitze, Ampel und überhitzte Teile.
+const STATUS_TEXT = { gruen: "Alles im grünen Bereich", gelb: "Knapp an der Grenze", rot: "Überhitzt!" };
+function zeichneBewertung(bewertung, layout) {
+  const heiss = bewertung.heissesteKachel;
+  const ueberhitztNamen = bewertung.ueberhitzt.map((id) => bauteilNachTyp.get(layout.teile[id].typ).name);
+  lz.bewertung.innerHTML = `
+    <dt>Belegung</dt><dd>${bewertung.belegung} / ${bewertung.kacheln}</dd>
+    <dt>Bauteile</dt><dd>${bewertung.teileAnzahl}</dd>
+    <dt>Gesamthitze</dt><dd>${bewertung.gesamtHitze}</dd>
+    <dt>Heißeste Kachel</dt><dd>${heiss.wert > 0 ? heiss.wert : "–"}</dd>
+    <dd class="lz-status-zeile"><span class="lz-ampel ${bewertung.status}">${STATUS_TEXT[bewertung.status]}</span></dd>
+    ${ueberhitztNamen.length ? `<dd class="lz-liste-ueberhitzt">⚠ Überhitzt: ${ueberhitztNamen.join(", ")}</dd>` : ""}`;
+}
+
+/* --- Blaupausen-Liste --- */
+function zeichneBlaupausen() {
+  const liste = ladeBlaupausen().sort((a, b) => (b.geaendert || "").localeCompare(a.geaendert || ""));
+  lz.speicherHinweis.hidden = speicherVerfuegbar;
+  if (liste.length === 0) {
+    lz.blaupausen.innerHTML = `<li class="lz-leer">Noch keine Blaupausen gespeichert.</li>`;
+    return;
+  }
+  lz.blaupausen.innerHTML = liste.map((bp) => `
+    <li data-id="${htmlSicher(bp.id)}" class="${bp.id === designer.blaupauseId ? "aktiv" : ""}">
+      <button class="lz-bp-laden" type="button" data-aktion="laden" title="In den Designer laden">
+        <span>${htmlSicher(bp.name)}${bp.werte && bp.werte.ueberhitzt ? ' <b class="lz-bp-warn" title="überhitzt">⚠</b>' : ""}</span>
+        <small>${bp.werte ? `${bp.werte.belegung}/${(bp.raster?.breite || LAYOUT.breite) * (bp.raster?.hoehe || LAYOUT.hoehe)} Kacheln · Hitze ${bp.werte.gesamtHitze}` : ""}</small>
+      </button>
+      <button class="lz-symbol-knopf" type="button" data-aktion="umbenennen" aria-label="${htmlSicher(bp.name)} umbenennen" title="Umbenennen">✎</button>
+      <button class="lz-symbol-knopf" type="button" data-aktion="duplizieren" aria-label="${htmlSicher(bp.name)} duplizieren" title="Duplizieren">⧉</button>
+      <button class="lz-symbol-knopf" type="button" data-aktion="loeschen" aria-label="${htmlSicher(bp.name)} löschen" title="Löschen">🗑</button>
+    </li>`).join("");
+}
+
+// Klicks in der Blaupausen-Liste (ein Zuhörer für alle Knöpfe)
+lz.blaupausen.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-aktion]");
+  if (!knopf) return;
+  const eintrag = knopf.closest("li");
+  const id = eintrag.dataset.id;
+  switch (knopf.dataset.aktion) {
+    case "laden": {
+      const ergebnis = ladeBlaupauseInsLayout(id);
+      if (!ergebnis) return;
+      aendereLayout(() => { designer.layout = ergebnis.layout; return true; }); // Laden ist rückgängig machbar
+      designer.blaupauseId = id;
+      designer.name = ergebnis.blaupause.name;
+      lz.name.value = designer.name;
+      ui.auswahlId = null;
+      zeichneBlaupausen();
+      zeigeMeldung(ergebnis.uebersprungen
+        ? `„${ergebnis.blaupause.name}“ geladen – ${ergebnis.uebersprungen} Teil(e) passten nicht und wurden übersprungen.`
+        : `„${ergebnis.blaupause.name}“ geladen.`, ergebnis.uebersprungen > 0);
+      break;
+    }
+    case "umbenennen": {
+      // Name direkt in der Liste bearbeiten (Enter = übernehmen, Esc = abbrechen)
+      const laden = eintrag.querySelector(".lz-bp-laden");
+      const alterName = laden.querySelector("span").textContent.replace("⚠", "").trim();
+      const eingabe = document.createElement("input");
+      eingabe.className = "lz-bp-name-eingabe";
+      eingabe.maxLength = 40;
+      eingabe.value = alterName;
+      eingabe.setAttribute("aria-label", "Neuer Name");
+      laden.replaceWith(eingabe);
+      eingabe.focus();
+      eingabe.select();
+      let fertig = false;
+      const uebernehmen = (speichern) => {
+        if (fertig) return;
+        fertig = true;
+        if (speichern && eingabe.value.trim() && benenneBlaupauseUm(id, eingabe.value)) {
+          if (designer.blaupauseId === id) { designer.name = eingabe.value.trim(); lz.name.value = designer.name; }
+        }
+        zeichneBlaupausen();
+      };
+      eingabe.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") uebernehmen(true);
+        if (ev.key === "Escape") uebernehmen(false);
+      });
+      eingabe.addEventListener("blur", () => uebernehmen(true));
+      break;
+    }
+    case "duplizieren": {
+      const kopie = dupliziereBlaupause(id);
+      if (kopie) zeigeMeldung(`Kopie „${kopie.name}“ angelegt.`);
+      break;
+    }
+    case "loeschen": {
+      // Sicherheitsabfrage ohne Popup: erster Klick fragt "Sicher?", zweiter löscht.
+      if (!knopf.classList.contains("bestaetigen")) {
+        knopf.classList.add("bestaetigen");
+        knopf.textContent = "Sicher?";
+        setTimeout(() => { if (knopf.isConnected) { knopf.classList.remove("bestaetigen"); knopf.textContent = "🗑"; } }, 3000);
+        return;
+      }
+      if (loescheBlaupause(id)) {
+        if (designer.blaupauseId === id) designer.blaupauseId = null;
+        zeigeMeldung("Blaupause gelöscht.");
+      }
+      break;
+    }
+  }
+});
+
+/* --- Drag & Drop --- */
+
+// Größe einer Raster-Kachel in Pixeln (für Geister-Teil und Einrasten).
+function kachelPixel() {
+  return lz.raster.getBoundingClientRect().width / LAYOUT.breite;
+}
+
+// Merkt sich einen möglichen Zieh-Vorgang. Losgezogen wird erst nach ZIEH_SCHWELLE Pixeln,
+// damit ein einfacher Klick ein Teil auswählt (Raster) bzw. automatisch einsetzt (Leiste).
+//   daten: { typ, drehung, teilId (null = neues Teil aus der Leiste), griffX?, griffY? }
+function beginneZiehen(e, daten) {
+  ui.ziehen = {
+    ...daten,
+    pointerId: e.pointerId,
+    startX: e.clientX, startY: e.clientY,
+    letzteX: e.clientX, letzteY: e.clientY,
+    gestartet: false,
+    ziel: null,          // { x, y } im Raster, oder null = nicht über dem Raster
+  };
+}
+
+// Greifpunkt in die Mitte des Teils legen (neue Teile und nach dem Drehen).
+function setzeGriffMitte(z) {
+  const groesse = formGroesse(dreheForm(bauteilNachTyp.get(z.typ).form, z.drehung));
+  const g = kachelPixel();
+  z.griffX = groesse.breite * g / 2;
+  z.griffY = groesse.hoehe * g / 2;
+}
+
+// Baut das halbtransparente Teil, das am Mauszeiger hängt.
+function zeichneGeist() {
+  const z = ui.ziehen;
+  const form = dreheForm(bauteilNachTyp.get(z.typ).form, z.drehung);
+  const groesse = formGroesse(form);
+  const g = kachelPixel();
+  lz.geist.style.gridTemplateColumns = `repeat(${groesse.breite}, ${g}px)`;
+  lz.geist.style.gridTemplateRows = `repeat(${groesse.hoehe}, ${g}px)`;
+  lz.geist.innerHTML = teilZellenHtml(z.typ, form.map(([x, y]) => ({ x, y })));
+  lz.geist.hidden = false;
+}
+
+// Geist bewegen und berechnen, auf welcher Kachel das Teil einrasten würde.
+function aktualisiereZiehen(erzwingen = false) {
+  const z = ui.ziehen;
+  lz.geist.style.transform = `translate(${z.letzteX - z.griffX}px, ${z.letzteY - z.griffY}px)`;
+  const rechteck = lz.raster.getBoundingClientRect();
+  const g = rechteck.width / LAYOUT.breite;
+  const toleranz = 10;   // Pixel: auch knapp neben dem Raster (auf dem Rahmen) zählt noch
+  const ueberRaster = z.letzteX >= rechteck.left - toleranz && z.letzteX <= rechteck.right + toleranz
+                   && z.letzteY >= rechteck.top - toleranz && z.letzteY <= rechteck.bottom + toleranz;
+  const neu = ueberRaster
+    ? { x: Math.round((z.letzteX - z.griffX - rechteck.left) / g), y: Math.round((z.letzteY - z.griffY - rechteck.top) / g) }
+    : null;
+  const geaendert = erzwingen || (!neu !== !z.ziel) || (neu && (neu.x !== z.ziel.x || neu.y !== z.ziel.y));
+  z.ziel = neu;
+  if (geaendert) zeichneDesigner();   // Vorschau nur neu zeichnen, wenn sich die Zielkachel ändert
+}
+
+// Ziehen beenden, ohne etwas zu ändern (Esc, Abbruch durch den Browser).
+function ziehenAbbrechen() {
+  ui.ziehen = null;
+  lz.geist.hidden = true;
+  document.body.classList.remove("lz-zieht");
+  zeichneDesigner();
+}
+
+// Dreht das gezogene Teil um 90°.
+function dreheBeimZiehen() {
+  const z = ui.ziehen;
+  z.drehung = (z.drehung + 90) % 360;
+  setzeGriffMitte(z);
+  zeichneGeist();
+  aktualisiereZiehen(true);
+}
+
+// Teil aus der Leiste nehmen
+lz.palette.addEventListener("pointerdown", (e) => {
+  const knopf = e.target.closest(".lz-bauteil");
+  if (!knopf || e.button !== 0) return;
+  beginneZiehen(e, { typ: knopf.dataset.typ, drehung: 0, teilId: null });
+});
+
+// Klick (oder Enter/Leertaste) auf ein Teil der Leiste: an der ersten freien Stelle einsetzen
+lz.palette.addEventListener("click", (e) => {
+  const knopf = e.target.closest(".lz-bauteil");
+  if (!knopf || performance.now() - ui.letztesZiehenEnde < 300) return;
+  const typ = knopf.dataset.typ;
+  const platz = findeFreienPlatz(designer.layout, typ);
+  if (!platz) { zeigeMeldung(`Kein Platz mehr für ${bauteilNachTyp.get(typ).name}.`, true); return; }
+  ui.auswahlId = aendereLayout((l) => platziereTeil(l, typ, platz.x, platz.y, platz.drehung));
+  zeichneDesigner();
+});
+
+// Liegendes Teil anfassen (oder leere Kachel anklicken = Auswahl aufheben)
+lz.raster.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  const zelle = e.target.closest("[data-teil]");
+  if (!zelle) { ui.auswahlId = null; zeichneDesigner(); return; }
+  e.preventDefault();      // kein Markieren von Text, kein Scrollen
+  lz.fenster.focus({ preventScroll: true });   // damit R, Entf und Pfeiltasten wirken
+  const id = zelle.dataset.teil;
+  const teil = designer.layout.teile[id];
+  const rechteck = lz.raster.getBoundingClientRect();
+  const g = rechteck.width / LAYOUT.breite;
+  beginneZiehen(e, {
+    typ: teil.typ, drehung: teil.drehung, teilId: id,
+    // Das Teil genau dort festhalten, wo es angefasst wurde
+    griffX: e.clientX - (rechteck.left + teil.x * g),
+    griffY: e.clientY - (rechteck.top + teil.y * g),
+  });
+});
+
+// Die folgenden Zuhörer laufen in der "Capture"-Phase, weil das Overlay das
+// Weiterreichen (Bubbling) von Zeiger-Ereignissen absichtlich stoppt.
+window.addEventListener("pointermove", (e) => {
+  const z = ui.ziehen;
+  if (!z || e.pointerId !== z.pointerId) return;
+  z.letzteX = e.clientX;
+  z.letzteY = e.clientY;
+  if (!z.gestartet) {
+    if (Math.hypot(e.clientX - z.startX, e.clientY - z.startY) < ZIEH_SCHWELLE) return;
+    z.gestartet = true;
+    if (z.griffX === undefined) setzeGriffMitte(z);
+    ui.auswahlId = z.teilId;
+    document.body.classList.add("lz-zieht");
+    zeichneGeist();
+  }
+  aktualisiereZiehen();
+}, true);
+
+window.addEventListener("pointerup", (e) => {
+  const z = ui.ziehen;
+  if (!z || e.pointerId !== z.pointerId) return;
+  ui.ziehen = null;
+  lz.geist.hidden = true;
+  document.body.classList.remove("lz-zieht");
+
+  if (!z.gestartet) {
+    // Nur geklickt: liegendes Teil auswählen (Leiste: "click" setzt automatisch ein)
+    if (z.teilId) ui.auswahlId = z.teilId;
+    zeichneDesigner();
+    return;
+  }
+  ui.letztesZiehenEnde = performance.now();
+
+  if (!z.ziel) {
+    // Außerhalb des Rasters losgelassen: neues Teil = abbrechen, liegendes Teil = entfernen
+    if (z.teilId) { aendereLayout((l) => entferneTeil(l, z.teilId)); ui.auswahlId = null; }
+  } else if (z.teilId) {
+    if (!aendereLayout((l) => verschiebeTeil(l, z.teilId, z.ziel.x, z.ziel.y, z.drehung))) {
+      zeigeMeldung("Hier ist kein Platz – das Teil bleibt, wo es war.", true);
+    }
+  } else {
+    const id = aendereLayout((l) => platziereTeil(l, z.typ, z.ziel.x, z.ziel.y, z.drehung));
+    if (id) ui.auswahlId = id;
+    else zeigeMeldung("Hier ist kein Platz.", true);
+  }
+  zeichneDesigner();
+}, true);
+
+window.addEventListener("pointercancel", (e) => {
+  if (ui.ziehen && e.pointerId === ui.ziehen.pointerId) ziehenAbbrechen();
+}, true);
+
+// Dreht ein liegendes Teil um 90°. Die Mitte bleibt möglichst, wo sie war; stößt es
+// an, wird in der Nähe ein freier Platz gesucht.
+function dreheTeilAmPlatz(id) {
+  const teil = designer.layout.teile[id];
+  if (!teil) return;
+  const form = bauteilNachTyp.get(teil.typ).form;
+  const neueDrehung = (teil.drehung + 90) % 360;
+  const alt = formGroesse(dreheForm(form, teil.drehung));
+  const neu = formGroesse(dreheForm(form, neueDrehung));
+  const mx = teil.x + Math.floor((alt.breite - neu.breite) / 2);
+  const my = teil.y + Math.floor((alt.hoehe - neu.hoehe) / 2);
+  const versuche = [];
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) versuche.push([dx, dy]);
+  versuche.sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) - Math.abs(b[0]) - Math.abs(b[1]));
+  for (const [dx, dy] of versuche) {
+    if (aendereLayout((l) => verschiebeTeil(l, id, mx + dx, my + dy, neueDrehung))) return;
+  }
+  zeigeMeldung("Zum Drehen ist hier kein Platz.", true);
+}
+
+// Rechtsklick im Designer: Browser-Menü unterdrücken und drehen
+lz.overlay.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  if (ui.ziehen && ui.ziehen.gestartet) { dreheBeimZiehen(); return; }
+  const zelle = e.target.closest("[data-teil]");
+  if (zelle) { ui.auswahlId = zelle.dataset.teil; dreheTeilAmPlatz(zelle.dataset.teil); zeichneDesigner(); }
+});
+
+// Doppelklick auf ein Teil: entfernen
+lz.raster.addEventListener("dblclick", (e) => {
+  const zelle = e.target.closest("[data-teil]");
+  if (!zelle) return;
+  aendereLayout((l) => entferneTeil(l, zelle.dataset.teil));
+  ui.auswahlId = null;
+  zeichneDesigner();
+});
+
+/* --- Knöpfe --- */
+function schalteHitzeAnsicht() {
+  ui.hitzeAnsicht = !ui.hitzeAnsicht;
+  lz.hitzeKnopf.setAttribute("aria-pressed", String(ui.hitzeAnsicht));
+  zeichneDesigner();
+}
+lz.hitzeKnopf.addEventListener("click", schalteHitzeAnsicht);
+lz.zurueck.addEventListener("click", () => { rueckgaengig(); zeichneDesigner(); });
+lz.vor.addEventListener("click", () => { wiederholen(); zeichneDesigner(); });
+document.getElementById("lz-leeren").addEventListener("click", () => {
+  aendereLayout((l) => {
+    if (Object.keys(l.teile).length === 0) return false;
+    designer.layout = erstelleLeeresLayout();
+    return true;
+  });
+  zeichneDesigner();
+});
+document.getElementById("lz-neu").addEventListener("click", () => {
+  if (Object.keys(designer.layout.teile).length > 0) {
+    aendereLayout(() => { designer.layout = erstelleLeeresLayout(); return true; });
+  }
+  designer.blaupauseId = null;
+  designer.name = naechsterEntwurfsName();
+  lz.name.value = designer.name;
+  zeichneBlaupausen();
+  zeichneDesigner();
+});
+lz.name.addEventListener("input", () => { designer.name = lz.name.value; });
+
+// "Als Blaupause speichern": überschreibt die geladene Blaupause oder legt eine neue an.
+document.getElementById("lz-speichern").addEventListener("click", () => {
+  if (Object.keys(designer.layout.teile).length === 0) {
+    zeigeMeldung("Ein leeres Design kann nicht gespeichert werden.", true);
+    return;
+  }
+  const blaupause = speichereBlaupause(designer.layout, lz.name.value, designer.blaupauseId);
+  designer.blaupauseId = blaupause.id;
+  designer.name = blaupause.name;
+  lz.name.value = blaupause.name;
+  const nurBisNeuladen = speicherVerfuegbar ? "" : " (nur bis zum Neuladen)";
+  if (blaupause.werte.ueberhitzt) {
+    zeigeMeldung(`„${blaupause.name}“ gespeichert${nurBisNeuladen} – Achtung, Teile sind überhitzt!`, true);
+  } else {
+    zeigeMeldung(`Blaupause „${blaupause.name}“ gespeichert${nurBisNeuladen}.`);
+  }
+  meldeEreignis("blaupauseGespeichert", { blaupause });
+});
+
+/* --- Öffnen und Schließen --- */
+function oeffneDesigner() {
+  if (designer.offen) return;
+  designer.offen = true;
+  if (!designer.name) designer.name = naechsterEntwurfsName();
+  lz.name.value = designer.name;
+  sperre3dEingaben(true);
+  lz.overlay.hidden = false;
+  zeichneBlaupausen();
+  zeichneDesigner();
+  lz.fenster.focus({ preventScroll: true });
+}
+function schliesseDesigner() {
+  if (!designer.offen) return;
+  if (ui.ziehen) ziehenAbbrechen();
+  designer.offen = false;
+  lz.overlay.hidden = true;
+  sperre3dEingaben(false);
+  lz.hudKnopf.focus({ preventScroll: true });
+}
+lz.hudKnopf.addEventListener("click", oeffneDesigner);
+document.getElementById("lz-schliessen").addEventListener("click", schliesseDesigner);
+
+// Neu zeichnen, wenn sich Layout oder Blaupausen ändern (z. B. auch über die Konsole)
+spielEreignisse.addEventListener("layoutGeaendert", () => zeichneDesigner());
+spielEreignisse.addEventListener("blaupausenGeaendert", () => { if (designer.offen) zeichneBlaupausen(); });
+
+// Fenstergröße ändert sich während des Ziehens: Geist an die neue Kachelgröße anpassen
+window.addEventListener("resize", () => {
+  if (ui.ziehen && ui.ziehen.gestartet) { setzeGriffMitte(ui.ziehen); zeichneGeist(); aktualisiereZiehen(true); }
+});
+
+/* --- Tastatur ---
+   Läuft in der "Capture"-Phase, also VOR der 3D-Steuerung. Solange der Designer
+   offen ist, ignoriert die 3D-Steuerung alle Tasten (siehe sperre3dEingaben). */
+window.addEventListener("keydown", (e) => {
+  const imEingabefeld = e.target instanceof HTMLInputElement;
+  const taste = e.key.toLowerCase();
+
+  if (!designer.offen) {
+    if (taste === "l" && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      oeffneDesigner();
+    }
+    return;
+  }
+
+  if (imEingabefeld) {                   // beim Tippen eines Namens keine Kürzel auslösen
+    if (e.target === lz.name && (e.key === "Enter" || e.key === "Escape")) lz.fenster.focus();
+    return;
+  }
+
+  if (e.ctrlKey || e.metaKey) {
+    if (taste === "z" && !e.shiftKey) { e.preventDefault(); rueckgaengig(); zeichneDesigner(); }
+    else if (taste === "y" || (taste === "z" && e.shiftKey)) { e.preventDefault(); wiederholen(); zeichneDesigner(); }
+    return;
+  }
+
+  const pfeile = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
+  if (taste === "escape") {
+    if (ui.ziehen && ui.ziehen.gestartet) ziehenAbbrechen();
+    else schliesseDesigner();
+  } else if (taste === "l") {
+    schliesseDesigner();
+  } else if (taste === "r") {
+    if (ui.ziehen && ui.ziehen.gestartet) dreheBeimZiehen();
+    else if (ui.auswahlId) { dreheTeilAmPlatz(ui.auswahlId); zeichneDesigner(); }
+  } else if (taste === "h") {
+    schalteHitzeAnsicht();
+  } else if ((taste === "delete" || taste === "backspace") && ui.auswahlId) {
+    aendereLayout((l) => entferneTeil(l, ui.auswahlId));
+    ui.auswahlId = null;
+    zeichneDesigner();
+  } else if (pfeile[taste] && ui.auswahlId && !ui.ziehen) {
+    e.preventDefault();
+    const teil = designer.layout.teile[ui.auswahlId];
+    const [dx, dy] = pfeile[taste];
+    aendereLayout((l) => verschiebeTeil(l, ui.auswahlId, teil.x + dx, teil.y + dy, teil.drehung));
+    zeichneDesigner();
+  }
+}, true);
+
+// Schutz vor "Durchklicken": Zeiger- und Radereignisse im Designer erreichen die 3D-Szene nie.
+for (const art of ["pointerdown", "pointerup", "click", "dblclick", "wheel"]) {
+  lz.overlay.addEventListener(art, (e) => e.stopPropagation());
+}
+// Klick auf den abgedunkelten Rand (außerhalb des Fensters) schließt den Designer –
+// aber nur, wenn auch das Drücken dort begann (nicht nach einem Ziehen aus dem Fenster).
+let druckAufSchleier = false;
+lz.overlay.addEventListener("pointerdown", (e) => { druckAufSchleier = e.target === lz.overlay; });
+lz.overlay.addEventListener("click", (e) => {
+  if (e.target === lz.overlay && druckAufSchleier) schliesseDesigner();
+});
+
+
+/* ============================================================================
+   ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
 const uhr = new THREE.Clock();
@@ -1468,6 +3043,11 @@ spielschleife();
 window.tradeUp = {
   szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse,
   figur, findePfad, setzeBlockade, schickeFigur,
+  // Phase 3: Produkt-Layout-Designer
+  LAYOUT, BAUTEILE, designer, erstelleLeeresLayout, dreheForm, passtTeil, platziereTeil,
+  entferneTeil, verschiebeTeil, berechneHitze, bewerteLayout, speichereBlaupause,
+  ladeBlaupausen, ladeBlaupauseInsLayout, loescheBlaupause, dupliziereBlaupause,
+  benenneBlaupauseUm, oeffneDesigner, schliesseDesigner,
 };
 </script>
 

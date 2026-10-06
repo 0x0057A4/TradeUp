@@ -7377,6 +7377,9 @@ function stehtAnWand(geo) {
 }
 // Phase 7b Nachtrag: Richtung von der Zone zur Wand hinter ihr (dort ist das Rolltor, dort hält der Wagen).
 // Gilt für Import- und Exportzone gleich (beide haben Wandpflicht): die Rückseite = −Blickrichtung.
+// Phase 7b Nachtrag 2: Eine Zone ohne Wand (z. B. nach dem Hallenausbau) ist inaktiv: keine Lieferungen,
+// keine Abholung, Kuriere und Bänder bringen nichts Neues hin. Was schon drin liegt, holen Kuriere weiter ab.
+function zoneAktiv(g) { return !typVon(g).wand || stehtAnWand(g); }
 function wandRichtung(g) {
   return { x: -g.richtung.x, z: -g.richtung.z };
 }
@@ -7478,6 +7481,12 @@ function ladeLieferwagenAb(g, w) {
 }
 function importzonenSchritt() {
   for (const g of zonenListe("importzone")) {
+    if (!zoneAktiv(g)) {                          // Phase 7b Nachtrag 2: Bestellungen ruhen, Wagen unterwegs drehen um (nichts berechnet)
+      const umgedreht = g.lieferwagen.filter((w) => !w.abgeladen);
+      if (umgedreht.length) meldeEreignis("hinweis", { text: `${gebaeudeName(g)}: ${umgedreht.length} Lieferung(en) abgewiesen – die Zone steht nicht an einer Wand.`, warnung: true });
+      g.lieferwagen = [];
+      continue;
+    }
     for (const b of [...g.bestellungen]) {
       if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
       let n = b.menge;
@@ -7570,7 +7579,7 @@ function exportBedarf(g, res) {
 function naechsteExportzone(kachel, item, res) {
   let beste = null, besterAbstand = Infinity;
   for (const g of zonenListe("exportzone")) {
-    if (zugangGesperrt(g) || !((exportBedarf(g, res)[item] || 0) > 0)) continue;   // 7b Nachtrag: Zugang frei
+    if (zugangGesperrt(g) || !zoneAktiv(g) || !((exportBedarf(g, res)[item] || 0) > 0)) continue;   // 7b Nachtrag: Zugang frei, Zone aktiv
     const d = abstand(g.zugang, kachel);
     if (d < besterAbstand) { beste = g; besterAbstand = d; }
   }
@@ -7621,6 +7630,7 @@ function holeExportAb(g) {
 }
 function exportzonenSchritt(dt) {
   for (const g of zonenListe("exportzone")) {
+    if (!zoneAktiv(g)) { g.abholwagen = null; continue; }   // Phase 7b Nachtrag 2: inaktiv – kein Abholwagen, Timer ruht
     g.abholTimer -= dt;
     if (g.abholTimer <= 0) {
       g.abholTimer += ZONEN.abholIntervall;
@@ -8556,7 +8566,7 @@ function gebaeudeNimmtAn(g, item) {
   if (art === "hauptlager") return hlNimmtAn(g, item);       // Phase 7b Nachtrag: ⇣ Annahme und Max
   if (art === "muell") return muellNimmt(g, item, "band");   // Phase 7b
   if (art === "importzone") return false;                    // Phase 7b: hier liefert nur der Lieferwagen
-  if (art === "exportzone") return !maxErreicht(g, item);
+  if (art === "exportzone") return zoneAktiv(g) && !maxErreicht(g, item);   // Phase 7b Nachtrag 2: inaktive Zone nimmt nichts an
   if (istZwischenlager(g)) {
     if (maxErreicht(g, item)) return false;      // Phase 7b: "Max" per Zahl
     const r = regelVon(g, item);
@@ -9314,7 +9324,11 @@ function setzeHallenStufe(stufe) {
   spiel.halleStufe = stufe;
   level.tiefe = Math.min(level.maxTiefe, HALLE_STUFEN[stufe].tiefe);
   level.name = HALLE_STUFEN[stufe].name;
-  if (level.tiefe !== alt) meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+  if (level.tiefe !== alt) {
+    meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+    const inaktiv = gebaeudeListe((g) => typVon(g).wand && !stehtAnWand(g));   // Phase 7b Nachtrag 2
+    if (inaktiv.length) meldeEreignis("hinweis", { text: `${inaktiv.map(gebaeudeName).join(", ")} steht nicht mehr an einer Wand und ist inaktiv. Mit M an eine Wand verschieben.`, warnung: true });
+  }
   meldeEreignis("rasterGeaendert", {});
 }
 // Kauft die nächste Ausbaustufe. Rückgabe: { ok, stufe } oder { ok: false, grund }
@@ -11814,6 +11828,11 @@ function importzoneHtml(g) {
 }
 function dauerSek(s) { return `${Math.max(0, Math.ceil(s))} s`; }
 // Phase 7b: Exportzone – Ware mit Modus, Aufträge und Abholwagen
+// Phase 7b Nachtrag 2: Hinweis, wenn die Zone keine Wand (mehr) hat
+function zonenWarnungHtml(g) {
+  if (zoneAktiv(g)) return "";
+  return `<p class="info-warnung zugang-warnung">⚠ Inaktiv: Die Zone steht nicht an einer Wand. ${istImportzone(g) ? "Bestellungen ruhen" : "Verkäufe und Auftragslieferungen ruhen"}, bis du sie mit M an eine Wand verschiebst.${istImportzone(g) ? " Was noch drin liegt, holen die Kuriere ab." : ""}</p>`;
+}
 function exportzoneHtml(g) {
   const items = [...new Set([...Object.keys(g.bestand), ...Object.keys(g.regeln).filter((i) => g.regeln[i].imp === true)])]
     .sort((a, b) => itemInfo(a).name.localeCompare(itemInfo(b).name));
@@ -11903,9 +11922,9 @@ function infoZahlenHtml(g) {
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
     html += vkLagerHtml(g, lagerName);
   } else if (istImportzone(g)) {                     // Phase 7b
-    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${itemGruppen(g.bestand)}${importzoneHtml(g)}`;
+    html += zonenWarnungHtml(g) + `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${itemGruppen(g.bestand)}${importzoneHtml(g)}`;
   } else if (istExportzone(g)) {
-    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${exportzoneHtml(g)}`;
+    html += zonenWarnungHtml(g) + `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${exportzoneHtml(g)}`;
   } else if (t.art === "muell") {                    // Phase 7b: Mülltonne
     html += `<div class="info-block"><h3>Vernichtet</h3><p>${zahlText(g.vernichtet || 0)} Items</p></div>`;
     html += `<div class="info-block"><h3>Was nimmt sie an?</h3><p class="modus-text">Ohne Haken: alles von Band und Greifarm.
@@ -14720,7 +14739,7 @@ window.tradeUp = {
   itemVolumen, volumen, belegt, fuellgrad, warnStufe, maxVon, maxErreicht, traglastVon, lagerWarnListe,
   vernichteImMuell, setzeMuellRegel, muellNimmt, streckenEnde, ausgangHatPlatz, VERTEILER_TYPEN, istVerteiler,
   ZONEN, setzeBestellung, setzeExportModus, setzeExportWare, exportBedarf, exportModusVon, holeExportAb, inExportzone,
-  zonenListe, stehtAnWand, wagenUnterwegs, baukosten, gebaeudeName, stelleZoneAuf,
+  zonenListe, stehtAnWand, zoneAktiv, wagenUnterwegs, baukosten, gebaeudeName, stelleZoneAuf,
   // Phase 7b Nachtrag (Logik): Verteiler-Puffer, Hauptlager-Regeln, Zugang überall, Exportzone an der Wand
   PUFFER_GROESSE, pufferVon, hlNimmtAn, hlGibtAb, hlAufnahme, keinLagerFuer, zugangGesperrt, istLagerTyp,
   wandRichtung, setzeAnWand, hlEntnimm, hlEinlagern,

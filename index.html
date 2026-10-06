@@ -1988,6 +1988,26 @@ const GRAFIK = {
   rangierAbstand:       1.8,         // so weit (Kacheln) vor der Wand wendet der Wagen, bevor er rückwärts ans Tor setzt
   verladeTempo:         1.6,         // so viele Pakete pro Sekunde wandern beim Ab-/Aufladen durchs Tor (nur Anzeige)
   pufferWuerfel:        0.1,         // Kantenlänge der Puffer-Würfel in Splitter, Smart-Verteiler und Ventil
+
+  // --- Phase 7c: Komponenten, Gehäuse und Holz in 3D (Bänder, Lager, Fächer, Kuriere, Verladen) ---
+  // Komponenten tragen die Farbe ihrer Kategorie (KATEGORIEN) und sind nach Raster unterschiedlich groß.
+  // Maße relativ zur Kantenlänge eines Rohstoff-Würfels: [Länge, Höhe, Tiefe]
+  itemRasterMasse: {
+    "1x1": [0.6, 0.42, 0.6],     // klein
+    "1x2": [1.0, 0.42, 0.5],     // länglich
+    "2x2": [0.85, 0.55, 0.85],   // größer
+    "2x3": [1.1, 0.68, 0.95],    // am größten
+  },
+  itemTierHelligkeit:   { T1: 0, T2: 0.05, T3: 0.11 },   // höhere Tiers etwas heller (wirkt wie Glanz)
+  gehaeuseMasse:        [1.1, 0.45, 0.85],   // Gehäuse: flache, oben offene Schale
+  holzMasse:            [1.1, 0.62, 0.8],    // Rohstoff Holz: kleiner Bretterstapel
+  farbeGehaeuse: {                         // Gehäuse in Materialfarbe (fehlt eines, gilt seine Farbe aus GEHAEUSE)
+    geh_holz:       "#9c6b3c",   // Holz: braun
+    geh_kunststoff: "#ecebe3",   // Kunststoff: hell
+    geh_eisen:      "#5c646b",   // Eisen: dunkelgrau
+    geh_alu:        "#c6ced6",   // Aluminium: silber
+    geh_carbon:     "#26292d",   // Carbon: schwarz
+  },
 };
 
 /* ============================================================================
@@ -10137,7 +10157,7 @@ function zeigeVerladen(eintrag, g, z) {
     const u = (t - j / rate) / VERLADE_DAUER;
     if (u < 0 || u > 1) continue;
     const paket = eintrag.pakete[j % eintrag.pakete.length];
-    paket.material = figurMaterial(itemInfo(v.liste[Math.floor(j * v.liste.length / anzahl)]).farbe);
+    zeigeItemAlsMesh(paket, v.liste[Math.floor(j * v.liste.length / anzahl)], 0.18);   // Phase 7c: Form, Farbe, Größe des Items
     // Palette (in der Zone) und Ladefläche (am Heck des Wagens) in Weltkoordinaten
     const palette = eintrag.plaetze[(j * 7) % eintrag.plaetze.length];
     eintrag.modell.localToWorld(verladeHilfe.a.copy(palette));
@@ -10319,7 +10339,7 @@ const MODELLE = {
     const bildschirm = quader(g, 0.49, 0.3, 0.01, GRAFIK.farbeBildschirm, 0.62, H + 0.2, -0.24, m || new THREE.MeshBasicMaterial({ color: GRAFIK.farbeBildschirm }));
     bildschirm.castShadow = false;
     // Zerlegte Kleinteile auf der Unterlage
-    const farben = BAUTEILE.map((b) => b.farbe);
+    const farben = KATEGORIEN.map((k) => k.farbe);   // Phase 7c: Farben der Kategorien (statt der ersten Bauteile)
     [[-0.25, 0.1], [-0.05, 0.2], [0.12, 0.05], [0.25, 0.22], [-0.3, -0.12]].forEach(([x, z], i) =>
       quader(g, 0.07, 0.04, 0.05, farben[i % farben.length], x, H + 0.012, z, m));
     return { gruppe: g, plaetze: [], wuerfel: 0.18 };
@@ -10441,13 +10461,98 @@ function wuerfelGeometrie(kante) {
   if (!wuerfelGeometrien.has(kante)) wuerfelGeometrien.set(kante, new THREE.BoxGeometry(kante, kante, kante));
   return wuerfelGeometrien.get(kante);
 }
+
+/* --- Phase 7c: Aussehen der Items (Würfel, Komponente, Gehäuse-Schale, Bretterstapel) ---
+   Jedes Item bekommt eine Form (eine von vier Geometrien, je 1 × 1 × 1 groß), Maße und eine Farbe:
+     Rohstoffe, Produkte, Unbekanntes → Würfel in der Item-Farbe (Holz: Bretterstapel)
+     Komponenten → kleine Platine mit Chip in der Farbe der Kategorie, Größe nach Raster, Tier etwas heller
+     Gehäuse     → flache Schale in Materialfarbe (GRAFIK.farbeGehaeuse)
+   Die Geometrien tragen Grautöne als Vertex-Farben (Schattierung); die eigentliche Farbe kommt aus dem
+   Material (Lager, Kuriere) bzw. pro Instanz (Bänder). Ergebnisse werden pro Item-Id gemerkt. */
+function itemGeometrieAusQuadern(quaderListe) {
+  const pos = [], nor = [], col = [];
+  for (const [b, h, t, x, y, z, hell] of quaderListe) {
+    const box = new THREE.BoxGeometry(b, h, t).toNonIndexed();
+    box.translate(x, y, z);
+    pos.push(...box.attributes.position.array);
+    nor.push(...box.attributes.normal.array);
+    for (let i = 0; i < box.attributes.position.count; i++) col.push(hell, hell, hell);
+    box.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
+  return geo;
+}
+// Alle Formen füllen den Würfel von -0,5 bis 0,5 aus: [Breite, Höhe, Tiefe, x, y, z, Helligkeit]
+const ITEM_GEOMETRIEN = {
+  wuerfel: itemGeometrieAusQuadern([[1, 1, 1, 0, 0, 0, 1]]),
+  // Platine (dunkler) mit aufgesetztem Chip
+  komponente: itemGeometrieAusQuadern([[1, 0.34, 1, 0, -0.33, 0, 0.62], [0.78, 0.66, 0.78, 0, 0.17, 0, 1]]),
+  // oben offene Schale: Boden (innen etwas dunkler) und vier Wände
+  schale: itemGeometrieAusQuadern([
+    [1, 0.24, 1, 0, -0.38, 0, 0.78],
+    [1, 1, 0.13, 0, 0, 0.435, 1], [1, 1, 0.13, 0, 0, -0.435, 1],
+    [0.13, 1, 0.74, 0.435, 0, 0, 0.92], [0.13, 1, 0.74, -0.435, 0, 0, 0.92],
+  ]),
+  // drei Lagen aus je zwei Brettern, abwechselnd hell und dunkel, mit kleinen Fugen
+  bretter: itemGeometrieAusQuadern([0, 1, 2].flatMap((lage) => [-1, 1].map((seite) =>
+    [1 - lage * 0.06, 0.32, 0.47, lage * 0.03 * seite, -0.34 + lage * 0.34, seite * 0.265, (lage + (seite > 0 ? 1 : 0)) % 2 ? 0.8 : 1]))),
+};
+const itemMaterialien = new Map();
+function itemMaterial(farbe) {
+  if (!itemMaterialien.has(farbe)) {
+    itemMaterialien.set(farbe, new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.75, flatShading: true, vertexColors: true }));
+  }
+  return itemMaterialien.get(farbe);
+}
+const itemFormen = new Map();
+function itemForm(id) {
+  if (itemFormen.has(id)) return itemFormen.get(id);
+  // Unbekannte oder kaputte Ids (alte Spielstände): grauer Würfel statt Absturz
+  const info = typeof id === "string" && id ? itemInfo(id) : { farbe: "#cccccc", art: "unbekannt" };
+  const farbe = new THREE.Color(info.farbe || "#cccccc");
+  let geo = "wuerfel", masse = [1, 1, 1];
+  if (info.art === "bauteil") {
+    const kat = info.kategorie && kategorieNachId.get(info.kategorie);
+    if (kat) farbe.set(kat.farbe);
+    masse = GRAFIK.itemRasterMasse[info.raster] || GRAFIK.itemRasterMasse["1x1"];
+    farbe.offsetHSL(0, 0, GRAFIK.itemTierHelligkeit[info.tier] || 0);
+    geo = "komponente";
+  } else if (info.art === "gehaeuse") {
+    farbe.set(GRAFIK.farbeGehaeuse[id] || info.farbe || "#cccccc");
+    masse = GRAFIK.gehaeuseMasse;
+    geo = "schale";
+  } else if (id === "holz") {
+    masse = GRAFIK.holzMasse;
+    geo = "bretter";
+  }
+  const form = { geo, geometrie: ITEM_GEOMETRIEN[geo], masse, farbe, hex: "#" + farbe.getHexString() };
+  form.material = itemMaterial(form.hex);
+  itemFormen.set(id, form);
+  return form;
+}
+// Setzt Geometrie, Material und Größe eines Meshs für ein Item (kante = Kantenlänge eines Rohstoff-Würfels).
+// Rückgabe: Höhe des Items (zum Stapeln)
+function zeigeItemAlsMesh(mesh, id, kante) {
+  const form = itemForm(id);
+  mesh.geometry = form.geometrie;
+  mesh.material = form.material;
+  mesh.scale.set(form.masse[0] * kante, form.masse[1] * kante, form.masse[2] * kante);
+  return form.masse[1] * kante;
+}
 // Verteilt den Bestand auf die freien Plätze. Gibt es mehr Items als Plätze,
 // wird anteilig gerundet (jede Sorte bekommt mindestens einen Würfel).
 function zeichneFuellung(eintrag, bestand) {
   const { fuellung, plaetze, wuerfel } = eintrag;
-  while (fuellung.children.length) fuellung.remove(fuellung.children[0]);
+  // Phase 7c: Komponenten, Gehäuse und Holz haben eigene Formen und Größen. Die vorhandenen Meshes werden
+  // weiterverwendet (nur Geometrie, Material und Größe wechseln); flache Items liegen auf dem Boden ihres
+  // Platzes, und was darüber liegt, liegt auf ihnen (statt in der Luft zu schweben).
   const gesamt = summe(bestand);
-  if (!gesamt) return;
+  if (!gesamt) { while (fuellung.children.length) fuellung.remove(fuellung.children[0]); return; }
   const sorten = Object.entries(bestand).sort((a, b) => b[1] - a[1]);
   let liste = [];
   for (const [item, n] of sorten) {
@@ -10455,13 +10560,22 @@ function zeichneFuellung(eintrag, bestand) {
     for (let i = 0; i < anzahl; i++) liste.push(item);
   }
   liste = liste.slice(0, plaetze.length);
+  const oberkanten = [];   // Phase 7c: { platz, oben } der schon gezeichneten Items (zum Stapeln)
   liste.forEach((item, i) => {
-    const mesh = new THREE.Mesh(wuerfelGeometrie(wuerfel), figurMaterial(itemInfo(item).farbe));
-    mesh.position.copy(plaetze[i]);
+    let mesh = fuellung.children[i];
+    if (!mesh) { mesh = new THREE.Mesh(); mesh.castShadow = true; fuellung.add(mesh); }
+    const hoehe = zeigeItemAlsMesh(mesh, item, wuerfel);
+    const p = plaetze[i];
+    let boden = p.y - wuerfel / 2;
+    // Liegt direkt unter diesem Platz ein anderer (Stapel), kommt das Item auf dessen Item
+    for (const u of oberkanten) {
+      if (Math.abs(u.platz.x - p.x) < 0.01 && Math.abs(u.platz.z - p.z) < 0.01 && Math.abs(u.platz.y + wuerfel - p.y) < 0.08) boden = u.oben + 0.005;
+    }
+    mesh.position.set(p.x, boden + hoehe / 2, p.z);
     mesh.rotation.y = ((i * 37) % 11 - 5) * 0.04;    // leicht schief, wirkt lebendiger
-    mesh.castShadow = true;
-    fuellung.add(mesh);
+    oberkanten.push({ platz: p, oben: boden + hoehe });
   });
+  while (fuellung.children.length > liste.length) fuellung.remove(fuellung.children[fuellung.children.length - 1]);
 }
 
 /* --- Gebäude erscheinen und verschwinden --- */
@@ -10762,11 +10876,14 @@ function zeichneGetragenes(modell, traegt, stufe = 0) {
   for (const [item, n] of Object.entries(traegt)) for (let i = 0; i < n; i++) liste.push(item);
   const ziel = modell.ausruestung ? modell.ausruestung.ladung : modell.trage;
   const proLage = stufe === 2 ? 4 : 2;           // Hubwagen: 2 × 2 pro Lage, sonst 2 nebeneinander
+  const oben = [0, 0, 0, 0];                     // Phase 7c: Stapelhöhe je Platz (Items sind unterschiedlich hoch)
   liste.slice(0, 10).forEach((item, i) => {
-    const w = new THREE.Mesh(wuerfelGeometrie(0.16), figurMaterial(itemInfo(item).farbe));
-    const lage = Math.floor(i / proLage), platz = i % proLage;
-    if (stufe === 2) w.position.set(((platz % 2) - 0.5) * 0.17, 0.08 + lage * 0.165, (Math.floor(platz / 2) - 0.5) * 0.17);
-    else w.position.set((platz - 0.5) * (liste.length > 1 ? 0.17 : 0), 0.08 + lage * 0.165, 0);
+    const w = new THREE.Mesh();
+    const hoehe = zeigeItemAlsMesh(w, item, 0.16);   // Phase 7c: Form und Farbe nach Kategorie/Gehäuse/Holz
+    const platz = i % proLage, y = oben[platz] + hoehe / 2;
+    oben[platz] += hoehe + 0.005;
+    if (stufe === 2) w.position.set(((platz % 2) - 0.5) * 0.17, y, (Math.floor(platz / 2) - 0.5) * 0.17);
+    else w.position.set((platz - 0.5) * (liste.length > 1 ? 0.17 : 0), y, 0);
     w.castShadow = true;
     ziel.add(w);
   });
@@ -11320,24 +11437,46 @@ function gleicheBandModelleAb() {
 }
 
 /* --- Items auf den Bändern: ein InstancedMesh für alle --- */
-const bandItems = new THREE.InstancedMesh(
-  new THREE.BoxGeometry(GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse),
-  new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true }),
-  GRAFIK.maxBandItems);
-bandItems.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-bandItems.castShadow = true;
-bandItems.frustumCulled = false;
-bandItems.count = 0;
-bandItems.setColorAt(0, new THREE.Color("#ffffff"));
-szene.add(bandItems);
-const itemFarben = new Map();
+// Phase 7c: je Item-Form (Würfel, Komponente, Gehäuse-Schale, Bretter) EIN InstancedMesh für alle Items;
+// Größe, Drehung und Farbe kommen pro Instanz (itemForm). "bandItems" bleibt der Würfel.
+function baueBandItemNetz(geo) {
+  const netz = new THREE.InstancedMesh(ITEM_GEOMETRIEN[geo],
+    new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true, vertexColors: true }),
+    GRAFIK.maxBandItems);
+  netz.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  netz.castShadow = true;
+  netz.frustumCulled = false;
+  netz.count = 0;
+  netz.setColorAt(0, new THREE.Color("#ffffff"));
+  szene.add(netz);
+  return netz;
+}
+const bandItemNetze = Object.fromEntries(Object.keys(ITEM_GEOMETRIEN).map((geo) => [geo, baueBandItemNetz(geo)]));
+const bandItems = bandItemNetze.wuerfel;
 function itemFarbe(item) {
-  if (!itemFarben.has(item)) itemFarben.set(item, new THREE.Color(itemInfo(item).farbe));
-  return itemFarben.get(item);
+  return itemForm(item).farbe;   // Phase 7c: Kategorie-Farbe (Komponenten) bzw. Materialfarbe (Gehäuse)
 }
 const bandHilfsVektor = new THREE.Vector3();
 const bandHilfsQuat = new THREE.Quaternion();
 const bandHilfsSkala = new THREE.Vector3(1, 1, 1);
+const bandHochachse = new THREE.Vector3(0, 1, 0);
+// Phase 7c: ein Item als Instanz eintragen. punkt = Mitte, winkel = Drehung um die Hochachse,
+// kante = Kantenlänge eines Rohstoff-Würfels, aufBoden = Unterkante bleibt dort, wo die des Würfels wäre.
+// Rückgabe: Höhe des Items
+function setzeBandItem(id, punkt, winkel, kante, aufBoden) {
+  const form = itemForm(id);
+  const netz = bandItemNetze[form.geo];
+  if (netz.count >= GRAFIK.maxBandItems) return 0;
+  const hoehe = form.masse[1] * kante;
+  if (aufBoden) punkt.y += (hoehe - kante) / 2;
+  bandHilfsSkala.set(form.masse[0] * kante, hoehe, form.masse[2] * kante);
+  bandHilfsQuat.setFromAxisAngle(bandHochachse, winkel);
+  hilfsMatrix.compose(punkt, bandHilfsQuat, bandHilfsSkala);
+  netz.setMatrixAt(netz.count, hilfsMatrix);
+  netz.setColorAt(netz.count, form.farbe);
+  netz.count++;
+  return hoehe;
+}
 // Höhe der Bahn auf Ebene 0 bzw. 1
 const bahnHoehe = (ebene) => ebene ? GRAFIK.brueckenHoehe + GRAFIK.bandHoehe : GRAFIK.bandHoehe;
 
@@ -11375,56 +11514,56 @@ for (let lage = 0; lage < 3; lage++) {
     }
   }
 }
-const pufferSkala = new THREE.Vector3().setScalar(GRAFIK.pufferWuerfel / GRAFIK.bandItemGroesse);
-function zeichnePufferItems(n) {
-  const max = GRAFIK.maxBandItems, k = GRAFIK.pufferWuerfel;
+const pufferOben = new Float32Array(12);   // Phase 7c: Stapelhöhe je Puffer-Platz (Items sind unterschiedlich hoch)
+function zeichnePufferItems() {
+  const k = GRAFIK.pufferWuerfel;
   for (const t of spiel.baender.values()) {
     const puffer = t.puffer;
     if (!puffer || !puffer.length || !istVerteiler(t)) continue;
     const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
     const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
-    const boden = rasterHoehe + bahnHoehe(0) + 0.004 + k / 2;
-    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length && n < max; i++) {
-      const p = PUFFER_PLAETZE[i];
-      bandHilfsVektor.set(mx + p.x, boden + p.lage * (k + 0.004), mz + p.z);
-      hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, pufferSkala);
-      bandItems.setMatrixAt(n, hilfsMatrix);
-      bandItems.setColorAt(n, itemFarbe(puffer[i]));
-      n++;
+    pufferOben.fill(rasterHoehe + bahnHoehe(0) + 0.004);
+    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length; i++) {
+      const p = PUFFER_PLAETZE[i], s = i % 12;
+      // Phase 7c: liegt auf dem Item darunter; Form, Größe und Farbe nach Item
+      bandHilfsVektor.set(mx + p.x, pufferOben[s] + k / 2, mz + p.z);
+      pufferOben[s] += setzeBandItem(puffer[i], bandHilfsVektor, 0, k, true) + 0.004;
     }
   }
-  return n;
 }
 function zeichneBandItems() {
-  let n = 0;
-  const max = GRAFIK.maxBandItems;
+  for (const netz of Object.values(bandItemNetze)) netz.count = 0;   // Phase 7c: ein InstancedMesh je Item-Form
   for (const t of spiel.baender.values()) {
     if (t.items) {
+      const aus = istVerteiler(t) ? null : RICHTUNGEN[t.richtung];
       for (const it of t.items) {
-        if (n >= max) break;
         bandItemPunkt(t, it, bandHilfsVektor);
-        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
-        bandItems.setMatrixAt(n, hilfsMatrix);
-        bandItems.setColorAt(n, itemFarbe(it.item));
-        n++;
+        // Phase 7c: längliche Items zeigen in Laufrichtung (in Kurven zwischen Ein- und Austritt gemischt)
+        const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung], ziel = aus || ein;
+        const dx = ein.x * (1 - it.pos) + ziel.x * it.pos, dz = ein.z * (1 - it.pos) + ziel.z * it.pos;
+        setzeBandItem(it.item, bandHilfsVektor, Math.atan2(-dz, dx), GRAFIK.bandItemGroesse, true);
       }
     }
     // Greifarm: das gehaltene Item hängt am Greifer
-    if (istGreifarm(t) && t.haelt && n < max) {
+    if (istGreifarm(t) && t.haelt) {
       const m = bandModelle.get(t.id);
       if (m && m.greifer) {
         m.greifer.getWorldPosition(bandHilfsVektor);
-        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
-        bandItems.setMatrixAt(n, hilfsMatrix);
-        bandItems.setColorAt(n, itemFarbe(t.haelt));
-        n++;
+        setzeBandItem(t.haelt, bandHilfsVektor, m.arm ? m.arm.rotation.y : 0, GRAFIK.bandItemGroesse, false);
       }
     }
   }
-  n = zeichnePufferItems(n);   // Phase 7b Nachtrag: Puffer der Verteiler
-  bandItems.count = n;
-  bandItems.instanceMatrix.needsUpdate = true;
-  if (bandItems.instanceColor) bandItems.instanceColor.needsUpdate = true;
+  zeichnePufferItems();   // Phase 7b Nachtrag: Puffer der Verteiler
+  // Nur den belegten Teil zur Grafikkarte schicken (leere Netze zeichnen ohnehin nichts)
+  for (const netz of Object.values(bandItemNetze)) {
+    if (!netz.count) continue;
+    for (const [attr, breite] of [[netz.instanceMatrix, 16], [netz.instanceColor, 3]]) {
+      if (!attr) continue;
+      attr.clearUpdateRanges();
+      attr.addUpdateRange(0, netz.count * breite);
+      attr.needsUpdate = true;
+    }
+  }
 }
 
 /* --- Segment-Rahmen (ausgewähltes Segment) und Stau-Schilder --- */

@@ -1666,7 +1666,7 @@
   <!-- Phase 6: freie Arbeiter (Klick öffnet den Personal-Reiter) -->
   <button id="hud-frei" class="hud-frei" type="button" hidden title="Arbeiter ohne Aufgabe – Personal öffnen">👤 0 ohne Aufgabe</button>
   <!-- Phase 7b: volle Lager und Stau (Klick springt zum nächsten) -->
-  <button id="hud-lager" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
+  <button id="hud-lagerwarnung" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
   <!-- Phase 7c: Komponenten/Gehäuse, deren Herstellungsziel erreicht ist (Klick öffnet den Designer) -->
   <button id="hud-freischaltbar" class="hud-frei hud-freischaltbar" type="button" hidden title="Herstellungsziel erreicht – im Designer freischalten">🔓 0 freischaltbar</button>
   <!-- Phase 5: Konto, Kalender, Reputation, Forschungspunkte -->
@@ -14238,7 +14238,7 @@ function aktualisiereOberflaeche(sekunden) {
 const forschungBaum = { id: "kurier" };   // gewählter Reiter im Techtree
 Object.assign(ob, {
   hudFrei: $("hud-frei"),
-  hudLager: $("hud-lager"),
+  hudLagerWarnung: $("hud-lagerwarnung"),   // Phase 7c: eigene ID (vorher doppelt mit dem Lager-Knopf)
   forschungReiter: $("forschung-reiter"), forschungTitel: $("forschung-titel"),
 });
 
@@ -14938,12 +14938,12 @@ function aktualisiereLagerChip() {
     const namen = ohneLager.slice(0, 2).map((item) => itemInfo(item).name).join(", ");
     teile.push(`kein Lager für ${namen}${ohneLager.length > 2 ? ` +${ohneLager.length - 2}` : ""}`);
   }
-  ob.hudLager.hidden = !teile.length;
-  ob.hudLager.classList.toggle("rot", voll.length + stau.length > 0);
-  ob.hudLager.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
-  setzeText(ob.hudLager, `📦 ${teile.join(" · ")}`);
+  ob.hudLagerWarnung.hidden = !teile.length;
+  ob.hudLagerWarnung.classList.toggle("rot", voll.length + stau.length > 0);
+  ob.hudLagerWarnung.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
+  setzeText(ob.hudLagerWarnung, `📦 ${teile.join(" · ")}`);
 }
-ob.hudLager.addEventListener("click", () => {
+ob.hudLagerWarnung.addEventListener("click", () => {
   const { voll, fast, stau } = lagerWarnListe();
   const liste = [...stau, ...voll, ...fast];
   // Phase 7b Nachtrag: nur "kein Lager für …" – zu den Hauptlagern springen (dort Annahme/Max ändern)

@@ -938,6 +938,24 @@
   .info-warnung { margin: 6px 0; font-size: var(--groesse-klein); font-weight: 700; color: var(--farbe-warnung); }
   .info-leer { color: var(--farbe-text-leise); font-size: var(--groesse-klein); }
   .info-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  /* Phase 7a (Nachtrag 2): Import-/Export-Verknüpfungen */
+  .lz-knopf.vk-import[aria-pressed="true"] { color: #fff; background: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+  .lz-knopf.vk-export[aria-pressed="true"] { color: #fff; background: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
+  .vk-liste { display: flex; flex-wrap: wrap; gap: 4px; }
+  .vk-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 2px 1px 8px; border-radius: 999px; font-size: var(--groesse-klein); font-weight: 600;
+    border: 1px solid currentColor; background: #fff;
+  }
+  .vk-chip.import { color: var(--farbe-eingang); }
+  .vk-chip.export { color: var(--farbe-ausgang); }
+  .vk-chip span { color: var(--farbe-text); }
+  .vk-chip button {
+    border: 0; background: none; color: var(--farbe-text-leise); cursor: pointer; font: inherit;
+    width: 1.5em; height: 1.5em; border-radius: 50%; display: inline-grid; place-items: center;
+  }
+  .vk-chip button:hover { color: var(--farbe-warnung); background: #f4f1ec; }
+  .vk-chip button:focus-visible { outline: 2px solid var(--farbe-akzent); }
 
   /* --- Lager-Fenster und Bestätigungsfenster (über der Szene, wie der Layout-Designer) --- */
   .modal-schleier {
@@ -1323,7 +1341,10 @@
   .personal-frei select { font: inherit; font-size: var(--groesse-klein); padding: 1px 4px; border: 1px solid var(--farbe-rand); border-radius: 6px; background: #fff; }
   .mini-knopf.gefahr { color: var(--farbe-minus); }
   .mini-knopf.bestaetigen { color: #fff; background: var(--farbe-minus); border-color: var(--farbe-minus); }
-  .personal-umschulen { grid-column: 2 / 4; }
+  .personal-umschulen { grid-column: 2 / 4; display: flex; flex-wrap: wrap; gap: 4px; }
+  .personal-liste li.ist-du { border-color: var(--farbe-akzent); }
+  .personal-du { font-weight: 500; color: var(--farbe-text-leise); }
+  .mini-knopf[aria-pressed="true"] { color: #fff; background: var(--farbe-akzent); border-color: var(--farbe-akzent); }
   .halle-ausbau { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: flex-start; }
   .halle-jetzt { display: grid; gap: 4px; min-width: 240px; font-size: var(--groesse-text); }
   .halle-jetzt small { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
@@ -1351,6 +1372,67 @@
   .seiten-chip[data-zustand="nein"] { border-color: var(--farbe-ausgang); background: #fbe7e4; text-decoration: line-through; }
   .hud-einstellungen-zahnrad { font-size: 1rem; }
   #einstellungen-fenster { width: min(560px, 100%); }
+
+  /* --- Phase 7a (Nachtrag 2): Rezepte --- */
+  .hud-knopf-breit { grid-column: 1 / -1; }
+  #rezepte-fenster { width: min(720px, 100%); }
+  .rezepte-inhalt { padding: 10px 18px 16px; }
+  .rezepte-inhalt h3 {
+    margin: 12px 0 6px; font-size: var(--groesse-klein); text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--farbe-text-leise);
+  }
+  .rezept-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .rezept-zeile {
+    display: grid; grid-template-columns: minmax(130px, 1fr) auto auto; align-items: center; gap: 4px 10px;
+    padding: 7px 10px; background: #fff; border: 1px solid var(--farbe-rand); border-radius: 10px;
+    font-size: var(--groesse-text);
+  }
+  .rezept-zeile.gesperrt { opacity: 0.55; }
+  .rezept-zeile b { font-weight: 700; }
+  .rezept-zeile small { color: var(--farbe-text-leise); font-size: var(--groesse-klein); }
+  .rezept-formel { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: var(--groesse-klein); }
+  .rezept-knoepfe { display: inline-flex; gap: 4px; }
+  .rezept-item {
+    display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px;
+    background: var(--lz-zelle-farbe, #f1efe9); font: inherit; font-size: var(--groesse-klein); color: var(--farbe-text);
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .rezept-item::before {
+    content: ""; width: 0.75em; height: 0.75em; border-radius: 3px;
+    background: var(--item-farbe, #ccc); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  }
+  button.rezept-item { cursor: pointer; }
+  button.rezept-item:hover { border-color: var(--farbe-akzent); }
+  button.rezept-item:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .rezept-item .anzahl {
+    min-width: 1.4em; padding: 0 4px; border-radius: 999px; text-align: center; font-weight: 700;
+    color: #fff; background: var(--farbe-eingang);
+  }
+  .rezept-item .anzahl.null { background: #b4bab5; }
+  .rezept-pfeil { color: var(--farbe-text-leise); }
+  #rezept-stapel {
+    position: fixed; z-index: 5;
+    top: calc(var(--abstand-rand) + env(safe-area-inset-top, 0px)); right: var(--abstand-rand);
+    width: 230px; max-height: calc(100% - 2 * var(--abstand-rand) - 150px); overflow: auto;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  body.info-offen #rezept-stapel { right: calc(2 * var(--abstand-rand) + var(--info-breite)); }
+  .rezept-karte {
+    padding: 8px 10px; background: var(--farbe-karte); border: 1px solid var(--farbe-rand);
+    border-radius: 14px; box-shadow: var(--schatten); backdrop-filter: blur(6px); font-size: var(--groesse-klein);
+  }
+  .rezept-karte header { display: flex; align-items: center; gap: 6px; }
+  .rezept-karte header b { flex: 1; min-width: 0; font-size: var(--groesse-text); overflow-wrap: anywhere; }
+  .rezept-karte ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; }
+  .rezept-karte li { display: flex; align-items: center; gap: 4px; }
+  .rezept-karte li .rezept-item { flex: 1; justify-content: flex-start; }
+  .rezept-karte li .rezept-item .name { flex: 1; text-align: left; }
+  .rezept-karte .ergebnis { border-top: 1px solid var(--farbe-rand); padding-top: 4px; margin-top: 2px; }
+  @media (max-width: 760px) {
+    #rezept-stapel, body.info-offen #rezept-stapel { top: auto; bottom: calc(var(--abstand-rand) + 150px); right: var(--abstand-rand); width: 190px; max-height: 32vh; }
+    body.info-offen #rezept-stapel { display: none; }
+    .rezept-zeile { grid-template-columns: 1fr auto; }
+  }
   .einstellungen-inhalt { padding: 6px 18px 4px; max-height: 60vh; overflow: auto; }
   .einstellungen-gruppe {
     margin: 12px 0 6px;
@@ -1443,7 +1525,7 @@
     <dd id="hud-hover">–</dd>
     <dt>Ausgewählt</dt>
     <dd id="hud-auswahl">–</dd>
-    <dt>Figur</dt>
+    <dt>Du</dt>
     <dd id="hud-figur">–</dd>
     <!-- Phase 4: Spieltempo und produzierte Ware -->
     <dt>Tempo</dt>
@@ -1467,9 +1549,11 @@
   </div>
   <!-- Öffnet den Produkt-Layout-Designer (Phase 3) -->
   <!-- Phase 7a: Einstellungen (Tastenkürzel, Grafik) neben dem Designer -->
+  <!-- Phase 7a (Nachtrag 2): Rezepte -->
   <div class="hud-knopfreihe">
     <button id="hud-designer" class="hud-knopf hud-knopf-leise" type="button">Designer <kbd data-taste="designer">L</kbd></button>
-    <button id="hud-einstellungen" class="hud-knopf hud-knopf-leise" type="button" aria-label="Einstellungen">⚙ Optionen <kbd data-taste="einstellungen">O</kbd></button>
+    <button id="hud-rezepte" class="hud-knopf hud-knopf-leise" type="button">Rezepte <kbd data-taste="rezepte">Z</kbd></button>
+    <button id="hud-einstellungen" class="hud-knopf hud-knopf-leise hud-knopf-breit" type="button" aria-label="Einstellungen">⚙ Optionen <kbd data-taste="einstellungen">O</kbd></button>
   </div>
 </section>
 
@@ -1659,6 +1743,23 @@
   </section>
 </div>
 
+<!-- ================== REZEPTE (Phase 7a, Nachtrag 2) ================== -->
+<div id="rezepte-overlay" class="modal-schleier" hidden>
+  <section id="rezepte-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="rezepte-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="rezepte-titel">Rezepte</h2>
+      <span class="lz-platz" style="flex:1"></span>
+      <button id="rezepte-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Rezepte schließen">✕</button>
+    </header>
+    <div id="rezepte-inhalt" class="rezepte-inhalt"></div>
+    <footer class="lz-fuss">
+      <span class="einstellungen-hinweis">📌 heftet ein Rezept als kleines Fenster an den Rand. Dort zeigt ein Klick auf eine Ressource die Station, die sie gerade herstellt.</span>
+    </footer>
+  </section>
+</div>
+<!-- Angeheftete Rezepte: kleine Fenster am rechten Rand -->
+<div id="rezept-stapel" aria-label="Angeheftete Rezepte"></div>
+
 <!-- ================== INSOLVENZ (Phase 5) ================== -->
 <div id="insolvenz-overlay" class="modal-schleier" hidden>
   <section id="insolvenz-fenster" class="modal-fenster" role="alertdialog" aria-modal="true" aria-labelledby="insolvenz-titel" tabindex="-1">
@@ -1679,10 +1780,11 @@
 
 <!-- Hilfeleiste mit der Steuerung -->
 <footer id="hud-hilfe">
-  <span><kbd>Klick</kbd> laufen / Info</span>
+  <span><kbd>Klick</kbd> Auswahl / Info</span>
   <span><kbd data-taste="bauen">B</kbd> Bauen</span>
   <span><kbd data-taste="lager">I</kbd> Lager</span>
   <span><kbd data-taste="designer">L</kbd> Designer</span>
+  <span><kbd data-taste="rezepte">Z</kbd> Rezepte</span>
   <span><kbd data-taste="kontor">K</kbd> Kontor</span>
   <span><kbd data-taste="forschung">T</kbd> Forschung</span>
   <span><kbd data-taste="verschieben">M</kbd> Verschieben</span>
@@ -1691,7 +1793,7 @@
   <span>Mitarbeiter ziehen: an Station</span>
   <span><kbd data-taste="einstellungen">O</kbd> Optionen</span>
   <span><kbd data-taste="pause">P</kbd><kbd data-taste="tempo1">1</kbd><kbd data-taste="tempo2">2</kbd><kbd data-taste="tempo3">3</kbd> Tempo</span>
-  <span><kbd>Leertaste</kbd> Figur</span>
+  <span><kbd>Leertaste</kbd> zu dir</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
   <span><kbd data-taste="kameraVor">W</kbd><kbd data-taste="kameraLinks">A</kbd><kbd data-taste="kameraZurueck">S</kbd><kbd data-taste="kameraRechts">D</kbd> bewegen</span>
   <span><kbd>Rad</kbd> zoomen</span>
@@ -1936,7 +2038,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   3,     // Format-Version des Spielstands (Phase 6: 3; Spielstände mit 1 und 2 werden umgewandelt)
+  spielstandVersion:   4,     // Format-Version des Spielstands (Phase 7a: 4 mit Import/Export-Verknüpfungen; 1–3 werden umgewandelt)
 };
 
 // Rohstoffe: werden eingekauft (Phase 5), kommen ins Hauptlager und werden an der
@@ -2263,6 +2365,14 @@ const PERSONAL = {
   autoZuweisung:      false, // Standard: freie Arbeiter NICHT automatisch an andere Stationen setzen
 };
 
+// Die eigene Figur (Phase 7a, Nachtrag 2): ein Mitarbeiter wie alle anderen – kein Lohn, nicht entlassbar,
+// zählt nicht zur Höchstzahl. "Flexibel" springt sie ein, wo Bedarf ist (Station ohne Arbeiter, sonst Kurier).
+const DU = {
+  name:           "Du",
+  startRolle:     "kurier",  // Rolle beim Spielstart
+  pruefIntervall: 1,         // Sekunden Spielzeit zwischen zwei Blicken "wo werde ich gebraucht?"
+};
+
 // Ausbaustufen der Halle (Phase 6). Die Halle wächst nach vorn (+z); Gebautes bleibt an seinem Platz.
 //   tiefe – Reihen nach dem Ausbau (Breite bleibt 16), preis – Kaufpreis, miete – Euro pro Tag,
 //   maxMitarbeiter – so viele Kuriere + Arbeiter passen in diese Halle
@@ -2290,13 +2400,15 @@ const TASTEN_STANDARD = [
   { aktion: "kontor",       name: "Kontor",                            taste: "k", gruppe: "Fenster" },
   { aktion: "forschung",    name: "Forschung",                         taste: "t", gruppe: "Fenster" },
   { aktion: "designer",     name: "Layout-Designer",                   taste: "l", gruppe: "Fenster" },
+  { aktion: "rezepte",      name: "Rezepte",                           taste: "z", gruppe: "Fenster" },
   { aktion: "einstellungen", name: "Einstellungen",                    taste: "o", gruppe: "Fenster" },
   { aktion: "band",         name: "Fließband in die Hand",             taste: "f", gruppe: "Bauen" },
   { aktion: "weiterbauen",  name: "Gewähltes Band weiterbauen",        taste: "e", gruppe: "Bauen" },
   { aktion: "drehen",       name: "Drehen (beim Bauen)",               taste: "r", gruppe: "Bauen" },
   { aktion: "verschieben",  name: "Verschieben",                       taste: "m", gruppe: "Bauen" },
   { aktion: "abriss",       name: "Abriss",                            taste: "x", gruppe: "Bauen" },
-  { aktion: "verknuepfen",  name: "Verknüpfen (Gebäude ausgewählt)",   taste: "v", gruppe: "Bauen" },
+  { aktion: "verknuepfen",  name: "⇣ Import verknüpfen (Gebäude ausgewählt)", taste: "v", gruppe: "Bauen" },
+  { aktion: "exportVerknuepfen", name: "⇡ Export verknüpfen (Gebäude ausgewählt)", taste: "g", gruppe: "Bauen" },
   { aktion: "abreissen",    name: "Abreißen: Auswahl oder unter der Maus", taste: "delete", gruppe: "Bauen" },
   { aktion: "pause",        name: "Pause",                             taste: "p", gruppe: "Zeit" },
   { aktion: "tempo1",       name: "Tempo 1×",                          taste: "1", gruppe: "Zeit" },
@@ -2978,8 +3090,10 @@ function aktualisiereFigurModell(p, m, sekunden, zeit, hoechstTempo, haltung = "
 }
 
 // Die Spielfigur wird jedes Bild aktualisiert (Abschnitt 10).
+// Phase 7a (Nachtrag 2): Ist die Figur Mitarbeiter ("Du"), zeichnet sie Abschnitt 12 wie alle anderen.
 function aktualisiereFigur3d(sekunden, zeit) {
-  aktualisiereFigurModell(figur, figurModell, sekunden, zeit, LOGIK.laufTempo);
+  figurModell.gruppe.visible = !figur.istDu;
+  if (!figur.istDu) aktualisiereFigurModell(figur, figurModell, sekunden, zeit, LOGIK.laufTempo);
 }
 
 /* ============================================================================
@@ -3029,7 +3143,7 @@ const federnd = (t) => 1 + 2.7 * Math.pow(t - 1, 3) + 1.7 * Math.pow(t - 1, 2);
 function aktualisierePfadUndMarken(sekunden, zeit) {
   // --- Pfad-Punkte: vom Ziel rückwärts verteilt, damit sie beim Laufen stillstehen ---
   let anzahl = 0;
-  if (GRAFIK.pfadAnzeigen && figur.zustand === "laeuft") {
+  if (GRAFIK.pfadAnzeigen && !figur.istDu && figur.zustand === "laeuft") {
     const punkte = [figur.position, ...figur.wegpunkte];
     const abschnitte = [];
     let gesamt = 0;
@@ -3053,7 +3167,7 @@ function aktualisierePfadUndMarken(sekunden, zeit) {
 
   // --- Zielmarke am Ende des Weges ---
   const ende = figur.wegpunkte[figur.wegpunkte.length - 1];
-  zielMarke.visible = figur.zustand === "laeuft" && !!ende;
+  zielMarke.visible = !figur.istDu && figur.zustand === "laeuft" && !!ende;
   if (zielMarke.visible) {
     zielMarke.position.set(ende.x, rasterHoehe + 0.015, ende.z);
     const puls = wenigerAnimation ? 1 : 1 + Math.sin(zeit * 6) * 0.08;
@@ -3379,7 +3493,7 @@ const mitarbeiter = [];
 
 // Alle Personen auf dem Raster: Spielfigur + Mitarbeiter
 function allePersonen() {
-  return [figur, ...mitarbeiter];
+  return figur.istDu ? mitarbeiter : [figur, ...mitarbeiter];   // Phase 7a (Nachtrag 2): "Du" ist schon Mitarbeiter
 }
 
 // Auf welcher Kachel steht eine Person gerade?
@@ -3559,7 +3673,8 @@ spielEreignisse.addEventListener("rasterGeaendert", (e) => {
 // den Text nur, wenn sich wirklich etwas geändert hat.
 const hudFigur = document.getElementById("hud-figur");
 function aktualisiereFigurAnzeige() {
-  const text = figur.zustand === "laeuft"
+  const text = figur.istDu ? `${figur.rolle === "kurier" ? "Kurier" : "Arbeiter"} · ${personZustandText(figur)}`
+    : figur.zustand === "laeuft"
     ? `läuft · noch ${Math.ceil(restweg())} Kacheln`
     : `steht · ${kachelText(figurKachel())}`;
   if (hudFigur.textContent !== text) hudFigur.textContent = text;
@@ -4708,6 +4823,7 @@ const spiel = {
   bandVersion: 0,               // zählt jede Änderung an den Bändern (die 3D-Ansicht baut dann neu)
   halleStufe: 0,                // Ausbaustufe der Halle (Index in HALLE_STUFEN)
   autoZuweisung: PERSONAL.autoZuweisung,   // freie Arbeiter automatisch an Stationen setzen?
+  rezeptPins: [],               // Phase 7a (Nachtrag 2): angeheftete Rezepte [{ schluessel, zu }]
 };
 
 // Name, Farbe und Art eines Items
@@ -4901,6 +5017,8 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     ...geo,
     bestand: { ...(extra.bestand || {}) },
     verknuepft: [...(extra.verknuepft || [])],
+    importVon: [...(extra.importVon || [])],     // Phase 7a (Nachtrag 2): Lager, aus denen der Arbeiter Material holt
+    exportNach: [...(extra.exportNach || [])],   // ... und in die er sein Erzeugnis bringt (nur Stationen)
     rezept: extra.rezept || null,
     pausiert: !!extra.pausiert,
     fortschritt: 0,
@@ -5008,7 +5126,11 @@ function reisseAb(id, { inhaltInsDepot = false } = {}) {
   g.bestand = {};
   g.eingang = {};
   spiel.depot.gebaeude[g.typ] = (spiel.depot.gebaeude[g.typ] || 0) + 1;
-  for (const anderes of spiel.gebaeude.values()) anderes.verknuepft = anderes.verknuepft.filter((v) => v !== id);
+  for (const anderes of spiel.gebaeude.values()) {
+    anderes.importVon = anderes.importVon.filter((v) => v !== id);
+    anderes.exportNach = anderes.exportNach.filter((v) => v !== id);
+  }
+  aktualisiereVerknuepft();
   if (g.arbeiterId) {
     const p = mitarbeiter.find((m) => m.id === g.arbeiterId);
     if (p) p.stationId = null;
@@ -5018,34 +5140,68 @@ function reisseAb(id, { inhaltInsDepot = false } = {}) {
   return g;
 }
 
-/* --- Verknüpfungen Station ↔ Zwischenlager --- */
-
-function sindVerknuepft(a, b) {
-  return a.verknuepft.includes(b.id);
+/* --- Verknüpfungen Station → Lager (Phase 7a, Nachtrag 2: getrennt nach Import und Export) ---
+   s.importVon:  Lager, aus denen der Arbeiter der Station sein Material holt (⇣ Import, grüne Linie)
+   s.exportNach: Lager, in die er das fertige Erzeugnis bringt (⇡ Export, rote Linie)
+   Ziele sind Zwischenlager (Kiste, Schrank) und das Hauptlager; mehrere pro Richtung sind erlaubt,
+   dasselbe Lager darf in beiden Listen stehen. g.verknuepft ist auf beiden Seiten die Vereinigung
+   beider Listen (für Anzeige, Auswahl und die Automatik der Lagerregeln). */
+const VERKNUEPF_FELD = { import: "importVon", export: "exportNach" };
+const VERKNUEPF_NAME = { import: "⇣ Import", export: "⇡ Export" };
+function istVerknuepfZiel(g) {
+  return !!g && (istZwischenlager(g) || typVon(g).art === "hauptlager");
 }
-// Verknüpft zwei Gebäude oder löst die Verknüpfung. Nur Station ↔ Zwischenlager ist erlaubt.
+// Die verknüpften Lager einer Station in einer Richtung ("import" / "export")
+function verknuepfteLager(s, richtung) {
+  return (s[VERKNUEPF_FELD[richtung]] || []).map((id) => spiel.gebaeude.get(id)).filter(Boolean);
+}
+// Die Stationen, die aus diesem Lager importieren bzw. in es exportieren
+function verknuepfteStationen(lager, richtung) {
+  return lager.verknuepft.map((id) => spiel.gebaeude.get(id))
+    .filter((s) => s && istStation(s) && s[VERKNUEPF_FELD[richtung]].includes(lager.id));
+}
+// Baut g.verknuepft auf allen Gebäuden aus den Import-/Export-Listen der Stationen neu auf.
+function aktualisiereVerknuepft() {
+  for (const g of spiel.gebaeude.values()) g.verknuepft = [];
+  for (const s of spiel.gebaeude.values()) {
+    if (!istStation(s)) { s.importVon = []; s.exportNach = []; continue; }
+    const gueltig = (id) => id !== s.id && istVerknuepfZiel(spiel.gebaeude.get(id));
+    s.importVon = [...new Set(s.importVon.filter(gueltig))];
+    s.exportNach = [...new Set(s.exportNach.filter(gueltig))];
+    for (const id of new Set([...s.importVon, ...s.exportNach])) {
+      s.verknuepft.push(id);
+      spiel.gebaeude.get(id).verknuepft.push(s.id);
+    }
+  }
+}
+// Sind a und b verknüpft? Ohne Richtung: in irgendeiner Richtung.
+function sindVerknuepft(a, b, richtung = null) {
+  if (!richtung) return a.verknuepft.includes(b.id);
+  const s = istStation(a) ? a : b, lager = s === a ? b : a;
+  return istStation(s) && s[VERKNUEPF_FELD[richtung]].includes(lager.id);
+}
+// Verknüpft eine Station mit einem Lager oder löst die Verknüpfung (Reihenfolge von a und b egal).
+// richtung "import" / "export"; ohne Richtung beide auf einmal.
 // Rückgabe: "verknuepft", "geloest" oder null (nicht erlaubt)
-function schalteVerknuepfung(idA, idB) {
+function schalteVerknuepfung(idA, idB, richtung = null) {
   const a = spiel.gebaeude.get(idA), b = spiel.gebaeude.get(idB);
   if (!a || !b) return null;
-  const passt = (istStation(a) && istZwischenlager(b)) || (istZwischenlager(a) && istStation(b));
-  if (!passt) return null;
-  let ergebnis;
-  if (sindVerknuepft(a, b)) {
-    a.verknuepft = a.verknuepft.filter((v) => v !== b.id);
-    b.verknuepft = b.verknuepft.filter((v) => v !== a.id);
-    ergebnis = "geloest";
-  } else {
-    a.verknuepft.push(b.id);
-    b.verknuepft.push(a.id);
-    ergebnis = "verknuepft";
+  const s = istStation(a) ? a : istStation(b) ? b : null;
+  const lager = s === a ? b : a;
+  if (!s || !istVerknuepfZiel(lager)) return null;
+  const felder = richtung ? [VERKNUEPF_FELD[richtung]] : Object.values(VERKNUEPF_FELD);
+  const alle = felder.every((f) => s[f].includes(lager.id));
+  for (const f of felder) {
+    if (alle) s[f] = s[f].filter((v) => v !== lager.id);
+    else if (!s[f].includes(lager.id)) s[f].push(lager.id);
   }
+  aktualisiereVerknuepft();
   meldeStruktur();
-  return ergebnis;
+  return alle ? "geloest" : "verknuepft";
 }
 
-// Neue Station: nächstgelegenes Zwischenlager (Laufweg ≤ verknuepfRadius) verknüpfen.
-// Neues Zwischenlager: alle Stationen in Reichweite verknüpfen, die noch kein Lager haben.
+// Neue Station: nächstgelegenes Zwischenlager (Laufweg ≤ verknuepfRadius) als Import UND Export verknüpfen.
+// Neues Zwischenlager: alle Stationen in Reichweite verknüpfen, die noch kein Lager haben (ebenfalls beides).
 // Rückgabe: Liste der neu verknüpften Gebäude.
 function verknuepfeAutomatisch(g) {
   const radius = PRODUKTION.verknuepfRadius;
@@ -5174,29 +5330,27 @@ function freierPlatz(g, res, fach = "bestand") {
 function lagerModus(g) {
   return STANDARD_LAGER_MODUS;
 }
-// Welche Items braucht irgendeine verknüpfte Station (auch eine pausierte) für ihr Rezept?
+// Welche Items braucht irgendeine Station, die aus diesem Lager importiert (auch eine pausierte)?
 function gebrauchteItems(lager) {
   const items = new Set();
-  for (const sid of lager.verknuepft) {
-    const s = spiel.gebaeude.get(sid);
-    const r = s && rezeptVon(s);
+  for (const s of verknuepfteStationen(lager, "import")) {
+    const r = rezeptVon(s);
     if (r) for (const item of Object.keys(r.eingaben)) items.add(item);
   }
   return items;
 }
-// Welche Erzeugnisse stellen die verknüpften Stationen her?
+// Welche Erzeugnisse stellen die Stationen her, die in dieses Lager exportieren?
 function erzeugteItems(lager) {
   const items = new Set();
-  for (const sid of lager.verknuepft) {
-    const s = spiel.gebaeude.get(sid);
-    const r = s && rezeptVon(s);
+  for (const s of verknuepfteStationen(lager, "export")) {
+    const r = rezeptVon(s);
     if (r && r.ausgabe) items.add(r.ausgabe);
   }
   return items;
 }
-// Hat die Station ein verknüpftes Lager, aus dem ihr Arbeiter Material nehmen darf?
+// Hat die Station ein Import-Lager, aus dem ihr Arbeiter Material nehmen darf?
 function versorgtDurchLager(s) {
-  return s.verknuepft.some((id) => { const g = spiel.gebaeude.get(id); return g && darfArbeiterEntnehmen(g); });
+  return verknuepfteLager(s, "import").some((g) => darfArbeiterEntnehmen(g));
 }
 // Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
 function regelAuto(g, item) {
@@ -5242,6 +5396,7 @@ function darfKurierLiefern(g, item, fach = "bestand") {
 // Darf ein Arbeiter hier Material für seine Station entnehmen? (ohne Item: grundsätzlich)
 // Reine Export-Ware (nur ⇡) ist für Kuriere bestimmt, nicht für Arbeiter.
 function darfArbeiterEntnehmen(g, item = null) {
+  if (typVon(g).art === "hauptlager") return true;      // Phase 7a (Nachtrag 2): Import direkt aus dem Hauptlager
   if (!istZwischenlager(g)) return false;
   if (item !== null) { const r = regelVon(g, item); return r.imp || !r.exp; }
   return lagerModus(g) !== "ausgang" || Object.values(g.regeln).some((m) => m.imp === true);
@@ -5250,6 +5405,7 @@ function darfArbeiterEntnehmen(g, item = null) {
 //   ja, wenn es exportiert wird (Ausgang/Gemischt oder ⇡ von Hand) – Kuriere holen es dann ab,
 //   oder wenn eine andere verknüpfte Station es braucht (⇣) und das Soll noch nicht erreicht ist.
 function nimmtErzeugnisAn(g, item) {
+  if (typVon(g).art === "hauptlager") return true;      // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager
   if (!istZwischenlager(g)) return false;
   const r = regelVon(g, item);
   const handExport = g.regeln[item] && g.regeln[item].exp === true;
@@ -5382,7 +5538,7 @@ function schickeUeberschussZurueck(id) {
 }
 
 // Sollbestand eines Zwischenlagers (nur Items mit Import): Material für "vorratDurchgaenge"
-// Durchgänge jeder verknüpften Station, gedeckelt durch das Fassungsvermögen. Beim Deckeln
+// Durchgänge jeder Station, die aus ihm importiert, gedeckelt durch das Fassungsvermögen. Beim Deckeln
 // bleibt immer mindestens ein kompletter Durchgang übrig. Von Hand gesetzte Mengen gelten fest.
 // Bei Stationen: Soll des Eingangsfachs (Import-Pegel).
 function sollbestand(g) {
@@ -5391,9 +5547,8 @@ function sollbestand(g) {
   for (const [item, m] of Object.entries(g.regeln)) {
     if (m.soll !== undefined && regelVon(g, item).imp) fest[item] = m.soll;
   }
-  for (const sid of g.verknuepft) {
-    const s = spiel.gebaeude.get(sid);
-    if (!s || s.pausiert) continue;
+  for (const s of verknuepfteStationen(g, "import")) {
+    if (s.pausiert) continue;
     const r = rezeptVon(s);
     if (!r) continue;
     for (const [item, n] of Object.entries(r.eingaben)) {
@@ -5583,14 +5738,24 @@ function einstellGebuehr(rolle) {
 // Stellt einen Kurier oder Arbeiter ein. Rückgabe: die neue Person oder null
 // (Höchstzahl erreicht oder nicht genug Geld). daten.kostenlos: ohne Gebühr (Spielstart, Laden).
 function stelleEin(rolle, daten = {}) {
-  if (!MITARBEITER_ROLLEN[rolle] || mitarbeiter.length >= maxMitarbeiter()) return null;   // Phase 6: wächst mit der Halle
+  if (!MITARBEITER_ROLLEN[rolle] || angestellte().length >= maxMitarbeiter()) return null;   // Phase 6: wächst mit der Halle
   if (!daten.kostenlos) {
     const gebuehr = einstellGebuehr(rolle);
     if (!kannBezahlen(gebuehr)) return null;
     bucheGeld(-gebuehr, "personal");
   }
   const kachel = daten.kachel || startKachelFuerPersonen();
-  const p = erstellePerson(kachel, {
+  const p = erstellePerson(kachel, personFelder(rolle, daten));
+  // Neue Leute stehen nebeneinander statt aufeinander
+  p.position.x += ((mitarbeiter.length % 3) - 1) * 0.28;
+  mitarbeiter.push(p);
+  meldeEreignis("mitarbeiterGeaendert", {});
+  meldeStruktur();
+  return p;
+}
+// Alle Felder eines Mitarbeiters (für stelleEin und die eigene Figur)
+function personFelder(rolle, daten = {}) {
+  return {
     id: daten.id || "m" + spiel.naechstePersonId++,
     name: daten.name || naechsterName(),
     rolle,
@@ -5605,13 +5770,73 @@ function stelleEin(rolle, daten = {}) {
     timer: 0,                    // Restzeit für Laden, Greifen, Warten
     zielKachel: null,            // wohin die Person gerade geschickt wurde
     atemVersatz: Math.random() * 6,   // damit nicht alle im Gleichtakt "atmen"
+  };
+}
+
+/* --- Die eigene Figur "Du" (Phase 7a, Nachtrag 2) ---
+   Du bist ein normaler Mitarbeiter in der Liste "mitarbeiter": gleiches Aussehen wie alle in deiner
+   Rolle, du läufst selbst und übernimmst jede Tätigkeit (Kurier, Werkbank, Montage, Forschung).
+   Unterschiede: kein Lohn, keine Gebühr, nicht entlassbar, zählst nicht zur Höchstzahl.
+   du.flexibel: Du springst ein, wo Bedarf ist – an einer Station mit Rezept, an der niemand arbeitet,
+   sonst als Kurier. Kommt ein freier Arbeiter, übernimmt er deine Station. Setzt der Spieler "Du"
+   von Hand ein (ziehen, Station wählen, umschulen), gilt das, bis er "Flexibel" wieder einschaltet. */
+function angestellte() {
+  return mitarbeiter.filter((p) => !p.istDu);
+}
+// Macht die Spielfigur zum Mitarbeiter (Spielstart oder Laden). daten: gespeicherte Felder
+function nimmDuAuf(daten = {}) {
+  if (mitarbeiter.includes(figur)) return figur;
+  const start = daten.kachel || (istBegehbar(startKachel.x, startKachel.z) ? startKachel : startKachelFuerPersonen());
+  Object.assign(figur, personFelder(daten.rolle || DU.startRolle, { ...daten, id: "du", name: DU.name }), {
+    istDu: true,
+    istSpieler: false,                     // keine Spielfigur-Meldungen mehr ("nicht erreichbar" usw.)
+    flexibel: daten.flexibel !== false,
+    manuellFrei: !!daten.manuellFrei,
+    position: kachelZuWelt(start.x, start.z), wegpunkte: [], zielWunsch: null, zustand: "steht", tempo: 0,
   });
-  // Neue Leute stehen nebeneinander statt aufeinander
-  p.position.x += ((mitarbeiter.length % 3) - 1) * 0.28;
-  mitarbeiter.push(p);
+  mitarbeiter.unshift(figur);
   meldeEreignis("mitarbeiterGeaendert", {});
   meldeStruktur();
-  return p;
+  return figur;
+}
+// Eine Station mit Rezept, an der niemand arbeitet (die nächste zuerst)
+function stationOhneArbeiter(p) {
+  return freieStationen(null, p).find((s) => !s.pausiert && rezeptVon(s));
+}
+// Flexibel: Wo wirst du gerade gebraucht? (läuft nach der automatischen Zuweisung der Arbeiter)
+let duTimer = 0;
+function setzeDuEin(dt) {
+  const du = figur;
+  if (!du.istDu || !du.flexibel || !mitarbeiter.includes(du)) return;
+  if ((duTimer -= dt) > 0) return;
+  duTimer = DU.pruefIntervall;
+  const haende = !hatItems(du) && du.phase !== "arbeitet";
+  if (du.rolle === "arbeiter") {
+    const s = du.stationId && spiel.gebaeude.get(du.stationId);
+    // Ein freier Arbeiter übernimmt deine Station, du wirst wieder Kurier (oder gehst an die nächste)
+    const ersatz = s && haende && mitarbeiter.find((p) => p !== du && p.rolle === "arbeiter" && !p.stationId
+      && (!p.manuellFrei || (p.ohneAufgabe && spiel.autoZuweisung)));
+    if (ersatz) weiseZu(ersatz.id, s.id);
+    const jetzt = du.stationId && spiel.gebaeude.get(du.stationId);
+    if (jetzt && !jetzt.pausiert && rezeptVon(jetzt)) return;          // hier gibt es zu tun
+    if (!haende) return;
+    const andere = stationOhneArbeiter(du);
+    if (andere) weiseZu(du.id, andere.id, { vonSelbst: true });
+    else schuleUm(du.id, "kurier", { vonSelbst: true });
+    return;
+  }
+  // Kurier: wechseln, sobald die Hände leer sind (ein Gang, bei dem noch nichts abgeholt ist, wird abgegeben)
+  if (hatItems(du)) return;
+  const s = stationOhneArbeiter(du);
+  if (s && schuleUm(du.id, "arbeiter", { vonSelbst: true })) weiseZu(du.id, s.id, { vonSelbst: true });
+}
+// "Flexibel" ein- oder ausschalten (Personal-Reiter)
+function setzeDuFlexibel(an) {
+  if (!figur.istDu) return false;
+  figur.flexibel = !!an;
+  duTimer = 0;
+  meldeStruktur();
+  return true;
 }
 
 // Gibt zurück, was eine Person trägt (ins Hauptlager bzw. Depot), und bricht ihren Auftrag ab.
@@ -5628,7 +5853,7 @@ function abfindungVon(p) {
 }
 function entlasse(id, { ohneAbfindung = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === id);
-  if (!p) return false;
+  if (!p || p.istDu) return false;                 // Phase 7a (Nachtrag 2): dich selbst kann man nicht entlassen
   const abfindung = ohneAbfindung ? 0 : abfindungVon(p);
   if (abfindung > 0) bucheGeld(-abfindung, "abfindung");
   setzePersonZurueck(p);
@@ -5641,11 +5866,13 @@ function entlasse(id, { ohneAbfindung = false } = {}) {
 }
 
 // Ordnet einen Arbeiter einer Station zu (station = null: Zuordnung lösen).
-function weiseZu(personId, stationId) {
+// vonSelbst: "Du" setzt sich selbst ein (bleibt flexibel); sonst gilt die Wahl des Spielers.
+function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === personId);
   if (!p || p.rolle !== "arbeiter") return false;
   const neu = stationId ? spiel.gebaeude.get(stationId) : null;
   if (stationId && (!neu || !istStation(neu) || neu.automatik)) return false;   // Phase 6: Automatik braucht niemanden
+  if (p.istDu && !vonSelbst) p.flexibel = false;   // Phase 7a (Nachtrag 2)
   p.ohneAufgabe = false;
   const alt = p.stationId && spiel.gebaeude.get(p.stationId);
   if (alt) alt.arbeiterId = null;
@@ -5668,6 +5895,7 @@ function weiseArbeiterAutomatischZu() {
   for (const p of mitarbeiter) {
     // Phase 6: Wer durch Automatik frei wurde, wird nur mit dem Schalter "automatisch zuweisen" neu verteilt
     const darf = !p.manuellFrei || (p.ohneAufgabe && spiel.autoZuweisung);
+    if (p.istDu && p.flexibel) continue;          // Phase 7a (Nachtrag 2): "Du" sucht selbst (setzeDuEin)
     if (p.rolle !== "arbeiter" || p.stationId || !darf || !offen.length) continue;
     const k = personKachel(p);
     offen.sort((a, b) => abstand(a.zugang, k) - abstand(b.zugang, k));
@@ -5940,11 +6168,11 @@ function leiteUm(p) {
 /* --- Arbeiter --- */
 
 // Woher nimmt der Arbeiter das Material für einen Durchgang? Am liebsten aus dem eigenen
-// Eingangsfach (Phase 5b, kein Laufweg), sonst aus dem nächsten verknüpften Lager, in dem alles
-// bereitliegt. Reine Ausgang-Lager zählen nicht.
+// Eingangsfach (Phase 5b, kein Laufweg), sonst aus dem nächsten Import-Lager, in dem alles
+// bereitliegt (Phase 7a, Nachtrag 2: auch das Hauptlager, wenn es als Import verknüpft ist).
 // Rückgabe: { g, fach, komplett } oder null (keine Quelle)
 function waehleLager(s, r, res) {
-  const quellen = s.verknuepft.map((id) => spiel.gebaeude.get(id)).filter((g) => g && darfArbeiterEntnehmen(g))
+  const quellen = verknuepfteLager(s, "import").filter((g) => darfArbeiterEntnehmen(g))
     .sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang))
     .map((g) => ({ g, fach: "bestand" }));
   const importiert = Object.keys(r.eingaben).some((i) => regelVon(s, i).imp);
@@ -5966,15 +6194,15 @@ function quelleGueltig(s, a) {
   const q = spiel.gebaeude.get(a.quelleId);
   if (!q) return null;
   if (a.quelleFach === "eingang") return q === s ? q : null;
-  return sindVerknuepft(s, q) && darfArbeiterEntnehmen(q) ? q : null;
+  return sindVerknuepft(s, q, "import") && darfArbeiterEntnehmen(q) ? q : null;
 }
 
-// Wohin mit dem fertigen Erzeugnis? Ein verknüpftes Lager, das es annimmt und Platz hat (sonst null = Ausgabefach).
+// Wohin mit dem fertigen Erzeugnis? Ein Export-Lager, das es annimmt und Platz hat (sonst null = Ausgabefach).
 function ausgabeLagerFuer(s, item, res) {
-  const lager = s.verknuepft.map((id) => spiel.gebaeude.get(id))
-    .filter((g) => g && nimmtErzeugnisAn(g, item) && freierPlatz(g, res) > 0);
+  const lager = verknuepfteLager(s, "export").filter((g) => nimmtErzeugnisAn(g, item) && freierPlatz(g, res) > 0);
   // Zuerst dorthin, wo eine andere Station es braucht (spart den Umweg übers Hauptlager), dann der kürzeste Weg
-  lager.sort((a, b) => (regelVon(a, item).imp ? 0 : 1) - (regelVon(b, item).imp ? 0 : 1)
+  const gebraucht = (g) => istZwischenlager(g) && regelVon(g, item).imp ? 0 : 1;
+  lager.sort((a, b) => gebraucht(a) - gebraucht(b)
     || abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang));
   return lager[0] || null;
 }
@@ -6188,6 +6416,7 @@ function simSchritt(dt) {
   if (spiel.insolvent) return;
   if (bandTopologieAlt) baueBandTopologie();    // Phase 6: Bänder, Anschlüsse und Automatik aktuell halten
   weiseArbeiterAutomatischZu();
+  setzeDuEin(dt);                               // Phase 7a (Nachtrag 2): "Du" springt ein, wo Bedarf ist
   auftragsTimer -= dt;
   if (auftragsTimer <= 0) { auftragsTimer = PRODUKTION.auftragsIntervall; verteileAuftraege(); }
   for (const p of mitarbeiter) {
@@ -6254,6 +6483,8 @@ function halleBereinigen() {
     gebaeude: liste.map((g) => ({
       typ: g.typ, x: g.x, z: g.z, drehung: g.drehung, rezept: g.rezept, pausiert: g.pausiert,
       verknuepft: g.verknuepft.map((id) => nummer.get(id)).filter((i) => i !== undefined),
+      importVon: g.importVon.map((id) => nummer.get(id)).filter((i) => i !== undefined),     // Phase 7a (Nachtrag 2)
+      exportNach: g.exportNach.map((id) => nummer.get(id)).filter((i) => i !== undefined),
       arbeiter: g.arbeiterId, modus: g.modus, regeln: JSON.parse(JSON.stringify(g.regeln)),
     })),
     baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], haelt: null })),   // Phase 6
@@ -6305,13 +6536,17 @@ function stelleAufbauWiederHer() {
   }
   schnappschuss.gebaeude.forEach((e, i) => {
     if (!neueIds[i]) return;
-    for (const j of e.verknuepft) {
-      const a = spiel.gebaeude.get(neueIds[i]), b = neueIds[j] && spiel.gebaeude.get(neueIds[j]);
-      if (a && b && !sindVerknuepft(a, b)) schalteVerknuepfung(a.id, b.id);
+    const a = spiel.gebaeude.get(neueIds[i]);
+    if (a && istStation(a)) {
+      // Phase 7a (Nachtrag 2): Import und Export getrennt (ältere Schnappschüsse kennen nur "verknüpft" = beides)
+      const nach = (liste) => (liste || []).map((j) => neueIds[j]).filter(Boolean);
+      a.importVon = nach(e.importVon || e.verknuepft);
+      a.exportNach = nach(e.exportNach || e.verknuepft);
     }
     const p = e.arbeiter && mitarbeiter.find((m) => m.id === e.arbeiter);
     if (p && !p.stationId) weiseZu(p.id, neueIds[i]);
   });
+  aktualisiereVerknuepft();
   // Phase 6: Bänder und Greifarme wieder hinlegen (aus dem Depot, sonst gekauft)
   for (const e of schnappschuss.baender || []) {
     const ergebnis = baueBandteil(e.typ, e.x, e.z, e.richtung, { daten: e, ohnePruefungDerPersonen: true });
@@ -6342,6 +6577,7 @@ function spielstandDaten() {
     gebaeude: gebaeudeListe().map((g) => ({
       id: g.id, typ: g.typ, nummer: g.nummer, x: g.x, z: g.z, drehung: g.drehung,
       bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
+      importVon: g.importVon, exportNach: g.exportNach,   // Phase 7a (Nachtrag 2)
       modus: g.modus, regeln: g.regeln,
       // Phase 5b: Eingangsfach (Phase 6: plus Material, das eine Automatik-Station gerade verarbeitet)
       eingang: g.autoRezept ? (() => { const e = { ...g.eingang }; bucheItems(e, g.autoRezept.eingaben); return e; })() : g.eingang,
@@ -6357,8 +6593,10 @@ function spielstandDaten() {
       id: p.id, name: p.name, rolle: p.rolle, stufe: p.stufe, stationId: p.stationId,
       manuellFrei: !!p.manuellFrei, kachel: personKachel(p), ausruestung: p.ausruestung, ep: p.ep,
       ohneAufgabe: !!p.ohneAufgabe,   // Phase 6
+      istDu: !!p.istDu, flexibel: p.istDu ? !!p.flexibel : undefined,   // Phase 7a (Nachtrag 2)
     })),
     naechstePersonId: spiel.naechstePersonId,
+    rezeptPins: spiel.rezeptPins,                  // Phase 7a (Nachtrag 2)
     produktNamen: spiel.produktNamen,
     statistik: spiel.statistik,
     schnappschuss: spiel.schnappschuss,
@@ -6394,7 +6632,7 @@ function leseSpielstand() {
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
-    return daten && [1, 2, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -6405,6 +6643,7 @@ function leseSpielstand() {
 function wendeSpielstandAn(d) {
   spiel.naechsteId = d.naechsteId || 1;
   spiel.naechstePersonId = d.naechstePersonId || 1;
+  spiel.rezeptPins = Array.isArray(d.rezeptPins) ? d.rezeptPins.filter((p) => p && typeof p.schluessel === "string") : [];
   spiel.produktNamen = { ...(d.produktNamen || {}), ...spiel.produktNamen };
   spiel.statistik = { ...spiel.statistik, ...(d.statistik || {}) };
   ladeWirtschaft(d.wirtschaft || null);          // Phase 5 (fehlt bei version 1: Neustart der Wirtschaft)
@@ -6428,8 +6667,19 @@ function wendeSpielstandAn(d) {
   }
   // Phase 5: Die Garage ist kleiner geworden – Bescheid geben, was ins Depot gewandert ist
   if (insDepot) setTimeout(() => meldeEreignis("hinweis", { text: `${insDepot} Gebäude passten nicht mehr in die Garage und liegen jetzt kostenlos im Depot.` }), 800);
-  // Verknüpfungen auf noch vorhandene Gebäude beschränken
-  for (const g of spiel.gebaeude.values()) g.verknuepft = g.verknuepft.filter((id) => spiel.gebaeude.has(id));
+  // Phase 7a (Nachtrag 2): Ältere Spielstände kennen nur "verknüpft". Die Richtung ergibt sich aus der
+  // alten Lager-Schnellwahl: Eingang → Import, Ausgang → Export, Gemischt (und alles andere) → beides.
+  const alterModus = new Map(d.gebaeude.map((e) => [e.id, e.modus]));
+  for (const e of d.gebaeude) {
+    const s = spiel.gebaeude.get(e.id);
+    if (!s || !istStation(s) || e.importVon || e.exportNach) continue;
+    for (const id of e.verknuepft || []) {
+      const modus = alterModus.get(id);
+      if (modus !== "ausgang") s.importVon.push(id);
+      if (modus !== "eingang") s.exportNach.push(id);
+    }
+  }
+  aktualisiereVerknuepft();                      // auf noch vorhandene Gebäude beschränken
   // Phase 6: Bänder und Greifarme (was nicht mehr passt, kommt ins Depot)
   spiel.naechsteBandId = d.naechsteBandId || 1;
   for (const e of d.baender || []) {
@@ -6444,13 +6694,15 @@ function wendeSpielstandAn(d) {
   baueBandTopologie();                           // Anschlüsse und Automatik (noch ohne Mitarbeiter)
   for (const m of d.mitarbeiter || []) {
     const kachel = m.kachel && istBegehbar(m.kachel.x, m.kachel.z) ? m.kachel : undefined;
-    const p = stelleEin(m.rolle, { id: m.id, name: m.name, stufe: m.stufe, ausruestung: m.ausruestung, ep: m.ep, kachel, kostenlos: true });
+    const p = m.istDu ? nimmDuAuf({ ...m, kachel })    // Phase 7a (Nachtrag 2): die eigene Figur
+      : stelleEin(m.rolle, { id: m.id, name: m.name, stufe: m.stufe, ausruestung: m.ausruestung, ep: m.ep, kachel, kostenlos: true });
     if (!p) continue;
     p.manuellFrei = !!m.manuellFrei;
     const s = m.stationId && spiel.gebaeude.get(m.stationId);
     if (s && istStation(s) && !s.arbeiterId && !s.automatik) { p.stationId = s.id; s.arbeiterId = p.id; }
     else if (s && s.automatik && p.rolle === "arbeiter") { p.ohneAufgabe = true; p.manuellFrei = true; }   // Phase 6
   }
+  if (!mitarbeiter.includes(figur)) nimmDuAuf();  // ältere Spielstände: "Du" kommt dazu
   bucheInsLager(d.unterwegs || {});
 }
 
@@ -6460,6 +6712,7 @@ function starteNeuesSpiel() {
   const ergebnis = baueGebaeude("hauptlager", st.x, st.z, st.drehung);
   if (ergebnis.ok) bucheItems(ergebnis.gebaeude.bestand, PRODUKTION.startBestand);
   else bucheItems(spiel.depot.items, PRODUKTION.startBestand);
+  nimmDuAuf();                                   // Phase 7a (Nachtrag 2): du selbst, als Kurier
   for (let i = 0; i < PRODUKTION.startKuriere; i++) stelleEin("kurier", { kostenlos: true });
   for (let i = 0; i < PRODUKTION.startArbeiter; i++) stelleEin("arbeiter", { kostenlos: true });
   ladeWirtschaft(null);                          // Phase 5: Startkapital, Konkurrenz, erste Aufträge
@@ -6974,6 +7227,7 @@ function gibErfahrung(p, ep) {
 }
 // Lohn pro Tag (mit Erfahrung etwas mehr)
 function lohnVon(p) {
+  if (p.istDu) return 0;                           // Phase 7a (Nachtrag 2): du arbeitest für dich selbst
   return Math.round(MITARBEITER_ROLLEN[p.rolle].lohn * (1 + FORSCHUNG_WERTE.lohnProStufe * (erfahrungsStufe(p) - 1)));
 }
 
@@ -8001,7 +8255,7 @@ function gibArbeiterFrei(s, person = null) {
 
 // Wer hat gerade keine Aufgabe? (Arbeiter ohne Station)
 function ohneAufgabeListe() {
-  return mitarbeiter.filter((p) => p.rolle === "arbeiter" && !p.stationId);
+  return mitarbeiter.filter((p) => p.rolle === "arbeiter" && !p.stationId && !(p.istDu && p.flexibel));
 }
 
 // Pausenecke: freie Bodenkacheln nahe dem Hauptlager (keine Zugänge, keine Bänder).
@@ -8043,9 +8297,10 @@ function gehInPausenecke(p, dt) {
 }
 
 // Schult einen Mitarbeiter um: "kurier" (Logistik) oder "arbeiter". Name, Erfahrung und Ausrüstung bleiben.
-function schuleUm(id, rolle) {
+function schuleUm(id, rolle, { vonSelbst = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === id);
   if (!p || !MITARBEITER_ROLLEN[rolle] || p.rolle === rolle) return false;
+  if (p.istDu && !vonSelbst) p.flexibel = false;   // Phase 7a (Nachtrag 2)
   const s = p.stationId && spiel.gebaeude.get(p.stationId);
   if (s && s.arbeiterId === p.id) s.arbeiterId = null;
   setzePersonZurueck(p);
@@ -8376,7 +8631,7 @@ const STATUS_ANZEIGE = {
   keinArbeiter:      { farbe: "#8a948c", text: "kein Arbeiter",       ampel: "grau"  },
   keinRezept:        { farbe: "#8a948c", text: "kein Rezept gewählt", ampel: "grau"  },
   rezeptFehlt:       { farbe: "#e0533d", text: "Blaupause fehlt",     ampel: "rot"   },
-  keinLager:         { farbe: "#e3a92b", text: "kein Zwischenlager verknüpft", ampel: "gelb" },
+  keinLager:         { farbe: "#e3a92b", text: "kein Import-Lager verknüpft", ampel: "gelb" },
   pausiert:          { farbe: "#8a948c", text: "pausiert",            ampel: "grau"  },
   automatik:         { farbe: "#4f9d69", text: "läuft automatisch",   ampel: "gruen" },   // Phase 6
   wartetAufBand:     { farbe: "#e3a92b", text: "wartet auf das Band", ampel: "gelb"  },   // Phase 6
@@ -8918,16 +9173,16 @@ function ioKanten(g) {
   const kanten = [];
   const hl = hauptlager();
   const r = istStation(g) ? rezeptVon(g) : null;
+  if (istStation(g)) {
+    // Phase 7a (Nachtrag 2): die Verknüpfungen selbst – Import grün (Lager → Station), Export rot (Station → Lager)
+    for (const lager of verknuepfteLager(g, "import")) kanten.push({ von: lager.id, nach: g.id });
+    for (const lager of verknuepfteLager(g, "export")) kanten.push({ von: g.id, nach: lager.id });
+  }
   if (istStation(g) && r) {
-    for (const id of g.verknuepft) {
-      const lager = spiel.gebaeude.get(id);
-      if (!lager || !istZwischenlager(lager)) continue;
-      if (Object.keys(r.eingaben).some((item) => regelVon(lager, item).imp || (lager.bestand[item] || 0) > 0)) kanten.push({ von: id, nach: g.id });
-      if (nimmtErzeugnisAn(lager, r.ausgabe)) kanten.push({ von: g.id, nach: id });
-    }
     if (hl) {
       if (Object.keys(r.eingaben).some((item) => regelVon(g, item).imp)) kanten.push({ von: hl.id, nach: g.id });
-      if (regelVon(g, r.ausgabe).exp) kanten.push({ von: g.id, nach: hl.id });
+      // Kuriere holen das Ausgabefach ab – mit Export-Lager nur, wenn dort wirklich etwas liegt
+      if (regelVon(g, r.ausgabe).exp && (!g.exportNach.length || summe(g.bestand) > 0)) kanten.push({ von: g.id, nach: hl.id });
     }
   }
   if (istZwischenlager(g)) {
@@ -9554,7 +9809,7 @@ const bau = {
   letzteDrehung: {},        // je Gebäudetyp die zuletzt benutzte Drehung
 };
 let auswahlGebaeudeId = null; // Gebäude im Info-Fenster
-let verknuepfModus = null;    // { vonId }, solange "Verknüpfen" aktiv ist
+let verknuepfModus = null;    // { vonId, richtung: "import" | "export" }, solange "Verknüpfen" aktiv ist
 let lagerOffen = false;
 let dialogOffen = false;
 const kontor = { offen: false, reiter: "auftraege", klickSperre: 0, html: "" };   // Phase 5: Kontor-Fenster
@@ -9721,7 +9976,7 @@ function sterneText(stufe) {
   return "★".repeat(stufe) + "☆".repeat(FORSCHUNG_WERTE.erfahrungsStufen.length - stufe);
 }
 function zeichnePersonal() {
-  const anzahl = mitarbeiter.length, max = maxMitarbeiter();
+  const anzahl = angestellte().length, max = maxMitarbeiter();   // Phase 7a (Nachtrag 2): "Du" zählt nicht mit
   const zeilen = mitarbeiter.map((p) => {
     const station = p.stationId && spiel.gebaeude.get(p.stationId);
     const st = kurierStufe(p);
@@ -9738,13 +9993,19 @@ function zeichnePersonal() {
       if (!stufeFreigeschaltet(k.stufe)) return `<button type="button" disabled title="Zuerst im Techtree erforschen (T)">🔒 ${k.name}</button>`;
       return `<button type="button" data-aktion="ausruestung" data-stufe="${k.stufe}" aria-pressed="false" title="${titel}">${k.name} kaufen · ${euro(k.preis)}</button>`;
     }).join("") + `</div>`;
-    return `<li data-id="${p.id}">
-        <span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)} <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${Math.floor(p.ep || 0)} EP)">${sterneText(stufe)}</span></b>
-        <button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>
-        <small>${unter} · Lohn ${euro(lohnVon(p))}/Tag</small>
+    // Phase 7a (Nachtrag 2): "Du" – kein Lohn, nicht entlassbar, Schalter "Flexibel"
+    const du = p.istDu ? `<button class="mini-knopf" type="button" data-aktion="duFlexibel" aria-pressed="${!!p.flexibel}"
+        title="Flexibel: du springst ein, wo Bedarf ist (Station ohne Arbeiter, sonst Kurier)">⇄ Flexibel</button>` : "";
+    const umschulen = p.rolle === "kurier"
+      ? `<button class="mini-knopf" type="button" data-aktion="zuArbeiter" title="Wird Arbeiter an einer freien Station (Erfahrung bleibt)">→ Arbeiter</button>`
+      : p.istDu ? `<button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier">→ Kurier</button>` : "";
+    return `<li data-id="${p.id}" class="${p.istDu ? "ist-du" : ""}">
+        <span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)}${p.istDu ? ` <span class="personal-du">(du)</span>` : ""} <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${Math.floor(p.ep || 0)} EP)">${sterneText(stufe)}</span></b>
+        ${p.istDu ? "<span></span>" : `<button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>`}
+        <small>${unter}${p.istDu ? " · kein Lohn" : ` · Lohn ${euro(lohnVon(p))}/Tag`}</small>
         <span class="personal-status" data-status-id="${p.id}">${htmlSicher(personZustandText(p))}</span>
         ${ausruestung}
-        ${p.rolle === "kurier" ? `<span class="personal-umschulen"><button class="mini-knopf" type="button" data-aktion="zuArbeiter" title="Wird Arbeiter an einer freien Station (Erfahrung bleibt)">→ Arbeiter</button></span>` : ""}
+        ${umschulen || du ? `<span class="personal-umschulen">${umschulen}${du}</span>` : ""}
       </li>`;
   }).join("");
   ob.bauInhalt.innerHTML = `<div class="personal">
@@ -9773,7 +10034,11 @@ function aktualisiereBauTipp() {
   const w = bau.werkzeug;
   let html = "", warnung = false;
   if (verknuepfModus) {
-    html = "Verknüpfen: Station oder Zwischenlager anklicken (nochmal klicken löst die Verknüpfung) · <kbd>Esc</kbd> fertig";
+    const von = spiel.gebaeude.get(verknuepfModus.vonId);
+    const ziel = von && istStation(von) ? "Lager (Kiste, Schrank, Hauptlager)" : "Station";
+    html = verknuepfModus.richtung === "export"
+      ? `⇡ Export verknüpfen: ${ziel} anklicken (nochmal klicken löst die Verknüpfung) · <kbd>Esc</kbd> fertig`
+      : `⇣ Import verknüpfen: ${ziel} anklicken (nochmal klicken löst die Verknüpfung) · <kbd>Esc</kbd> fertig`;
   } else if (w && w.art === "bauen") {
     const t = gebaeudeTypNach.get(w.typ);
     if (vorschauErgebnis && !vorschauErgebnis.passt) {
@@ -9846,6 +10111,17 @@ function aktualisiereAbrissMarke() {
 }
 spielEreignisse.addEventListener("kachelHover", () => { aktualisiereVorschau(); aktualisiereAbrissMarke(); });
 
+// Phase 7a (Nachtrag 2): "Werkbank 1 holt Material aus Kiste 2 (⇣ Import)." usw.
+function verknuepfungsText(idA, idB, richtung, ergebnis) {
+  const a = spiel.gebaeude.get(idA), b = spiel.gebaeude.get(idB);
+  const s = istStation(a) ? a : b, lager = s === a ? b : a;
+  const sn = gebaeudeName(s), ln = gebaeudeName(lager);
+  if (ergebnis === "geloest") return richtung === "export" ? `${sn} bringt nichts mehr nach ${ln} (⇡ Export gelöst).`
+                                                            : `${sn} holt nichts mehr aus ${ln} (⇣ Import gelöst).`;
+  return richtung === "export" ? `${sn} bringt ihre Erzeugnisse nach ${ln} (⇡ Export).`
+                               : `${sn} holt ihr Material aus ${ln} (⇣ Import).`;
+}
+
 // Linksklick auf eine Kachel (aufgerufen aus Abschnitt 6)
 function behandleKachelKlick(k, shift) {
   const g = gebaeudeUnter(k);
@@ -9853,10 +10129,10 @@ function behandleKachelKlick(k, shift) {
   if (verknuepfModus) {
     if (!g) { beendeVerknuepfen(); return; }
     if (g.id === verknuepfModus.vonId) return;
-    const von = spiel.gebaeude.get(verknuepfModus.vonId);
-    const ergebnis = schalteVerknuepfung(verknuepfModus.vonId, g.id);
-    if (!ergebnis) zeigeMeldung("Verknüpft werden können nur Stationen mit Zwischenlagern (Kiste, Schrank).", true);
-    else zeigeMeldung(`${gebaeudeName(von)} und ${gebaeudeName(g)} ${ergebnis === "verknuepft" ? "verknüpft" : "getrennt"}.`);
+    const ergebnis = schalteVerknuepfung(verknuepfModus.vonId, g.id, verknuepfModus.richtung);
+    if (!ergebnis) zeigeMeldung("Verknüpft werden können nur Stationen mit Lagern (Kiste, Schrank, Hauptlager).", true);
+    else zeigeMeldung(verknuepfungsText(verknuepfModus.vonId, g.id, verknuepfModus.richtung, ergebnis));
+    if (auswahlGebaeudeId) zeichneInfo();
     return;
   }
   // 2. Bauen
@@ -9867,7 +10143,7 @@ function behandleKachelKlick(k, shift) {
     const ergebnis = baueGebaeude(w.typ, anker.x, anker.z, w.drehung);
     if (!ergebnis.ok) { zeigeMeldung(`Hier geht das nicht: ${ergebnis.gruende[0]}`, true); return; }
     const neu = ergebnis.gebaeude;
-    const mit = ergebnis.verknuepft.length ? ` – verknüpft mit ${ergebnis.verknuepft.map(gebaeudeName).join(", ")}` : "";
+    const mit = ergebnis.verknuepft.length ? ` – ⇣ Import und ⇡ Export verknüpft mit ${ergebnis.verknuepft.map(gebaeudeName).join(", ")}` : "";
     zeigeMeldung(`${gebaeudeName(neu)} aufgestellt${ergebnis.kosten ? ` (−${euro(ergebnis.kosten)})` : ""}${mit}.`);
     if (!shift) setzeWerkzeug(null); else aktualisiereVorschau();
     return;
@@ -9920,10 +10196,9 @@ function behandleKachelKlick(k, shift) {
     waehleBandteil(bandteil.id, doppel && !!segmentVon(bandteil));
     return;
   }
-  // 5. Freie Kachel: auswählen und (außerhalb des Bau-Modus) hinlaufen
+  // 5. Freie Kachel: auswählen (Phase 7a, Nachtrag 2: "Du" läuft selbst, ein Klick schickt niemanden hin)
   waehleGebaeude(null);
   setzeAuswahl(k);
-  if (!bau.offen) schickeFigur(k);
 }
 spielEreignisse.addEventListener("rechtsKlick", () => { if (bau.offen && bau.werkzeug) dreheWerkzeug(); });
 
@@ -9942,7 +10217,7 @@ ob.bauLeiste.addEventListener("click", (e) => {
     const rolle = knopf.dataset.rolle;
     const p = stelleEin(rolle);
     if (p) zeigeMeldung(`${p.name} ist jetzt ${MITARBEITER_ROLLEN[p.rolle].name} in der Halle (−${euro(einstellGebuehr(rolle))}).`);
-    else zeigeMeldung(mitarbeiter.length >= maxMitarbeiter() ? "Die Halle ist voll besetzt – ein Hallenausbau schafft Platz für mehr." : geldGrund(einstellGebuehr(rolle)), true);
+    else zeigeMeldung(angestellte().length >= maxMitarbeiter() ? "Die Halle ist voll besetzt – ein Hallenausbau schafft Platz für mehr." : geldGrund(einstellGebuehr(rolle)), true);
   } else if (knopf.dataset.aktion === "ausruestung") {
     const p = mitarbeiter.find((m) => m.id === knopf.closest("li").dataset.id);
     const stufe = Number(knopf.dataset.stufe);
@@ -10102,8 +10377,13 @@ function zeichneInfo() {
   }
   const zahlen = infoZahlenHtml(g);
   html += `<div id="info-zahlen">${zahlen}</div><div class="info-knoepfe">`;
-  if (istStation(g) || istZwischenlager(g)) {
-    html += `<button class="lz-knopf" type="button" data-aktion="verknuepfen" aria-pressed="${!!verknuepfModus}">Verknüpfen ${kbd("verknuepfen")}</button>`;
+  if (istStation(g) || istVerknuepfZiel(g)) {        // Phase 7a (Nachtrag 2): Import und Export getrennt
+    const aktiv = (richtung) => !!verknuepfModus && verknuepfModus.richtung === richtung;
+    const station = istStation(g);
+    html += `<button class="lz-knopf vk-import" type="button" data-aktion="verknuepfen" data-richtung="import" aria-pressed="${aktiv("import")}"
+        title="${station ? "Lager, aus dem der Arbeiter sein Material holt" : "Station, die hier ihr Material holt"}">⇣ ${station ? "Import verknüpfen" : "Station versorgen"} ${kbd("verknuepfen")}</button>`;
+    html += `<button class="lz-knopf vk-export" type="button" data-aktion="verknuepfen" data-richtung="export" aria-pressed="${aktiv("export")}"
+        title="${station ? "Lager, in das der Arbeiter sein Erzeugnis bringt" : "Station, die ihre Erzeugnisse hier ablegt"}">⇡ ${station ? "Export verknüpfen" : "Erzeugnisse annehmen"} ${kbd("exportVerknuepfen")}</button>`;
   }
   if (istStation(g)) html += `<button class="lz-knopf" type="button" data-aktion="pause">${g.pausiert ? "Fortsetzen" : "Pausieren"}</button>`;
   if (istZwischenlager(g)) {
@@ -10218,7 +10498,6 @@ function aktualisiereInfoZahlen() {
 // Der laufend aktualisierte Teil des Info-Fensters (Status, Ressourcen, Füllstand)
 function infoZahlenHtml(g) {
   const t = typVon(g);
-  const verknuepfte = g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter(Boolean);
   const lagerName = (v) => istZwischenlager(v) ? `${ANZEIGE_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
   if (istStation(g)) {
@@ -10247,28 +10526,46 @@ function infoZahlenHtml(g) {
       // Phase 5b: Import-/Export-Pegel
       html += `<div class="info-block"><h3>Ressourcen · Eingangsfach ${summe(g.eingang)} / ${fachGroesse(g, "eingang")}</h3>${stationsZeilen(g, r)}</div>`;
       if (r.ausschuss) html += `<p class="info-warnung">⚠ Überhitzte Blaupause: ${Math.round(r.ausschuss * 100)} % Ausschuss.</p>`;
-      const zuKlein = verknuepfte.filter((l) => istZwischenlager(l) && darfArbeiterEntnehmen(l) && kapazitaetVon(l) < summe(r.eingaben));
+      const zuKlein = verknuepfteLager(g, "import").filter((l) => istZwischenlager(l) && darfArbeiterEntnehmen(l) && kapazitaetVon(l) < summe(r.eingaben));
       if (zuKlein.length) html += `<p class="info-warnung">⚠ ${zuKlein.map(gebaeudeName).join(", ")} ist zu klein für einen Durchgang (${summe(r.eingaben)} Items).</p>`;
       if (stationsStatus(g) === "keinLager") html += `<p class="info-warnung">⚠ Weder Import ins Eingangsfach noch ein Lager mit Material: Der Arbeiter bekommt nichts.</p>`;
       if (r.ausgabe) {
-        const ausgangLager = verknuepfte.filter((v) => nimmtErzeugnisAn(v, r.ausgabe));
+        const ausgangLager = verknuepfteLager(g, "export").filter((v) => nimmtErzeugnisAn(v, r.ausgabe));
         const fach = regelVon(g, r.ausgabe).exp ? `ins Ausgabefach (Kuriere holen ab ${exportPegel(g, r.ausgabe)} Stück ab)` : "ins Ausgabefach (Export aus: bleibt liegen)";
         html += `<div class="info-block"><h3>Erzeugnisse gehen</h3>${ausgangLager.length ? `ins Lager: ${ausgangLager.map(lagerName).join(", ")}` : fach}</div>`;
       }
     }
     if (kapazitaetVon(g) > 0) html += `<div class="info-block"><h3>Ausgabefach ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${itemZeilen(g.bestand)}</div>`;
-    html += `<div class="info-block"><h3>Zwischenlager</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
-      : `<span class="leise">Keins verknüpft – Kuriere liefern direkt ins Eingangsfach.</span>`}</div>`;
+    // Phase 7a (Nachtrag 2): Import- und Export-Verknüpfungen getrennt, jeweils mit ✕ zum Lösen
+    html += `<div class="info-block"><h3>⇣ Import aus</h3>${vkListe(g, verknuepfteLager(g, "import"), "import", lagerName)
+      || `<span class="info-leer">Kein Lager – Kuriere liefern direkt ins Eingangsfach.</span>`}</div>`;
+    html += `<div class="info-block"><h3>⇡ Export nach</h3>${vkListe(g, verknuepfteLager(g, "export"), "export", lagerName)
+      || `<span class="info-leer">Kein Lager – Erzeugnisse bleiben im Ausgabefach, Kuriere holen sie ab.</span>`}</div>`;
   } else if (istZwischenlager(g)) {
     html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${lagerZeilen(g)}</div>`;
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
-    html += `<div class="info-block"><h3>Verknüpft</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
-      : `<span class="info-warnung">Keine Station verknüpft – Kuriere bringen nur, was du auf ⇣ Import stellst.</span>`}</div>`;
+    html += vkLagerHtml(g, lagerName);
   } else if (t.art === "hauptlager") {
     html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3></div>${itemGruppen(g.bestand)}`;
+    if (g.verknuepft.length) html += vkLagerHtml(g, lagerName);
   }
   html += bandAnschlussHtml(g);                     // Phase 6
   return html;
+}
+// Phase 7a (Nachtrag 2): verknüpfte Gebäude als Chips mit ✕ (g = das gewählte Gebäude)
+function vkListe(g, liste, richtung, name) {
+  if (!liste.length) return "";
+  return `<div class="vk-liste">${liste.map((v) => `<span class="vk-chip ${richtung}"><span>${name(v)}</span><button type="button"
+      data-aktion="loesen" data-ziel="${v.id}" data-richtung="${richtung}" title="Verknüpfung lösen" aria-label="${htmlSicher(gebaeudeName(v))}: ${VERKNUEPF_NAME[richtung]} lösen">✕</button></span>`).join("")}</div>`;
+}
+// Für Lager: Welche Stationen holen hier Material, welche legen hier ihre Erzeugnisse ab?
+function vkLagerHtml(g, name) {
+  const imp = verknuepfteStationen(g, "import"), exp = verknuepfteStationen(g, "export");
+  if (!imp.length && !exp.length) {
+    return `<div class="info-block"><h3>Verknüpft</h3><span class="info-warnung">Keine Station verknüpft – Kuriere bringen nur, was du auf ⇣ Import stellst.</span></div>`;
+  }
+  return (imp.length ? `<div class="info-block"><h3>⇣ Versorgt (Stationen holen hier Material)</h3>${vkListe(g, imp, "import", name)}</div>` : "")
+       + (exp.length ? `<div class="info-block"><h3>⇡ Nimmt an (Stationen bringen hierher)</h3>${vkListe(g, exp, "export", name)}</div>` : "");
 }
 // Schreibt HTML nur, wenn es sich geändert hat. Verglichen wird mit dem zuletzt
 // geschriebenen Text, denn innerHTML liest der Browser leicht verändert zurück.
@@ -10356,14 +10653,24 @@ ob.infoInhalt.addEventListener("click", (e) => {
   if (!knopf || !g) return;
   const item = knopf.dataset.item;
   switch (knopf.dataset.aktion) {
-    case "verknuepfen":
-      if (verknuepfModus) { beendeVerknuepfen(); return; }
+    case "verknuepfen": {                            // Phase 7a (Nachtrag 2): mit Richtung
+      const richtung = knopf.dataset.richtung === "export" ? "export" : "import";
+      const warAktiv = verknuepfModus && verknuepfModus.richtung === richtung;
+      if (verknuepfModus) beendeVerknuepfen();
+      if (warAktiv) return;
       setzeWerkzeug(null);
-      verknuepfModus = { vonId: g.id };
-      knopf.setAttribute("aria-pressed", "true");
-      zeigeMeldung(istStation(g) ? "Jetzt ein Zwischenlager anklicken (Esc: fertig)." : "Jetzt eine Station anklicken (Esc: fertig).");
+      verknuepfModus = { vonId: g.id, richtung };
+      zeichneInfo();
+      zeigeMeldung(`${VERKNUEPF_NAME[richtung]}: Jetzt ${istStation(g) ? "ein Lager (Kiste, Schrank, Hauptlager)" : "eine Station"} anklicken (Esc: fertig).`);
       aktualisiereBauTipp();
       break;
+    }
+    case "loesen": {                                 // Phase 7a (Nachtrag 2): eine Verknüpfung per ✕ lösen
+      const richtung = knopf.dataset.richtung;
+      if (schalteVerknuepfung(g.id, knopf.dataset.ziel, richtung) === "geloest")
+        zeigeMeldung(verknuepfungsText(g.id, knopf.dataset.ziel, richtung, "geloest"));
+      break;
+    }
     case "pause": schaltePause(g.id); break;
     case "lager": oeffneLager(); break;
     case "verschieben": starteVerschieben(g.id); break;
@@ -10400,7 +10707,8 @@ $("info-schliessen").addEventListener("click", () => waehleGebaeude(null));
 
 /* --- Lager-Fenster --- */
 function aktualisiereSperre() {
-  sperre3dEingaben(lagerOffen || dialogOffen || kontor.offen || forschungOffen || insolvenzOffen || einstellungsFenster.offen);
+  sperre3dEingaben(lagerOffen || dialogOffen || kontor.offen || forschungOffen || insolvenzOffen || einstellungsFenster.offen
+    || (typeof rezeptFenster !== "undefined" && rezeptFenster.offen));
   aktualisiereVorschau();
   aktualisiereAbrissMarke();
 }
@@ -10586,6 +10894,7 @@ function schliesseAndereFenster() {
   if (kontor.offen) schliesseKontor(false);
   if (forschungOffen) schliesseForschung(false);
   if (einstellungsFenster.offen) schliesseEinstellungen(false);   // Phase 7a
+  if (rezeptFenster.offen) schliesseRezepte(false);               // Phase 7a (Nachtrag 2)
 }
 function oeffneKontor(reiter = kontor.reiter) {
   if (designer.offen || dialogOffen || insolvenzOffen) return;
@@ -11183,6 +11492,11 @@ window.addEventListener("keydown", (e) => {
   }
   // Phase 7a: Die Taste wird über die Belegung aus dem Einstellungsmenü in eine Aktion übersetzt
   const aktion = aktionFuerTaste(taste);
+  if (rezeptFenster.offen) {                            // Phase 7a (Nachtrag 2): Rezepte
+    if (taste === "escape" || aktion === "rezepte") { erledigt(); schliesseRezepte(); }
+    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
+    return;
+  }
   if (lagerOffen) {
     if (taste === "escape" || aktion === "lager") { erledigt(); schliesseLager(); }
     else if (aktion === "kontor") { erledigt(); oeffneKontor("einkauf"); }
@@ -11214,15 +11528,18 @@ window.addEventListener("keydown", (e) => {
     case "kontor": erledigt(); oeffneKontor(); break;
     case "forschung": erledigt(); oeffneForschung(); break;
     case "einstellungen": erledigt(); oeffneEinstellungen(); break;
+    case "rezepte": erledigt(); oeffneRezepte(); break;   // Phase 7a (Nachtrag 2)
     case "verschieben": erledigt(); schalteVerschieben(); aktualisiereBauTipp(); break;
     case "abriss": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
     case "band": erledigt(); schalteBandWerkzeug(); break;   // Phase 6: Fließband
     case "weiterbauen":                                       // Phase 7a: gewähltes Band verlängern
       if (auswahlBandId) { erledigt(); bandWeiterbauen(); }
       break;
-    case "verknuepfen": {                                     // Phase 7a: wie der Knopf im Info-Fenster
+    case "verknuepfen":                                       // Phase 7a: wie die Knöpfe im Info-Fenster
+    case "exportVerknuepfen": {                               // (Nachtrag 2: V = Import, G = Export)
       const g = auswahlGebaeudeId && spiel.gebaeude.get(auswahlGebaeudeId);
-      const knopf = g && ob.infoInhalt.querySelector('button[data-aktion="verknuepfen"]');
+      const richtung = aktion === "exportVerknuepfen" ? "export" : "import";
+      const knopf = g && ob.infoInhalt.querySelector(`button[data-aktion="verknuepfen"][data-richtung="${richtung}"]`);
       if (knopf) { erledigt(); knopf.click(); }
       break;
     }
@@ -11235,7 +11552,8 @@ window.addEventListener("keydown", (e) => {
 
 // Schutz vor "Durchklicken": Mausaktionen auf den neuen Fenstern erreichen das Raster nicht.
 for (const element of [ob.bauLeiste, ob.info, ob.lagerOverlay, ob.dialogOverlay,
-                       ob.kontorOverlay, ob.forschungOverlay, ob.insolvenzOverlay, ob.hudBankrott, ob.einstellungenOverlay]) {
+                       ob.kontorOverlay, ob.forschungOverlay, ob.insolvenzOverlay, ob.hudBankrott, ob.einstellungenOverlay,
+                       $("rezepte-overlay"), $("rezept-stapel")]) {   // Phase 7a (Nachtrag 2): Rezepte
   for (const art of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "contextmenu"]) {
     element.addEventListener(art, (e) => e.stopPropagation());
   }
@@ -11269,6 +11587,8 @@ function aktualisiereOberflaeche(sekunden) {
     if (auswahlBandId) aktualisiereBandInfoZahlen();
   }
   aktualisiereFreiChip();
+  zeichneRezeptStapel();                         // Phase 7a (Nachtrag 2): Zahlen auf den angehefteten Rezepten
+  if (rezeptFenster.offen) zeichneRezepte();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
   if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !(document.activeElement instanceof HTMLSelectElement && ob.info.contains(document.activeElement))) {
     zeichneInfo();
@@ -11879,10 +12199,16 @@ function personalAktion(knopf) {
       return true;
     }
     case "logistik":
-      if (p && schuleUm(p.id, "kurier")) zeigeMeldung(`${p.name} ist jetzt Kurier.`);
+      if (p && schuleUm(p.id, "kurier")) zeigeMeldung(p.istDu ? "Du bist jetzt Kurier." : `${p.name} ist jetzt Kurier.`);
       return true;
     case "zuArbeiter":
-      if (p && schuleUm(p.id, "arbeiter")) zeigeMeldung(`${p.name} ist jetzt Arbeiter und sucht sich eine freie Station.`);
+      if (p && schuleUm(p.id, "arbeiter")) zeigeMeldung(p.istDu ? "Du bist jetzt Arbeiter und suchst dir eine freie Station." : `${p.name} ist jetzt Arbeiter und sucht sich eine freie Station.`);
+      return true;
+    case "duFlexibel":                                // Phase 7a (Nachtrag 2)
+      if (p && p.istDu) {
+        setzeDuFlexibel(!p.flexibel);
+        zeigeMeldung(p.flexibel ? "Flexibel: Du springst ein, wo gerade jemand fehlt." : "Du bleibst bei deiner jetzigen Aufgabe.");
+      }
       return true;
     case "entlassen-frei": {
       if (!knopf.classList.contains("bestaetigen")) {
@@ -12042,7 +12368,7 @@ function personZiehenAbbruch() {
 
 // Setzt einen Mitarbeiter an eine Station: er steht sofort vor ihr und beginnt mit der Arbeit.
 function setzePersonAnStation(p, s) {
-  if (p.stationId === s.id) { zeigeMeldung(`${p.name} arbeitet schon an ${gebaeudeName(s)}.`); return true; }
+  if (p.stationId === s.id) { zeigeMeldung(p.istDu ? `Du arbeitest schon an ${gebaeudeName(s)}.` : `${p.name} arbeitet schon an ${gebaeudeName(s)}.`); return true; }
   const warKurier = p.rolle === "kurier";
   if (warKurier) schuleUm(p.id, "arbeiter");
   const vorher = s.arbeiterId && s.arbeiterId !== p.id ? mitarbeiter.find((m) => m.id === s.arbeiterId) : null;
@@ -12055,7 +12381,7 @@ function setzePersonAnStation(p, s) {
     schaueAuf(p, s);
     p.blickwinkel = p.blickZiel;
   }
-  zeigeMeldung(`${p.name} arbeitet jetzt an ${gebaeudeName(s)}${warKurier ? " (vom Kurier zum Arbeiter umgeschult)" : ""}` +
+  zeigeMeldung((p.istDu ? `Du arbeitest jetzt an ${gebaeudeName(s)}` : `${p.name} arbeitet jetzt an ${gebaeudeName(s)}${warKurier ? " (vom Kurier zum Arbeiter umgeschult)" : ""}`) +
     `${vorher ? ` – ${vorher.name} sucht sich eine andere Station` : ""}.`);
   if (auswahlGebaeudeId === s.id) anzeige.infoStrukturFehlt = true;
   return true;
@@ -12149,6 +12475,205 @@ function schalteAllesFrei() {
 }
 
 /* ============================================================================
+   ABSCHNITT 13f: Rezepte (Phase 7a, Nachtrag 2)                     [UI/UX-Agent]
+   Fenster "Rezepte" (HUD-Knopf, Taste Z): alle Werkbank-Rezepte (Rohstoffe → Bauteil) und
+   die Entwürfe aus dem Layout-Designer (Bauteile → Produkt am Montagetisch).
+   📌 heftet ein Rezept als kleines Fenster "Rezept: Name" an den rechten Rand (bleibt im
+   Spielstand). Ein Klick auf eine Ressource dort fliegt zur Station, die sie gerade herstellt;
+   bei mehreren springt jeder weitere Klick zur nächsten.
+   Schlüssel eines Rezepts: "b:<Bauteil-Typ>" (Werkbank) bzw. "p:<Blaupausen-ID>" (Montagetisch).
+   ============================================================================ */
+const rezeptFenster = { offen: false, html: "" };
+const rezeptSprung = {};          // Item → Index der zuletzt gezeigten Station (zum Weiterschalten)
+Object.assign(ob, {
+  rezepteOverlay: $("rezepte-overlay"), rezepteFenster: $("rezepte-fenster"), rezepteInhalt: $("rezepte-inhalt"),
+  hudRezepte: $("hud-rezepte"), rezeptStapel: $("rezept-stapel"),
+});
+
+// Alle Angaben zu einem Rezept (oder null, z. B. wenn der Entwurf gelöscht wurde)
+function rezeptDaten(schluessel) {
+  if (schluessel.startsWith("b:")) {
+    const b = bauteilNachTyp.get(schluessel.slice(2));
+    if (!b || !b.rezept) return null;
+    return { schluessel, name: b.name, ort: "Werkbank", eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit,
+             wert: berechneBauteilwert(b.typ), gesperrt: !b.freigeschaltet };
+  }
+  if (schluessel.startsWith("p:")) {
+    const bp = blaupausenNachId.get(schluessel.slice(2));
+    if (!bp) return null;
+    const eingaben = teileZaehlen(bp.teile);
+    const teile = summe(eingaben);
+    const ueberhitzt = !!(bp.werte && bp.werte.ueberhitzt);
+    const klasse = besteKlasse(eingaben, ueberhitzt);
+    return { schluessel, name: bp.name, ort: "Montagetisch", eingaben, ausgabe: "p:" + bp.id,
+             zeit: PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile,
+             wert: berechneMarktwert(bp), klasse, ueberhitzt, blaupause: bp.id };
+  }
+  return null;
+}
+function alleRezeptSchluessel() {
+  return [...BAUTEILE.filter((b) => b.rezept).map((b) => "b:" + b.typ), ...[...blaupausenNachId.keys()].map((id) => "p:" + id)];
+}
+// Welche Stationen stellen dieses Item gerade her? (Rezept passt, nicht pausiert; die nächste zur Kamera zuerst)
+function stationenFuer(item) {
+  return gebaeudeListe((g) => istStation(g) && !g.pausiert && rezeptVon(g)?.ausgabe === item)
+    .sort((a, b) => a.nummer - b.nummer || a.typ.localeCompare(b.typ));
+}
+const istRohstoff = (item) => ROHSTOFFE.some((r) => r.id === item);
+
+// Ein Item als Chip (Farbpunkt, Menge, Name). knopf = true: anklickbar, mit Zahl der Stationen
+function rezeptItemHtml(item, n, knopf) {
+  const info = itemInfo(item);
+  const name = `${n > 1 || knopf ? `${n}× ` : ""}${htmlSicher(info.name)}`;
+  if (!knopf) return `<span class="rezept-item" style="--item-farbe:${info.farbe}">${name}</span>`;
+  const anzahl = istRohstoff(item) ? null : stationenFuer(item).length;
+  const titel = istRohstoff(item) ? `${info.name}: wird eingekauft (Kontor)`
+    : anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} ${info.name} gerade her – Klick zeigt sie`
+    : `Keine Station stellt ${info.name} gerade her`;
+  return `<button type="button" class="rezept-item" data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
+    + `<span class="name">${name}</span>${anzahl === null ? "" : `<span class="anzahl ${anzahl ? "" : "null"}">${anzahl}</span>`}</button>`;
+}
+function istAngeheftet(schluessel) {
+  return spiel.rezeptPins.some((p) => p.schluessel === schluessel);
+}
+function schalteRezeptPin(schluessel) {
+  if (istAngeheftet(schluessel)) spiel.rezeptPins = spiel.rezeptPins.filter((p) => p.schluessel !== schluessel);
+  else if (rezeptDaten(schluessel)) spiel.rezeptPins.push({ schluessel, zu: false });
+  zeichneRezeptStapel(true);
+  if (rezeptFenster.offen) zeichneRezepte();
+  return istAngeheftet(schluessel);
+}
+
+/* --- Das Fenster --- */
+function oeffneRezepte() {
+  if (designer.offen || dialogOffen || insolvenzOffen || rezeptFenster.offen) return;
+  schliesseAndereFenster();
+  rezeptFenster.offen = true;
+  ob.rezepteOverlay.hidden = false;
+  aktualisiereSperre();
+  zeichneRezepte();
+  ob.rezepteFenster.focus({ preventScroll: true });
+}
+function schliesseRezepte(fokusZurueck = true) {
+  if (!rezeptFenster.offen) return;
+  rezeptFenster.offen = false;
+  ob.rezepteOverlay.hidden = true;
+  aktualisiereSperre();
+  if (fokusZurueck) ob.hudRezepte.focus({ preventScroll: true });
+}
+function zeichneRezepte() {
+  const zeile = (schluessel) => {
+    const r = rezeptDaten(schluessel);
+    if (!r) return "";
+    const formel = Object.entries(r.eingaben).map(([i, n]) => rezeptItemHtml(i, n, false)).join(" ")
+      + ` <span class="rezept-pfeil">→</span> ${rezeptItemHtml(r.ausgabe, 1, false)}`;
+    const zusatz = [`${zahlText(r.zeit)} s`, `Wert ${euro(r.wert)}`];
+    if (r.klasse) zusatz.push(htmlSicher(r.klasse.name));
+    if (r.ueberhitzt) zusatz.push("⚠ überhitzt");
+    const stationen = stationenFuer(r.ausgabe).length;
+    zusatz.push(stationen ? `${stationen}× in Arbeit` : "keine Station");
+    const pin = istAngeheftet(schluessel);
+    return `<li class="rezept-zeile ${r.gesperrt ? "gesperrt" : ""}">
+        <span><b>${r.gesperrt ? "🔒 " : ""}${htmlSicher(r.name)}</b> <small>${r.ort}</small></span>
+        <small>${zusatz.join(" · ")}</small>
+        <span class="rezept-knoepfe">
+          ${r.blaupause ? `<button class="mini-knopf" type="button" data-aktion="bearbeiten" data-blaupause="${htmlSicher(r.blaupause)}" title="Im Layout-Designer öffnen">Bearbeiten</button>` : ""}
+          <button class="pin-knopf" type="button" data-aktion="pin" data-schluessel="${htmlSicher(schluessel)}" aria-pressed="${pin}"
+            title="${pin ? "Vom Rand lösen" : "Als kleines Fenster an den Rand heften"}" aria-label="${htmlSicher(r.name)} ${pin ? "lösen" : "anheften"}">📌</button>
+        </span>
+        <span class="rezept-formel">${formel}</span>
+      </li>`;
+  };
+  const bauteile = alleRezeptSchluessel().filter((k) => k.startsWith("b:"));
+  const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
+  const html = `<h3>Bauteile · Werkbank</h3><ul class="rezept-liste">${bauteile.map(zeile).join("")}</ul>
+    <h3>Produkte · Montagetisch (Entwürfe aus dem Designer)</h3>
+    ${produkte.length ? `<ul class="rezept-liste">${produkte.map(zeile).join("")}</ul>`
+      : `<p class="info-leer">Noch keine Entwürfe. Im Layout-Designer (${kbd("designer")}) entwerfen und speichern.</p>`}`;
+  if (rezeptFenster.html === html) return;
+  rezeptFenster.html = html;
+  morphe(ob.rezepteInhalt, html);
+}
+ob.rezepteInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-aktion]");
+  if (!knopf) return;
+  if (knopf.dataset.aktion === "pin") {
+    const r = rezeptDaten(knopf.dataset.schluessel);
+    const an = schalteRezeptPin(knopf.dataset.schluessel);
+    if (r) zeigeMeldung(an ? `Rezept „${r.name}“ angeheftet.` : `Rezept „${r.name}“ gelöst.`);
+  } else if (knopf.dataset.aktion === "bearbeiten") {
+    const id = knopf.dataset.blaupause;
+    schliesseRezepte(false);
+    oeffneDesigner();
+    const laden = lz.blaupausen.querySelector(`li[data-id="${CSS.escape(id)}"] [data-aktion="laden"]`);
+    if (laden) laden.click();
+  }
+});
+$("rezepte-schliessen").addEventListener("click", () => schliesseRezepte());
+ob.rezepteOverlay.addEventListener("click", (e) => { if (e.target === ob.rezepteOverlay) schliesseRezepte(); });
+ob.hudRezepte.addEventListener("click", () => (rezeptFenster.offen ? schliesseRezepte() : oeffneRezepte()));
+
+/* --- Angeheftete Rezepte am Rand --- */
+let rezeptStapelHtml = null;
+function zeichneRezeptStapel(sofort = false) {
+  // Gelöschte Entwürfe verschwinden auch vom Rand
+  const vorher = spiel.rezeptPins.length;
+  spiel.rezeptPins = spiel.rezeptPins.filter((p) => rezeptDaten(p.schluessel));
+  if (spiel.rezeptPins.length !== vorher) sofort = true;
+  const html = spiel.rezeptPins.map((pin) => {
+    const r = rezeptDaten(pin.schluessel);
+    const zeilen = Object.entries(r.eingaben).map(([i, n]) => `<li>${rezeptItemHtml(i, n, true)}</li>`).join("");
+    return `<section class="rezept-karte" data-schluessel="${htmlSicher(pin.schluessel)}" aria-label="Rezept: ${htmlSicher(r.name)}">
+        <header><b title="${htmlSicher(r.name)} · ${r.ort}">Rezept: ${htmlSicher(r.name)}</b>
+          <button class="mini-knopf" type="button" data-aktion="zuklappen" aria-expanded="${!pin.zu}" aria-label="${pin.zu ? "Aufklappen" : "Einklappen"}">${pin.zu ? "▸" : "▾"}</button>
+          <button class="mini-knopf" type="button" data-aktion="loesen" aria-label="Rezept ${htmlSicher(r.name)} lösen" title="Lösen">✕</button></header>
+        ${pin.zu ? "" : `<ul>${zeilen}<li class="ergebnis">${rezeptItemHtml(r.ausgabe, 1, true)}</li></ul>`}
+      </section>`;
+  }).join("");
+  if (!sofort && rezeptStapelHtml === html) return;
+  if (!sofort && performance.now() < rezeptKlickSperre) return;   // gerade wird geklickt: nicht austauschen
+  rezeptStapelHtml = html;
+  morphe(ob.rezeptStapel, html);
+  ob.rezeptStapel.hidden = !spiel.rezeptPins.length;
+}
+let rezeptKlickSperre = 0;
+ob.rezeptStapel.addEventListener("pointerdown", () => { rezeptKlickSperre = performance.now() + 400; });
+ob.rezeptStapel.addEventListener("click", (e) => {
+  const karte = e.target.closest(".rezept-karte");
+  if (!karte) return;
+  const pin = spiel.rezeptPins.find((p) => p.schluessel === karte.dataset.schluessel);
+  const knopf = e.target.closest("button");
+  if (!pin || !knopf) return;
+  if (knopf.dataset.aktion === "zuklappen") { pin.zu = !pin.zu; zeichneRezeptStapel(true); return; }
+  if (knopf.dataset.aktion === "loesen") { schalteRezeptPin(pin.schluessel); return; }
+  if (knopf.dataset.item) zeigeHerstellendeStation(knopf.dataset.item);
+});
+// Die Info-Leiste rechts schiebt die Karten nach links
+new MutationObserver(() => document.body.classList.toggle("info-offen", !ob.info.hidden))
+  .observe(ob.info, { attributes: true, attributeFilter: ["hidden"] });
+document.body.classList.toggle("info-offen", !ob.info.hidden);
+
+// Kamera zur Station, die das Item gerade herstellt (mehrere: bei jedem Klick die nächste)
+function zeigeHerstellendeStation(item) {
+  const info = itemInfo(item);
+  if (istRohstoff(item)) { zeigeMeldung(`${info.name} wird eingekauft (Kontor ${kbd("kontor").replace(/<[^>]+>/g, "")}).`); return null; }
+  const liste = stationenFuer(item);
+  if (!liste.length) {
+    const ort = item.startsWith("p:") ? "Montagetisch bauen und Entwurf wählen" : "Werkbank bauen und Rezept wählen";
+    zeigeMeldung(`Keine Station stellt ${info.name} her – ${ort}.`, true);
+    return null;
+  }
+  const nr = ((rezeptSprung[item] ?? -1) + 1) % liste.length;
+  rezeptSprung[item] = nr;
+  const s = liste[nr];
+  const mitte = gebaeudeMitteWelt(s);
+  kameraFlugZiel = new THREE.Vector3(mitte.x, 0, mitte.z);
+  waehleGebaeude(s.id);
+  zeigeMeldung(`${gebaeudeName(s)} stellt ${info.name} her${liste.length > 1 ? ` (${nr + 1} von ${liste.length})` : ""}.`);
+  return s;
+}
+
+/* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
@@ -12159,7 +12684,7 @@ function spielschleife() {
 
   bewegeMitTastatur(sekunden);
   fliegeKamera(sekunden);
-  bewegeFigur(sekunden);
+  if (!figur.istDu) bewegeFigur(sekunden);       // "Du" läuft als Mitarbeiter in Spielzeit (simuliere)
   aktualisiereFigur3d(sekunden, zeit);
   aktualisierePfadUndMarken(sekunden, zeit);
   aktualisiereFigurAnzeige();
@@ -12227,6 +12752,10 @@ window.tradeUp = {
   einstellungen, TASTEN_STANDARD, GRAFIK_STANDARD, oeffneEinstellungen, schliesseEinstellungen,
   personUnterMaus, setzePersonAnStation, personZug, entfAbriss, schalteAllesFrei, ENTWICKLUNG,
   waehleBandteil, bandWeiterbauen, bandAuswahl, ioPartner, reisseSegmentAb, kurvenBogen, bandItemPunkt,
+  // Phase 7a (Nachtrag 2): Import-/Export-Verknüpfungen, eigene Figur, Rezepte
+  verknuepfteLager, verknuepfteStationen, sindVerknuepft, spielstandDaten, waehleGebaeude,
+  angestellte, nimmDuAuf, setzeDuFlexibel, DU,
+  oeffneRezepte, schliesseRezepte, rezeptDaten, stationenFuer, schalteRezeptPin, zeigeHerstellendeStation,
 };
 </script>
 

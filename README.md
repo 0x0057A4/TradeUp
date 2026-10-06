@@ -39,7 +39,7 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Auswahl aufheben | `Esc` |
 | Kamera verschieben | rechte (oder mittlere) Maustaste ziehen, `W A S D`, Pfeiltasten |
 | Zoomen | Mausrad |
-| Figur hinschicken | Linksklick auf freien Boden |
+| Kachel auswählen | Linksklick auf freien Boden (deine Figur „Du“ läuft selbst, wie alle Mitarbeiter) |
 | Gebäude-Info öffnen | Linksklick auf ein Gebäude |
 | Baumenü öffnen / schließen | Knopf „Bauen“, `B` |
 | Gebäude aufstellen | Karte im Baumenü wählen, Linksklick (mit `Shift` mehrere) |
@@ -47,16 +47,19 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Abriss-Werkzeug | `X`, dann Gebäude anklicken |
 | Lager-Fenster | Knopf „Lager“, `I` |
 | Pause / Tempo 1×, 2×, 3× | `P`, `1`, `2`, `3` |
-| Kamera auf die Figur | `Leertaste` |
+| Kamera zu dir („Du“) | `Leertaste` |
 | Layout-Designer öffnen / schließen | Knopf in der Infobox, `L`, `Esc` |
 | Fließband in die Hand | `F` |
 | Bandstück wählen / ganze Bandgruppe wählen | Einfachklick / Doppelklick auf ein Band |
 | Gewähltes Band weiterbauen | `E`, dann Ziel anklicken |
-| Verknüpfen (Station oder Zwischenlager gewählt) | `V` |
+| ⇣ Import verknüpfen: Lager, aus dem eine Station ihr Material holt (Station oder Lager gewählt) | `V`, dann das andere Gebäude anklicken |
+| ⇡ Export verknüpfen: Lager, in das eine Station ihre Erzeugnisse bringt | `G`, dann das andere Gebäude anklicken |
 | Mitarbeiter an eine Station setzen | Mitarbeiter mit gedrückter linker Maustaste auf Werkbank, Montagetisch oder Forschungsstation ziehen (Kuriere werden dabei Arbeiter) |
 | Abreißen ohne Werkzeug | `Entf`: ausgewähltes Gebäude bzw. Band (Einzelstück oder ganze Gruppe), sonst das, worauf die Maus zeigt |
 | Testgeld und alles freischalten | Einstellungen (`O`) → Reiter „Entwicklung“ |
 | Einstellungen (Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
+| Rezepte (Werkbank und Designer-Entwürfe), 📌 anheften | Knopf „Rezepte“, `Z` |
+| Station finden, die eine Ressource herstellt | Klick auf die Ressource in einem angehefteten Rezept |
 
 Alle Tastenkürzel außer `Esc`, `Leertaste` und den Pfeiltasten lassen sich im Einstellungsmenü neu belegen (seit Phase 7a). Der Browser merkt sich die Belegung.
 

@@ -1962,6 +1962,16 @@ const GRAFIK = {
   farbeExport:          "#d9473a",   // rote Linien: hierhin geht Ware aus dem ausgewählten Gebäude
   linienBogen:          1.4,         // so hoch (Kacheln) wölben sich die Linien über der Halle
   kurvenSegmente:       10,          // so fein werden Kurvenbänder gezeichnet (mehr = runder)
+
+  // --- Phase 7b Nachtrag: Tore der Zonen, Verladen, Puffer der Verteiler ---
+  farbeRolltor:         "#aeb8bf",   // Lamellen des Rolltors der Importzone
+  farbeGittertor:       "#7b868e",   // Metallstäbe und Querstreben des Rollgitters der Exportzone
+  farbeTorRahmen:       "#6f7c86",   // Pfosten und Rollkasten beider Tore
+  farbeEtikett:         "#f4f1e8",   // helles Etikett vorn an der Kiste (zeigt die Vorderseite)
+  torZeit:              0.6,         // Sekunden, die ein Tor zum Hoch- bzw. Herunterfahren braucht
+  rangierAbstand:       1.8,         // so weit (Kacheln) vor der Wand wendet der Wagen, bevor er rückwärts ans Tor setzt
+  verladeTempo:         1.6,         // so viele Pakete pro Sekunde wandern beim Ab-/Aufladen durchs Tor (nur Anzeige)
+  pufferWuerfel:        0.1,         // Kantenlänge der Puffer-Würfel in Splitter, Smart-Verteiler und Ventil
 };
 
 /* ============================================================================
@@ -9135,17 +9145,61 @@ function zonenModell(m, breite, farbe, rolltor) {
       }
     }
   }
-  if (rolltor) {
-    const z = -T / 2 - 0.02;
-    for (const x of [-0.75, 0.75]) quader(g, 0.1, 1.4, 0.12, GRAFIK.farbeMetallDunkel, x, 0, z, m);
-    quader(g, 1.6, 0.14, 0.14, GRAFIK.farbeMetallDunkel, 0, 1.4, z, m);
-    for (let i = 0; i < 6; i++) quader(g, 1.4, 0.16, 0.04, GRAFIK.farbeMetall, 0, 0.62 + i * 0.13, z, m);   // halb offenes Tor
+  // Phase 7b Nachtrag: Tor hinten – Importzone: Rolltor aus Lamellen, Exportzone (rolltor = "gitter"): Rollgitter.
+  // Beide sind geschlossen und fahren hoch, solange ein Wagen am Tor steht (aktualisiereTore).
+  const tor = rolltor ? baueZonenTor(g, m, rolltor === "gitter", -T / 2 - 0.02) : null;
+  return { gruppe: g, plaetze, wuerfel: 0.2, tor };
+}
+
+/* --- Phase 7b Nachtrag: Rolltor (Import) und Rollgitter (Export) an der Rückseite der Zonen ---
+   Der Behang läuft beim Öffnen nach oben in den Rollkasten: Lamellen bzw. Querstreben wandern hoch und
+   verschwinden im Kasten, die senkrechten Gitterstäbe werden von unten her kürzer. */
+function baueZonenTor(gruppe, m, gitter, z) {
+  const B = 1.4, oben = 1.4;                       // lichte Breite, Unterkante des Rollkastens
+  for (const x of [-0.75, 0.75]) quader(gruppe, 0.1, oben, 0.14, GRAFIK.farbeTorRahmen, x, 0, z, m);
+  quader(gruppe, 1.62, 0.24, 0.22, GRAFIK.farbeTorRahmen, 0, oben, z - 0.02, m);   // Rollkasten
+  const teile = [], staebe = [];                   // teile: { mesh, y (Unterkante bei geschlossenem Tor), h }
+  const farbe = gitter ? GRAFIK.farbeGittertor : GRAFIK.farbeRolltor;
+  if (gitter) {
+    for (let i = 0; i < 7; i++) {                  // Querstreben
+      const y = 0.2 + i * 0.19;
+      teile.push({ mesh: quader(gruppe, B, 0.035, 0.05, farbe, 0, y, z, m), y, h: 0.035 });
+    }
+    for (let i = 0; i < 14; i++) {                 // senkrechte Metallstäbe (oben im Kasten verankert)
+      staebe.push(quader(gruppe, 0.025, oben, 0.025, farbe, -B / 2 + 0.05 + i * (B - 0.1) / 13, 0, z + 0.01, m));
+    }
+  } else {
+    const n = 10, h = (oben - 0.06) / n;
+    for (let i = 0; i < n; i++) {                  // Lamellen mit schmaler Fuge
+      const y = 0.06 + i * h;
+      teile.push({ mesh: quader(gruppe, B, h - 0.018, 0.04, farbe, 0, y, z, m), y, h: h - 0.018 });
+    }
   }
-  return { gruppe: g, plaetze, wuerfel: 0.2 };
+  teile.push({ mesh: quader(gruppe, B, 0.06, 0.07, GRAFIK.farbeTorRahmen, 0, 0, z, m), y: 0, h: 0.06 });   // Bodenleiste
+  const tor = { teile, staebe, oben, offen: 0 };
+  setzeTorOffen(tor, 0);
+  return tor;
+}
+// offen: 0 = geschlossen, 1 = ganz hochgefahren (nur noch die Bodenleiste schaut unter dem Kasten hervor)
+function setzeTorOffen(tor, offen) {
+  tor.offen = offen;
+  const hub = offen * offen * (3 - 2 * offen) * (tor.oben - 0.07);   // weich anfahren und abbremsen
+  for (const t of tor.teile) {
+    const y = t.y + hub;
+    t.mesh.position.y = y + t.h / 2;
+    t.mesh.visible = y < tor.oben - 0.005;         // ganz im Rollkasten: ausblenden
+  }
+  for (const s of tor.staebe) {
+    const laenge = tor.oben - hub;
+    s.visible = laenge > 0.02;
+    s.scale.y = Math.max(0.001, laenge / tor.oben);
+    s.position.y = hub + laenge / 2;
+  }
 }
 
 /* --- Phase 7b: Liefer- und Abholwagen ---
-   Fahren außen an der nächsten Hallenwand vor (seitlich herein, kurz stehen, wieder hinaus). */
+   Fahren außen an der nächsten Hallenwand vor (seitlich herein, kurz stehen, wieder hinaus).
+   Phase 7b Nachtrag: Der Wagen setzt rückwärts ans Tor der Zone; Tor öffnet sich, solange er dort steht. */
 const wagen3d = new Map();   // Zonen-ID → Gruppe
 function baueWagen(farbe) {
   const g = new THREE.Group();
@@ -9170,10 +9224,13 @@ function wagenPlatz(g) {
     { d: m.x + 0.5, aussen: { x: -1, z: 0 } },
     { d: level.breite - 0.5 - m.x, aussen: { x: 1, z: 0 } },
   ].sort((a, b) => a.d - b.d);
-  const a = abstaende[0].aussen;
+  // Phase 7b Nachtrag: Steht die Zone mit der Rückseite an der Wand, hält der Wagen genau hinter ihrem Tor
+  const hinten = abstaende.find((x) => x.aussen.x === -g.richtung.x && x.aussen.z === -g.richtung.z);
+  const wahl = hinten && hinten.d <= typVon(g).tiefe / 2 + 0.01 ? hinten : abstaende[0];
+  const a = wahl.aussen;
   const welt = kachelZuWelt(m.x, m.z);
-  const weg = abstaende[0].d + 1.6;
-  return { x: welt.x + a.x * weg, z: welt.z + a.z * weg, winkel: gebaeudeWinkel(a), quer: { x: a.z, z: a.x } };
+  const weg = wahl.d + 1.6;
+  return { x: welt.x + a.x * weg, z: welt.z + a.z * weg, winkel: gebaeudeWinkel(a), quer: { x: a.z, z: a.x }, aussen: a };
 }
 // Fortschritt eines Wagens: 0 = weit weg, 1 = steht an der Zone (null = nicht da)
 function wagenZustand(g) {
@@ -9202,13 +9259,115 @@ function aktualisiereWagen() {
     zonen.add(g.id);
     let w = wagen3d.get(g.id);
     if (!w) { w = baueWagen(istImportzone(g) ? "#3c6fb5" : "#c94b3a"); szene.add(w); wagen3d.set(g.id, w); }
-    const platz = wagenPlatz(g);
-    const p = Math.max(0, Math.min(1, z.p));
-    const versatz = (1 - (wenigerAnimation ? 1 : p * p * (3 - 2 * p))) * 7 * (z.rein ? 1 : -1);
-    w.position.set(platz.x + platz.quer.x * versatz, rasterHoehe - 0.1, platz.z + platz.quer.z * versatz);
-    w.rotation.y = platz.winkel;                    // Führerhaus nach außen, Heck zur Zone
+    // Phase 7b Nachtrag: seitlich vorfahren, wenden und rückwärts ans Tor setzen (wagenPose)
+    const pose = wagenPose(wagenPlatz(g), z);
+    w.position.set(pose.x, rasterHoehe - 0.1, pose.z);
+    w.rotation.y = pose.winkel;                     // am Tor: Führerhaus nach außen, Heck zur Zone
   }
   for (const [id, w] of wagen3d) if (!zonen.has(id)) { szene.remove(w); wagen3d.delete(id); }
+}
+// Phase 7b Nachtrag: Wo steht der Wagen und wohin zeigt er? z = wagenZustand (p: 0 = weit weg … 1 = am Tor).
+// Herein: bis p = 0,6 fährt er seitlich bis vor die Zone (GRAFIK.rangierAbstand vor der Wand), danach wendet er
+// und setzt rückwärts ans Tor. Hinaus: vorwärts von der Wand weg und dabei einlenken, dann seitlich davon.
+function wagenPose(platz, z) {
+  if (wenigerAnimation) return { x: platz.x, z: platz.z, winkel: platz.winkel };
+  const a = platz.aussen, q = platz.quer, A = GRAFIK.rangierAbstand, weit = 7;
+  const p = Math.max(0, Math.min(1, z.p));
+  const weich = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  let ab, seit, wenden;   // ab: Abstand vor dem Tor (nach außen), seit: Versatz entlang der Wand, wenden: 0 = Fahrtrichtung, 1 = Heck zum Tor
+  if (z.rein) {
+    if (p < 0.6) { ab = A; seit = (1 - weich(p / 0.6)) * weit; wenden = 0; }
+    else { const u = (p - 0.6) / 0.4; ab = A * (1 - weich(u)); seit = 0; wenden = weich(u / 0.6); }
+  } else {
+    const r = 1 - p;
+    if (r < 0.4) { const u = r / 0.4; ab = A * weich(u); seit = 0; wenden = 1 - weich(u); }
+    else { ab = A; seit = -weich((r - 0.4) / 0.6) * weit; wenden = 0; }
+  }
+  // Drehen auf dem kürzesten Weg zwischen Fahrtrichtung (entlang der Wand) und "Führerhaus nach außen"
+  const w0 = gebaeudeWinkel({ x: -q.x, z: -q.z });
+  let d = platz.winkel - w0;
+  d = Math.atan2(Math.sin(d), Math.cos(d));
+  return { x: platz.x + a.x * ab + q.x * seit, z: platz.z + a.z * ab + q.z * seit, winkel: w0 + d * wenden };
+}
+// Phase 7b Nachtrag: Tor auf, solange der Wagen ans Tor setzt bzw. dort steht; zu, sobald er wegfährt
+function torSollOffen(z) {
+  return !!z && (z.rein ? z.p >= 0.85 : z.p >= 0.95);
+}
+// Jedes Bild: Tore weich öffnen/schließen (GRAFIK.torZeit) und die Ware sichtbar durchs Tor wandern lassen
+function aktualisiereTore(sekunden) {
+  for (const eintrag of gebaeude3d.values()) {
+    const tor = eintrag.tor;
+    if (!tor || eintrag.verschwindet) continue;
+    const g = eintrag.gebaeude;
+    const z = wagenZustand(g);
+    const ziel = torSollOffen(z) ? 1 : 0;
+    if (tor.offen !== ziel) {
+      const schritt = wenigerAnimation ? 1 : sekunden * Math.max(1, spiel.tempo) / GRAFIK.torZeit;
+      setzeTorOffen(tor, ziel > tor.offen ? Math.min(1, tor.offen + schritt) : Math.max(0, tor.offen - schritt));
+    }
+    zeigeVerladen(eintrag, g, z);
+  }
+}
+// Verladen (nur Anzeige): Beim Andocken wird verglichen, was seit der Anfahrt in die Zone gekommen
+// (Import: abgeladen) bzw. aus ihr verschwunden ist (Export: aufgeladen). Davon wandern ein paar Pakete
+// in den Farben der Items zwischen Palette und Ladefläche, solange der Wagen am Tor steht.
+const VERLADE_DAUER = 0.9;   // Sekunden (Spielzeit), die ein Paket für den Weg braucht
+const verladeHilfe = { a: new THREE.Vector3(), b: new THREE.Vector3() };
+function zeigeVerladen(eintrag, g, z) {
+  const steht = !!z && z.rein && z.p >= 1;
+  if (!steht) {
+    eintrag.verladen = null;
+    if (eintrag.pakete) for (const p of eintrag.pakete) p.visible = false;
+    // Bestand vor der Ankunft merken (nur neu kopieren, wenn er sich geändert hat)
+    if (eintrag.torVersion !== g.version) { eintrag.torVersion = g.version; eintrag.torBestand = { ...g.bestand }; }
+    return;
+  }
+  if (!eintrag.verladen) {
+    const vorher = eintrag.torBestand || {}, jetzt = g.bestand, abladen = istImportzone(g);
+    const sorten = [];
+    for (const item of new Set([...Object.keys(vorher), ...Object.keys(jetzt)])) {
+      const n = abladen ? (jetzt[item] || 0) - (vorher[item] || 0) : (vorher[item] || 0) - (jetzt[item] || 0);
+      if (n > 0) sorten.push({ item, n });
+    }
+    // Reihum aus allen Sorten, damit jede Farbe einmal durchs Tor geht
+    const liste = [];
+    for (let runde = 0; liste.length < 12 && sorten.some((s) => s.n > runde); runde++) {
+      for (const s of sorten) if (s.n > runde) liste.push(s.item);
+    }
+    eintrag.verladen = { start: spiel.zeit, liste, abladen };
+  }
+  const v = eintrag.verladen;
+  if (!eintrag.pakete) {
+    eintrag.pakete = [0, 1, 2].map(() => {
+      const p = new THREE.Mesh(wuerfelGeometrie(0.18), figurMaterial("#ffffff"));
+      p.castShadow = true;
+      p.visible = false;
+      eintrag.huelle.add(p);
+      return p;
+    });
+  }
+  for (const p of eintrag.pakete) p.visible = false;
+  if (!v.liste.length || wenigerAnimation) return;
+  const rate = GRAFIK.verladeTempo;
+  const t = spiel.zeit - v.start - 0.5;                       // erst, wenn das Tor oben ist
+  const anzahl = Math.min(v.liste.length, Math.max(1, Math.floor((ZONEN.standzeit - 0.7 - VERLADE_DAUER) * rate) + 1));
+  const platz = wagenPlatz(g);
+  for (let j = Math.max(0, Math.ceil((t - VERLADE_DAUER) * rate)); j <= Math.floor(t * rate) && j < anzahl; j++) {
+    const u = (t - j / rate) / VERLADE_DAUER;
+    if (u < 0 || u > 1) continue;
+    const paket = eintrag.pakete[j % eintrag.pakete.length];
+    paket.material = figurMaterial(itemInfo(v.liste[Math.floor(j * v.liste.length / anzahl)]).farbe);
+    // Palette (in der Zone) und Ladefläche (am Heck des Wagens) in Weltkoordinaten
+    const palette = eintrag.plaetze[(j * 7) % eintrag.plaetze.length];
+    eintrag.modell.localToWorld(verladeHilfe.a.copy(palette));
+    verladeHilfe.b.set(platz.x - platz.aussen.x * 0.9, rasterHoehe + 0.45, platz.z - platz.aussen.z * 0.9);
+    const [von, nach] = v.abladen ? [verladeHilfe.b, verladeHilfe.a] : [verladeHilfe.a, verladeHilfe.b];
+    paket.position.lerpVectors(von, nach, u * u * (3 - 2 * u));
+    paket.position.y += Math.sin(Math.PI * u) * 0.3;
+    eintrag.huelle.worldToLocal(paket.position);
+    paket.rotation.y = u * 1.2;
+    paket.visible = true;
+  }
 }
 
 // Bauplan jedes Gebäudes. Rückgabe: { gruppe, plaetze: [Positionen für Füllstand-Würfel], wuerfel: Kantenlänge }
@@ -9238,8 +9397,8 @@ const MODELLE = {
 
   // Phase 7b: Importzone (3 × 2): markierte Fläche, Rolltor an der Rückwand, Paletten
   importzone(m) { return zonenModell(m, 3, GRAFIK.farbeImport, true); },
-  // Phase 7b: Exportzone (2 × 2): markierte Fläche mit Paletten
-  exportzone(m) { return zonenModell(m, 2, GRAFIK.farbeExport, false); },
+  // Phase 7b: Exportzone (2 × 2): markierte Fläche mit Paletten (Phase 7b Nachtrag: Rollgitter an der Rückwand)
+  exportzone(m) { return zonenModell(m, 2, GRAFIK.farbeExport, "gitter"); },
 
   // Phase 7b: Mülltonne (1 × 1): runde Tonne mit Deckel und Warnstreifen
   muelltonne(m) {
@@ -9267,6 +9426,10 @@ const MODELLE = {
     for (const x of [-0.375, 0.375]) quader(g, 0.05, 0.46, 0.7, GRAFIK.farbeHolz, x, 0.05, 0, m);
     for (const x of [-0.385, 0.385]) for (const z of [-0.385, 0.385]) quader(g, 0.08, 0.53, 0.08, GRAFIK.farbeHolzDunkel, x, 0.02, z, m);
     for (const z of [-0.39, 0.39]) quader(g, 0.82, 0.06, 0.04, GRAFIK.farbeHolzDunkel, 0, 0.3, z, m);
+    // Phase 7b Nachtrag: Vorderseite erkennbar (der Zugangspfeil fällt weg): Etikett und Metallgriff vorn
+    quader(g, 0.3, 0.13, 0.015, GRAFIK.farbeEtikett, 0, 0.11, 0.405, m);
+    quader(g, 0.28, 0.035, 0.035, GRAFIK.farbeMetallDunkel, 0, 0.43, 0.43, m);
+    for (const x of [-0.12, 0.12]) quader(g, 0.03, 0.035, 0.04, GRAFIK.farbeMetallDunkel, x, 0.43, 0.41, m);
     for (let lage = 0; lage < 2; lage++) {
       for (const x of [-0.16, 0.16]) for (const z of [-0.16, 0.16]) plaetze.push(new THREE.Vector3(x, 0.05 + 0.135 + lage * 0.28, z));
     }
@@ -9410,6 +9573,12 @@ function baueZugangsPfeil(zugang, richtung, material = pfeilMaterial) {
   pfeil.rotation.y = gebaeudeWinkel({ x: -richtung.x, z: -richtung.z });
   return pfeil;
 }
+// Phase 7b Nachtrag: Lager (Kiste, Schrank, Hauptlager, Zonen, Mülltonne) kann man von überall nutzen –
+// den orangen Zugangspfeil gibt es nur noch an Stationen (dort steht der Arbeiter).
+function zeigtZugangsPfeil(typ) {
+  const t = gebaeudeTypNach.get(typ);
+  return !!t && t.kategorie === "station";
+}
 
 /* --- Status-Symbole über den Stationen (kleine runde Schilder, immer zur Kamera gedreht) --- */
 const STATUS_ANZEIGE = {
@@ -9529,12 +9698,13 @@ spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
   bau.gruppe.add(fuellung);
   bau.gruppe.scale.setScalar(0.001);
   szene.add(huelle);
-  const pfeil = baueZugangsPfeil(g.zugang, g.richtung);
-  szene.add(pfeil);
+  const pfeil = zeigtZugangsPfeil(g.typ) ? baueZugangsPfeil(g.zugang, g.richtung) : null;   // Phase 7b Nachtrag: nur Stationen
+  if (pfeil) szene.add(pfeil);
   gebaeude3d.set(g.id, {
     huelle, modell: bau.gruppe, fuellung, plaetze: bau.plaetze, wuerfel: bau.wuerfel, pfeil,
     status: istStation(g) ? baueStatusAnzeige() : null,
     lagerMarke: istZwischenlager(g) ? baueLagerMarke(g, huelle) : null,   // Phase 5: Eingang/Ausgang/Gemischt
+    tor: bau.tor || null,                                                 // Phase 7b Nachtrag: Tor der Import-/Exportzone
     stationsMarke: istStation(g) ? baueStationsMarke(g) : null,          // Phase 5b: Import/Export der Station
     alter: 0, verschwindet: false, version: -1, gebaeude: g, splitterTimer: 0,
   });
@@ -9548,9 +9718,9 @@ spielEreignisse.addEventListener("gebaeudeVerschoben", (e) => {
   const mitte = gebaeudeMitteWelt(g);
   eintrag.huelle.position.set(mitte.x, rasterHoehe, mitte.z);
   eintrag.huelle.rotation.y = gebaeudeWinkel(g.richtung);
-  szene.remove(eintrag.pfeil);
-  eintrag.pfeil = baueZugangsPfeil(g.zugang, g.richtung);
-  szene.add(eintrag.pfeil);
+  if (eintrag.pfeil) szene.remove(eintrag.pfeil);
+  eintrag.pfeil = zeigtZugangsPfeil(g.typ) ? baueZugangsPfeil(g.zugang, g.richtung) : null;   // Phase 7b Nachtrag: nur Stationen
+  if (eintrag.pfeil) szene.add(eintrag.pfeil);
   eintrag.alter = 0;
 });
 
@@ -9606,7 +9776,7 @@ spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
   if (!eintrag) return;
   eintrag.verschwindet = true;
   eintrag.alter = 0;
-  szene.remove(eintrag.pfeil);
+  if (eintrag.pfeil) szene.remove(eintrag.pfeil);
   if (eintrag.status) szene.remove(eintrag.status.anzeige);
   if (eintrag.lagerMarke) szene.remove(eintrag.lagerMarke.schild);
   if (eintrag.stationsMarke) szene.remove(eintrag.stationsMarke.schild);
@@ -9864,6 +10034,7 @@ function zeigeBauVorschau(info) {
   const mitte = kachelZuWelt(info.geo.mitte.x, info.geo.mitte.z);
   vorschau.huelle.position.set(mitte.x, rasterHoehe + 0.01, mitte.z);
   vorschau.huelle.rotation.y = gebaeudeWinkel(info.geo.richtung);
+  if (!zeigtZugangsPfeil(info.typ)) return;   // Phase 7b Nachtrag: Lager zeigen keinen Zugangspfeil mehr
   vorschau.pfeil = baueZugangsPfeil(info.geo.zugang, info.geo.richtung, vorschauPfeilMaterial);
   vorschau.pfeil.position.y += 0.005;
   szene.add(vorschau.pfeil);
@@ -10411,6 +10582,38 @@ function bandItemPunkt(t, it, ziel) {
   ziel.set(q * q * ex + 2 * q * p * mx + p * p * ax, rasterHoehe + y + GRAFIK.bandItemGroesse / 2, q * q * ez + 2 * q * p * mz + p * p * az);
   return ziel;
 }
+// Phase 7b Nachtrag: Puffer von Splitter, Smart-Verteiler und Ventil (t.puffer = Item-Ids, bis 30).
+// Kleine Würfel in den Ecken unter dem Dach – neben den Wegen der durchlaufenden Items. Genutzt werden die drei
+// Ecken, die zur Kamera zeigen (Welt +x/+z), je Ecke 2 × 2 Würfel in bis zu drei Lagen (36 Plätze): Mit der
+// Füllung wachsen die Stapel. Sie gehören zum selben InstancedMesh wie die Band-Items (gleiche Farben).
+const PUFFER_PLAETZE = [];
+for (let lage = 0; lage < 3; lage++) {
+  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1]]) {
+    for (const [ix, iz] of [[1, 1], [0, 1], [1, 0], [0, 0]]) {
+      PUFFER_PLAETZE.push({ x: sx * (0.19 + ix * 0.11), z: sz * (0.19 + iz * 0.11), lage });
+    }
+  }
+}
+const pufferSkala = new THREE.Vector3().setScalar(GRAFIK.pufferWuerfel / GRAFIK.bandItemGroesse);
+function zeichnePufferItems(n) {
+  const max = GRAFIK.maxBandItems, k = GRAFIK.pufferWuerfel;
+  for (const t of spiel.baender.values()) {
+    const puffer = t.puffer;
+    if (!puffer || !puffer.length || !istVerteiler(t)) continue;
+    const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
+    const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
+    const boden = rasterHoehe + bahnHoehe(0) + 0.004 + k / 2;
+    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length && n < max; i++) {
+      const p = PUFFER_PLAETZE[i];
+      bandHilfsVektor.set(mx + p.x, boden + p.lage * (k + 0.004), mz + p.z);
+      hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, pufferSkala);
+      bandItems.setMatrixAt(n, hilfsMatrix);
+      bandItems.setColorAt(n, itemFarbe(puffer[i]));
+      n++;
+    }
+  }
+  return n;
+}
 function zeichneBandItems() {
   let n = 0;
   const max = GRAFIK.maxBandItems;
@@ -10437,6 +10640,7 @@ function zeichneBandItems() {
       }
     }
   }
+  n = zeichnePufferItems(n);   // Phase 7b Nachtrag: Puffer der Verteiler
   bandItems.count = n;
   bandItems.instanceMatrix.needsUpdate = true;
   if (bandItems.instanceColor) bandItems.instanceColor.needsUpdate = true;
@@ -14131,6 +14335,7 @@ function spielschleife() {
   simuliere(spielSekunden);
   aktualisiereGebaeude3d(sekunden, zeit);
   aktualisiereWagen();                           // Phase 7b
+  aktualisiereTore(sekunden);                    // Phase 7b Nachtrag: Rolltor/Rollgitter und Verladen
   aktualisiereBaender3d(spielSekunden, zeit);       // Phase 6: Bänder, Items, Greifarme
   aktualisiereMitarbeiter3d(spielSekunden, zeit);
   aktualisiereSchwebende(sekunden);              // Phase 5: schwebende Zahlen und Splitter

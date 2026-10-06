@@ -6,10 +6,11 @@
 <title>Trade Up</title>
 <!--
   ============================================================================
-  TRADE UP – Phase 6: Automatisierung, Fließbänder & Personalumbau (Startlevel "Garage")
+  TRADE UP – Phase 7a: Komfort & Bedienung (Startlevel "Garage")
   (Phase 1: Fundament & Bau-Raster · Phase 2: Spieler & Pathfinding ·
    Phase 3: Produkt-Layout-Designer · Phase 4: Erste Produktion & Kuriere ·
-   Phase 5: Wirtschaft, Logistik-Erweiterung & Forschung)
+   Phase 5: Wirtschaft, Logistik-Erweiterung & Forschung ·
+   Phase 6: Automatisierung, Fließbänder & Personalumbau)
   ============================================================================
   Diese EINE Datei enthält das komplette Spiel:
     1. <style>   → Aussehen der Bedienoberfläche (HUD, Designer, Baumenü) [UI/UX-Agent]
@@ -93,9 +94,9 @@
     --farbe-minus: #e0533d;             /* Kontostand im Minus, Ausgaben, Bankrott-Warnung */
     --farbe-reputation: #e3a92b;        /* Sterne und Balken der Reputation */
     --farbe-forschung: #4a7fc1;         /* Forschungspunkte und Techtree */
-    --farbe-eingang: #4a7fc1;           /* Lagerregel "Eingang" (Input-only) */
-    --farbe-ausgang: #f08a3c;           /* Lagerregel "Ausgang" (Output-only) */
-    --farbe-gemischt: #8a948c;          /* Lagerregel "Gemischt" */
+    --farbe-eingang: #3f9a5a;           /* Import-Pfeil ⇣ und Import-Linien (Grün, Phase 7a) */
+    --farbe-ausgang: #d9473a;           /* Export-Pfeil ⇡ und Export-Linien (Rot, Phase 7a) */
+    --farbe-gemischt: #8a948c;          /* Lager mit Import und Export (Grau) */
     --kontor-breite: 860px;             /* höchste Breite des Kontor-Fensters */
     --techtree-knoten: 210px;           /* Breite eines Knotens im Techtree */
   }
@@ -1328,6 +1329,80 @@
   .halle-jetzt small { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
   .halle-tabelle { flex: 1; min-width: 280px; }
   .forschung-reiter { padding: 10px 18px 0; }
+
+  /* --- Phase 7a: Füllstand-Gruppen, Seiten-Filter, Einstellungen, Designer-Ziel --- */
+  .regel-tabelle tr.regel-gruppe th {
+    padding: 8px 3px 2px;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+    border-bottom: 1px solid var(--farbe-rand);
+  }
+  .regel-tabelle tr.regel-gruppe:first-child th { padding-top: 0; }
+  .seiten-zeile { margin-top: 8px; padding: 6px 8px; background: #fff; border: 1px solid var(--farbe-rand); border-radius: 10px; }
+  .seiten-zeile.gesperrt { background: #f3f0ea; opacity: 0.8; }
+  .seiten-kopf { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; font-size: var(--groesse-text); }
+  .seiten-kopf .seiten-schalter { margin-left: auto; padding: 0 8px; font-weight: 600; }
+  .seiten-schalter[aria-pressed="true"] { color: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+  .seiten-schalter[aria-pressed="false"] { color: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
+  .seiten-zeile.gesperrt .seiten-kopf { margin-bottom: 0; }
+  .seiten-chip[data-zustand="nur"] { border-color: var(--farbe-eingang); background: #e6f4ea; font-weight: 700; }
+  .seiten-chip[data-zustand="nein"] { border-color: var(--farbe-ausgang); background: #fbe7e4; text-decoration: line-through; }
+  .hud-einstellungen-zahnrad { font-size: 1rem; }
+  #einstellungen-fenster { width: min(560px, 100%); }
+  .einstellungen-inhalt { padding: 6px 18px 4px; max-height: 60vh; overflow: auto; }
+  .einstellungen-gruppe {
+    margin: 12px 0 6px;
+    font-size: var(--groesse-klein);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--farbe-text-leise);
+  }
+  .tasten-liste { display: grid; gap: 4px; }
+  .tasten-zeile {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 4px 4px 10px;
+    font-size: var(--groesse-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 10px;
+  }
+  .tasten-zeile.wartet { border-color: var(--farbe-akzent); background: #fff1e4; }
+  .tasten-knopf {
+    margin-left: auto; min-width: 120px; height: 30px; padding: 0 10px;
+    font: inherit; font-size: var(--groesse-klein); font-weight: 700;
+    color: var(--farbe-text); background: var(--lz-zelle-farbe);
+    border: 1px solid var(--farbe-rand); border-radius: 8px; cursor: pointer;
+  }
+  .tasten-knopf:hover { border-color: var(--farbe-akzent); }
+  .tasten-knopf:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .tasten-knopf[aria-pressed="true"] { color: #fff; background: var(--farbe-akzent); border-color: var(--farbe-akzent); }
+  .einstellungen-fest { margin: 12px 0 4px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); line-height: 1.8; }
+  .einstellungen-hinweis { font-size: var(--groesse-klein); color: var(--farbe-text-leise); max-width: 330px; }
+  .grafik-liste { display: grid; gap: 6px; padding-top: 10px; }
+  .grafik-zeile {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 10px;
+    background: #fff; border: 1px solid var(--farbe-rand); border-radius: 10px;
+    cursor: pointer; font-size: var(--groesse-text);
+  }
+  .grafik-zeile input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--farbe-akzent); }
+  .grafik-zeile small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-ziel { display: grid; gap: 6px; width: 100%; max-width: 340px; min-width: 0; }
+  .lz-auswahl { display: flex; align-items: center; gap: 8px; font-size: var(--groesse-klein); font-weight: 700; color: var(--farbe-text-leise); text-transform: uppercase; letter-spacing: 0.05em; }
+  .lz-auswahl select {
+    flex: 1 1 0; width: 0; min-width: 0; padding: 4px 8px;
+    font: inherit; font-size: var(--groesse-text); font-weight: 600; text-transform: none; letter-spacing: normal;
+    color: var(--farbe-text); background: #fff; border: 1px solid var(--farbe-rand); border-radius: 8px;
+  }
+  .lz-gehaeuse { width: 100%; max-width: 340px; min-width: 0; }
+  .lz-ziel-teile { display: flex; flex-wrap: wrap; gap: 4px; min-height: 24px; }
+  .lz-ziel-hinweis { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-ziel-teil { padding: 2px 8px; font-size: var(--groesse-klein); font-weight: 700; border-radius: 999px; border: 1px solid var(--farbe-rand); background: #fff; }
+  .lz-ziel-teil.da { color: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+  .lz-ziel-teil.fehlt { color: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
+  .lz-ziel-teil.fertig { color: #fff; background: var(--farbe-eingang); border-color: var(--farbe-eingang); }
 </style>
 </head>
 <body>
@@ -1383,13 +1458,17 @@
   </dl>
   <!-- Phase 4: Baumenü und Lager-Fenster -->
   <div class="hud-knopfreihe vier">
-    <button id="hud-bauen" class="hud-knopf" type="button" aria-pressed="false">Bauen <kbd>B</kbd></button>
-    <button id="hud-lager" class="hud-knopf hud-knopf-leise" type="button">Lager <kbd>I</kbd></button>
-    <button id="hud-kontor" class="hud-knopf hud-knopf-leise" type="button">Kontor <kbd>K</kbd></button>
-    <button id="hud-forschung" class="hud-knopf hud-knopf-leise" type="button">Forschung <kbd>T</kbd></button>
+    <button id="hud-bauen" class="hud-knopf" type="button" aria-pressed="false">Bauen <kbd data-taste="bauen">B</kbd></button>
+    <button id="hud-lager" class="hud-knopf hud-knopf-leise" type="button">Lager <kbd data-taste="lager">I</kbd></button>
+    <button id="hud-kontor" class="hud-knopf hud-knopf-leise" type="button">Kontor <kbd data-taste="kontor">K</kbd></button>
+    <button id="hud-forschung" class="hud-knopf hud-knopf-leise" type="button">Forschung <kbd data-taste="forschung">T</kbd></button>
   </div>
   <!-- Öffnet den Produkt-Layout-Designer (Phase 3) -->
-  <button id="hud-designer" class="hud-knopf hud-knopf-leise" type="button">Layout-Designer <kbd>L</kbd></button>
+  <!-- Phase 7a: Einstellungen (Tastenkürzel, Grafik) neben dem Designer -->
+  <div class="hud-knopfreihe">
+    <button id="hud-designer" class="hud-knopf hud-knopf-leise" type="button">Designer <kbd data-taste="designer">L</kbd></button>
+    <button id="hud-einstellungen" class="hud-knopf hud-knopf-leise" type="button" aria-label="Einstellungen">⚙ Optionen <kbd data-taste="einstellungen">O</kbd></button>
+  </div>
 </section>
 
 <!-- ================== PRODUKT-LAYOUT-DESIGNER (Phase 3) ================== -->
@@ -1412,9 +1491,16 @@
 
       <!-- Mitte: das Produkt-Raster -->
       <div class="lz-mitte">
+        <!-- Phase 7a: Welches Endprodukt soll entstehen? Darunter: welche Bauteile noch fehlen -->
+        <div class="lz-ziel">
+          <label class="lz-auswahl">Endprodukt <select id="lz-ziel"></select></label>
+          <div id="lz-ziel-teile" class="lz-ziel-teile" aria-live="polite"></div>
+        </div>
         <div class="lz-rahmen">
           <div id="lz-raster" class="lz-raster" aria-label="Produkt-Raster"></div>
         </div>
+        <!-- Phase 7a: Gehäuse bestimmt die Form des Rasters (weitere Gehäuse folgen in Phase 7c) -->
+        <label class="lz-auswahl lz-gehaeuse">Gehäuse <select id="lz-gehaeuse"><option value="standard">Standardgehäuse 4 × 4</option></select></label>
         <button id="lz-hitze-knopf" class="lz-knopf" type="button" aria-pressed="false">Hitze-Ansicht <kbd>H</kbd></button>
         <p class="lz-tipp">
           Ziehen: platzieren · <kbd>R</kbd> / Rechtsklick: drehen<br>
@@ -1457,8 +1543,8 @@
       <button type="button" role="tab" data-reiter="halle" aria-selected="false">Halle</button>
     </div>
     <span class="bau-platz"></span>
-    <button id="bau-verschieben" class="lz-knopf" type="button" aria-pressed="false">Verschieben <kbd>M</kbd></button>
-    <button id="bau-abriss" class="lz-knopf" type="button" aria-pressed="false">Abriss <kbd>X</kbd></button>
+    <button id="bau-verschieben" class="lz-knopf" type="button" aria-pressed="false">Verschieben <kbd data-taste="verschieben">M</kbd></button>
+    <button id="bau-abriss" class="lz-knopf" type="button" aria-pressed="false">Abriss <kbd data-taste="abriss">X</kbd></button>
     <button id="bau-wiederherstellen" class="lz-knopf" type="button" hidden>Aufbau wiederherstellen</button>
     <button id="bau-bereinigen" class="lz-knopf bau-gefahr" type="button">Halle bereinigen</button>
     <button id="bau-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Baumenü schließen">✕</button>
@@ -1492,7 +1578,7 @@
     </div>
     <p id="lager-hinweis" class="lager-hinweis"></p>
     <footer class="lz-fuss">
-      <button id="lager-einkauf" class="lz-knopf" type="button">Rohstoffe einkaufen <kbd>K</kbd></button>
+      <button id="lager-einkauf" class="lz-knopf" type="button">Rohstoffe einkaufen <kbd data-taste="kontor">K</kbd></button>
       <button id="lager-wiederherstellen" class="lz-knopf" type="button">Letzten Aufbau wiederherstellen</button>
       <span class="lz-platz"></span>
       <button id="lager-zuruecksetzen" class="lz-knopf bau-gefahr" type="button">Spielstand zurücksetzen</button>
@@ -1548,6 +1634,28 @@
   </section>
 </div>
 
+<!-- ================== EINSTELLUNGEN (Phase 7a) ================== -->
+<!-- Tastenkürzel neu belegen und Grafik schalten. Den Inhalt baut das Skript in Abschnitt 13d. -->
+<div id="einstellungen-overlay" class="modal-schleier" hidden>
+  <section id="einstellungen-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="einstellungen-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="einstellungen-titel">Einstellungen</h2>
+      <span class="lz-platz" style="flex:1"></span>
+      <button id="einstellungen-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Einstellungen schließen">✕</button>
+    </header>
+    <div class="kontor-reiter" role="tablist" aria-label="Bereich">
+      <button type="button" role="tab" data-einstellung-reiter="tasten" aria-selected="true">Tastenkürzel</button>
+      <button type="button" role="tab" data-einstellung-reiter="grafik" aria-selected="false">Grafik</button>
+    </div>
+    <div id="einstellungen-inhalt" class="einstellungen-inhalt"></div>
+    <footer class="lz-fuss">
+      <span id="einstellungen-hinweis" class="einstellungen-hinweis" aria-live="polite"></span>
+      <span class="lz-platz"></span>
+      <button id="einstellungen-standard" class="lz-knopf" type="button">Standard wiederherstellen</button>
+    </footer>
+  </section>
+</div>
+
 <!-- ================== INSOLVENZ (Phase 5) ================== -->
 <div id="insolvenz-overlay" class="modal-schleier" hidden>
   <section id="insolvenz-fenster" class="modal-fenster" role="alertdialog" aria-modal="true" aria-labelledby="insolvenz-titel" tabindex="-1">
@@ -1569,17 +1677,18 @@
 <!-- Hilfeleiste mit der Steuerung -->
 <footer id="hud-hilfe">
   <span><kbd>Klick</kbd> laufen / Info</span>
-  <span><kbd>B</kbd> Bauen</span>
-  <span><kbd>I</kbd> Lager</span>
-  <span><kbd>L</kbd> Designer</span>
-  <span><kbd>K</kbd> Kontor</span>
-  <span><kbd>T</kbd> Forschung</span>
-  <span><kbd>M</kbd> Verschieben</span>
-  <span><kbd>F</kbd> Fließband</span>
-  <span><kbd>P</kbd><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Tempo</span>
+  <span><kbd data-taste="bauen">B</kbd> Bauen</span>
+  <span><kbd data-taste="lager">I</kbd> Lager</span>
+  <span><kbd data-taste="designer">L</kbd> Designer</span>
+  <span><kbd data-taste="kontor">K</kbd> Kontor</span>
+  <span><kbd data-taste="forschung">T</kbd> Forschung</span>
+  <span><kbd data-taste="verschieben">M</kbd> Verschieben</span>
+  <span><kbd data-taste="band">F</kbd> Fließband</span>
+  <span><kbd data-taste="einstellungen">O</kbd> Optionen</span>
+  <span><kbd data-taste="pause">P</kbd><kbd data-taste="tempo1">1</kbd><kbd data-taste="tempo2">2</kbd><kbd data-taste="tempo3">3</kbd> Tempo</span>
   <span><kbd>Leertaste</kbd> Figur</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
-  <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> bewegen</span>
+  <span><kbd data-taste="kameraVor">W</kbd><kbd data-taste="kameraLinks">A</kbd><kbd data-taste="kameraZurueck">S</kbd><kbd data-taste="kameraRechts">D</kbd> bewegen</span>
   <span><kbd>Rad</kbd> zoomen</span>
 </footer>
 
@@ -1709,6 +1818,14 @@ const GRAFIK = {
   brueckenHoehe:        1.2,         // Höhe des Hochbands einer Brücke über dem Boden
   bandItemGroesse:      0.2,         // Kantenlänge der Item-Würfel auf den Bändern
   maxBandItems:         3000,        // so viele Item-Würfel können höchstens gleichzeitig gezeichnet werden
+
+  // --- Phase 7a: Richtungspfeile, Import-/Exportlinien ---
+  farbeBandPfeil:       "#ffffff",   // Richtungspfeile auf den Bändern ...
+  deckkraftBandPfeil:   0.55,        // ... und wie deutlich sie sind (0 = unsichtbar, 1 = voll)
+  farbeImport:          "#3f9a5a",   // grüne Linien: von hier kommt Ware ins ausgewählte Gebäude
+  farbeExport:          "#d9473a",   // rote Linien: hierhin geht Ware aus dem ausgewählten Gebäude
+  linienBogen:          1.4,         // so hoch (Kacheln) wölben sich die Linien über der Halle
+  kurvenSegmente:       10,          // so fein werden Kurvenbänder gezeichnet (mehr = runder)
 };
 
 /* ============================================================================
@@ -1876,9 +1993,9 @@ const MITARBEITER_ROLLEN = {
   arbeiter: { name: "Arbeiter", lohn: 80 },
 };
 
-// Regeln für Zwischenlager (Phase 5). Seit Phase 5b ist der Modus die SCHNELLWAHL für die
-// Import-/Export-Pfeile pro Ressource (siehe Abschnitt 11b); einzelne Pfeile lassen sich von Hand umstellen.
-// Jedes Zwischenlager hat einen dieser Modi:
+// Regeln für Zwischenlager (Phase 5). Seit Phase 7a gibt es keine Schnellwahl mehr: Jedes Lager arbeitet
+// "Gemischt", gesteuert wird nur noch mit den Import-/Export-Pfeilen pro Ressource (Abschnitt 11b).
+// Die drei Einträge beschreiben nur noch, welches Symbol und welche Farbe ein Lager in der Halle zeigt:
 //   eingang  – Input-only: Kuriere liefern nur hinein; Arbeiter entnehmen. Abgeholt werden nur Reste,
 //              die keine verknüpfte Station mehr braucht (z. B. nach einem Rezeptwechsel)
 //   ausgang  – Output-only: Arbeiter legen ihre Erzeugnisse ab; Kuriere holen ab und liefern nie hinein
@@ -1886,11 +2003,11 @@ const MITARBEITER_ROLLEN = {
 // Fixierte Items (📌) bleiben immer liegen: Im Eingang/Gemischt haben sie eine feste Sollmenge,
 // im Ausgang sind sie ein Annahmefilter (nur diese Erzeugnisse werden dort abgelegt).
 const LAGER_MODI = {
-  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#4a7fc1", text: "Material der Stationen auf ⇣ Import. Kuriere holen nur Reste ab, die keine Station mehr braucht." },
-  ausgang:  { name: "Ausgang",  symbol: "⇡", farbe: "#f08a3c", text: "Alles auf ⇡ Export: Arbeiter legen Erzeugnisse ab, Kuriere holen sie." },
+  eingang:  { name: "Eingang",  symbol: "⇣", farbe: "#3f9a5a", text: "Material der Stationen auf ⇣ Import. Kuriere holen nur Reste ab, die keine Station mehr braucht." },
+  ausgang:  { name: "Ausgang",  symbol: "⇡", farbe: "#d9473a", text: "Alles auf ⇡ Export: Arbeiter legen Erzeugnisse ab, Kuriere holen sie." },
   gemischt: { name: "Gemischt", symbol: "⇅", farbe: "#8a948c", text: "Material auf ⇣ und ⇡: Puffer bis zum Soll, Kuriere holen den Überschuss ab." },
 };
-const STANDARD_LAGER_MODUS = "eingang";   // Modus neuer Zwischenlager
+const STANDARD_LAGER_MODUS = "gemischt";  // Phase 7a: jedes Lager ist "Gemischt" (Eingang/Ausgang gibt es nicht mehr)
 // Vornamen für neue Mitarbeiter (werden der Reihe nach vergeben)
 const MITARBEITER_NAMEN = ["Anna", "Ben", "Clara", "David", "Emma", "Finn", "Greta", "Hugo",
                            "Ida", "Jonas", "Lena", "Max", "Nora", "Ole", "Paula", "Rudi"];
@@ -2150,6 +2267,97 @@ const HALLE_STUFEN = [
 ];
 
 /* ============================================================================
+   ABSCHNITT 2i: KONFIGURATION – Einstellungen: Tasten & Grafik (Phase 7a) [UI/UX-Agent]
+   Das sind die STANDARDWERTE. Im Spiel änderst du sie im Einstellungsmenü (Zahnrad oder Taste O);
+   deine Änderungen speichert der Browser. "Standard wiederherstellen" kehrt zu diesen Werten zurück.
+   ============================================================================ */
+// Tastenkürzel. Jede Aktion hat:
+//   aktion – interner Name (nicht ändern), name – Anzeige im Einstellungsmenü,
+//   taste  – Standardtaste (so, wie der Browser sie meldet, klein geschrieben: "b", "1", "f"),
+//   gruppe – Überschrift im Einstellungsmenü
+const TASTEN_STANDARD = [
+  { aktion: "bauen",        name: "Baumenü öffnen/schließen",          taste: "b", gruppe: "Fenster" },
+  { aktion: "lager",        name: "Lager",                             taste: "i", gruppe: "Fenster" },
+  { aktion: "kontor",       name: "Kontor",                            taste: "k", gruppe: "Fenster" },
+  { aktion: "forschung",    name: "Forschung",                         taste: "t", gruppe: "Fenster" },
+  { aktion: "designer",     name: "Layout-Designer",                   taste: "l", gruppe: "Fenster" },
+  { aktion: "einstellungen", name: "Einstellungen",                    taste: "o", gruppe: "Fenster" },
+  { aktion: "band",         name: "Fließband in die Hand",             taste: "f", gruppe: "Bauen" },
+  { aktion: "weiterbauen",  name: "Gewähltes Band weiterbauen",        taste: "e", gruppe: "Bauen" },
+  { aktion: "drehen",       name: "Drehen (beim Bauen)",               taste: "r", gruppe: "Bauen" },
+  { aktion: "verschieben",  name: "Verschieben",                       taste: "m", gruppe: "Bauen" },
+  { aktion: "abriss",       name: "Abriss",                            taste: "x", gruppe: "Bauen" },
+  { aktion: "verknuepfen",  name: "Verknüpfen (Gebäude ausgewählt)",   taste: "v", gruppe: "Bauen" },
+  { aktion: "pause",        name: "Pause",                             taste: "p", gruppe: "Zeit" },
+  { aktion: "tempo1",       name: "Tempo 1×",                          taste: "1", gruppe: "Zeit" },
+  { aktion: "tempo2",       name: "Tempo 2×",                          taste: "2", gruppe: "Zeit" },
+  { aktion: "tempo3",       name: "Tempo 3×",                          taste: "3", gruppe: "Zeit" },
+  { aktion: "kameraVor",    name: "Kamera nach oben",                  taste: "w", gruppe: "Kamera" },
+  { aktion: "kameraZurueck", name: "Kamera nach unten",                taste: "s", gruppe: "Kamera" },
+  { aktion: "kameraLinks",  name: "Kamera nach links",                 taste: "a", gruppe: "Kamera" },
+  { aktion: "kameraRechts", name: "Kamera nach rechts",                taste: "d", gruppe: "Kamera" },
+];
+// Diese Tasten kann man nicht belegen (sie haben feste Aufgaben)
+const TASTEN_FEST = ["escape", "enter", "tab", " ", "shift", "control", "alt", "meta", "delete", "backspace",
+                     "arrowup", "arrowdown", "arrowleft", "arrowright"];
+
+// Grafik-Schalter (true = an, false = aus)
+const GRAFIK_STANDARD = {
+  schatten:     true,   // Schatten von Gebäuden, Figuren und Items
+  bandPfeile:   true,   // kleine Richtungspfeile auf jedem Bandstück
+  ioLinien:     true,   // grüne/rote Import- und Exportlinien, solange ein Gebäude ausgewählt ist
+  hoheAufloesung: true, // volle Bildschirmauflösung (aus = schneller auf schwachen Geräten)
+};
+const EINSTELLUNGEN_SCHLUESSEL = "tradeup.einstellungen";   // Name, unter dem der Browser die Einstellungen speichert
+const DOPPELKLICK_ZEIT = 400;   // Millisekunden: zwei Klicks auf dasselbe Band gelten als Doppelklick
+
+// ---------------------------------------------------------------------------
+// Aktuelle Einstellungen (ab hier kein Konfigurationsbereich mehr).
+// Startet mit den Standardwerten und übernimmt, was der Browser gespeichert hat.
+// ---------------------------------------------------------------------------
+function standardTasten() {
+  const tasten = {};
+  for (const t of TASTEN_STANDARD) tasten[t.aktion] = t.taste;
+  return tasten;
+}
+const einstellungen = { tasten: standardTasten(), grafik: { ...GRAFIK_STANDARD } };
+try {
+  const gespeichert = JSON.parse(localStorage.getItem(EINSTELLUNGEN_SCHLUESSEL) || "null");
+  if (gespeichert) {
+    // Nur bekannte Aktionen und Schalter übernehmen (alte oder kaputte Einträge ignorieren)
+    for (const aktion in einstellungen.tasten) {
+      if (typeof gespeichert.tasten?.[aktion] === "string") einstellungen.tasten[aktion] = gespeichert.tasten[aktion];
+    }
+    for (const schalter in einstellungen.grafik) {
+      if (typeof gespeichert.grafik?.[schalter] === "boolean") einstellungen.grafik[schalter] = gespeichert.grafik[schalter];
+    }
+  }
+} catch (fehler) { /* privates Fenster o. ä.: dann gelten einfach die Standardwerte */ }
+
+// Einstellungen im Browser ablegen (Fehler, z. B. im privaten Fenster, sind egal)
+function speichereEinstellungen() {
+  try { localStorage.setItem(EINSTELLUNGEN_SCHLUESSEL, JSON.stringify(einstellungen)); } catch (fehler) { /* egal */ }
+}
+// Welche Taste löst eine Aktion aus? ("" = nicht belegt)
+function tasteFuer(aktion) { return einstellungen.tasten[aktion] || ""; }
+// Welche Aktion gehört zu einer gedrückten Taste? (null = keine)
+function aktionFuerTaste(taste) {
+  for (const aktion in einstellungen.tasten) if (einstellungen.tasten[aktion] === taste) return aktion;
+  return null;
+}
+// Lesbarer Name einer Taste für Knöpfe und Hinweise
+function tastenName(taste) {
+  if (!taste) return "–";
+  if (taste === " ") return "Leer";
+  return taste.length === 1 ? taste.toUpperCase() : taste.charAt(0).toUpperCase() + taste.slice(1);
+}
+// Kleines Tasten-Schildchen für Knöpfe, z. B. kbd("band") → <kbd>F</kbd>
+function kbd(aktion) {
+  const taste = tasteFuer(aktion);
+  return taste ? `<kbd>${tastenName(taste)}</kbd>` : "";
+}
+
+/* ============================================================================
    ABSCHNITT 3: Szene, Kamera, Licht                                [3D-Agent]
    ============================================================================ */
 
@@ -2158,9 +2366,13 @@ const wenigerAnimation = window.matchMedia("(prefers-reduced-motion: reduce)").m
 
 // Der Renderer zeichnet die 3D-Welt in eine Zeichenfläche (canvas) im Browser.
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // max. 2× schont schwächere Geräte
+renderer.setPixelRatio(pixelVerhaeltnis()); // max. 2× schont schwächere Geräte
+// Pixel pro Bildpunkt: volle Auflösung (max. 2×) oder sparsam 1× (Grafik-Einstellung)
+function pixelVerhaeltnis() {
+  return einstellungen.grafik.hoheAufloesung ? Math.min(window.devicePixelRatio, 2) : 1;
+}
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = GRAFIK.schatten;
+renderer.shadowMap.enabled = GRAFIK.schatten && einstellungen.grafik.schatten;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;              // weiche Schattenkanten
 document.getElementById("spielfeld").appendChild(renderer.domElement);
 const zeichenflaeche = renderer.domElement;
@@ -3058,10 +3270,12 @@ const richtungVor = new THREE.Vector3(-kameraVersatz.x, 0, -kameraVersatz.z).nor
 const richtungRechts = new THREE.Vector3(-richtungVor.z, 0, richtungVor.x);
 function bewegeMitTastatur(sekunden) {
   let vor = 0, rechts = 0;
-  if (gedrueckteTasten.has("w") || gedrueckteTasten.has("arrowup")) vor += 1;
-  if (gedrueckteTasten.has("s") || gedrueckteTasten.has("arrowdown")) vor -= 1;
-  if (gedrueckteTasten.has("d") || gedrueckteTasten.has("arrowright")) rechts += 1;
-  if (gedrueckteTasten.has("a") || gedrueckteTasten.has("arrowleft")) rechts -= 1;
+  // Phase 7a: W A S D sind im Einstellungsmenü änderbar, die Pfeiltasten bleiben fest
+  const gedrueckt = (aktion, pfeil) => gedrueckteTasten.has(pfeil) || (!!tasteFuer(aktion) && gedrueckteTasten.has(tasteFuer(aktion)));
+  if (gedrueckt("kameraVor", "arrowup")) vor += 1;
+  if (gedrueckt("kameraZurueck", "arrowdown")) vor -= 1;
+  if (gedrueckt("kameraRechts", "arrowright")) rechts += 1;
+  if (gedrueckt("kameraLinks", "arrowleft")) rechts -= 1;
   if (!vor && !rechts) return;
   kameraFlugZiel = null;   // eigenes Bewegen bricht das Zentrieren ab
   const weg = GRAFIK.tastaturTempo * sekunden / kamera.zoom; // weiter rausgezoomt = schneller
@@ -3477,6 +3691,7 @@ const designer = {
   name: "",             // Name des Designs (steht oben im Fenster)
   blaupauseId: null,    // welche gespeicherte Blaupause gerade bearbeitet wird (oder null = neu)
   offen: false,         // ist das Designer-Fenster sichtbar?
+  ziel: "",             // Phase 7a: gewähltes Endprodukt (Produktklassen-ID, "" = frei)
 };
 
 // Meldet allen Zuhörern (z. B. der Oberfläche), dass sich das Layout geändert hat.
@@ -3751,7 +3966,36 @@ const lz = {
   zurueck:     document.getElementById("lz-zurueck"),
   vor:         document.getElementById("lz-vor"),
   hudKnopf:    document.getElementById("hud-designer"),
+  ziel:        document.getElementById("lz-ziel"),          // Phase 7a
+  zielTeile:   document.getElementById("lz-ziel-teile"),
 };
+// Phase 7a: Auswahlliste der Endprodukte (Produktklassen) einmal füllen
+lz.ziel.innerHTML = `<option value="">Frei – ohne Ziel</option>` + PRODUKTKLASSEN.map((k) =>
+  `<option value="${k.id}">${k.symbol} ${k.name}${k.reputation > 1 ? ` (Aufträge ab Lv ${k.reputation})` : ""}</option>`).join("");
+lz.ziel.addEventListener("change", () => {
+  designer.ziel = lz.ziel.value;
+  lz.ziel.blur();
+  lz.fenster.focus({ preventScroll: true });   // damit die Designer-Tasten gleich wieder gehen
+  zeichneDesigner();
+});
+// Phase 7a: Pflichtteile des gewählten Endprodukts – vorhanden (✓) oder fehlt (✗)
+function zeichneZiel(layout, bewertung) {
+  const klasse = PRODUKTKLASSEN.find((k) => k.id === designer.ziel);
+  if (lz.ziel.value !== designer.ziel) lz.ziel.value = designer.ziel;
+  if (!klasse) {
+    lz.zielTeile.innerHTML = `<span class="lz-ziel-hinweis">Wähle ein Endprodukt, dann zeigt diese Liste, welche Bauteile noch fehlen.</span>`;
+    return;
+  }
+  const vorhanden = teileZaehlen(Object.values(layout.teile));
+  const fehlen = klasse.teile.filter((t) => !(vorhanden[t] >= 1));
+  let html = klasse.teile.map((t) => {
+    const da = vorhanden[t] >= 1;
+    return `<span class="lz-ziel-teil ${da ? "da" : "fehlt"}">${da ? "✓" : "✗"} ${htmlSicher(bauteilNachTyp.get(t).name)}</span>`;
+  }).join("");
+  if (bewertung.ueberhitzt.length) html += `<span class="lz-ziel-teil fehlt">⚠ überhitzt – zählt nicht</span>`;
+  else if (!fehlen.length) html += `<span class="lz-ziel-teil fertig">Erfüllt ${klasse.symbol} ${htmlSicher(klasse.name)}</span>`;
+  lz.zielTeile.innerHTML = html;
+}
 lz.raster.style.setProperty("--lz-spalten", LAYOUT.breite);
 lz.raster.style.setProperty("--lz-reihen", LAYOUT.hoehe);
 lz.raster.setAttribute("aria-label", `Produkt-Raster ${LAYOUT.breite} × ${LAYOUT.hoehe}`);
@@ -3897,6 +4141,7 @@ function zeichneDesigner() {
   lz.raster.innerHTML = html;
 
   zeichneBewertung(bewertung, anzeige);
+  zeichneZiel(anzeige, bewertung);
   lz.zurueck.disabled = designer.verlauf.length === 0;
   lz.vor.disabled = designer.zukunft.length === 0;
 }
@@ -4311,11 +4556,11 @@ window.addEventListener("resize", () => {
    Läuft in der "Capture"-Phase, also VOR der 3D-Steuerung. Solange der Designer
    offen ist, ignoriert die 3D-Steuerung alle Tasten (siehe sperre3dEingaben). */
 window.addEventListener("keydown", (e) => {
-  const imEingabefeld = e.target instanceof HTMLInputElement;
+  const imEingabefeld = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
   const taste = e.key.toLowerCase();
 
   if (!designer.offen) {
-    if (taste === "l" && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey && !eingaben3dGesperrt) {
+    if (taste === tasteFuer("designer") && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey && !eingaben3dGesperrt) {
       e.preventDefault();
       e.stopImmediatePropagation();
       oeffneDesigner();
@@ -4634,7 +4879,7 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     arbeiterId: null,
     status: "",
     version: 0,
-    modus: LAGER_MODI[extra.modus] ? extra.modus : STANDARD_LAGER_MODUS,   // Phase 5: Schnellwahl der Lagerregeln
+    modus: STANDARD_LAGER_MODUS,   // Phase 7a: immer "Gemischt" (alte Spielstände mit Eingang/Ausgang werden umgestellt)
     // Phase 5b: von Hand gesetzte Pfeile/Mengen (ältere Spielstände: aus "fixiert" umgewandelt)
     regeln: extra.regeln ? JSON.parse(JSON.stringify(extra.regeln)) : regelnAusFixierung(extra.modus, extra.fixiert),
     eingang: { ...(extra.eingang || {}) },                                 // Phase 5b: Eingangsfach (nur Stationen)
@@ -4893,11 +5138,13 @@ function freierPlatz(g, res, fach = "bestand") {
    Kein Pfeil = das Item bleibt liegen (Kuriere fassen es nicht an).
    Ohne Eingriff gilt die Automatik (regelAuto). Was der Spieler von Hand setzt, steht in
    g.regeln[item] = { imp?: true|false, exp?: true|false, soll?: Zahl }; fehlt ein Feld, gilt die Automatik.
-   g.modus (Eingang / Ausgang / Gemischt) ist die Schnellwahl, nach der sich die Automatik der Lager richtet.
+   Seit Phase 7a arbeitet jedes Lager "Gemischt": Material, das eine verknüpfte Station braucht, steht auf ⇣ und ⇡
+   (Puffer bis zum Soll, Überschuss holen Kuriere ab), alles andere auf ⇡.
    Alle Regeln für Kuriere stehen NUR in diesen Funktionen. Die Auftragsbörse fragt
    abholbar() / darfKurierAbholen() für Quellen und bedarf() / darfKurierLiefern() für Ziele. */
+// Phase 7a: Es gibt nur noch "Gemischt" – die Pfeile pro Ressource entscheiden alles.
 function lagerModus(g) {
-  return LAGER_MODI[g.modus] ? g.modus : STANDARD_LAGER_MODUS;
+  return STANDARD_LAGER_MODUS;
 }
 // Welche Items braucht irgendeine verknüpfte Station (auch eine pausierte) für ihr Rezept?
 function gebrauchteItems(lager) {
@@ -5069,7 +5316,7 @@ function setzeRegelZurueck(id, item) {
 function setzeLagerModus(id, modus) {
   const g = spiel.gebaeude.get(id);
   if (!g || !istZwischenlager(g) || !LAGER_MODI[modus]) return false;
-  g.modus = modus;
+  g.modus = STANDARD_LAGER_MODUS;              // Phase 7a: nur noch "Gemischt"; der Aufruf setzt alle Pfeile zurück
   g.rueckgabe = false;
   for (const [item, m] of Object.entries(g.regeln)) {
     if (m.soll !== undefined) g.regeln[item] = { soll: m.soll };
@@ -6026,7 +6273,6 @@ function stelleAufbauWiederHer() {
     neueIds[i] = ergebnis.gebaeude.id;
     ergebnis.gebaeude.rezept = e.rezept;
     ergebnis.gebaeude.pausiert = e.pausiert;
-    if (LAGER_MODI[e.modus]) ergebnis.gebaeude.modus = e.modus;     // Phase 5: Lagerregeln mit wiederherstellen
     ergebnis.gebaeude.regeln = e.regeln ? JSON.parse(JSON.stringify(e.regeln)) : regelnAusFixierung(e.modus, e.fixiert);
   }
   schnappschuss.gebaeude.forEach((e, i) => {
@@ -6783,7 +7029,8 @@ function ladeWirtschaft(w) {
        items: [{ item: "metall", pos: 0.7, von: 0..3 }], // nur Spur-Teile; pos 0 = Eingang, 1 = Ausgang;
                                                          // das vorderste Item steht vorn; "von" = Fahrtrichtung beim Hineinfahren
        tempo: "normal", name: "Band 2",                  // Einstellungen des Segments (alle Teile eines Segments gleich)
-       modus: "reihum" | "sortieren", filter: { links, vorn, rechts },   // Splitter
+       seiten: { links: { gesperrt, filter: { Item: true|false } }, … }, // Splitter (Ausgänge) und Zusammenführung
+                                                         // (Eingänge), Phase 7a: true = "nur diese", false = gesperrt
        vorrang: null | "links" | "hinten" | "rechts",                    // Zusammenführung
        armFilter: null | Item, haelt: null | Item,                       // Greifarm
        ablaufFilter: [Items],                                            // Ablauf an einem Gebäude: nur diese Items
@@ -7096,40 +7343,62 @@ function bewegeItems(t, weg) {
     grenze = it.pos - BAENDER.mindestAbstand;
   }
 }
-// Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung zu fahren?
-function wartetVor(v) {
+/* --- Seiten und Filter (Phase 7a) ---
+   Splitter (Ausgänge links, vorn, rechts) und Zusammenführungen (Eingänge links, hinten, rechts) haben pro Seite:
+     gesperrt – diese Seite nimmt bzw. gibt gar nichts
+     filter   – Item → true ("nur diese": grüner Haken) oder false (gesperrt: rotes Kreuz)
+   Gibt es auf einer Seite mindestens einen Haken, lässt sie NUR die Items mit Haken durch. */
+function seiteEinstellung(t, seite) {
+  return (t.seiten && t.seiten[seite]) || null;
+}
+function hatNurFilter(t, seite) {
+  const s = seiteEinstellung(t, seite);
+  return !!s && !s.gesperrt && Object.values(s.filter || {}).includes(true);
+}
+function seiteLaesstDurch(t, seite, item) {
+  const s = seiteEinstellung(t, seite);
+  if (!s) return true;
+  if (s.gesperrt) return false;
+  const f = s.filter || {};
+  if (f[item] === false) return false;
+  return !Object.values(f).includes(true) || f[item] === true;
+}
+// Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung "z" zu fahren (und darf es hinein)?
+function wartetVor(v, z = null) {
   const vorn = v.teil.items && v.teil.items[0];
-  return !!vorn && vorn.pos >= 1 - 1e-6;
+  if (!vorn || vorn.pos < 1 - 1e-6) return false;
+  return !z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), vorn.item);
 }
 // Zusammenführung: reihum von jedem Eingang, an dem etwas wartet (oder der Vorrang-Eingang zuerst)
 function zusammenLaesstDurch(z, richtung) {
   const seite = seiteVonFahrt(z, richtung);
-  const andereWarten = z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) !== seite && wartetVor(v));
-  if (z.vorrang && seite !== z.vorrang && z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) === z.vorrang && wartetVor(v))) return false;
+  const andereWarten = z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) !== seite && wartetVor(v, z));
+  if (z.vorrang && seite !== z.vorrang && z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) === z.vorrang && wartetVor(v, z))) return false;
   if (z.letzteSeite === seite && andereWarten && seite !== z.vorrang) return false;
   return true;
 }
 function nimmAufBand(ziel, item, richtung) {
   if (!hatPlatz(ziel)) return false;
   if (ziel.typ === "zusammen") {
+    if (!seiteLaesstDurch(ziel, seiteVonFahrt(ziel, richtung), item)) return false;   // Phase 7a: Seite gesperrt/gefiltert
     if (!zusammenLaesstDurch(ziel, richtung)) return false;
     ziel.letzteSeite = seiteVonFahrt(ziel, richtung);
   }
   legeAufBand(ziel, item, 0, richtung);
   return true;
 }
-// Splitter: reihum an den nächsten freien Ausgang (Modus "sortieren": nach Filter)
+// Splitter: reihum an den nächsten freien Ausgang, der das Item durchlässt.
+// Ein Ausgang ohne Haken nimmt "alles andere" – aber nicht, was ein anderer Ausgang ausdrücklich haben will.
 function splitterFilterPasst(t, seite, item) {
-  const filter = t.filter || {};
-  if (filter[seite]) return filter[seite] === item;
-  // Ausgang ohne Filter = "alles andere"
-  return !t.ausgaenge.some((a) => filter[a.seite] === item);
+  if (!seiteLaesstDurch(t, seite, item)) return false;
+  if (hatNurFilter(t, seite)) return true;
+  return !t.ausgaenge.some((a) => a.seite !== seite && hatNurFilter(t, a.seite) && seiteLaesstDurch(t, a.seite, item));
 }
 function splitterGibWeiter(t, it) {
   const n = t.ausgaenge.length;
   for (let i = 0; i < n; i++) {
     const a = t.ausgaenge[(t.naechster + i) % n];
-    if (t.modus === "sortieren" && !splitterFilterPasst(t, a.seite, it.item)) continue;
+    if (!splitterFilterPasst(t, a.seite, it.item)) continue;
     const ok = a.ziel.art === "band" ? nimmAufBand(a.ziel.teil, it.item, a.richtung) : gebaeudeNimmtVomBand(a.ziel.g, it.item);
     if (ok) { t.naechster = (t.naechster + i + 1) % n; return true; }
   }
@@ -7400,8 +7669,7 @@ function setzeBandteil(typ, x, z, richtung, daten = {}) {
       ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung })) : undefined,
     tempo: daten.tempo || null,
     name: daten.name || null,
-    modus: daten.modus === "sortieren" ? "sortieren" : "reihum",
-    filter: { ...(daten.filter || {}) },
+    seiten: seitenAusDaten(daten),             // Phase 7a: Seiten und Filter (ersetzt "modus" und "filter")
     vorrang: daten.vorrang || null,
     armFilter: daten.armFilter || null,
     haelt: daten.haelt || null,
@@ -7426,6 +7694,23 @@ function setzeBandteil(typ, x, z, richtung, daten = {}) {
   markiereBaender();
   meldeEreignis("rasterGeaendert", { x, z, kachel: k });
   return t;
+}
+
+// Seiten-Einstellungen aus gespeicherten Daten. Spielstände aus Phase 6 kennen nur den Splitter-Modus
+// "sortieren" mit einem Item pro Ausgang: daraus wird ein Haken auf dieser Seite.
+function seitenAusDaten(daten) {
+  const seiten = {};
+  if (daten.seiten) {
+    for (const [seite, e] of Object.entries(daten.seiten)) {
+      if (!SEITEN_NAMEN[seite] || !e) continue;
+      seiten[seite] = { gesperrt: !!e.gesperrt, filter: { ...(e.filter || {}) } };
+    }
+  } else if (daten.modus === "sortieren" && daten.filter) {
+    for (const [seite, item] of Object.entries(daten.filter)) {
+      if (SEITEN_NAMEN[seite] && item) seiten[seite] = { gesperrt: false, filter: { [item]: true } };
+    }
+  }
+  return seiten;
 }
 
 // Baut ein einzelnes Bandteil (Splitter, Zusammenführung, Übergang, Greifarm, ein Band).
@@ -7536,6 +7821,22 @@ function reisseBandteilAb(id) {
   meldeStruktur();
   return ids.length;
 }
+// Phase 7a: reißt eine ganze Bandgruppe (Segment) ab – Brücken darin immer ganz.
+// Rückgabe: { anzahl, geld } (geld = erstatteter Preis) oder null
+function reisseSegmentAb(teilId) {
+  const seg = segmentVon(spiel.baender.get(teilId));
+  if (!seg) return null;
+  const ids = new Set(seg.teile.map((t) => t.id));
+  for (const t of seg.teile) {
+    if (t.bruecke) for (const b of spiel.baender.values()) if (b.bruecke === t.bruecke) ids.add(b.id);
+  }
+  let geld = 0;
+  for (const id of ids) { const t = spiel.baender.get(id); if (t && !t.ausDepot) geld += bandTyp(t).preis; }
+  for (const id of ids) if (spiel.baender.has(id)) entferneBandteil(id);
+  planeLaufendeNeu();
+  meldeStruktur();
+  return { anzahl: ids.size, geld };
+}
 // Welches Bandteil liegt auf einer Kachel? (Brücke oben zuerst, außer "boden" ist gewünscht)
 function bandteilAufKachel(k, boden = false) {
   const kachel = k && holeKachel(k.x, k.z);
@@ -7553,11 +7854,20 @@ function planeLaufendeNeu() {
 function setzeBandEinstellung(id, feld, wert) {
   const t = spiel.baender.get(id);
   if (!t) return false;
-  if (feld === "modus" && t.typ === "splitter") t.modus = wert === "sortieren" ? "sortieren" : "reihum";
-  else if (feld.startsWith("filter.") && t.typ === "splitter") {
-    const seite = feld.slice(7);
-    if (wert) t.filter[seite] = wert; else delete t.filter[seite];
+  const knoten = t.typ === "splitter" || t.typ === "zusammen";
+  if (feld === "seiteSperren" && knoten && SEITEN_NAMEN[wert]) {          // Phase 7a: Seite sperren / freigeben
+    const e = t.seiten[wert] || (t.seiten[wert] = { gesperrt: false, filter: {} });
+    e.gesperrt = !e.gesperrt;
   }
+  else if (feld === "seiteFilter" && knoten) {                             // wert = "seite|item": leer → ✓ → ✕ → leer
+    const [seite, item] = String(wert).split("|");
+    if (!SEITEN_NAMEN[seite] || !item) return false;
+    const e = t.seiten[seite] || (t.seiten[seite] = { gesperrt: false, filter: {} });
+    if (e.filter[item] === undefined) e.filter[item] = true;
+    else if (e.filter[item] === true) e.filter[item] = false;
+    else delete e.filter[item];
+  }
+  else if (feld === "seiteZurueck" && knoten) delete t.seiten[wert];
   else if (feld === "vorrang" && t.typ === "zusammen") t.vorrang = ["links", "hinten", "rechts"].includes(wert) ? wert : null;
   else if (feld === "armFilter" && t.typ === "greifarm") t.armFilter = wert || null;
   else if (feld === "ablaufFilter") {
@@ -7565,7 +7875,13 @@ function setzeBandEinstellung(id, feld, wert) {
     if (liste.has(wert)) liste.delete(wert); else if (wert) liste.add(wert);
     t.ablaufFilter = [...liste];
   }
-  else if (feld === "drehen" && !bandTyp(t).spur) { t.richtung = (t.richtung + 1) % 4; markiereBaender(); }
+  else if (feld === "drehen" && (!bandTyp(t).spur || t.typ === "band" || t.typ === "uebergang")) {
+    // Phase 7a: auch ein einzelnes Bandstück lässt sich drehen (Items darauf fahren in die neue Richtung)
+    t.richtung = (t.richtung + 1) % 4;
+    if (t.items) for (const it of t.items) it.von = t.richtung;
+    markiereBaender();
+    planeLaufendeNeu();
+  }
   else return false;
   meldeStruktur();
   return true;
@@ -7576,7 +7892,7 @@ function bandteilDaten(t) {
   return {
     id: t.id, typ: t.typ, x: t.x, z: t.z, richtung: t.richtung,
     items: t.items ? t.items.map((i) => ({ item: i.item, pos: Math.round(i.pos * 1000) / 1000, von: i.von })) : undefined,
-    tempo: t.tempo, name: t.name, modus: t.modus, filter: t.filter, vorrang: t.vorrang,
+    tempo: t.tempo, name: t.name, seiten: t.seiten, vorrang: t.vorrang,
     armFilter: t.armFilter, haelt: t.haelt, ablaufFilter: t.ablaufFilter, bruecke: t.bruecke, ausDepot: t.ausDepot,
   };
 }
@@ -8531,11 +8847,22 @@ function zeigeGebaeudeAuswahl(g) {
     new THREE.LineBasicMaterial({ color: GRAFIK.farbeKachelAuswahl })
   );
   auswahl3d.add(rahmen);
+  // Phase 7a: grüne Bögen = Ware kommt hierher (Import), rote Bögen = Ware geht von hier weg (Export)
+  const io = einstellungen.grafik.ioLinien ? ioPartner(g) : { rein: new Set(), raus: new Set() };
+  for (const id of io.rein) {
+    const anderes = spiel.gebaeude.get(id);
+    if (anderes) ioBogen(anderes, g, GRAFIK.farbeImport, io.raus.has(id) ? 0.8 : 1);
+  }
+  for (const id of io.raus) {
+    const anderes = spiel.gebaeude.get(id);
+    if (anderes) ioBogen(g, anderes, GRAFIK.farbeExport, io.rein.has(id) ? 1.25 : 1);
+  }
   const punkte = [];
   const von = gebaeudeMitteWelt(g);
   for (const id of g.verknuepft) {
     const anderes = spiel.gebaeude.get(id);
     if (!anderes) continue;
+    if (io.rein.has(id) || io.raus.has(id)) continue;   // schon als farbiger Bogen zu sehen
     const nach = gebaeudeMitteWelt(anderes);
     punkte.push(new THREE.Vector3(von.x, y + 0.02, von.z), new THREE.Vector3(nach.x, y + 0.02, nach.z));
   }
@@ -8547,6 +8874,110 @@ function zeigeGebaeudeAuswahl(g) {
     linien.computeLineDistances();
     auswahl3d.add(linien);
   }
+}
+
+/* --- Phase 7a: Import-/Exportlinien ---
+   Wer liefert an das gewählte Gebäude (rein), wohin geht seine Ware (raus)?
+   Berücksichtigt Verknüpfungen (Arbeiter holen/bringen), Kurier-Wege über das Hauptlager
+   (laut Import-/Export-Pfeilen) und Bänder (Zulauf/Ablauf bis zum Gebäude am anderen Ende). */
+function ioKanten(g) {
+  // Liefert die Flüsse, an denen g selbst beteiligt ist: [{ von, nach }] (Gebäude-IDs)
+  const kanten = [];
+  const hl = hauptlager();
+  const r = istStation(g) ? rezeptVon(g) : null;
+  if (istStation(g) && r) {
+    for (const id of g.verknuepft) {
+      const lager = spiel.gebaeude.get(id);
+      if (!lager || !istZwischenlager(lager)) continue;
+      if (Object.keys(r.eingaben).some((item) => regelVon(lager, item).imp || (lager.bestand[item] || 0) > 0)) kanten.push({ von: id, nach: g.id });
+      if (nimmtErzeugnisAn(lager, r.ausgabe)) kanten.push({ von: g.id, nach: id });
+    }
+    if (hl) {
+      if (Object.keys(r.eingaben).some((item) => regelVon(g, item).imp)) kanten.push({ von: hl.id, nach: g.id });
+      if (regelVon(g, r.ausgabe).exp) kanten.push({ von: g.id, nach: hl.id });
+    }
+  }
+  if (istZwischenlager(g)) {
+    const items = new Set([...Object.keys(g.bestand), ...Object.keys(g.regeln || {}), ...gebrauchteItems(g)]);
+    if (hl) {
+      if ([...items].some((item) => regelVon(g, item).imp)) kanten.push({ von: hl.id, nach: g.id });
+      if ([...items].some((item) => regelVon(g, item).exp && (g.bestand[item] || 0) > 0)) kanten.push({ von: g.id, nach: hl.id });
+    }
+  }
+  // Bänder: Zulauf → woher kommt das Band? Ablauf → wohin führt es?
+  if (bandTopologieAlt) baueBandTopologie();
+  for (const a of g.bandAnschluesse || []) {
+    const t = spiel.baender.get(a.id);
+    if (!t) continue;
+    if (a.art === "zulauf") for (const id of bandQuellen(t)) if (id !== g.id) kanten.push({ von: id, nach: g.id });
+    if (a.art === "ablauf") for (const id of bandZiele(t)) if (id !== g.id) kanten.push({ von: g.id, nach: id });
+  }
+  return kanten;
+}
+// Gebäude, aus denen Items auf dieses Bandteil gelangen (rückwärts den Vorgängern folgen)
+function bandQuellen(start) {
+  const quellen = new Set(), besucht = new Set(), offen = [start];
+  while (offen.length && besucht.size < 3000) {
+    const t = offen.pop();
+    if (besucht.has(t.id)) continue;
+    besucht.add(t.id);
+    if (t.typ === "greifarm") { const q = gebaeudeAufKachel(hinterKachel(t)); if (q) quellen.add(q.id); continue; }
+    if (t.ablaufVon) quellen.add(t.ablaufVon);
+    for (const v of t.vorgaenger || []) offen.push(v.teil);
+  }
+  return quellen;
+}
+// Gebäude, in die Items von diesem Bandteil aus gelangen (vorwärts den Zielen folgen)
+function bandZiele(start) {
+  const ziele = new Set(), besucht = new Set(), offen = [start];
+  while (offen.length && besucht.size < 3000) {
+    const t = offen.pop();
+    if (besucht.has(t.id)) continue;
+    besucht.add(t.id);
+    if (t.typ === "greifarm") { const z = gebaeudeAufKachel(vorKachel(t)); if (z) ziele.add(z.id); continue; }
+    const naechste = t.typ === "splitter" ? (t.ausgaenge || []).map((a) => a.ziel) : [t.ziel];
+    for (const z of naechste) {
+      if (!z) continue;
+      if (z.art === "gebaeude") ziele.add(z.g.id);
+      else if (z.art === "band") offen.push(z.teil);
+    }
+  }
+  return ziele;
+}
+function ioPartner(g) {
+  const rein = new Set(), raus = new Set();
+  // Flüsse, die ein Partner meldet, gehören auch zum gewählten Gebäude (z. B. Station → Kiste).
+  // Das Hauptlager hat keine eigenen Regeln: seine Flüsse ergeben sich aus allen anderen Gebäuden.
+  const partner = typVon(g).art === "hauptlager"
+    ? [...spiel.gebaeude.values()].filter((x) => x.id !== g.id)
+    : g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter(Boolean);
+  const kanten = ioKanten(g).concat(partner.flatMap(ioKanten));
+  for (const k of kanten) {
+    if (k.nach === g.id && k.von !== g.id) rein.add(k.von);
+    if (k.von === g.id && k.nach !== g.id) raus.add(k.nach);
+  }
+  return { rein, raus };
+}
+// Bogen als dünne Röhre von Gebäude a nach b, mit kleiner Pfeilspitze kurz vor dem Ziel
+const ioPfeilGeometrie = new THREE.ConeGeometry(0.13, 0.32, 10);
+ioPfeilGeometrie.rotateX(Math.PI / 2);           // Spitze zeigt nach +z
+function ioBogen(a, b, farbe, hoehenFaktor = 1) {
+  const pa = gebaeudeMitteWelt(a), pb = gebaeudeMitteWelt(b);
+  const y = rasterHoehe + 0.5;
+  const start = new THREE.Vector3(pa.x, y, pa.z), ende = new THREE.Vector3(pb.x, y, pb.z);
+  const abstand = start.distanceTo(ende);
+  const mitte = start.clone().lerp(ende, 0.5);
+  mitte.y += (GRAFIK.linienBogen + abstand * 0.12) * hoehenFaktor;
+  const kurve = new THREE.QuadraticBezierCurve3(start, mitte, ende);
+  const material = new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: 0.9, depthTest: false });
+  const roehre = new THREE.Mesh(new THREE.TubeGeometry(kurve, 32, 0.045, 6, false), material);
+  roehre.renderOrder = 7;
+  auswahl3d.add(roehre);
+  const spitze = new THREE.Mesh(ioPfeilGeometrie.clone(), material.clone());
+  spitze.position.copy(kurve.getPoint(0.82));
+  spitze.lookAt(spitze.position.clone().add(kurve.getTangent(0.82)));
+  spitze.renderOrder = 7;
+  auswahl3d.add(spitze);
 }
 
 /* ============================================================================
@@ -8576,7 +9007,7 @@ function baueStreifenTextur() {
 const bandMaterialien = new Map(BAND_TEMPO.map((st) =>
   [st.id, new THREE.MeshStandardMaterial({ map: baueStreifenTextur(), roughness: 0.9 })]));
 const bandPfeilMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.85, depthWrite: false });
-const bandAuswahl = { id: null };               // vom Info-Fenster gesetzt: dieses Segment wird umrandet
+const bandAuswahl = { id: null, gruppe: false }; // vom Info-Fenster gesetzt: dieses Stück (bzw. mit gruppe die ganze Bandgruppe) wird umrandet
 
 // Flache Gummibahn (Länge in Fahrtrichtung +z) mit Mitte bei (x, y, z)
 function bahn(gruppe, breite, laenge, material, x, y, z, winkel = 0) {
@@ -8600,6 +9031,88 @@ function bandPfeil(gruppe, x, y, z, winkel, groesse = 0.6) {
   gruppe.add(pfeil);
   return pfeil;
 }
+// Phase 7a: flacher Richtungspfeil auf der Bahn (Grafik-Einstellung "Bandpfeile")
+const bandRichtungsMaterial = new THREE.MeshBasicMaterial({
+  color: GRAFIK.farbeBandPfeil, transparent: true, opacity: GRAFIK.deckkraftBandPfeil, depthWrite: false });
+function richtungsPfeil(gruppe, x, y, z, winkel) {
+  const pfeil = new THREE.Mesh(pfeilGeometrie, bandRichtungsMaterial);
+  pfeil.position.set(x, y, z);
+  pfeil.rotation.y = winkel;
+  pfeil.scale.setScalar(0.42);
+  gruppe.add(pfeil);
+  return pfeil;
+}
+
+/* --- Phase 7a: Kurvenbänder als echter Viertelkreis ---
+   Lokal (Teil zeigt nach +z) kommt das Item von der Seite herein und verlässt das Teil vorn.
+   Der Kreis hat seinen Mittelpunkt in der Ecke zwischen Eintritts- und Austrittskante und
+   den Radius 0,5 – die Mittellinie läuft also genau durch die Mitte beider Kanten. */
+// Liefert { c: Eckpunkt, e: Einheitsvektor Ecke→Eintritt, a: Einheitsvektor Ecke→Austritt }
+function kurvenBogen(t) {
+  const rel = (t.kurve - t.richtung + 4) % 4;      // 1: Items kommen von +x, 3: von −x
+  const s = rel === 1 ? 1 : -1;
+  return { c: { x: s * 0.5, z: 0.5 }, e: { x: 0, z: -1 }, a: { x: -s, z: 0 } };
+}
+// Punkt auf dem Bogen: p = 0 an der Eintrittskante, 1 an der Austrittskante; r = Abstand zur Ecke
+function bogenPunkt(b, p, r) {
+  const phi = p * Math.PI / 2, cs = Math.cos(phi), sn = Math.sin(phi);
+  return { x: b.c.x + r * (b.e.x * cs + b.a.x * sn), z: b.c.z + r * (b.e.z * cs + b.a.z * sn) };
+}
+// Fahrtrichtung (nicht normiert) an der Stelle p
+function bogenTangente(b, p) {
+  const phi = p * Math.PI / 2, cs = Math.cos(phi), sn = Math.sin(phi);
+  return { x: -b.e.x * sn + b.a.x * cs, z: -b.e.z * sn + b.a.z * cs };
+}
+// Gebogener Ring (Unterbau oder Leiste) zwischen zwei Radien, von y bis y + hoehe
+function bogenRing(gruppe, b, rInnen, rAussen, y, hoehe, farbe) {
+  const n = GRAFIK.kurvenSegmente, umriss = [];
+  // Form in der Ebene (x, −z), damit sie nach dem Hinlegen richtig liegt
+  for (let i = 0; i <= n; i++) { const p = bogenPunkt(b, i / n, rAussen); umriss.push(new THREE.Vector2(p.x, -p.z)); }
+  for (let i = n; i >= 0; i--) { const p = bogenPunkt(b, i / n, rInnen); umriss.push(new THREE.Vector2(p.x, -p.z)); }
+  const geo = new THREE.ExtrudeGeometry(new THREE.Shape(umriss), { depth: hoehe, bevelEnabled: false, curveSegments: 1 });
+  geo.rotateX(-Math.PI / 2);   // Form flach hinlegen, Höhe zeigt nach oben
+  const mesh = new THREE.Mesh(geo, figurMaterial(farbe));
+  mesh.position.y = y;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  gruppe.add(mesh);
+  return mesh;
+}
+// Gebogene Gummibahn: Streifen folgen dem Bogen und laufen gleich schnell wie auf geraden Bändern
+function bogenBahn(gruppe, b, material, y) {
+  const n = GRAFIK.kurvenSegmente, halb = BAND_BREITE / 2;
+  const laenge = Math.PI / 4;                       // Länge der Mittellinie (Viertelkreis mit r = 0,5)
+  const positionen = [], uvs = [], indizes = [];
+  for (let i = 0; i <= n; i++) {
+    const p = i / n;
+    for (const [r, u] of [[0.5 - halb, 0], [0.5 + halb, 1]]) {
+      const punkt = bogenPunkt(b, p, r);
+      positionen.push(punkt.x, 0, punkt.z);
+      uvs.push(u, (1 - p) * laenge);                // wie bei bahn(): v nimmt in Fahrtrichtung ab
+    }
+  }
+  for (let i = 0; i < n; i++) {
+    const a = i * 2, c = a + 2;
+    indizes.push(a, a + 1, c, a + 1, c + 1, c);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positionen, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indizes);
+  geo.computeVertexNormals();
+  // Zeigt die Fläche nach unten, die Dreiecke umdrehen (hängt von der Kurvenrichtung ab)
+  if (geo.attributes.normal.getY(0) < 0) {
+    for (let i = 0; i < indizes.length; i += 3) [indizes[i + 1], indizes[i + 2]] = [indizes[i + 2], indizes[i + 1]];
+    geo.setIndex(indizes);
+    geo.computeVertexNormals();
+  }
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.y = y;
+  mesh.receiveShadow = true;
+  gruppe.add(mesh);
+  return mesh;
+}
+
 // Lokaler Winkel einer Richtung relativ zum Teil (0 = vorn/+z)
 function lokalerWinkel(t, richtung) {
   return gebaeudeWinkel(RICHTUNGEN[(richtung - t.richtung + 4) % 4]);
@@ -8624,20 +9137,21 @@ function baueBandModell(t) {
     case "band":
     case "uebergang": {
       if (t.typ === "band" && t.kurve !== null && t.kurve !== undefined) {
-        // Kurve: hinein von der Seite (Richtung "kurve"), hinaus nach vorn
-        const rel = (t.kurve - t.richtung + 4) % 4;      // 1: Items kommen von +x, 3: von −x
-        const s = rel === 1 ? 1 : -1;
+        // Phase 7a: echte Kurve – ein Viertelkreis von der Seitenkante zur Vorderkante
+        const bogen = kurvenBogen(t);
         const halb = BAND_BREITE / 2;
-        quader(g, BAND_BREITE + 0.04, H - 0.01, 0.5 + halb, GRAFIK.farbeBandRahmen, 0, 0, (0.5 - halb) / 2);
-        quader(g, 0.5 - halb, H - 0.01, BAND_BREITE + 0.04, GRAFIK.farbeBandRahmen, s * (0.5 + halb) / 2, 0, 0);
-        bahn(g, BAND_BREITE, 0.5 + halb, material, 0, H + 0.002, (0.5 - halb) / 2);
-        bahn(g, BAND_BREITE, 0.5 - halb, material, s * (0.5 + halb) / 2, H + 0.002, 0, gebaeudeWinkel(RICHTUNGEN[rel]));
-        quader(g, 0.06, 0.06, 0.5 + halb + 0.06, GRAFIK.farbeBandRahmen, -s * leiste, H - 0.03, (0.5 - halb - 0.06) / 2);
-        quader(g, 0.5 + halb, 0.06, 0.06, GRAFIK.farbeBandRahmen, s * (0.5 - halb) / 2, H - 0.03, -leiste);
-        quader(g, 0.06, 0.06, 0.5 - halb, GRAFIK.farbeBandRahmen, s * leiste, H - 0.03, (0.5 + halb) / 2);
-        quader(g, 0.5 - halb, 0.06, 0.06, GRAFIK.farbeBandRahmen, s * (0.5 + halb) / 2, H - 0.03, leiste);
+        bogenRing(g, bogen, 0.5 - halb - 0.02, 0.5 + halb + 0.02, 0, H - 0.01, GRAFIK.farbeBandRahmen);   // Unterbau
+        bogenRing(g, bogen, 0.5 - leiste - 0.03, 0.5 - leiste + 0.03, H - 0.03, 0.06, GRAFIK.farbeBandRahmen);   // innere Leiste
+        bogenRing(g, bogen, 0.5 + leiste - 0.03, 0.5 + leiste + 0.03, H - 0.03, 0.06, GRAFIK.farbeBandRahmen);   // äußere Leiste
+        bogenBahn(g, bogen, material, H + 0.002);
+        if (einstellungen.grafik.bandPfeile) {
+          // Pfeil in der Mitte des Bogens, entlang der Fahrtrichtung
+          const mitte = bogenPunkt(bogen, 0.5, 0.5), tangente = bogenTangente(bogen, 0.5);
+          richtungsPfeil(g, mitte.x, H + 0.006, mitte.z, Math.atan2(tangente.x, tangente.z));
+        }
       } else {
         geradesBand(g, material);
+        if (einstellungen.grafik.bandPfeile) richtungsPfeil(g, 0, H + 0.006, 0, 0);
       }
       if (t.typ === "uebergang") {
         // Kleine Treppe quer über das Band: zwei Stufen links und rechts, ein Steg darüber
@@ -8703,6 +9217,7 @@ function baueBandModell(t) {
       quader(g, BAND_BREITE + 0.04, 0.08, 1, GRAFIK.farbeBandRahmen, 0, y - 0.09, 0);
       for (const x of [-leiste, leiste]) quader(g, 0.06, 0.08, 1, GRAFIK.farbeBandRahmen, x, y - 0.03, 0);
       bahn(g, BAND_BREITE, 1, material, 0, y + 0.002, 0);
+      if (einstellungen.grafik.bandPfeile) richtungsPfeil(g, 0, y + 0.006, 0, 0);
       for (const x of [-0.46, 0.46]) quader(g, 0.07, y - 0.09, 0.07, GRAFIK.farbeMetallDunkel, x, 0, 0);
       quader(g, 0.99, 0.06, 0.08, GRAFIK.farbeMetallDunkel, 0, y - 0.15, 0);
       break;
@@ -8718,6 +9233,7 @@ function baueBandModell(t) {
       quader(deck, BAND_BREITE + 0.04, 0.06, laenge, GRAFIK.farbeBandRahmen, 0, -0.07, 0);
       for (const x of [-leiste, leiste]) quader(deck, 0.06, 0.07, laenge, GRAFIK.farbeBandRahmen, x, -0.03, 0);
       bahn(deck, BAND_BREITE, laenge, material, 0, 0.002, 0);
+      if (einstellungen.grafik.bandPfeile) richtungsPfeil(deck, 0, 0.006, 0, 0);
       g.add(deck);
       // Stütze unter dem hohen Ende
       const zHoch = hoch ? 0.42 : -0.42;
@@ -8739,7 +9255,7 @@ function entferneBandModell(id) {
 function gleicheBandModelleAb() {
   for (const id of [...bandModelle.keys()]) if (!spiel.baender.has(id)) entferneBandModell(id);
   for (const t of spiel.baender.values()) {
-    const schluessel = `${t.typ}|${t.richtung}|${t.kurve ?? ""}|${t.tempo}|${t.x},${t.z}`;
+    const schluessel = `${t.typ}|${t.richtung}|${t.kurve ?? ""}|${t.tempo}|${t.x},${t.z}|${einstellungen.grafik.bandPfeile}`;
     const alt = bandModelle.get(t.id);
     if (alt && alt.schluessel === schluessel) continue;
     if (alt) entferneBandModell(t.id);
@@ -8786,6 +9302,14 @@ function bandItemPunkt(t, it, ziel) {
   const ax = mx + aus.x * 0.5, az = mz + aus.z * 0.5;
   const typ = bandTyp(t);
   const y = bahnHoehe(typ.ebeneEin) * q + bahnHoehe(typ.ebeneAus) * p;
+  if (ein.x * aus.x + ein.z * aus.z === 0 && (aus.x || aus.z)) {
+    // Phase 7a: Eintritt und Austritt stehen quer zueinander → exakt auf dem Viertelkreis
+    // (Mittelpunkt in der Ecke zwischen beiden Kanten, Radius 0,5), wie das Kurvenmodell
+    const phi = p * Math.PI / 2, cs = Math.cos(phi) * 0.5, sn = Math.sin(phi) * 0.5;
+    const cx = mx - ein.x * 0.5 + aus.x * 0.5, cz = mz - ein.z * 0.5 + aus.z * 0.5;
+    ziel.set(cx - aus.x * cs + ein.x * sn, rasterHoehe + y + GRAFIK.bandItemGroesse / 2, cz - aus.z * cs + ein.z * sn);
+    return ziel;
+  }
   ziel.set(q * q * ex + 2 * q * p * mx + p * p * ax, rasterHoehe + y + GRAFIK.bandItemGroesse / 2, q * q * ez + 2 * q * p * mz + p * p * az);
   return ziel;
 }
@@ -8831,12 +9355,16 @@ segmentRahmen.renderOrder = 6;
 segmentRahmen.count = 0;
 szene.add(segmentRahmen);
 let segmentRahmenMerker = "";
+// Rahmen beim nächsten Bild neu zeichnen (z. B. nach Wechsel Einzelstück ↔ Gruppe)
+function bandRahmenNeu() { segmentRahmenMerker = "?"; }
 function zeichneSegmentRahmen() {
   const t = bandAuswahl.id && spiel.baender.get(bandAuswahl.id);
-  const merker = t ? `${t.id}|${spiel.bandVersion}` : "";
+  const merker = t ? `${t.id}|${bandAuswahl.gruppe}|${spiel.bandVersion}` : "";
   if (merker === segmentRahmenMerker) return;
   segmentRahmenMerker = merker;
-  const teile = !t ? [] : (segmentVon(t) ? segmentVon(t).teile : [t]);
+  // Phase 7a: Einfachklick umrandet nur das Stück, Doppelklick die ganze Gruppe
+  const seg = t && bandAuswahl.gruppe && segmentVon(t);
+  const teile = !t ? [] : (seg ? seg.teile : [t]);
   let n = 0;
   for (const teil of teile) {
     if (n >= MAX_RAHMEN) break;
@@ -9017,14 +9545,21 @@ function itemZeilen(bestand, soll = null, markiere = null) {
       `<dd>${bestand[id] || 0}</dd>` + (soll ? `<dd class="leise">/ ${soll[id] || 0}</dd>` : "");
   }).join("") + `</dl>`;
 }
-// Items nach Art gruppiert (Rohstoffe, Bauteile, Fertigware)
+// Phase 7a: Gruppen im Füllstand – oben die Komponenten, darunter Fertigware, unten die Ressourcen
+const ITEM_GRUPPEN = [
+  { art: "bauteil", titel: "Komponenten" },
+  { art: "produkt", titel: "Fertigware" },
+  { art: "rohstoff", titel: "Ressourcen" },
+];
+function itemGruppeVon(item) {
+  const art = itemInfo(item).art;
+  return ITEM_GRUPPEN.some((g) => g.art === art) ? art : "bauteil";
+}
+// Items nach Art gruppiert (Komponenten, Fertigware, Ressourcen)
 function itemGruppen(bestand, markiere = null) {
   const gruppen = { rohstoff: {}, bauteil: {}, produkt: {} };
-  for (const [id, n] of Object.entries(bestand)) {
-    const art = itemInfo(id).art;
-    (gruppen[art] || gruppen.bauteil)[id] = n;
-  }
-  return [["Rohstoffe", gruppen.rohstoff], ["Bauteile", gruppen.bauteil], ["Fertigware", gruppen.produkt]]
+  for (const [id, n] of Object.entries(bestand)) gruppen[itemGruppeVon(id)][id] = n;
+  return ITEM_GRUPPEN.map((g) => [g.titel, gruppen[g.art]])
     .filter(([, g]) => Object.keys(g).length)
     .map(([titel, g]) => `<div class="info-block"><h3>${titel}</h3>${itemZeilen(g, null, markiere)}</div>`).join("")
     || `<p class="info-leer">leer</p>`;
@@ -9213,7 +9748,7 @@ function aktualisiereBauTipp() {
       warnung = true;
     } else {
       const kosten = baukosten(w.typ);
-      html = `${t.name} (${kosten ? euro(kosten) : "kostenlos"}): Klicken zum Aufstellen · <kbd>R</kbd> / Rechtsklick drehen · <kbd>Shift</kbd> mehrere · <kbd>Esc</kbd> abbrechen`;
+      html = `${t.name} (${kosten ? euro(kosten) : "kostenlos"}): Klicken zum Aufstellen · ${kbd("drehen")} / Rechtsklick drehen · <kbd>Shift</kbd> mehrere · <kbd>Esc</kbd> abbrechen`;
     }
   } else if (w && w.art === "verschieben") {
     const g = w.id && spiel.gebaeude.get(w.id);
@@ -9223,7 +9758,7 @@ function aktualisiereBauTipp() {
       html = `Hier geht das nicht: ${htmlSicher(vorschauErgebnis.gruende[0])}`;
       warnung = true;
     } else {
-      html = `${htmlSicher(gebaeudeName(g))}: an den neuen Platz klicken · <kbd>R</kbd> drehen · alter Platz oder <kbd>Esc</kbd>: abbrechen · Inhalt und Verknüpfungen bleiben`;
+      html = `${htmlSicher(gebaeudeName(g))}: an den neuen Platz klicken · ${kbd("drehen")} drehen · alter Platz oder <kbd>Esc</kbd>: abbrechen · Inhalt und Verknüpfungen bleiben`;
     }
   } else if (w && w.art === "band") {                // Phase 6
     ({ html, warnung = false } = bandTipp(w));
@@ -9232,7 +9767,7 @@ function aktualisiereBauTipp() {
   } else if (w && w.art === "abriss") {
     html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · <kbd>Esc</kbd> abbrechen";
   } else if (bau.reiter === "baender") {
-    html = "Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. <kbd>F</kbd> Fließband";
+    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. ${kbd("band")} Fließband`;
   } else if (bau.reiter === "halle") {
     html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
@@ -9341,9 +9876,17 @@ function behandleKachelKlick(k, shift) {
   }
   // 4. Gebäude angeklickt: Info-Fenster
   if (g) { setzeAuswahl(null); waehleGebaeude(g.id); return; }
-  // 4b. Bandteil angeklickt: Segment-Fenster (Phase 6)
+  // 4b. Bandteil angeklickt (Phase 7a): Einfachklick wählt das einzelne Stück,
+  //     ein zweiter Klick kurz danach (Doppelklick) die ganze Bandgruppe bis zum nächsten besonderen Teil
   const bandteil = bandteilAufKachel(k);
-  if (bandteil) { waehleBandteil(bandteil.id); return; }
+  if (bandteil) {
+    const jetzt = performance.now();
+    const doppel = letzterBandKlick.id === bandteil.id && jetzt - letzterBandKlick.zeit < DOPPELKLICK_ZEIT;
+    letzterBandKlick.id = doppel ? null : bandteil.id;
+    letzterBandKlick.zeit = jetzt;
+    waehleBandteil(bandteil.id, doppel && !!segmentVon(bandteil));
+    return;
+  }
   // 5. Freie Kachel: auswählen und (außerhalb des Bau-Modus) hinlaufen
   waehleGebaeude(null);
   setzeAuswahl(k);
@@ -9495,21 +10038,16 @@ function zeichneInfo() {
           `${bp.werte && bp.werte.ueberhitzt ? "⚠ " : ""}${htmlSicher(bp.name)} (${bp.teile.length} Teile${klasse ? ` · ${klasse.name}` : ""}${bp.werte && bp.werte.ueberhitzt ? `, ${Math.round(PRODUKTION.ausschussUeberhitzt * 100)} % Ausschuss` : ""})</option>`;
         }).join("")}
       </select></label>
-      ${liste.length ? "" : `<p class="info-leer">Noch keine Blaupause gespeichert – öffne den Layout-Designer (<kbd>L</kbd>).</p>`}`;
+      ${liste.length ? "" : `<p class="info-leer">Noch keine Blaupause gespeichert – öffne den Layout-Designer (${kbd("designer")}).</p>`}`;
   } else if (t.art === "forschung") {
     html += `<label class="info-feld">Zerlegen <select data-aktion="rezept">
         <option value="">– nichts zerlegen –</option>
         ${zerlegOptionen(g.rezept)}
       </select></label>`;
   } else if (istZwischenlager(g)) {
-    const modus = lagerModus(g);
-    // Phase 5b: Schnellwahl setzt alle Pfeile auf einmal; einzelne Pfeile stehen im Ressourcen-Reiter
-    html += `<div class="info-block"><h3>Schnellwahl</h3>
-        <div class="modus-wahl" role="group" aria-label="Schnellwahl für alle Pfeile">
-          ${Object.entries(LAGER_MODI).map(([id, m]) =>
-            `<button type="button" data-aktion="modus" data-modus="${id}" aria-pressed="${modus === id}" title="${htmlSicher(m.text)}">${m.symbol} ${m.name}</button>`).join("")}
-        </div>
-        <p class="modus-text">${htmlSicher(LAGER_MODI[modus].text)}</p>
+    // Phase 7a: keine Schnellwahl mehr – jedes Lager ist "Gemischt", gesteuert wird mit den Pfeilen pro Ressource
+    html += `<div class="info-block">
+        <p class="modus-text">⇣ grün = Import (Kuriere bringen bis zum Soll) · ⇡ rot = Export (Kuriere holen ab, was darüber liegt).</p>
         <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
           <option value="">– Item wählen –</option>
           ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
@@ -9529,20 +10067,23 @@ function zeichneInfo() {
         }).join("")}
       </select></label>`;
   }
-  html += `<div id="info-zahlen"></div><div class="info-knoepfe">`;
+  const zahlen = infoZahlenHtml(g);
+  html += `<div id="info-zahlen">${zahlen}</div><div class="info-knoepfe">`;
   if (istStation(g) || istZwischenlager(g)) {
-    html += `<button class="lz-knopf" type="button" data-aktion="verknuepfen" aria-pressed="${!!verknuepfModus}">Verknüpfen</button>`;
+    html += `<button class="lz-knopf" type="button" data-aktion="verknuepfen" aria-pressed="${!!verknuepfModus}">Verknüpfen ${kbd("verknuepfen")}</button>`;
   }
   if (istStation(g)) html += `<button class="lz-knopf" type="button" data-aktion="pause">${g.pausiert ? "Fortsetzen" : "Pausieren"}</button>`;
   if (istZwischenlager(g)) {
     html += `<button class="lz-knopf" type="button" data-aktion="rueckgabe" title="Kuriere bringen einmalig alles über dem Soll ins Hauptlager (außer Ressourcen mit ausgeschaltetem Export)">Überschuss zurückschicken</button>`;
   }
-  if (t.art === "hauptlager") html += `<button class="lz-knopf" type="button" data-aktion="lager">Lager-Fenster <kbd>I</kbd></button>`;
-  html += `<button class="lz-knopf" type="button" data-aktion="verschieben">Verschieben <kbd>M</kbd></button>`;
+  if (t.art === "hauptlager") html += `<button class="lz-knopf" type="button" data-aktion="lager">Lager-Fenster ${kbd("lager")}</button>`;
+  html += `<button class="lz-knopf" type="button" data-aktion="verschieben">Verschieben ${kbd("verschieben")}</button>`;
   html += `<button class="lz-knopf bau-gefahr" type="button" data-aktion="abreissen">Abreißen</button></div>`;
-  ob.infoInhalt.innerHTML = html;
+  // Phase 7a: nur Geändertes austauschen (kein Flackern, Scroll-Position und Knöpfe bleiben)
+  morphe(ob.infoInhalt, html);
+  const ziel = $("info-zahlen");
+  if (ziel) ziel._html = zahlen;
   anzeige.infoStrukturFehlt = false;
-  aktualisiereInfoZahlen();
 }
 
 /* --- Ressourcen-Reiter (Phase 5b): Import-/Export-Pfeile pro Ressource --- */
@@ -9559,7 +10100,11 @@ function pfeilKnopf(item, feld, an, titel) {
 }
 // Eine Zeile: Ressource | Ist / Soll (−/+) | ⇣ | ⇡ | ↺
 //   z = { item, ist, soll (oder null), sollText, imp (true/false oder null = kein Knopf), exp, manuell, notiz }
+// Rückgabe: { item, html } – regelTabelle sortiert die Zeilen in Gruppen (Phase 7a)
 function regelZeile(z) {
+  return { item: z.item, html: regelZeileHtml(z) };
+}
+function regelZeileHtml(z) {
   const info = itemInfo(z.item);
   const id = htmlSicher(z.item);
   const menge = z.soll === null ? `${z.ist}` : `${z.ist} <span class="leise">/ ${z.soll}</span>`;
@@ -9569,21 +10114,29 @@ function regelZeile(z) {
   return `<tr>
     <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
     <td class="zahl">${menge}${knoepfe}</td>
-    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, "Import: Kuriere bringen bis zum Soll")}</td>
-    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.station ? "Export: Kuriere holen ab, sobald der Pegel erreicht ist" : "Export: Kuriere holen ab, was über dem Soll liegt")}</td>
+    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, "Import (grün): Kuriere bringen bis zum Soll")}</td>
+    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.station ? "Export (rot): Kuriere holen ab, sobald der Pegel erreicht ist" : "Export (rot): Kuriere holen ab, was über dem Soll liegt")}</td>
     <td>${z.manuell ? `<button class="mini-knopf" type="button" data-aktion="auto" data-item="${id}" title="Zurück auf Automatik" aria-label="Zurück auf Automatik">↺</button>` : ""}</td>
   </tr>`;
 }
+// Phase 7a: oben Komponenten, darunter Fertigware, unten Ressourcen; in jeder Gruppe alphabetisch
+// (so springen die Zeilen nicht mehr, wenn sich Mengen ändern)
 function regelTabelle(zeilen) {
   if (!zeilen.length) return `<p class="info-leer">leer</p>`;
+  let koerper = "";
+  for (const gruppe of ITEM_GRUPPEN) {
+    const teil = zeilen.filter((z) => itemGruppeVon(z.item) === gruppe.art)
+      .sort((a, b) => itemInfo(a.item).name.localeCompare(itemInfo(b.item).name));
+    if (!teil.length) continue;
+    koerper += `<tr class="regel-gruppe"><th colspan="5">${gruppe.titel}</th></tr>` + teil.map((z) => z.html).join("");
+  }
   return `<table class="regel-tabelle"><thead><tr><th>Ressource</th><th class="zahl">Ist / Soll</th>
-    <th title="Import">⇣</th><th title="Export">⇡</th><th></th></tr></thead><tbody>${zeilen.join("")}</tbody></table>`;
+    <th title="Import">⇣</th><th title="Export">⇡</th><th></th></tr></thead><tbody>${koerper}</tbody></table>`;
 }
 // Ressourcen-Reiter eines Zwischenlagers
 function lagerZeilen(g) {
   const soll = sollbestand(g);
   const ids = regelZeilenIds(g);
-  ids.sort((a, b) => (g.bestand[b] || 0) - (g.bestand[a] || 0) || itemInfo(a).name.localeCompare(itemInfo(b).name));
   return regelTabelle(ids.map((item) => {
     const r = regelVon(g, item);
     const fest = g.regeln[item] && g.regeln[item].soll !== undefined;
@@ -9627,9 +10180,13 @@ function aktualisiereInfoZahlen() {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!ziel || !g) return;
   if (performance.now() < infoKlickSperre) return;   // gerade wird geklickt: Knöpfe nicht austauschen
+  setzeHtml(ziel, infoZahlenHtml(g));
+}
+// Der laufend aktualisierte Teil des Info-Fensters (Status, Ressourcen, Füllstand)
+function infoZahlenHtml(g) {
   const t = typVon(g);
   const verknuepfte = g.verknuepft.map((id) => spiel.gebaeude.get(id)).filter(Boolean);
-  const lagerName = (v) => istZwischenlager(v) ? `${LAGER_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
+  const lagerName = (v) => istZwischenlager(v) ? `${ANZEIGE_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
@@ -9670,23 +10227,68 @@ function aktualisiereInfoZahlen() {
     html += `<div class="info-block"><h3>Zwischenlager</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
       : `<span class="leise">Keins verknüpft – Kuriere liefern direkt ins Eingangsfach.</span>`}</div>`;
   } else if (istZwischenlager(g)) {
-    const ausgang = lagerModus(g) === "ausgang";
-    html += `<div class="info-block"><h3>Ressourcen · Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${lagerZeilen(g)}</div>`;
+    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${lagerZeilen(g)}</div>`;
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
     html += `<div class="info-block"><h3>Verknüpft</h3>${verknuepfte.length ? verknuepfte.map(lagerName).join(", ")
-      : `<span class="info-warnung">Keine Station verknüpft – ${ausgang ? "niemand legt hier etwas ab" : "Kuriere bringen nichts"}.</span>`}</div>`;
+      : `<span class="info-warnung">Keine Station verknüpft – Kuriere bringen nur, was du auf ⇣ Import stellst.</span>`}</div>`;
   } else if (t.art === "hauptlager") {
     html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3></div>${itemGruppen(g.bestand)}`;
   }
   html += bandAnschlussHtml(g);                     // Phase 6
-  setzeHtml(ziel, html);
+  return html;
 }
 // Schreibt HTML nur, wenn es sich geändert hat. Verglichen wird mit dem zuletzt
 // geschriebenen Text, denn innerHTML liest der Browser leicht verändert zurück.
+// Phase 7a: Es wird nicht mehr alles neu aufgebaut, sondern nur das Geänderte ausgetauscht (morphe).
 function setzeHtml(element, html) {
   if (element._html === html) return;
   element._html = html;
-  element.innerHTML = html;
+  morphe(element, html);
+}
+
+/* --- Phase 7a: Fenster ohne Neuaufbau ---
+   morphe() vergleicht den neuen Inhalt mit dem, was schon im Fenster steht, und ändert nur, was
+   anders ist: geänderte Zahlen, Texte und Attribute. Knöpfe, Auswahlfelder und die Scroll-Position
+   bleiben dieselben – deshalb flackert nichts und Klicks gehen nicht verloren. */
+const morphVorlage = document.createElement("template");
+function morphe(element, html) {
+  morphVorlage.innerHTML = html;
+  morpheKinder(element, morphVorlage.content);
+  morphVorlage.innerHTML = "";
+}
+function morpheKinder(alt, neu) {
+  const neueKinder = [...neu.childNodes];
+  for (let i = 0; i < neueKinder.length; i++) {
+    const n = neueKinder[i];
+    const a = alt.childNodes[i];
+    if (!a) { alt.appendChild(n); continue; }
+    // Anderer Knoten-Typ, anderes Element oder andere ID: austauschen
+    if (a.nodeType !== n.nodeType || a.nodeName !== n.nodeName || (a.id || "") !== (n.id || "")) { alt.replaceChild(n, a); continue; }
+    if (a.nodeType !== Node.ELEMENT_NODE) { if (a.nodeValue !== n.nodeValue) a.nodeValue = n.nodeValue; continue; }
+    for (const attr of [...a.attributes]) if (!n.hasAttribute(attr.name)) a.removeAttribute(attr.name);
+    for (const attr of n.attributes) if (a.getAttribute(attr.name) !== attr.value) a.setAttribute(attr.name, attr.value);
+    morpheKinder(a, n);
+    if (a !== document.activeElement) synchronisiereFeld(a);
+  }
+  while (alt.childNodes.length > neueKinder.length) alt.removeChild(alt.lastChild);
+}
+// Auswahlfelder, Häkchen und Eingabefelder zeigen ihren Wert nicht über Attribute an: nachziehen
+function synchronisiereFeld(a) {
+  if (a instanceof HTMLSelectElement) {
+    const gewaehlt = [...a.options].find((o) => o.hasAttribute("selected"));
+    const wert = gewaehlt ? gewaehlt.value : (a.options[0] ? a.options[0].value : "");
+    if (a.value !== wert) a.value = wert;
+  } else if (a instanceof HTMLInputElement) {
+    if (a.type === "checkbox" || a.type === "radio") a.checked = a.hasAttribute("checked");
+    else if (a.value !== (a.getAttribute("value") ?? "")) a.value = a.getAttribute("value") ?? "";
+  }
+}
+// Nach einem Klick in einem Fenster sofort (nicht erst beim nächsten Takt) den neuen Zustand zeigen
+function sofortAktualisieren() {
+  infoKlickSperre = 0;
+  bauKlickSperre = 0;
+  anzeige.timer = 0;
+  aktualisiereOberflaeche(0);
 }
 // Zwischen Drücken und Loslassen der Maus darf sich ein Knopf nicht austauschen (sonst geht der Klick verloren)
 let infoKlickSperre = 0;
@@ -9713,6 +10315,7 @@ ob.infoInhalt.addEventListener("change", (e) => {
     zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
   e.target.blur();
+  if (e.target.dataset.aktion) sofortAktualisieren();
 });
 ob.infoInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-aktion]");
@@ -9731,10 +10334,6 @@ ob.infoInhalt.addEventListener("click", (e) => {
     case "pause": schaltePause(g.id); break;
     case "lager": oeffneLager(); break;
     case "verschieben": starteVerschieben(g.id); break;
-    case "modus":
-      setzeLagerModus(g.id, knopf.dataset.modus);
-      zeigeMeldung(`${gebaeudeName(g)}: ${LAGER_MODI[knopf.dataset.modus].name} – ${LAGER_MODI[knopf.dataset.modus].text}`);
-      break;
     case "pfeil": {                                  // Phase 5b: Import/Export umschalten
       const feld = knopf.dataset.feld;
       setzeRegel(g.id, item, feld, !regelVon(g, item)[feld]);
@@ -9759,15 +10358,16 @@ ob.infoInhalt.addEventListener("click", (e) => {
       reisseAb(g.id);
       zeigeMeldung(`${name} abgerissen und ins Depot gelegt.`);
       waehleGebaeude(null);
-      break;
+      return;
     }
   }
+  sofortAktualisieren();                            // Phase 7a: neuer Zustand sofort und ohne Neuaufbau
 });
 $("info-schliessen").addEventListener("click", () => waehleGebaeude(null));
 
 /* --- Lager-Fenster --- */
 function aktualisiereSperre() {
-  sperre3dEingaben(lagerOffen || dialogOffen || kontor.offen || forschungOffen || insolvenzOffen);
+  sperre3dEingaben(lagerOffen || dialogOffen || kontor.offen || forschungOffen || insolvenzOffen || einstellungsFenster.offen);
   aktualisiereVorschau();
   aktualisiereAbrissMarke();
 }
@@ -9952,6 +10552,7 @@ function schliesseAndereFenster() {
   if (lagerOffen) schliesseLager();
   if (kontor.offen) schliesseKontor(false);
   if (forschungOffen) schliesseForschung(false);
+  if (einstellungsFenster.offen) schliesseEinstellungen(false);   // Phase 7a
 }
 function oeffneKontor(reiter = kontor.reiter) {
   if (designer.offen || dialogOffen || insolvenzOffen) return;
@@ -10345,9 +10946,182 @@ spielEreignisse.addEventListener("erfahrungAufstieg", (e) =>
 spielEreignisse.addEventListener("klasseEntdeckt", (e) =>
   zeigeMeldung(`Neue Produktklasse zerlegt: ${e.detail.klasse.symbol} ${e.detail.klasse.name} · +${e.detail.bonus} FP Entdeckungsbonus`));
 
+/* ============================================================================
+   ABSCHNITT 13d: Einstellungen – Tastenkürzel & Grafik (Phase 7a)      [UI/UX-Agent]
+   Öffnen über das Zahnrad im HUD oder Taste O. Belegen: Knopf einer Aktion anklicken,
+   dann die neue Taste drücken (Esc bricht ab). Ist die Taste schon vergeben, tauschen
+   die beiden Aktionen ihre Tasten – so ist nie eine Taste doppelt belegt.
+   ============================================================================ */
+const einstellungsFenster = { offen: false, reiter: "tasten", wartetAuf: null, hinweis: "" };
+Object.assign(ob, {
+  einstellungenOverlay: $("einstellungen-overlay"), einstellungenFenster: $("einstellungen-fenster"),
+  einstellungenInhalt: $("einstellungen-inhalt"), einstellungenHinweis: $("einstellungen-hinweis"),
+  hudEinstellungen: $("hud-einstellungen"),
+  einstellungenReiter: [...document.querySelectorAll("[data-einstellung-reiter]")],
+});
+const GRAFIK_SCHALTER = [
+  { schalter: "schatten",       name: "Schatten",                 text: "Schatten von Gebäuden, Figuren und Items. Aus = schneller." },
+  { schalter: "bandPfeile",     name: "Richtungspfeile auf Bändern", text: "Kleiner Pfeil auf jedem Bandstück, in Fahrtrichtung." },
+  { schalter: "ioLinien",       name: "Import-/Exportlinien",     text: "Grüne (Import) und rote (Export) Bögen, solange ein Lager oder eine Station ausgewählt ist." },
+  { schalter: "hoheAufloesung", name: "Hohe Auflösung",           text: "Volle Bildschirmauflösung. Aus = schneller auf schwachen Geräten." },
+];
+
+function oeffneEinstellungen() {
+  if (designer.offen || dialogOffen || insolvenzOffen) return;
+  if (einstellungsFenster.offen) return;
+  schliesseAndereFenster();
+  einstellungsFenster.offen = true;
+  einstellungsFenster.wartetAuf = null;
+  einstellungsFenster.hinweis = "";
+  ob.einstellungenOverlay.hidden = false;
+  aktualisiereSperre();
+  zeichneEinstellungen();
+  ob.einstellungenFenster.focus({ preventScroll: true });
+}
+function schliesseEinstellungen(fokusZurueck = true) {
+  if (!einstellungsFenster.offen) return;
+  einstellungsFenster.offen = false;
+  einstellungsFenster.wartetAuf = null;
+  ob.einstellungenOverlay.hidden = true;
+  aktualisiereSperre();
+  if (fokusZurueck) ob.hudEinstellungen.focus({ preventScroll: true });
+}
+function zeichneEinstellungen() {
+  for (const knopf of ob.einstellungenReiter) {
+    knopf.setAttribute("aria-selected", String(knopf.dataset.einstellungReiter === einstellungsFenster.reiter));
+  }
+  let html = "";
+  if (einstellungsFenster.reiter === "tasten") {
+    const gruppen = [...new Set(TASTEN_STANDARD.map((t) => t.gruppe))];
+    for (const gruppe of gruppen) {
+      html += `<h3 class="einstellungen-gruppe">${gruppe}</h3><div class="tasten-liste">`;
+      for (const t of TASTEN_STANDARD.filter((x) => x.gruppe === gruppe)) {
+        const wartet = einstellungsFenster.wartetAuf === t.aktion;
+        const taste = tasteFuer(t.aktion);
+        html += `<div class="tasten-zeile${wartet ? " wartet" : ""}">
+          <span>${t.name}</span>
+          <button class="tasten-knopf" type="button" data-belegen="${t.aktion}" aria-pressed="${wartet}"
+            title="Klicken und neue Taste drücken">${wartet ? "Taste drücken …" : `<kbd>${tastenName(taste)}</kbd>`}</button>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    html += `<p class="einstellungen-fest">Fest: <kbd>Esc</kbd> abbrechen · <kbd>Leer</kbd> Kamera zur Figur · Pfeiltasten Kamera · Rechte Maustaste ziehen · Mausrad zoomen</p>`;
+  } else {
+    html += `<div class="grafik-liste">`;
+    for (const s of GRAFIK_SCHALTER) {
+      html += `<label class="grafik-zeile">
+        <input type="checkbox" data-grafik="${s.schalter}" ${einstellungen.grafik[s.schalter] ? "checked" : ""}>
+        <span><b>${s.name}</b><small>${s.text}</small></span>
+      </label>`;
+    }
+    html += `</div>`;
+  }
+  morphe(ob.einstellungenInhalt, html);
+  setzeText(ob.einstellungenHinweis, einstellungsFenster.hinweis);
+}
+// Tastendruck, solange das Einstellungsfenster offen ist
+function einstellungsTaste(taste) {
+  const aktion = einstellungsFenster.wartetAuf;
+  if (!aktion) {
+    if (taste === "escape" || taste === tasteFuer("einstellungen")) schliesseEinstellungen();
+    return;
+  }
+  if (taste === "escape") {
+    einstellungsFenster.wartetAuf = null;
+    einstellungsFenster.hinweis = "Abgebrochen – die Taste bleibt, wie sie war.";
+  } else if (TASTEN_FEST.includes(taste)) {
+    einstellungsFenster.hinweis = `„${tastenName(taste)}“ hat eine feste Aufgabe und lässt sich nicht belegen. Bitte eine andere Taste drücken.`;
+  } else {
+    const alt = tasteFuer(aktion);
+    const andere = aktionFuerTaste(taste);
+    einstellungen.tasten[aktion] = taste;
+    if (andere && andere !== aktion) {
+      // Konflikt: Taste war schon belegt → die andere Aktion bekommt die alte Taste
+      einstellungen.tasten[andere] = alt;
+      const name = TASTEN_STANDARD.find((t) => t.aktion === andere).name;
+      einstellungsFenster.hinweis = `Achtung: ${tastenName(taste)} war schon für „${name}“ belegt – die beiden Aktionen haben ihre Tasten getauscht („${name}“ jetzt auf ${tastenName(alt)}).`;
+    } else {
+      einstellungsFenster.hinweis = `Gespeichert: ${tastenName(taste)}.`;
+    }
+    einstellungsFenster.wartetAuf = null;
+    speichereEinstellungen();
+    tastenGeaendert();
+  }
+  zeichneEinstellungen();
+}
+// Nach einer neuen Belegung: Schildchen in HUD, Hilfeleiste und offenen Fenstern anpassen
+function tastenGeaendert() {
+  for (const schild of document.querySelectorAll("kbd[data-taste]")) {
+    schild.textContent = tastenName(tasteFuer(schild.dataset.taste));
+  }
+  if (auswahlGebaeudeId) zeichneInfo();
+  if (auswahlBandId) zeichneBandInfo();
+  aktualisiereBauTipp();
+}
+// Grafik-Schalter sofort anwenden
+function grafikGeaendert() {
+  const schatten = GRAFIK.schatten && einstellungen.grafik.schatten;
+  if (renderer.shadowMap.enabled !== schatten) {
+    renderer.shadowMap.enabled = schatten;
+    // Materialien müssen neu übersetzt werden, damit Schatten erscheinen/verschwinden
+    szene.traverse((teil) => {
+      if (!teil.material) return;
+      for (const m of [].concat(teil.material)) m.needsUpdate = true;
+    });
+  }
+  renderer.setPixelRatio(pixelVerhaeltnis());
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  gleicheBandModelleAb();                          // Bandpfeile: Modelle mit neuem Schlüssel neu bauen
+  if (auswahlGebaeudeId) zeigeGebaeudeAuswahl(spiel.gebaeude.get(auswahlGebaeudeId));   // Import-/Exportlinien
+}
+ob.hudEinstellungen.addEventListener("click", () => (einstellungsFenster.offen ? schliesseEinstellungen() : oeffneEinstellungen()));
+$("einstellungen-schliessen").addEventListener("click", () => schliesseEinstellungen());
+ob.einstellungenOverlay.addEventListener("click", (e) => { if (e.target === ob.einstellungenOverlay) schliesseEinstellungen(); });
+ob.einstellungenFenster.addEventListener("click", (e) => {
+  const reiter = e.target.closest("[data-einstellung-reiter]");
+  if (reiter) {
+    einstellungsFenster.reiter = reiter.dataset.einstellungReiter;
+    einstellungsFenster.wartetAuf = null;
+    einstellungsFenster.hinweis = "";
+    zeichneEinstellungen();
+    return;
+  }
+  const belegen = e.target.closest("[data-belegen]");
+  if (belegen) {
+    const aktion = belegen.dataset.belegen;
+    einstellungsFenster.wartetAuf = einstellungsFenster.wartetAuf === aktion ? null : aktion;
+    einstellungsFenster.hinweis = einstellungsFenster.wartetAuf ? "Jetzt die neue Taste drücken (Esc: abbrechen)." : "";
+    zeichneEinstellungen();
+    return;
+  }
+  if (e.target.closest("#einstellungen-standard")) {
+    einstellungen.tasten = standardTasten();
+    Object.assign(einstellungen.grafik, GRAFIK_STANDARD);
+    einstellungsFenster.wartetAuf = null;
+    einstellungsFenster.hinweis = "Alle Tasten und Grafik-Schalter stehen wieder auf Standard.";
+    speichereEinstellungen();
+    tastenGeaendert();
+    grafikGeaendert();
+    zeichneEinstellungen();
+  }
+});
+ob.einstellungenInhalt.addEventListener("change", (e) => {
+  const schalter = e.target.dataset.grafik;
+  if (!schalter) return;
+  einstellungen.grafik[schalter] = e.target.checked;
+  speichereEinstellungen();
+  grafikGeaendert();
+});
+tastenGeaendert();   // gespeicherte Belegung gleich beim Start in die Schildchen übernehmen
+
 /* --- Tastatur (Capture-Phase, läuft vor der 3D-Steuerung) --- */
 window.addEventListener("keydown", (e) => {
   if (designer.offen) return;                           // der Layout-Designer hat seine eigenen Tasten
+  // Phase 7a: Esc schließt die Einstellungen auch, wenn gerade ein Schalter darin den Fokus hat
+  if (einstellungsFenster.offen && e.key === "Escape" && e.target instanceof HTMLInputElement) {
+    e.preventDefault(); e.stopImmediatePropagation(); schliesseEinstellungen(); return;
+  }
   const ziel = e.target;
   if (ziel instanceof HTMLInputElement || ziel instanceof HTMLSelectElement || ziel instanceof HTMLTextAreaElement) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -10362,44 +11136,68 @@ window.addEventListener("keydown", (e) => {
     if (taste !== "enter" && taste !== " " && taste !== "tab") erledigt();
     return;
   }
+  if (einstellungsFenster.offen) {                      // Phase 7a: Einstellungen (wartet evtl. auf eine neue Taste)
+    // Ohne Belegungswunsch bleiben Enter, Leertaste und Tab für die Knöpfe im Fenster
+    if (einstellungsFenster.wartetAuf || taste === "escape" || taste === tasteFuer("einstellungen")) {
+      erledigt();
+      einstellungsTaste(taste);
+    }
+    return;
+  }
+  // Phase 7a: Die Taste wird über die Belegung aus dem Einstellungsmenü in eine Aktion übersetzt
+  const aktion = aktionFuerTaste(taste);
   if (lagerOffen) {
-    if (taste === "escape" || taste === "i") { erledigt(); schliesseLager(); }
-    else if (taste === "k") { erledigt(); oeffneKontor("einkauf"); }
+    if (taste === "escape" || aktion === "lager") { erledigt(); schliesseLager(); }
+    else if (aktion === "kontor") { erledigt(); oeffneKontor("einkauf"); }
+    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
     return;
   }
   if (kontor.offen) {
-    if (taste === "escape" || taste === "k") { erledigt(); schliesseKontor(); }
-    else if (taste === "t") { erledigt(); oeffneForschung(); }
+    if (taste === "escape" || aktion === "kontor") { erledigt(); schliesseKontor(); }
+    else if (aktion === "forschung") { erledigt(); oeffneForschung(); }
+    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
     return;
   }
   if (forschungOffen) {
-    if (taste === "escape" || taste === "t") { erledigt(); schliesseForschung(); }
-    else if (taste === "k") { erledigt(); oeffneKontor(); }
+    if (taste === "escape" || aktion === "forschung") { erledigt(); schliesseForschung(); }
+    else if (aktion === "kontor") { erledigt(); oeffneKontor(); }
+    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
     return;
   }
-  switch (taste) {
-    case "b": erledigt(); schalteBau(); break;
-    case "i": erledigt(); oeffneLager(); break;
-    case "k": erledigt(); oeffneKontor(); break;
-    case "t": erledigt(); oeffneForschung(); break;
-    case "m": erledigt(); schalteVerschieben(); aktualisiereBauTipp(); break;
-    case "x": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
-    case "f": erledigt(); schalteBandWerkzeug(); break;   // Phase 6: Fließband
-    case "r": if (bau.offen && bau.werkzeug) { erledigt(); dreheWerkzeug(); } break;
-    case "p": erledigt(); schaltePauseUm(); break;
-    case "1": case "2": case "3": erledigt(); setzeTempo(Number(taste)); break;
-    case "escape":
-      if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
-      else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
-      else if (bau.offen) { erledigt(); schliesseBau(); }
-      else if (auswahlGebaeudeId) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
+  if (taste === "escape") {
+    if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
+    else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
+    else if (bau.offen) { erledigt(); schliesseBau(); }
+    else if (auswahlGebaeudeId) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
+    return;
+  }
+  switch (aktion) {
+    case "bauen": erledigt(); schalteBau(); break;
+    case "lager": erledigt(); oeffneLager(); break;
+    case "kontor": erledigt(); oeffneKontor(); break;
+    case "forschung": erledigt(); oeffneForschung(); break;
+    case "einstellungen": erledigt(); oeffneEinstellungen(); break;
+    case "verschieben": erledigt(); schalteVerschieben(); aktualisiereBauTipp(); break;
+    case "abriss": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
+    case "band": erledigt(); schalteBandWerkzeug(); break;   // Phase 6: Fließband
+    case "weiterbauen":                                       // Phase 7a: gewähltes Band verlängern
+      if (auswahlBandId) { erledigt(); bandWeiterbauen(); }
       break;
+    case "verknuepfen": {                                     // Phase 7a: wie der Knopf im Info-Fenster
+      const g = auswahlGebaeudeId && spiel.gebaeude.get(auswahlGebaeudeId);
+      const knopf = g && ob.infoInhalt.querySelector('button[data-aktion="verknuepfen"]');
+      if (knopf) { erledigt(); knopf.click(); }
+      break;
+    }
+    case "drehen": if (bau.offen && bau.werkzeug) { erledigt(); dreheWerkzeug(); } break;
+    case "pause": erledigt(); schaltePauseUm(); break;
+    case "tempo1": case "tempo2": case "tempo3": erledigt(); setzeTempo(Number(aktion.slice(-1))); break;
   }
 }, true);
 
 // Schutz vor "Durchklicken": Mausaktionen auf den neuen Fenstern erreichen das Raster nicht.
 for (const element of [ob.bauLeiste, ob.info, ob.lagerOverlay, ob.dialogOverlay,
-                       ob.kontorOverlay, ob.forschungOverlay, ob.insolvenzOverlay, ob.hudBankrott]) {
+                       ob.kontorOverlay, ob.forschungOverlay, ob.insolvenzOverlay, ob.hudBankrott, ob.einstellungenOverlay]) {
   for (const art of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "contextmenu"]) {
     element.addEventListener(art, (e) => e.stopPropagation());
   }
@@ -10540,7 +11338,14 @@ function ziehWerkzeugAktiv() {
   const w = bau.offen && !eingaben3dGesperrt ? bau.werkzeug : null;
   if (!w) return false;
   if (w.art === "abriss") return true;
+  if (w.anker) return false;   // Phase 7a: beim Weiterbauen genügt ein Klick aufs Ziel
   return w.art === "band" && !!bandTypNach.get(w.typ).ziehen;
+}
+// Phase 7a: Strecke vom Ansatzpunkt (Weiterbauen, Taste E) bis zur Kachel k.
+// Zuerst geht es geradeaus in der bisherigen Bandrichtung, dann um die Ecke (Shift: umgekehrt).
+function ankerStrecke(w, k, shift) {
+  const geradeausZ = RICHTUNGEN[w.richtung].z !== 0;
+  return bandStrecke(w.anker, k, shift ? !geradeausZ : geradeausZ);
 }
 // Strecke in L-Form von "start" nach "ende": erst entlang x, dann entlang z (Shift: umgekehrt).
 // Jede Kachel zeigt zur nächsten; die letzte behält die Richtung des letzten Schritts.
@@ -10673,6 +11478,13 @@ function aktualisiereBandVorschau() {
     return;
   }
   if (w.typ === "bruecke") { zeigeBandVorschau([{ x: k.x, z: k.z, typ: "rampeHoch", richtung: null, passt: true }]); return; }
+  if (w.anker) {                                   // Phase 7a: Weiterbauen zeigt die ganze Strecke ab dem Ansatzpunkt
+    const strecke = ankerStrecke(w, k, gedrueckteTasten.has("shift"));
+    const p = pruefeBandStrecke(strecke, w.typ);
+    bandVorschauGrund = p.passt ? "" : p.gruende[0] || "";
+    zeigeBandVorschau(strecke.map((s, i) => ({ ...s, typ: w.typ, passt: !p.fehler.includes(i) })));
+    return;
+  }
   const p = pruefeBandteil(w.typ, k.x, k.z, w.richtung, { ersetzen: w.typ === "band" || w.typ === "uebergang" });
   bandVorschauGrund = p.passt ? "" : p.gruende[0];
   zeigeBandVorschau([{ x: k.x, z: k.z, typ: w.typ, richtung: w.richtung, passt: p.passt }]);
@@ -10688,21 +11500,39 @@ function bandTipp(w) {
   }
   const t = bandTypNach.get(w.typ);
   if (bandVorschauGrund) return { html: `Hier geht das nicht: ${htmlSicher(bandVorschauGrund)}`, warnung: true };
-  if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): ziehen legt eine Strecke, Klick ein Stück · Richtung ${RICHTUNGS_PFEIL[w.richtung]} <kbd>R</kbd> drehen · <kbd>Esc</kbd> fertig` };
+  if (w.anker) return { html: `Weiterbauen (${euro(t.preis)}/Kachel): Ziel anklicken – die Strecke beginnt vor dem gewählten Band · <kbd>Shift</kbd> Ecke tauschen · <kbd>Esc</kbd> fertig` };
+  if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): ziehen legt eine Strecke, Klick ein Stück · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · <kbd>Esc</kbd> fertig` };
   if (w.typ === "bruecke") return { html: "Brücke: gerade von der Auffahrt zur Abfahrt ziehen (mind. 3 Kacheln). Darunter bleibt Platz für Bänder und Wege." };
   const kosten = bandteilPreis(w.typ);
-  return { html: `${t.name} (${kosten ? euro(kosten) : "aus dem Depot"}): Klicken zum Aufstellen · Richtung ${RICHTUNGS_PFEIL[w.richtung]} <kbd>R</kbd> drehen · <kbd>Esc</kbd> fertig` };
+  return { html: `${t.name} (${kosten ? euro(kosten) : "aus dem Depot"}): Klicken zum Aufstellen · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · <kbd>Esc</kbd> fertig` };
 }
 
 // Ein einzelnes Teil legen (Klick mit dem Band-Werkzeug)
 function bandKlick(w, k, shift) {
   if (w.typ === "bruecke") { zeigeMeldung("Eine Brücke ziehst du mit gedrückter Maustaste (mindestens 3 Kacheln).", true); return; }
+  if (w.anker) { ankerKlick(w, k, shift); return; }
   const r = baueBandteil(w.typ, k.x, k.z, w.richtung);
   if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
   const t = bandTypNach.get(w.typ);
   zeigeMeldung(r.kosten ? `${t.name} gebaut (−${euro(r.kosten)}).` : `${t.name} gelegt.`);
   if (!shift && w.typ !== "band" && w.typ !== "uebergang") setzeWerkzeug(null);
   aktualisiereBandVorschau();
+}
+// Phase 7a: Weiterbauen – Strecke vom Ansatzpunkt bis zur angeklickten Kachel legen.
+// Danach sitzt der Ansatzpunkt vor dem neuen Ende, man kann also gleich weiterklicken.
+function ankerKlick(w, k, shift) {
+  const strecke = ankerStrecke(w, k, shift);
+  const r = baueBandStrecke(strecke, w.typ);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
+  const letzte = strecke[strecke.length - 1];
+  w.richtung = letzte.richtung;
+  bau.letzteDrehung.bandRichtung = letzte.richtung;
+  const weiter = { x: letzte.x + RICHTUNGEN[letzte.richtung].x, z: letzte.z + RICHTUNGEN[letzte.richtung].z };
+  const frei = istImRaster(weiter.x, weiter.z) && !holeKachel(weiter.x, weiter.z).objekt && !holeKachel(weiter.x, weiter.z).band;
+  w.anker = frei ? weiter : null;
+  zeigeMeldung(`${r.gebaut} × ${bandTypNach.get(w.typ).name} gelegt${r.kosten ? ` (−${euro(r.kosten)})` : ""}.${frei ? " Weiter anklicken oder Esc." : ""}`);
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
 }
 // Ein Bandteil abreißen (Klick mit dem Abriss-Werkzeug)
 function bandAbrissKlick(k) {
@@ -10720,29 +11550,88 @@ function reisseBandAb(t) {
   aktualisiereBandVorschau();
 }
 
-/* --- Info-Fenster für Bandteile --- */
-function waehleBandteil(id) {
+/* --- Info-Fenster für Bandteile ---
+   Phase 7a: Einfachklick = ein einzelnes Stück (drehen, abreißen, weiterbauen),
+             Doppelklick = die ganze Bandgruppe (Segment: Tempo, Name, Richtung umkehren, Gruppe abreißen). */
+const letzterBandKlick = { id: null, zeit: 0 };
+function waehleBandteil(id, gruppe = false) {
   waehleGebaeude(null);
   setzeAuswahl(null);
   const t = spiel.baender.get(id);
   if (!t) return;
   auswahlBandId = id;
   bandAuswahl.id = id;
+  bandAuswahl.gruppe = !!gruppe;
   ob.info.hidden = false;
   zeichneBandInfo();
 }
+// Kann man an diesem Teil mit dem Band-Werkzeug weiterbauen? (Bänder am Boden mit freier Vorderkante)
+function kannWeiterbauen(t) {
+  return !!t && ["band", "uebergang", "rampeRunter"].includes(t.typ);
+}
+// Phase 7a, Taste E: Das Band-Werkzeug setzt an der Vorderkante des gewählten Bandstücks an.
+// Danach zeigt die Vorschau die Strecke vom Ansatzpunkt bis zur Maus; ein Klick baut sie.
+function bandWeiterbauen() {
+  const t = auswahlBandId && spiel.baender.get(auswahlBandId);
+  if (!kannWeiterbauen(t)) { zeigeMeldung("Zuerst ein Fließband anklicken, dann weiterbauen.", true); return false; }
+  if (bandTopologieAlt) baueBandTopologie();
+  // Bei einer Bandgruppe am Ende der Gruppe ansetzen
+  const seg = bandAuswahl.gruppe && segmentVon(t);
+  const ende = seg ? seg.teile[seg.teile.length - 1] : t;
+  const start = vorKachel(ende);
+  if (!istImRaster(start.x, start.z)) { zeigeMeldung("Hier endet die Halle – an dieser Stelle geht es nicht weiter.", true); return false; }
+  const kachel = holeKachel(start.x, start.z);
+  if (kachel.objekt || kachel.band) { zeigeMeldung("Vor dem Band ist kein Platz frei (dort steht schon etwas).", true); return false; }
+  if (!bau.offen) oeffneBau();
+  if (bau.reiter !== "baender") { bau.reiter = "baender"; zeichneBauInhalt(); }
+  setzeWerkzeug({ art: "band", typ: "band", richtung: ende.richtung, anker: { x: start.x, z: start.z } });
+  zeigeMeldung("Weiterbauen: Ziel anklicken – die Strecke beginnt vor dem gewählten Band. Esc beendet.");
+  aktualisiereBauTipp();
+  return true;
+}
 function bandInfoKnopf(aktion, text, extra = "", klasse = "lz-knopf") {
   return `<button class="${klasse}" type="button" data-band-aktion="${aktion}" ${extra}>${text}</button>`;
+}
+// Phase 7a: Seiten und Filter eines Splitters (Ausgänge) bzw. einer Zusammenführung (Eingänge)
+function seitenHtml(t) {
+  const seiten = t.typ === "splitter" ? ["links", "vorn", "rechts"] : ["links", "hinten", "rechts"];
+  const angeschlossen = (seite) => t.typ === "splitter"
+    ? t.ausgaenge.some((a) => a.seite === seite)
+    : t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === seite);
+  const zeilen = seiten.map((seite) => {
+    const e = seiteEinstellung(t, seite) || { gesperrt: false, filter: {} };
+    const chips = alleItems().map((item) => {
+      const zustand = e.filter[item] === true ? "nur" : e.filter[item] === false ? "nein" : "";
+      const titel = zustand === "nur" ? "nur diese (✓) – Klick: sperren" : zustand === "nein" ? "gesperrt (✕) – Klick: Filter weg" : "Klick: nur diese";
+      return `<button type="button" class="filter-knopf seiten-chip" data-band-aktion="seiteFilter" data-seite="${seite}" data-item="${htmlSicher(item)}"
+        data-zustand="${zustand}" title="${titel}" style="--item-farbe:${itemInfo(item).farbe}">${zustand === "nur" ? "✓ " : zustand === "nein" ? "✕ " : ""}${htmlSicher(itemInfo(item).name)}</button>`;
+    }).join("");
+    return `<div class="seiten-zeile${e.gesperrt ? " gesperrt" : ""}">
+        <div class="seiten-kopf"><b>${SEITEN_NAMEN[seite]}</b>${angeschlossen(seite) ? "" : ` <small class="leise">(kein Anschluss)</small>`}
+          <button type="button" class="mini-knopf seiten-schalter" data-band-aktion="seiteSperren" data-seite="${seite}" aria-pressed="${!e.gesperrt}">
+            ${e.gesperrt ? "✕ gesperrt" : "✓ offen"}</button></div>
+        ${e.gesperrt ? "" : `<div class="filter-liste">${chips}</div>`}
+      </div>`;
+  }).join("");
+  const text = t.typ === "splitter"
+    ? "Items gehen reihum an die offenen Ausgänge. ✓ = nur diese Items; ein Ausgang ohne ✓ nimmt alles andere. ✕ = nie."
+    : "Items kommen reihum von den offenen Seiten. ✓ = nur diese Items annehmen, ✕ = diese Items nicht annehmen.";
+  return `<div class="info-block"><h3>${t.typ === "splitter" ? "Ausgänge" : "Eingänge"}</h3><p class="modus-text">${text}</p>${zeilen}</div>`;
 }
 function zeichneBandInfo() {
   const t = spiel.baender.get(auswahlBandId);
   if (!t) { waehleGebaeude(null); return; }
   if (bandTopologieAlt) baueBandTopologie();
   const typ = bandTyp(t);
-  const seg = segmentVon(t);
-  ob.infoTitel.textContent = seg ? `${t.name} · ${typ.name}` : typ.name;
-  ob.infoUnter.textContent = typ.beschreibung;
+  const segAlle = segmentVon(t);
+  const gruppe = bandAuswahl.gruppe && !!segAlle;   // Phase 7a: ganze Bandgruppe gewählt?
+  const seg = gruppe ? segAlle : null;
+  ob.infoTitel.textContent = gruppe ? `${t.name} · Bandgruppe` : segAlle ? `${typ.name} · ${t.name}` : typ.name;
+  ob.infoUnter.textContent = gruppe ? `${segAlle.teile.length} Bandstücke bis zum nächsten besonderen Teil (Splitter, Zusammenführung, Greifarm, Gebäude).` : typ.beschreibung;
   let html = "";
+  if (!gruppe && segAlle) {
+    html += `<p class="modus-text">Einzelnes Stück. <b>Doppelklick</b> wählt die ganze Bandgruppe (Tempo, Name, Gruppe abreißen).</p>`;
+  }
   if (seg) {
     const anfang = seg.teile[0];
     html += `<div class="info-block"><h3>Tempo des Segments</h3><div class="tempo-wahl" role="group" aria-label="Tempo">` +
@@ -10768,35 +11657,44 @@ function zeichneBandInfo() {
     }
   }
   if (t.typ === "splitter") {
-    html += `<div class="info-block"><h3>Verteilung</h3><div class="modus-wahl zwei" role="group">
-        ${bandInfoKnopf("modus", "Reihum", `data-wert="reihum" aria-pressed="${t.modus === "reihum"}"`, "")}
-        ${bandInfoKnopf("modus", "Sortieren", `data-wert="sortieren" aria-pressed="${t.modus === "sortieren"}"`, "")}</div>
-        <p class="modus-text">${t.modus === "sortieren" ? "Jeder Ausgang nimmt nur sein Item; ein Ausgang ohne Filter nimmt alles andere." : "Items gehen abwechselnd nach links, vorn und rechts (wo ein Band oder Gebäude anschließt)."}</p>
-        ${t.modus === "sortieren" ? ["links", "vorn", "rechts"].map((seite) => `<label class="info-feld">${SEITEN_NAMEN[seite]}
-          <select data-band-aktion="filter" data-seite="${seite}">${itemOptionen(t.filter[seite] || "", "– alles andere –")}</select></label>`).join("") : ""}
-      </div>`;
+    html += seitenHtml(t);                          // Phase 7a: Seiten und Filter
   } else if (t.typ === "zusammen") {
     html += `<label class="info-feld">Vorrang <select data-band-aktion="vorrang">
         ${[["", "– reihum –"], ["links", "links"], ["hinten", "hinten"], ["rechts", "rechts"]].map(([wert, text]) =>
           `<option value="${wert}" ${(t.vorrang || "") === wert ? "selected" : ""}>${text}</option>`).join("")}
       </select></label>`;
+    html += seitenHtml(t);
   } else if (t.typ === "greifarm") {
     html += `<label class="info-feld">Nur dieses Item <select data-band-aktion="armFilter">${itemOptionen(t.armFilter || "", "– alles, was das Ziel braucht –")}</select></label>`;
   }
-  html += `<div id="band-zahlen"></div><div class="info-knoepfe">`;
-  if (seg) html += bandInfoKnopf("umkehren", "Richtung umkehren");
-  if (!typ.spur) html += bandInfoKnopf("drehen", "Drehen ↻");
-  html += bandInfoKnopf("abreissen", t.bruecke ? "Brücke abreißen" : "Abreißen", "", "lz-knopf bau-gefahr") + `</div>`;
-  ob.infoInhalt.innerHTML = html;
+  const zahlen = bandInfoZahlenHtml(t);
+  html += `<div id="band-zahlen">${zahlen}</div><div class="info-knoepfe">`;
+  if (gruppe) {
+    html += bandInfoKnopf("umkehren", "Richtung umkehren");
+    if (kannWeiterbauen(seg.teile[seg.teile.length - 1])) html += bandInfoKnopf("weiterbauen", `Weiterbauen ${kbd("weiterbauen")}`);
+    html += bandInfoKnopf("einzeln", "Nur dieses Stück");
+    html += bandInfoKnopf("abreissenGruppe", `Gruppe abreißen (${seg.teile.length})`, "", "lz-knopf bau-gefahr");
+  } else {
+    if (!typ.spur || t.typ === "band" || t.typ === "uebergang") html += bandInfoKnopf("drehen", "Drehen ↻");
+    if (kannWeiterbauen(t)) html += bandInfoKnopf("weiterbauen", `Weiterbauen ${kbd("weiterbauen")}`);
+    if (segAlle) html += bandInfoKnopf("gruppe", "Ganze Gruppe wählen");
+    html += bandInfoKnopf("abreissen", t.bruecke ? "Brücke abreißen" : "Abreißen", "", "lz-knopf bau-gefahr");
+  }
+  html += `</div>`;
+  morphe(ob.infoInhalt, html);                      // Phase 7a: ohne Neuaufbau
+  const ziel = $("band-zahlen");
+  if (ziel) ziel._html = zahlen;
   anzeige.infoStrukturFehlt = false;
-  aktualisiereBandInfoZahlen();
 }
 function aktualisiereBandInfoZahlen() {
   const ziel = $("band-zahlen");
   const t = spiel.baender.get(auswahlBandId);
   if (!ziel || !t) return;
   if (performance.now() < infoKlickSperre) return;
-  const seg = segmentVon(t);
+  setzeHtml(ziel, bandInfoZahlenHtml(t));
+}
+function bandInfoZahlenHtml(t) {
+  const seg = bandAuswahl.gruppe ? segmentVon(t) : null;
   let html = "";
   if (seg) {
     const info = segmentInfo(seg);
@@ -10822,9 +11720,9 @@ function aktualisiereBandInfoZahlen() {
     html += `<div class="info-block"><dl class="info-zeilen zwei"><dt>Items darin</dt><dd>${items}</dd>
       ${anschluesse !== null ? `<dt>Ausgänge</dt><dd>${anschluesse}</dd>` : ""}
       <dt>Laufkosten</dt><dd>${euro(bandTyp(t).tagesKosten || 0)}/Tag</dd></dl>
-      ${t.stau >= BAENDER.stauWarnung ? `<p class="info-warnung">⚠ Stau: kein Ausgang nimmt gerade etwas an.</p>` : ""}</div>`;
+      ${t.stau >= BAENDER.stauWarnung ? `<p class="info-warnung">⚠ Stau: ${t.typ === "splitter" ? "kein Ausgang nimmt gerade etwas an" : "es geht nicht weiter"}.</p>` : ""}</div>`;
   }
-  setzeHtml(ziel, html);
+  return html;
 }
 ob.infoInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-band-aktion]");
@@ -10842,7 +11740,17 @@ ob.infoInhalt.addEventListener("click", (e) => {
       break;
     }
     case "ablauf": setzeBandEinstellung(knopf.dataset.teil, "ablaufFilter", knopf.dataset.item); break;
-    case "modus": setzeBandEinstellung(t.id, "modus", knopf.dataset.wert); break;
+    case "seiteSperren": setzeBandEinstellung(t.id, "seiteSperren", knopf.dataset.seite); break;          // Phase 7a
+    case "seiteFilter": setzeBandEinstellung(t.id, "seiteFilter", `${knopf.dataset.seite}|${knopf.dataset.item}`); break;
+    case "gruppe": bandAuswahl.gruppe = true; break;
+    case "einzeln": bandAuswahl.gruppe = false; break;
+    case "weiterbauen": bandWeiterbauen(); return;
+    case "abreissenGruppe": {
+      const r = reisseSegmentAb(t.id);
+      if (r) zeigeMeldung(`Bandgruppe abgerissen: ${r.anzahl} Teile${r.geld ? ` (+${euro(r.geld)} erstattet)` : ""}.`);
+      waehleGebaeude(null);
+      return;
+    }
     case "umkehren":
       if (dreheSegmentUm(t.id)) zeigeMeldung(`${t.name} läuft jetzt andersherum.`);
       else zeigeMeldung("Dieses Segment lässt sich nicht umkehren.", true);
@@ -10854,14 +11762,14 @@ ob.infoInhalt.addEventListener("click", (e) => {
       return;
     }
   }
-  if (spiel.baender.has(auswahlBandId)) zeichneBandInfo();   // Knöpfe sofort im neuen Zustand zeigen
+  infoKlickSperre = 0;
+  if (spiel.baender.has(auswahlBandId)) { zeichneBandInfo(); bandRahmenNeu(); }   // Knöpfe sofort im neuen Zustand zeigen
 });
 ob.infoInhalt.addEventListener("change", (e) => {
   const feld = e.target;
   const t = spiel.baender.get(auswahlBandId);
   if (!t || !feld.dataset.bandAktion) return;
-  if (feld.dataset.bandAktion === "filter") setzeBandEinstellung(t.id, "filter." + feld.dataset.seite, feld.value);
-  else if (feld.dataset.bandAktion === "vorrang") setzeBandEinstellung(t.id, "vorrang", feld.value);
+  if (feld.dataset.bandAktion === "vorrang") setzeBandEinstellung(t.id, "vorrang", feld.value);
   else if (feld.dataset.bandAktion === "armFilter") setzeBandEinstellung(t.id, "armFilter", feld.value);
   if (feld instanceof HTMLSelectElement) feld.blur();
 });
@@ -11073,6 +11981,9 @@ window.tradeUp = {
   baueBandTopologie, bandLaufkosten, segmentInfo, bandStrecke,
   gibArbeiterFrei, ohneAufgabeListe, schuleUm, schickeInForschung, setzeAutoZuweisung, abfindungVon, maxMitarbeiter,
   baueHalleAus, setzeHallenStufe, halleStufe, aktuelleMiete, kachelKosten,
+  // Phase 7a: Einstellungen, Bandauswahl, Weiterbauen, Import-/Exportlinien
+  einstellungen, TASTEN_STANDARD, GRAFIK_STANDARD, oeffneEinstellungen, schliesseEinstellungen,
+  waehleBandteil, bandWeiterbauen, bandAuswahl, ioPartner, reisseSegmentAb, kurvenBogen, bandItemPunkt,
 };
 </script>
 

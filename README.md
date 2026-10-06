@@ -49,6 +49,13 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Pause / Tempo 1×, 2×, 3× | `P`, `1`, `2`, `3` |
 | Kamera auf die Figur | `Leertaste` |
 | Layout-Designer öffnen / schließen | Knopf in der Infobox, `L`, `Esc` |
+| Fließband in die Hand | `F` |
+| Bandstück wählen / ganze Bandgruppe wählen | Einfachklick / Doppelklick auf ein Band |
+| Gewähltes Band weiterbauen | `E`, dann Ziel anklicken |
+| Verknüpfen (Station oder Zwischenlager gewählt) | `V` |
+| Einstellungen (Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
+
+Alle Tastenkürzel außer `Esc`, `Leertaste` und den Pfeiltasten lassen sich im Einstellungsmenü neu belegen (seit Phase 7a). Der Browser merkt sich die Belegung.
 
 ### Im Layout-Designer
 

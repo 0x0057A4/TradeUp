@@ -331,7 +331,7 @@
 
   /* Das eigentliche Fenster */
   #lz-fenster {
-    width: min(800px, 100%);
+    width: min(1180px, 100%);   /* Phase 7c: breiter – Kategorie-Reiter links, große Gehäuse in der Mitte */
     max-height: 100%;
     overflow: auto;
     display: flex;
@@ -388,7 +388,7 @@
   /* Drei Spalten: Bauteile | Raster | Bewertung & Blaupausen */
   .lz-inhalt {
     display: grid;
-    grid-template-columns: 200px 1fr 230px;
+    grid-template-columns: 280px minmax(0, 1fr) 230px;   /* Phase 7c: Leiste mit Suche und Reitern */
     gap: 18px;
     padding: 16px 18px;
   }
@@ -411,7 +411,8 @@
     padding: 0;
     display: grid;
     gap: 6px;
-    max-height: 60vh;   /* Phase 7c: 60+ Komponenten – die Leiste scrollt statt das Fenster zu strecken */
+    max-height: min(56vh, 560px);   /* Phase 7c: 60+ Komponenten – die Leiste scrollt statt das Fenster zu strecken */
+    padding-right: 2px;
     overflow-y: auto;
   }
   .lz-bauteil {
@@ -1522,6 +1523,132 @@
   .lz-ziel-teil.da { color: var(--farbe-eingang); border-color: var(--farbe-eingang); }
   .lz-ziel-teil.fehlt { color: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
   .lz-ziel-teil.fertig { color: #fff; background: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+
+  /* ==========================================================================
+     Phase 7c: Komponenten & Gehäuse im Designer, Werkbank-Auswahl, Rezepte  [UI/UX-Agent]
+     ========================================================================== */
+  .lz-unsichtbar {   /* bleibt für Tastatur und Tests erreichbar, ist aber nicht zu sehen */
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .lz-palette-zahl { font-weight: 600; text-transform: none; letter-spacing: normal; }
+  .lz-palette-kopf { display: grid; gap: 6px; margin-bottom: 8px; }
+  .lz-suche {
+    width: 100%; box-sizing: border-box; padding: 6px 10px;
+    font: inherit; font-size: var(--groesse-text); color: var(--farbe-text);
+    background: #fff; border: 1px solid var(--farbe-rand); border-radius: 8px;
+  }
+  .lz-suche:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-filter { display: flex; align-items: center; gap: 6px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); cursor: pointer; white-space: nowrap; }
+  .lz-filter input { width: 16px; height: 16px; margin: 0; accent-color: var(--farbe-akzent); }
+  /* Kategorie-Reiter: Symbol in der Kategorie-Farbe; "Alle" als Text */
+  .lz-kategorien { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .lz-kat {
+    position: relative; min-width: 0; height: 30px; padding: 0 4px;
+    font: inherit; font-size: 1rem; font-weight: 700; line-height: 1; color: var(--farbe-text);
+    background: color-mix(in srgb, var(--kat-farbe, #ddd) 28%, #fff);
+    border: 1px solid var(--kat-farbe, var(--farbe-rand)); border-radius: 8px; cursor: pointer;
+  }
+  .lz-kat.text { font-size: var(--groesse-klein); }
+  .lz-kat:hover { border-color: var(--farbe-akzent); }
+  .lz-kat:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-kat[aria-selected="true"] {
+    color: #fff; background: var(--kat-farbe, var(--farbe-text)); border-color: var(--farbe-text);
+    box-shadow: inset 0 0 0 1px #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+  .lz-kat .lz-punkt {   /* in dieser Kategorie ist etwas freischaltbar */
+    position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--farbe-akzent); box-shadow: 0 0 0 2px var(--lz-fenster);
+  }
+  .rezepte-kategorien { display: flex; flex-wrap: wrap; }
+  .rezepte-kategorien .lz-kat { min-width: 38px; }
+  /* Gruppen- und Linien-Überschriften in der Leiste */
+  #lz-palette .lz-gruppe {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: var(--groesse-klein); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--farbe-text-leise);
+  }
+  #lz-palette .lz-gruppe:first-child { margin-top: 0; }
+  #lz-palette .lz-gruppe::before {
+    content: attr(data-symbol); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px;
+    color: #fff; background: var(--kat-farbe, var(--farbe-akzent)); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); text-transform: none;
+  }
+  #lz-palette .lz-linie { margin-top: 2px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  #lz-palette .lz-leer { font-size: var(--groesse-klein); color: var(--farbe-text-leise); padding: 6px 2px; }
+  #lz-palette .lz-leer .lz-knopf { margin-top: 6px; font-size: var(--groesse-klein); }
+  .lz-bauteil, .lz-bauteil-gesperrt { border-left: 5px solid var(--kat-farbe, var(--farbe-rand)) !important; }
+  .lz-bauteil-gesperrt {
+    display: grid; grid-template-columns: 46px 1fr; align-items: center; gap: 8px; padding: 6px 8px;
+    color: var(--farbe-text); background: #f3f0ea; border: 1px dashed var(--farbe-rand); border-radius: 10px;
+  }
+  .lz-bauteil-gesperrt .lz-mini { opacity: 0.45; }
+  .lz-bauteil-gesperrt b { display: block; font-size: var(--groesse-text); color: var(--farbe-text-leise); }
+  .lz-bauteil-gesperrt small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-bauteil-gesperrt.bereit { background: #fff6e8; border-color: var(--farbe-akzent); border-style: solid; }
+  .lz-bauteil-gesperrt.bereit b { color: var(--farbe-text); }
+  .lz-werte { display: flex !important; flex-wrap: wrap; gap: 0 6px; }
+  .lz-heiss { color: #b5482f; font-weight: 700; }
+  .lz-kuehl { color: #fff; background: #3d8fc4; padding: 0 5px; border-radius: 999px; font-weight: 700; }
+  .lz-fortschritt { display: block; height: 6px; margin: 4px 0 2px; background: var(--lz-zelle-farbe); border-radius: 999px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+  .lz-fortschritt > span { display: block; height: 100%; background: var(--farbe-akzent); border-radius: 999px; }
+  .lz-freischalten { margin-top: 4px; padding: 4px 10px; font-size: var(--groesse-klein); }
+  /* Ziel-Kategorien mit Symbol und Farbe; Klick öffnet die Kategorie in der Leiste */
+  button.lz-ziel-teil { font: inherit; font-size: var(--groesse-klein); font-weight: 700; cursor: pointer; }
+  button.lz-ziel-teil:hover { box-shadow: 0 0 0 2px var(--kat-farbe, var(--farbe-akzent)); }
+  .lz-ziel-teil .lz-kat-symbol {
+    display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; margin-right: 4px; border-radius: 5px;
+    color: #fff; background: var(--kat-farbe, #999); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); font-size: 0.85em; vertical-align: -0.2em;
+  }
+  /* Gehäuse-Karten unter dem Raster */
+  .lz-gehaeuse-bereich { width: 100%; display: grid; gap: 6px; }
+  .lz-gehaeuse-titel { margin: 0; font-size: var(--groesse-klein); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--farbe-text-leise); }
+  .lz-gehaeuse-karten { display: grid; grid-template-columns: repeat(auto-fit, minmax(98px, 1fr)); gap: 6px; }
+  .lz-geh-karte {
+    display: grid; justify-items: center; align-content: start; gap: 1px; min-width: 0; padding: 7px 6px 6px;
+    font: inherit; font-size: var(--groesse-klein); color: var(--farbe-text); text-align: center;
+    background: #fff; border: 1px solid var(--farbe-rand); border-radius: 10px; cursor: pointer;
+  }
+  .lz-geh-karte:hover { border-color: var(--farbe-akzent); }
+  .lz-geh-karte:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-geh-karte[aria-checked="true"] { background: #fff1e4; border-color: var(--farbe-akzent); box-shadow: inset 0 0 0 1px var(--farbe-akzent); }
+  .lz-geh-karte b { font-size: var(--groesse-klein); line-height: 1.2; }
+  .lz-geh-karte small { color: var(--farbe-text-leise); line-height: 1.3; }
+  .lz-geh-karte.gesperrt { cursor: default; background: #f3f0ea; border-style: dashed; }
+  .lz-geh-karte.gesperrt .lz-geh-form { opacity: 0.4; }
+  .lz-geh-karte.gesperrt.bereit { background: #fff6e8; border-color: var(--farbe-akzent); border-style: solid; }
+  .lz-geh-karte .lz-fortschritt { width: 100%; }
+  .lz-geh-form { display: grid; gap: 1px; margin-bottom: 3px; }
+  .lz-geh-form span { width: 7px; height: 7px; border-radius: 2px; }
+  .lz-gehaeuse-hinweis { margin: 0; padding: 6px 10px; font-size: var(--groesse-klein); color: #7a3a10; background: #fff1e4; border: 1px solid rgba(240, 138, 60, 0.45); border-radius: 8px; }
+  .lz-gehaeuse-hinweis[hidden] { display: none; }
+  .lz-gehaeuse-hinweis .lz-knopf { margin-left: 6px; padding: 2px 8px; font-size: var(--groesse-klein); }
+  .hud-freischaltbar { color: #6b3d00; background: #ffeedd; border-color: var(--farbe-akzent); }
+  .hud-freischaltbar:hover { background: #ffe0c2; }
+  /* Werkbank: Rezept-Suche und Kategorie */
+  .info-rezeptwahl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-bottom: 4px; }
+  .info-rezeptwahl .lz-suche { padding: 4px 8px; font-size: var(--groesse-klein); }
+  .info-rezeptwahl select { min-width: 0; width: 100%; }
+  .info-rezeptwahl small { grid-column: 1 / -1; color: var(--farbe-text-leise); font-size: var(--groesse-klein); }
+  /* Rezepte-Fenster: Filterleiste */
+  .rezepte-filter {   /* bleibt beim Scrollen oben stehen */
+    position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px;
+    padding: 12px 18px 8px; background: var(--lz-fenster); border-bottom: 1px solid var(--farbe-rand);
+  }
+  .rezepte-filter .rezepte-kategorien { grid-column: 1 / -1; }
+  .rezepte-inhalt h3[data-symbol]::before {
+    content: attr(data-symbol); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 5px;
+    color: #fff; background: var(--kat-farbe, #999); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); text-transform: none;
+  }
+  /* Item-Zeilen (Lager, Info, Rezepte): Komponenten zeigen das Kategorie-Symbol im Farbfeld */
+  .info-item[data-symbol]::before, .rezept-item[data-symbol]::before {
+    content: attr(data-symbol); width: 1em; height: 1em; display: inline-grid; place-items: center;   /* gleiche Größe wie das Farbfeld */
+    font-size: 0.75em; line-height: 1; color: #fff; text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  }
+  /* in Listen (Lager, Bestände) und Rezept-Chips ist Platz für ein größeres Symbol; Tabellen bleiben schmal */
+  .info-zeilen .info-item[data-symbol]::before, .rezept-item[data-symbol]::before { width: 1.45em; height: 1.45em; font-size: 0.85em; border-radius: 4px; }
+  @media (max-width: 780px) {
+    #lz-palette .lz-gruppe, #lz-palette .lz-linie { display: none; }
+    .lz-gehaeuse-karten { grid-template-columns: repeat(5, minmax(84px, 1fr)); overflow-x: auto; }
+  }
 </style>
 </head>
 <body>
@@ -1540,6 +1667,8 @@
   <button id="hud-frei" class="hud-frei" type="button" hidden title="Arbeiter ohne Aufgabe – Personal öffnen">👤 0 ohne Aufgabe</button>
   <!-- Phase 7b: volle Lager und Stau (Klick springt zum nächsten) -->
   <button id="hud-lager" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
+  <!-- Phase 7c: Komponenten/Gehäuse, deren Herstellungsziel erreicht ist (Klick öffnet den Designer) -->
+  <button id="hud-freischaltbar" class="hud-frei hud-freischaltbar" type="button" hidden title="Herstellungsziel erreicht – im Designer freischalten">🔓 0 freischaltbar</button>
   <!-- Phase 5: Konto, Kalender, Reputation, Forschungspunkte -->
   <div class="wirtschaft-leiste">
     <button id="hud-konto" class="wl-chip" type="button" title="Kontor öffnen (K)">
@@ -1608,7 +1737,13 @@
     <div class="lz-inhalt">
       <!-- Linke Spalte: Bauteile zum Herausziehen -->
       <aside class="lz-spalte lz-teile">
-        <h3>Bauteile</h3>
+        <h3>Bauteile <small id="lz-palette-zahl" class="lz-palette-zahl"></small></h3>
+        <!-- Phase 7c: Suche, Kategorie-Reiter und Filter für 300 Komponenten -->
+        <div class="lz-palette-kopf">
+          <input id="lz-suche" class="lz-suche" type="search" placeholder="Bauteil suchen …" autocomplete="off" spellcheck="false" aria-label="Bauteile nach Namen suchen">
+          <div id="lz-kategorien" class="lz-kategorien" role="tablist" aria-label="Kategorien"></div>
+          <label class="lz-filter"><input id="lz-nur-frei" type="checkbox" checked> nur freigeschaltete</label>
+        </div>
         <ul id="lz-palette"></ul>
       </aside>
 
@@ -1623,7 +1758,13 @@
           <div id="lz-raster" class="lz-raster" aria-label="Produkt-Raster"></div>
         </div>
         <!-- Phase 7a: Gehäuse bestimmt die Form des Rasters (weitere Gehäuse folgen in Phase 7c) -->
-        <label class="lz-auswahl lz-gehaeuse">Gehäuse <select id="lz-gehaeuse"><option value="standard">Standardgehäuse 4 × 4</option></select></label>
+        <!-- Phase 7c: Gehäuse als Karten (Form, Zellen, Wärmeabfuhr, Wertfaktor); die Auswahlliste bleibt für Tastatur/Tests unsichtbar -->
+        <label class="lz-auswahl lz-gehaeuse lz-unsichtbar">Gehäuse <select id="lz-gehaeuse"><option value="standard">Standardgehäuse 4 × 4</option></select></label>
+        <div class="lz-gehaeuse-bereich">
+          <h3 class="lz-gehaeuse-titel">Gehäuse</h3>
+          <div id="lz-gehaeuse-karten" class="lz-gehaeuse-karten" role="radiogroup" aria-label="Gehäuse"></div>
+          <p id="lz-gehaeuse-hinweis" class="lz-gehaeuse-hinweis" hidden></p>
+        </div>
         <button id="lz-hitze-knopf" class="lz-knopf" type="button" aria-pressed="false">Hitze-Ansicht <kbd>H</kbd></button>
         <p class="lz-tipp">
           Ziehen: platzieren · <kbd>R</kbd> / Rechtsklick: drehen<br>
@@ -1788,6 +1929,12 @@
       <span class="lz-platz" style="flex:1"></span>
       <button id="rezepte-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Rezepte schließen">✕</button>
     </header>
+    <!-- Phase 7c: Suche und Kategorie-Filter (über 300 Rezepte) -->
+    <div class="rezepte-filter">
+      <input id="rezepte-suche" class="lz-suche" type="search" placeholder="Rezept suchen …" autocomplete="off" spellcheck="false" aria-label="Rezepte nach Namen suchen">
+      <label class="lz-filter"><input id="rezepte-nur-frei" type="checkbox"> nur freigeschaltete</label>
+      <div id="rezepte-kategorien" class="lz-kategorien rezepte-kategorien" role="tablist" aria-label="Kategorien"></div>
+    </div>
     <div id="rezepte-inhalt" class="rezepte-inhalt"></div>
     <footer class="lz-fuss">
       <span class="einstellungen-hinweis">📌 heftet ein Rezept als kleines Fenster an den Rand. Dort zeigt ein Klick auf eine Ressource die Station, die sie gerade herstellt.</span>
@@ -4571,6 +4718,82 @@ lz.ziel.addEventListener("change", () => {
   lz.fenster.focus({ preventScroll: true });   // damit die Designer-Tasten gleich wieder gehen
   zeichneDesigner();
 });
+// Phase 7c: Gehäuse als Karten unter dem Raster – Form, Zellen, Wärmeabfuhr, Wertfaktor; gesperrte mit
+// Schloss, Fortschritt und "Freischalten". Beim Wechsel steht darunter, welche Teile herausgefallen sind.
+const lzGehKarten = document.getElementById("lz-gehaeuse-karten");
+const lzGehHinweis = document.getElementById("lz-gehaeuse-hinweis");
+let lzGehWechselLaeuft = false;      // während wechsleGehaeuse: Hinweis nicht gleich wieder ausblenden
+function gehaeuseFormHtml(geh) {
+  return `<span class="lz-geh-form" aria-hidden="true" style="grid-template-columns:repeat(${geh.breite},7px)">` +
+    geh.maske.map((zelle) => `<span style="background:${zelle ? geh.farbe : "transparent"};${zelle ? "box-shadow:inset 0 0 0 1px rgba(0,0,0,0.18)" : ""}"></span>`).join("") + `</span>`;
+}
+function faktorText(f) { return String(f).replace(".", ","); }
+function zeichneGehaeuseKarten() {
+  lzGehKarten.innerHTML = GEHAEUSE.map((geh) => {
+    const aktiv = designer.layout.gehaeuse === geh.id;
+    const werte = `<small>${geh.kacheln} Zellen · ${geh.breite} × ${geh.hoehe}</small>
+      <small><span title="Wärmeabfuhr: so viel Hitze zieht das Gehäuse von jeder Kachel ab">❄ ${geh.waermeabfuhr ? `−${geh.waermeabfuhr}` : "0"}</span> · <span title="Produktwert × Faktor">Wert × ${faktorText(geh.wertFaktor)}</span></small>`;
+    if (geh.freigeschaltet) {
+      return `<button class="lz-geh-karte" type="button" role="radio" aria-checked="${aktiv}" data-gehaeuse="${geh.id}"
+        title="${htmlSicher(`${geh.name}: ${geh.kacheln} Zellen, Wärmeabfuhr ${geh.waermeabfuhr} je Kachel, Wert × ${faktorText(geh.wertFaktor)}`)}">
+        ${gehaeuseFormHtml(geh)}<b>${htmlSicher(geh.name)}</b>${werte}</button>`;
+    }
+    const st = uiFreischaltStatus(geh.id);
+    const bereit = !!st && st.kann;
+    const fortschritt = st && st.art === "herstellung"
+      ? `${fortschrittHtml(st.ist, st.ziel)}<small>${st.ist} / ${st.ziel} ${htmlSicher(itemInfo(st.item).name)}</small>` : "";
+    return `<div class="lz-geh-karte gesperrt${bereit ? " bereit" : ""}" data-gehaeuse="${geh.id}"
+        title="${htmlSicher(st ? (bereit ? `${geh.name}: Ziel erreicht – freischalten` : st.grund) : geh.name)}">
+        ${gehaeuseFormHtml(geh)}<b>${bereit ? "🔓" : "🔒"} ${htmlSicher(geh.name)}</b>${werte}${fortschritt}
+        ${bereit ? `<button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${geh.id}">🔓 Freischalten</button>` : ""}
+      </div>`;
+  }).join("");
+}
+// Gehäuse wechseln (Karte oder Auswahlliste) und melden, welche Teile nicht mehr hineinpassten
+function waehleGehaeuseUi(id) {
+  if (designer.layout.gehaeuse === id) return { ok: true, entfernt: [] };
+  lzGehWechselLaeuft = true;
+  const r = wechsleGehaeuse(id);
+  lzGehWechselLaeuft = false;
+  if (!r.ok) { zeigeMeldung(r.grund, true); return r; }
+  const geh = gehaeuseNachId.get(id);
+  if (r.entfernt.length) {
+    const zaehlung = {};
+    for (const t of r.entfernt) { const name = bauteilNachTyp.get(t.typ)?.name || t.typ; zaehlung[name] = (zaehlung[name] || 0) + 1; }
+    const namen = Object.entries(zaehlung).map(([name, n]) => (n > 1 ? `${n}× ${name}` : name)).join(", ");
+    const text = `${r.entfernt.length} Teil${r.entfernt.length === 1 ? "" : "e"} passte${r.entfernt.length === 1 ? "" : "n"} nicht ins ${geh.name} und ${r.entfernt.length === 1 ? "ist" : "sind"} wieder in der Leiste: ${namen}.`;
+    zeigeMeldung(text, true);
+    lzGehHinweis.innerHTML = `⚠ ${htmlSicher(text)}<button class="lz-knopf" type="button" data-aktion="geh-zurueck" title="Rückgängig (Strg+Z)">↶ Rückgängig</button>`;
+    lzGehHinweis.hidden = false;
+  } else {
+    lzGehHinweis.hidden = true;
+    zeigeMeldung(`${geh.name}: ${geh.kacheln} Zellen, Wärmeabfuhr ${geh.waermeabfuhr}.`);
+  }
+  return r;
+}
+lzGehKarten.addEventListener("click", (e) => {
+  const frei = e.target.closest("[data-freischalten]");
+  if (frei) { freischaltenUi(frei.dataset.freischalten); return; }
+  const karte = e.target.closest("[data-gehaeuse]");
+  if (!karte) return;
+  if (karte.classList.contains("gesperrt")) {
+    const st = uiFreischaltStatus(karte.dataset.gehaeuse);
+    if (st) zeigeMeldung(`${st.name} ist noch gesperrt – ${st.grund}`, true);
+    return;
+  }
+  waehleGehaeuseUi(karte.dataset.gehaeuse);
+  zeichneGehaeuseAuswahl();
+  zeichneDesigner();
+  const neu = lzGehKarten.querySelector(`[data-gehaeuse="${karte.dataset.gehaeuse}"]`);
+  if (neu) neu.focus({ preventScroll: true });
+});
+lzGehHinweis.addEventListener("click", (e) => {
+  if (!e.target.closest('[data-aktion="geh-zurueck"]')) return;
+  rueckgaengig();
+  zeichneDesigner();
+});
+// Jede andere Änderung am Layout (auch Rückgängig) macht den Hinweis überflüssig
+spielEreignisse.addEventListener("layoutGeaendert", () => { if (!lzGehWechselLaeuft) lzGehHinweis.hidden = true; });
 // Phase 7c: Die vorhandene Gehäuse-Auswahl mit den freigeschalteten Gehäusen füllen und anbinden
 // (schlichte Liste; Formvorschau o. Ä. ist Sache der Oberfläche)
 const lzGehaeuse = document.getElementById("lz-gehaeuse");
@@ -4578,11 +4801,10 @@ function zeichneGehaeuseAuswahl() {
   lzGehaeuse.innerHTML = GEHAEUSE.filter((g) => g.freigeschaltet || g.id === designer.layout.gehaeuse).map((g) =>
     `<option value="${g.id}">${htmlSicher(g.name)} (${g.kacheln} Zellen · Wärmeabfuhr ${g.waermeabfuhr})</option>`).join("");
   lzGehaeuse.value = designer.layout.gehaeuse;
+  zeichneGehaeuseKarten();   // Phase 7c (UI): Karten
 }
 lzGehaeuse.addEventListener("change", () => {
-  const r = wechsleGehaeuse(lzGehaeuse.value);
-  if (!r.ok) zeigeMeldung(r.grund, true);
-  else if (r.entfernt.length) zeigeMeldung(`${r.entfernt.length} Teil(e) passten nicht ins neue Gehäuse und sind zurück in der Leiste.`, true);
+  waehleGehaeuseUi(lzGehaeuse.value);   // Phase 7c (UI): meldet, welche Teile herausgefallen sind
   lzGehaeuse.blur();
   lz.fenster.focus({ preventScroll: true });
   zeichneGehaeuseAuswahl();
@@ -4603,12 +4825,23 @@ function zeichneZiel(layout, bewertung) {
   const fehlen = fehlendeKategorien(layout, klasse.id);
   let html = klasse.kategorien.map((k) => {
     const da = !fehlen.includes(k);
-    return `<span class="lz-ziel-teil ${da ? "da" : "fehlt"}">${da ? "✓" : "✗"} ${htmlSicher(kategorieNachId.get(k).name)}</span>`;
+    const kat = kategorieNachId.get(k);   // Phase 7c (UI): Symbol und Farbe der Kategorie; Klick zeigt ihre Teile
+    return `<button type="button" class="lz-ziel-teil ${da ? "da" : "fehlt"}" data-kat="${k}" style="--kat-farbe:${kat.farbe}"
+      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${da ? "✓" : "✗"} <span class="lz-kat-symbol" aria-hidden="true">${kat.symbol}</span>${htmlSicher(kat.name)}</button>`;
   }).join("");
   if (bewertung.ueberhitzt.length) html += `<span class="lz-ziel-teil fehlt">⚠ überhitzt – zählt nicht</span>`;
   else if (!fehlen.length) html += `<span class="lz-ziel-teil fertig">Erfüllt ${klasse.symbol} ${htmlSicher(klasse.name)}</span>`;
   lz.zielTeile.innerHTML = html;
 }
+// Phase 7c: Klick auf eine Ziel-Kategorie öffnet sie in der Bauteil-Leiste
+lz.zielTeile.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  lzPalette.kategorie = knopf.dataset.kat;
+  lzPalette.suche = "";
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
 lz.raster.style.setProperty("--lz-spalten", LAYOUT.breite);
 lz.raster.style.setProperty("--lz-reihen", LAYOUT.hoehe);
 lz.raster.setAttribute("aria-label", `Produkt-Raster ${LAYOUT.breite} × ${LAYOUT.hoehe}`);
@@ -4677,25 +4910,182 @@ function teilZellenHtml(typ, zellen, { id = null, klassen = "", titel = "", warn
   }).join("");
 }
 
-/* --- Bauteil-Leiste aufbauen (Phase 7c: neu, sobald etwas freigeschaltet wird) --- */
-function zeichnePalette() {
-lz.palette.innerHTML = BAUTEILE.filter((b) => b.freigeschaltet).map((b) => {
-  const form = b.form;
-  const groesse = formGroesse(form);
-  const belegt = new Set(form.map(([x, y]) => `${x},${y}`));
+/* --- Bauteil-Leiste aufbauen (Phase 7c: neu, sobald etwas freigeschaltet wird) ---
+   Phase 7c: 300 Komponenten – Kategorie-Reiter (Farbe + Symbol aus KATEGORIEN) und "Alle", Suchfeld
+   (Teilstring, ohne Groß/Klein) und Filter "nur freigeschaltete" (zeigt auch, was gerade freischaltbar ist).
+   In einer Kategorie stehen die Teile nach Linie (Reihe) und Stufe. Gesperrte Teile zeigen Schloss, Grund,
+   Fortschritt und – sobald das Herstellungsziel erreicht ist – den Knopf "Freischalten". */
+const lzPalette = {
+  kategorie: "",            // "" = alle, sonst Kategorie-ID
+  suche: "",
+  nurFrei: true,            // nur freigeschaltete (und freischaltbare) Teile zeigen
+  sucheFeld: document.getElementById("lz-suche"),
+  reiter: document.getElementById("lz-kategorien"),
+  nurFreiFeld: document.getElementById("lz-nur-frei"),
+  zahl: document.getElementById("lz-palette-zahl"),
+};
+// Vergleichstext für die Suche (ohne Groß/Klein)
+function suchText(text) { return String(text).toLocaleLowerCase("de"); }
+// Freischalt-Status für die Oberfläche: vor dem Spielstart (Aufbau der Seite) gibt es "spiel" noch nicht
+function uiFreischaltStatus(id) {
+  try { return freischaltStatus(id); } catch (fehler) { return null; }
+}
+function istFreischaltbar(id) {
+  const st = uiFreischaltStatus(id);
+  return !!st && !st.freigeschaltet && st.kann;
+}
+// Raster "1x2" (Reihen × Spalten) als Text
+function rasterText(raster) { return String(raster).replace("x", "×"); }
+// Werte einer Komponente als kleine Zeile: Tier · Raster · Hitze (Kühlung deutlich blau) · Toleranz
+function paletteWerteHtml(b) {
+  const wirkung = b.kuehlung
+    ? `<span class="lz-kuehl" title="kühlt jede angrenzende Kachel um ${b.kuehlung}">❄ −${b.kuehlung}</span>`
+    : b.hitze ? `<span class="lz-heiss" title="heizt jede angrenzende Kachel um ${b.hitze}">🔥 ${b.hitze}</span>`
+    : `<span title="erzeugt keine Hitze">Hitze 0</span>`;
+  return `<span>${b.tier}</span><span title="Raster: Reihen × Spalten">${rasterText(b.raster)}</span>${wirkung}<span title="verträgt so viel Hitze">Tol. ${b.toleranz}</span>`;
+}
+// Kleine Vorschau der Form in Kategorie-Farbe
+function miniFormHtml(b) {
+  const groesse = formGroesse(b.form);
+  const belegt = new Set(b.form.map(([x, y]) => `${x},${y}`));
   let mini = "";
   for (let y = 0; y < groesse.hoehe; y++) {
     for (let x = 0; x < groesse.breite; x++) {
       mini += `<span style="background:${belegt.has(`${x},${y}`) ? b.farbe : "transparent"}"></span>`;
     }
   }
-  return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}"
-      aria-label="${b.name} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
-      <span class="lz-mini" style="grid-template-columns:repeat(${groesse.breite},10px)">${mini}</span>
-      <span><b>${b.name}</b><small>${bauteilWerteText(b)}</small></span>
-    </button></li>`;
-}).join("");
+  return `<span class="lz-mini" style="grid-template-columns:repeat(${groesse.breite},10px)">${mini}</span>`;
 }
+// Fortschrittsbalken ist / ziel
+function fortschrittHtml(ist, ziel) {
+  const anteil = ziel > 0 ? Math.min(100, Math.round(ist / ziel * 100)) : 0;
+  return `<span class="lz-fortschritt" role="progressbar" aria-valuemin="0" aria-valuemax="${ziel}" aria-valuenow="${Math.min(ist, ziel)}"><span style="width:${anteil}%"></span></span>`;
+}
+// Eine Karte der Leiste: freigeschaltet = Knopf zum Ziehen/Klicken, gesperrt = Schloss mit Grund
+function bauteilKarteHtml(b) {
+  const kat = kategorieNachId.get(b.kategorie);
+  if (b.freigeschaltet) {
+    return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
+      title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie}`)}"
+      aria-label="${htmlSicher(b.name)} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
+      ${miniFormHtml(b)}
+      <span><b>${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small></span>
+    </button></li>`;
+  }
+  const st = uiFreischaltStatus(b.typ);
+  const bereit = !!st && st.kann;
+  let unten = "";
+  if (bereit) {
+    unten = `<small>Ziel erreicht: ${st.ist} / ${st.ziel}× ${htmlSicher(itemInfo(st.item).name)}</small>
+      <button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${b.typ}">🔓 Freischalten</button>`;
+  } else if (st && st.art === "herstellung") {
+    unten = `<small>${htmlSicher(st.grund)}</small>${fortschrittHtml(st.ist, st.ziel)}`;
+  } else if (st) {
+    unten = `<small>${htmlSicher(st.grund)}</small>`;
+  }
+  return `<li><div class="lz-bauteil-gesperrt${bereit ? " bereit" : ""}" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
+      title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie} – gesperrt`)}">
+      ${miniFormHtml(b)}
+      <span><b>${bereit ? "🔓" : "🔒"} ${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small>${unten}</span>
+    </div></li>`;
+}
+// Welche Teile zeigt die Leiste (ohne Blick auf den Reiter)?
+function paletteSichtbar(b, suche) {
+  if (lzPalette.nurFrei && !b.freigeschaltet && !istFreischaltbar(b.typ)) return false;
+  return !suche || suchText(b.name).includes(suche) || suchText(b.nr).includes(suche);
+}
+function gruppeHtml(titel, symbol, farbe) {
+  return `<li class="lz-gruppe" data-symbol="${htmlSicher(symbol)}" style="--kat-farbe:${farbe}">${htmlSicher(titel)}</li>`;
+}
+// Kategorie-Reiter: "Alle" + 12 Kategorien (Punkt = dort ist etwas freischaltbar)
+function zeichneKategorieReiter() {
+  const bereit = new Set(BAUTEILE.filter((b) => !b.freigeschaltet && istFreischaltbar(b.typ)).map((b) => b.kategorie));
+  lzPalette.reiter.innerHTML = `<button class="lz-kat text" type="button" role="tab" data-kat="" aria-selected="${lzPalette.kategorie === ""}" title="Alle Kategorien">Alle</button>` +
+    KATEGORIEN.map((k) => `<button class="lz-kat" type="button" role="tab" data-kat="${k.id}" style="--kat-farbe:${k.farbe}"
+      aria-selected="${lzPalette.kategorie === k.id}" aria-label="${htmlSicher(k.name)}" title="${htmlSicher(k.name)}">${k.symbol}${bereit.has(k.id) ? '<span class="lz-punkt" aria-hidden="true"></span>' : ""}</button>`).join("");
+}
+function zeichnePalette() {
+  zeichneKategorieReiter();
+  const suche = suchText(lzPalette.suche.trim());
+  if (lzPalette.sucheFeld.value !== lzPalette.suche) lzPalette.sucheFeld.value = lzPalette.suche;
+  lzPalette.nurFreiFeld.checked = lzPalette.nurFrei;
+  const frei = BAUTEILE.filter((b) => b.freigeschaltet).length;
+  lzPalette.zahl.textContent = `· ${frei} / ${BAUTEILE.length} frei`;
+  let html = "";
+  if (lzPalette.kategorie) {
+    // Eine Kategorie: Linie für Linie (Reihen), darin nach Stufe
+    const kat = kategorieNachId.get(lzPalette.kategorie);
+    html += gruppeHtml(kat.name, kat.symbol, kat.farbe);
+    for (let linie = 1; linie <= kat.linien.length; linie++) {
+      const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && b.linie === linie && paletteSichtbar(b, suche));
+      if (!teile.length) continue;
+      html += `<li class="lz-linie">Linie ${linie} · ${htmlSicher(kat.linien[linie - 1].namen[0])} …</li>` + teile.map(bauteilKarteHtml).join("");
+    }
+  } else {
+    // Alle: zuerst, was gerade freischaltbar ist; dann nach Kategorie
+    const bereit = suche ? [] : BAUTEILE.filter((b) => !b.freigeschaltet && istFreischaltbar(b.typ));
+    if (bereit.length) html += gruppeHtml("Bereit zum Freischalten", "🔓", "var(--farbe-akzent)") + bereit.map(bauteilKarteHtml).join("");
+    for (const kat of KATEGORIEN) {
+      const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && !bereit.includes(b) && paletteSichtbar(b, suche));
+      if (teile.length) html += gruppeHtml(kat.name, kat.symbol, kat.farbe) + teile.map(bauteilKarteHtml).join("");
+    }
+  }
+  if (!html.includes("<li><")) {
+    // Nichts gefunden: Hinweis und Abkürzungen (in allen Kategorien / auch gesperrte)
+    const ueberall = BAUTEILE.filter((b) => paletteSichtbar(b, suche)).length;
+    const gesperrt = lzPalette.nurFrei ? BAUTEILE.filter((b) => (!lzPalette.kategorie || b.kategorie === lzPalette.kategorie)
+      && (!suche || suchText(b.name).includes(suche) || suchText(b.nr).includes(suche))).length : 0;
+    html = `<li class="lz-leer">Keine passenden Bauteile${lzPalette.kategorie ? " in dieser Kategorie" : ""}.` +
+      (lzPalette.kategorie && ueberall ? `<br><button class="lz-knopf" type="button" data-palette="alle">In allen Kategorien suchen (${ueberall})</button>` : "") +
+      (gesperrt ? `<br><button class="lz-knopf" type="button" data-palette="gesperrte">Auch gesperrte zeigen (${gesperrt})</button>` : "") + `</li>`;
+  }
+  lz.palette.innerHTML = html;
+}
+// Reiter, Suche und Filter
+lzPalette.reiter.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  lzPalette.kategorie = knopf.dataset.kat;
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
+lzPalette.sucheFeld.addEventListener("input", () => {
+  lzPalette.suche = lzPalette.sucheFeld.value;
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
+lzPalette.sucheFeld.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {          // Esc: erst Suche leeren, dann zurück zu den Designer-Tasten
+    e.preventDefault();
+    if (lzPalette.sucheFeld.value) { lzPalette.sucheFeld.value = ""; lzPalette.suche = ""; zeichnePalette(); }
+    else lz.fenster.focus({ preventScroll: true });
+  } else if (e.key === "Enter") {    // Enter: das erste Teil der Liste einsetzen
+    const erstes = lz.palette.querySelector(".lz-bauteil");
+    if (erstes) erstes.click();
+  }
+});
+lzPalette.nurFreiFeld.addEventListener("change", () => {
+  lzPalette.nurFrei = lzPalette.nurFreiFeld.checked;
+  zeichnePalette();
+  lz.fenster.focus({ preventScroll: true });
+});
+// Freischalten per Klick (Leiste und Gehäuse-Karten) und die Abkürzungen bei "keine Treffer"
+function freischaltenUi(id) {
+  const r = schalteFrei(id);
+  const name = herstellbarNachTyp.get(id)?.name || id;
+  if (r.ok) zeigeMeldung(`🔓 ${name} ist freigeschaltet${gehaeuseNachId.has(id) ? " – als Gehäuse wählbar" : " – jetzt im Designer und an der Werkbank"}.`);
+  else zeigeMeldung(r.grund, true);
+  return r;
+}
+lz.palette.addEventListener("click", (e) => {
+  const frei = e.target.closest("[data-freischalten]");
+  if (frei) { freischaltenUi(frei.dataset.freischalten); return; }
+  const abk = e.target.closest("[data-palette]");
+  if (!abk) return;
+  if (abk.dataset.palette === "alle") lzPalette.kategorie = "";
+  if (abk.dataset.palette === "gesperrte") lzPalette.nurFrei = false;
+  zeichnePalette();
+});
 zeichnePalette();
 spielEreignisse.addEventListener("freischaltungGeaendert", zeichnePalette);   // Phase 7c
 
@@ -4725,6 +5115,7 @@ function zeichneDesigner() {
   // Phase 7c: Das Raster hat die Größe der Gehäuseform
   lz.raster.style.setProperty("--lz-spalten", anzeige.breite);
   lz.raster.style.setProperty("--lz-reihen", anzeige.hoehe);
+  passeKachelGroesseAn(anzeige);   // Phase 7c (UI): auch Carbon (7 × 6) passt in die mittlere Spalte
 
   // Ebene 1: leere Kacheln (Phase 7c: ausgesparte Zellen des Gehäuses bleiben leer)
   for (let y = 0; y < anzeige.hoehe; y++) {
@@ -4767,9 +5158,27 @@ function zeichneDesigner() {
   lz.vor.disabled = designer.zukunft.length === 0;
 }
 
+// Phase 7c: Kachelgröße so wählen, dass die Gehäuseform in die mittlere Spalte passt (höchstens --lz-zelle,
+// nicht höher als etwa die halbe Fensterhöhe). kachelPixel() misst danach die echte Größe (Ziehen, Geist).
+function passeKachelGroesseAn(layout) {
+  const mitte = lz.raster.closest(".lz-mitte");
+  const rahmen = lz.raster.parentElement;
+  const innen = parseFloat(getComputedStyle(rahmen).paddingLeft) * 2 || 16;
+  const basis = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lz-zelle")) || 68;
+  const breite = (mitte ? mitte.clientWidth : 400) - innen;
+  const hoehe = Math.max(200, window.innerHeight - 540);   // Rest des Fensters (Kopf, Ziel, Gehäuse, Fuß) braucht ca. 540 px
+  const g = Math.max(30, Math.min(basis, Math.floor(breite / layout.breite), Math.floor(hoehe / layout.hoehe)));
+  const wert = g + "px";
+  if (lz.raster.style.getPropertyValue("--lz-zelle") !== wert) lz.raster.style.setProperty("--lz-zelle", wert);
+}
+window.addEventListener("resize", () => { if (designer.offen && !(ui.ziehen && ui.ziehen.gestartet)) zeichneDesigner(); });
+
 // Rechte Spalte: Belegung, Hitze, Ampel und überhitzte Teile.
 const STATUS_TEXT = { gruen: "Alles im grünen Bereich", gelb: "Knapp an der Grenze", rot: "Überhitzt!" };
 function zeichneBewertung(bewertung, layout) {
+  // Phase 7c: Die Hitze-Ansicht zeigt die Werte nach Abzug der Wärmeabfuhr des Gehäuses
+  const geh = gehaeuseNachId.get(layout.gehaeuse);
+  lz.hitzeKnopf.title = geh ? `Hitze je Kachel nach Abzug der Wärmeabfuhr (${geh.name}: −${geh.waermeabfuhr})` : "Hitze je Kachel";
   const heiss = bewertung.heissesteKachel;
   const ueberhitztNamen = bewertung.ueberhitzt.map((id) => bauteilNachTyp.get(layout.teile[id].typ).name);
   lz.bewertung.innerHTML = `
@@ -4777,6 +5186,7 @@ function zeichneBewertung(bewertung, layout) {
     <dt>Bauteile</dt><dd>${bewertung.teileAnzahl}</dd>
     <dt>Gesamthitze</dt><dd>${bewertung.gesamtHitze}</dd>
     <dt>Heißeste Kachel</dt><dd>${heiss.wert > 0 ? heiss.wert : "–"}</dd>
+    <dt title="Das Gehäuse zieht diese Hitze von jeder Kachel ab (in der Hitze-Ansicht schon abgezogen)">Wärmeabfuhr</dt><dd>${bewertung.hitze.waermeabfuhr ? `−${bewertung.hitze.waermeabfuhr} je Kachel` : "keine"}</dd>
     ${produktZeilen(bewertung, layout)}
     <dd class="lz-status-zeile"><span class="lz-ampel ${bewertung.status}">${STATUS_TEXT[bewertung.status]}</span></dd>
     ${ueberhitztNamen.length ? `<dd class="lz-liste-ueberhitzt">⚠ Überhitzt: ${ueberhitztNamen.join(", ")}</dd>` : ""}`;
@@ -5149,6 +5559,8 @@ function oeffneDesigner() {
   lz.name.value = designer.name;
   sperre3dEingaben(true);
   lz.overlay.hidden = false;
+  zeichnePalette();              // Phase 7c (UI): Fortschritt und Freischaltbares auffrischen
+  zeichneGehaeuseAuswahl();
   zeichneBlaupausen();
   zeichneDesigner();
   lz.fenster.focus({ preventScroll: true });
@@ -11617,6 +12029,11 @@ const anzeige = { struktur: -1, version: -1, timer: 0, infoStrukturFehlt: false 
 let auswahlBandId = null;     // Phase 6: Bandteil im Info-Fenster
 const zug = { start: null, ende: null, shift: false, plan: null };   // Phase 6: gerade gezogene Bandstrecke
 
+// Phase 7c: Komponenten und Gehäuse zeigen ihr Symbol im Farbfeld (CSS .info-item[data-symbol]) – nur Optik,
+// der Text der Zeile bleibt gleich
+function symbolAttr(info) {
+  return info && info.symbol && (info.kategorie || info.art === "gehaeuse") ? ` data-symbol="${htmlSicher(info.symbol)}"` : "";
+}
 // Liste von Items als Zeilen: Name | Menge (| Soll). "markiere(id)" liefert einen Zusatztext (Phase 5).
 function itemZeilen(bestand, soll = null, markiere = null) {
   const ids = [...new Set([...Object.keys(bestand), ...Object.keys(soll || {})])];
@@ -11625,7 +12042,7 @@ function itemZeilen(bestand, soll = null, markiere = null) {
   return `<dl class="info-zeilen${soll ? "" : " zwei"}">` + ids.map((id) => {
     const info = itemInfo(id);
     const zusatz = markiere ? markiere(id) : "";
-    return `<dt><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}${zusatz ? ` <small class="leise">${zusatz}</small>` : ""}</span></dt>` +
+    return `<dt><span class="info-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}${zusatz ? ` <small class="leise">${zusatz}</small>` : ""}</span></dt>` +
       `<dd>${bestand[id] || 0}</dd>` + (soll ? `<dd class="leise">/ ${soll[id] || 0}</dd>` : "");
   }).join("") + `</dl>`;
 }
@@ -12139,11 +12556,7 @@ function zeichneInfo() {
   ob.infoUnter.textContent = t.beschreibung;
   let html = "";
   if (t.art === "werkbank") {
-    html += `<label class="info-feld">Rezept <select data-aktion="rezept">
-        <option value="">– kein Rezept –</option>
-        ${[...GEHAEUSE, ...BAUTEILE].filter((b) => b.rezept && b.freigeschaltet).map((b) =>
-          `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${b.name} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`).join("")}
-      </select></label>`;
+    html += werkbankRezeptHtml(g);   // Phase 7c (UI): Suche + Kategorie, Gehäuse oben, nur freigeschaltete
   } else if (t.art === "montage") {
     const liste = [...blaupausenNachId.values()].sort((a, b) => a.name.localeCompare(b.name));
     const fehlt = g.rezept && !blaupausenNachId.has(g.rezept);
@@ -12221,6 +12634,69 @@ function zeichneInfo() {
   anzeige.infoStrukturFehlt = false;
 }
 
+/* --- Phase 7c: Rezeptwahl der Werkbank – Suche und Kategorie statt einer langen Liste ---
+   Gehäuse stehen oben als eigene Gruppe, darunter die 12 Kategorien. Wählbar ist nur, was freigeschaltet ist;
+   das eingestellte Rezept bleibt immer in der Liste, auch wenn der Filter es ausblendet. */
+const werkbankWahl = { suche: "", kategorie: "" };   // kategorie: "" = alle, "gehaeuse" oder Kategorie-ID
+function werkbankGruppen() {
+  return [{ id: "gehaeuse", name: "Gehäuse", symbol: "▢", eintraege: GEHAEUSE },
+    ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name, symbol: k.symbol, eintraege: BAUTEILE.filter((b) => b.kategorie === k.id) }))];
+}
+function werkbankRezeptHtml(g) {
+  const suche = suchText(werkbankWahl.suche.trim());
+  const option = (b) => `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${htmlSicher(b.name)}${b.tier ? ` · ${b.tier}` : ""} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`;
+  let optionen = "", treffer = 0, frei = 0, gesperrt = 0, drin = false;
+  for (const gruppe of werkbankGruppen()) {
+    const liste = gruppe.eintraege.filter((b) => b.rezept && b.freigeschaltet);
+    frei += liste.length;
+    gesperrt += gruppe.eintraege.filter((b) => b.rezept && !b.freigeschaltet).length;
+    if (werkbankWahl.kategorie && gruppe.id !== werkbankWahl.kategorie) continue;
+    const passend = liste.filter((b) => !suche || suchText(b.name).includes(suche));
+    if (!passend.length) continue;
+    treffer += passend.length;
+    if (passend.some((b) => b.typ === g.rezept)) drin = true;
+    optionen += `<optgroup label="${gruppe.symbol} ${htmlSicher(gruppe.name)}">${passend.map(option).join("")}</optgroup>`;
+  }
+  const aktuell = g.rezept && herstellbarNachTyp.get(g.rezept);
+  const ausgeblendet = aktuell && !drin ? `<option value="${aktuell.typ}" selected>${htmlSicher(aktuell.name)} (eingestellt)</option>` : "";
+  const filter = werkbankWahl.suche.trim() || werkbankWahl.kategorie;
+  return `<div class="info-rezeptwahl">
+      <input class="lz-suche" type="search" data-aktion="rezept-suche" value="${htmlSicher(werkbankWahl.suche)}" placeholder="Rezept suchen …"
+        autocomplete="off" spellcheck="false" aria-label="Werkbank-Rezepte durchsuchen">
+      <select data-aktion="rezept-kategorie" aria-label="Kategorie der Rezepte">
+        <option value="" ${werkbankWahl.kategorie ? "" : "selected"}>Alle Kategorien</option>
+        ${werkbankGruppen().map((gr) => `<option value="${gr.id}" ${werkbankWahl.kategorie === gr.id ? "selected" : ""}>${gr.symbol} ${htmlSicher(gr.name)}</option>`).join("")}
+      </select>
+      <small>${filter ? `${treffer} Treffer · ` : ""}${frei} frei${gesperrt ? ` · ${gesperrt} gesperrt (Designer)` : ""}</small>
+    </div>
+    <label class="info-feld">Rezept <select data-aktion="rezept">
+        <option value="">${filter && !treffer ? "– keine Treffer –" : "– kein Rezept –"}</option>
+        ${ausgeblendet}${optionen}
+      </select></label>`;
+}
+// Tippen in der Suche: Liste sofort filtern (das Feld behält den Fokus, siehe infoFormularAktiv)
+ob.infoInhalt.addEventListener("input", (e) => {
+  if (e.target.dataset.aktion !== "rezept-suche") return;
+  werkbankWahl.suche = e.target.value;
+  zeichneInfo();
+});
+ob.infoInhalt.addEventListener("keydown", (e) => {
+  if (e.target.dataset.aktion !== "rezept-suche") return;
+  e.stopPropagation();               // Buchstaben steuern nicht die Kamera (W/A/S/D)
+  if (e.key === "Escape") {
+    if (e.target.value) { e.target.value = ""; werkbankWahl.suche = ""; zeichneInfo(); } else e.target.blur();
+  } else if (e.key === "Enter") {    // Enter: das einzige bzw. erste Ergebnis wählen
+    const g = spiel.gebaeude.get(auswahlGebaeudeId);
+    const erstes = ob.infoInhalt.querySelector('select[data-aktion="rezept"] optgroup option');
+    if (g && erstes && werkbankWahl.suche.trim()) {
+      setzeRezept(g.id, erstes.value);
+      zeigeMeldung(`${gebaeudeName(g)}: Rezept ${herstellbarNachTyp.get(erstes.value)?.name || erstes.value}.`);
+      e.target.blur();
+      sofortAktualisieren();
+    }
+  }
+});
+
 /* --- Ressourcen-Reiter (Phase 5b): Import-/Export-Pfeile pro Ressource --- */
 // Welche Ressourcen zeigt der Reiter eines Zwischenlagers? Inhalt, Soll, Bedarf und Erzeugnisse
 // der verknüpften Stationen und alles, was von Hand eingestellt ist.
@@ -12255,7 +12731,7 @@ function regelZeileHtml(z) {
       <button class="mini-knopf" type="button" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} erhöhen">+</button></span>`
     : z.max !== undefined ? ` <span class="leise">/ ∞</span>` : "";
   return `<tr>
-    <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
+    <td><span class="info-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
     <td class="zahl">${menge}${knoepfe}</td>
     <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, z.hauptlager ? "Annahme: Kuriere, Bänder und Greifarme dürfen es hier einlagern"
       : "Import (grün): Kuriere bringen bis zum Soll")}</td>
@@ -12384,7 +12860,7 @@ function exportzoneHtml(g) {
     const id = htmlSicher(item);
     const modus = exportModusVon(g, item);
     const hand = !!(g.regeln[item] && g.regeln[item].imp === true);
-    return `<tr><td><span class="info-item" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span></td>
+    return `<tr><td><span class="info-item"${symbolAttr(itemInfo(item))} style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span></td>
       <td class="zahl">${g.bestand[item] || 0}</td>
       <td><button class="mini-knopf export-modus" type="button" data-aktion="export-modus" data-item="${id}" data-modus="${modus}"
         title="Klick wechselt zwischen „Für Aufträge“ und „Verkaufen“">${modus === "auftrag" ? "📋 Für Aufträge" : `💶 Verkaufen · ${euro(zonenVerkaufspreis(item))}`}</button></td>
@@ -12579,6 +13055,13 @@ ob.infoInhalt.addEventListener("change", (e) => {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!g) return;
   if (e.target.dataset.aktion === "rezept") setzeRezept(g.id, e.target.value || null);
+  if (e.target.dataset.aktion === "rezept-kategorie") {             // Phase 7c (UI): Werkbank-Rezepte filtern
+    werkbankWahl.kategorie = e.target.value;
+    e.target.blur();
+    infoFormSperre = 0;
+    zeichneInfo();
+    return;
+  }
   if (e.target.dataset.aktion === "arbeiter") {
     if (e.target.value) weiseZu(e.target.value, g.id);
     else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
@@ -12989,7 +13472,7 @@ function kontorVerkauf() {
     const preis = verkaufspreis(item);
     const klasse = item.startsWith("p:") ? produktKlasse(item.slice(2)) : null;
     const auftrag = fuerAuftragGebraucht(item);
-    return `<tr><td><span class="info-item" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span>
+    return `<tr><td><span class="info-item"${symbolAttr(itemInfo(item))} style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span>
         ${klasse ? `<small class="leise">${klasse.symbol} ${klasse.name}</small>` : ""}${auftrag ? ` <small class="trend-hoch">für Auftrag</small>` : ""}</td>
       <td class="zahl">${n}</td><td class="zahl">${euro(preis)}</td>
       <td><div class="knoepfe">
@@ -13584,6 +14067,7 @@ function aktualisiereOberflaeche(sekunden) {
   }
   aktualisiereFreiChip();
   aktualisiereLagerChip();                       // Phase 7b
+  aktualisiereFreischaltChip();                  // Phase 7c (UI)
   zeichneRezeptStapel();                         // Phase 7a (Nachtrag 2): Zahlen auf den angehefteten Rezepten
   if (rezeptFenster.offen) zeichneRezepte();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
@@ -14337,6 +14821,35 @@ ob.hudFrei.addEventListener("click", () => {
   if (bau.offen) { setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); } else oeffneBau();
 });
 
+// Phase 7c: "🔓 n freischaltbar" – Herstellungsziel erreicht, Klick öffnet den Designer (dort "Freischalten")
+Object.assign(ob, { hudFreischaltbar: $("hud-freischaltbar") });
+function freischaltbarListe() {
+  return [...herstellbarNachTyp.values()].filter((e) => !e.freigeschaltet && e.freischaltung.art === "herstellung" && kannFreischalten(e.typ));
+}
+function aktualisiereFreischaltChip() {
+  const liste = freischaltbarListe();
+  ob.hudFreischaltbar.hidden = !liste.length;
+  if (!liste.length) return;
+  setzeText(ob.hudFreischaltbar, `🔓 ${liste.length} freischaltbar · Im Designer freischalten`);
+  const titel = `Herstellungsziel erreicht: ${liste.slice(0, 4).map((e) => e.name).join(", ")}${liste.length > 4 ? " …" : ""} – Klick öffnet den Designer`;
+  if (ob.hudFreischaltbar.title !== titel) ob.hudFreischaltbar.title = titel;
+}
+function zeigeFreischaltbareImDesigner() {
+  oeffneDesigner();
+  lzPalette.kategorie = "";       // "Alle" zeigt oben die Gruppe "Bereit zum Freischalten"
+  lzPalette.suche = "";
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+}
+ob.hudFreischaltbar.addEventListener("click", zeigeFreischaltbareImDesigner);
+spielEreignisse.addEventListener("freischaltbar", (e) => {
+  // Nach dem Hinweis der Logik anzeigen (gleicher Takt), damit der Verweis auf den Designer sichtbar bleibt
+  setTimeout(() => zeigeMeldung(`🔓 Freischaltbar: ${e.detail.name} – Im Designer freischalten (${tasteFuer("designer").toUpperCase()} oder „🔓 freischaltbar“ links oben).`), 0);
+  aktualisiereFreischaltChip();
+  if (designer.offen) { zeichnePalette(); zeichneGehaeuseAuswahl(); }   // Knopf "Freischalten" gleich zeigen
+});
+spielEreignisse.addEventListener("freischaltungGeaendert", () => aktualisiereFreischaltChip());
+
 /* --- Meldungen --- */
 spielEreignisse.addEventListener("arbeiterFrei", (e) => {
   const { person, station } = e.detail;
@@ -14621,12 +15134,12 @@ const istRohstoff = (item) => ROHSTOFFE.some((r) => r.id === item);
 function rezeptItemHtml(item, n, knopf) {
   const info = itemInfo(item);
   const name = `${n > 1 || knopf ? `${n}× ` : ""}${htmlSicher(info.name)}`;
-  if (!knopf) return `<span class="rezept-item" style="--item-farbe:${info.farbe}">${name}</span>`;
+  if (!knopf) return `<span class="rezept-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${name}</span>`;   // Phase 7c: Symbol
   const anzahl = istRohstoff(item) ? null : stationenFuer(item).length;
   const titel = istRohstoff(item) ? `${info.name}: wird in der Importzone bestellt`
     : anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} ${info.name} gerade her – Klick zeigt sie`
     : `Keine Station stellt ${info.name} gerade her`;
-  return `<button type="button" class="rezept-item" data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
+  return `<button type="button" class="rezept-item"${symbolAttr(info)} data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
     + `<span class="name">${name}</span>${anzahl === null ? "" : `<span class="anzahl ${anzahl ? "" : "null"}">${anzahl}</span>`}</button>`;
 }
 function istAngeheftet(schluessel) {
@@ -14680,16 +15193,61 @@ function zeichneRezepte() {
         <span class="rezept-formel">${formel}</span>
       </li>`;
   };
-  const bauteile = alleRezeptSchluessel().filter((k) => k.startsWith("b:"));
-  const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
-  const html = `<h3>Bauteile · Werkbank</h3><ul class="rezept-liste">${bauteile.map(zeile).join("")}</ul>
-    <h3>Produkte · Montagetisch (Entwürfe aus dem Designer)</h3>
-    ${produkte.length ? `<ul class="rezept-liste">${produkte.map(zeile).join("")}</ul>`
+  // Phase 7c (UI): Gruppen Gehäuse, 12 Kategorien, Produkte – gefiltert nach Suche, Kategorie und "nur freigeschaltete"
+  const suche = suchText(rezeptFilter.suche.trim());
+  const passt = (k) => {
+    const r = rezeptDaten(k);
+    return !!r && (!suche || suchText(r.name).includes(suche)) && (!rezeptFilter.nurFrei || !r.gesperrt);
+  };
+  let html = "";
+  for (const gruppe of rezeptGruppen()) {
+    if (rezeptFilter.kategorie && rezeptFilter.kategorie !== gruppe.id) continue;
+    const liste = gruppe.schluessel.filter(passt);
+    if (liste.length) html += `<h3 data-symbol="${gruppe.symbol}" style="--kat-farbe:${gruppe.farbe}">${htmlSicher(gruppe.titel)}</h3><ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`;
+  }
+  if (!rezeptFilter.kategorie || rezeptFilter.kategorie === "produkte") {
+    const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
+    const liste = produkte.filter(passt);
+    html += `<h3>Produkte · Montagetisch (Entwürfe aus dem Designer)</h3>
+    ${liste.length ? `<ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`
+      : produkte.length ? `<p class="info-leer">Kein Entwurf passt zur Suche.</p>`
       : `<p class="info-leer">Noch keine Entwürfe. Im Layout-Designer (${kbd("designer")}) entwerfen und speichern.</p>`}`;
+  }
+  if (!html.includes("rezept-zeile")) html = `<p class="info-leer">Keine passenden Rezepte – Suche oder Filter ändern.</p>` + html;
   if (rezeptFenster.html === html) return;
   rezeptFenster.html = html;
   morphe(ob.rezepteInhalt, html);
 }
+// Phase 7c (UI): Filter des Rezepte-Fensters (Suche, Kategorie-Reiter, nur freigeschaltete)
+const rezeptFilter = { suche: "", kategorie: "", nurFrei: false };   // kategorie: "", "gehaeuse", Kategorie-ID, "produkte"
+function rezeptGruppen() {
+  return [{ id: "gehaeuse", titel: "Gehäuse · Werkbank", symbol: "▢", farbe: "#b5895a", schluessel: GEHAEUSE.map((g) => "b:" + g.id) },
+    ...KATEGORIEN.map((k) => ({ id: k.id, titel: `${k.name} · Werkbank`, symbol: k.symbol, farbe: k.farbe,
+      schluessel: BAUTEILE.filter((b) => b.kategorie === k.id && b.rezept).map((b) => "b:" + b.typ) }))];
+}
+function zeichneRezeptReiter() {
+  const reiter = [{ id: "", text: "Alle", name: "Alle Rezepte" }, { id: "gehaeuse", symbol: "▢", farbe: "#b5895a", name: "Gehäuse" },
+    ...KATEGORIEN.map((k) => ({ id: k.id, symbol: k.symbol, farbe: k.farbe, name: k.name })), { id: "produkte", text: "Produkte", name: "Produkte (Montagetisch)" }];
+  $("rezepte-kategorien").innerHTML = reiter.map((r) => `<button class="lz-kat${r.text ? " text" : ""}" type="button" role="tab" data-kat="${r.id}"
+    ${r.farbe ? `style="--kat-farbe:${r.farbe}"` : ""} aria-selected="${rezeptFilter.kategorie === r.id}" title="${htmlSicher(r.name)}" aria-label="${htmlSicher(r.name)}">${r.text || r.symbol}</button>`).join("");
+}
+zeichneRezeptReiter();
+$("rezepte-kategorien").addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  rezeptFilter.kategorie = knopf.dataset.kat;
+  zeichneRezeptReiter();
+  zeichneRezepte();
+  ob.rezepteInhalt.scrollTop = 0;
+});
+$("rezepte-suche").addEventListener("input", (e) => { rezeptFilter.suche = e.target.value; zeichneRezepte(); });
+$("rezepte-suche").addEventListener("keydown", (e) => {
+  e.stopPropagation();
+  if (e.key !== "Escape") return;
+  e.preventDefault();
+  if (e.target.value) { e.target.value = ""; rezeptFilter.suche = ""; zeichneRezepte(); } else ob.rezepteFenster.focus({ preventScroll: true });
+});
+$("rezepte-nur-frei").addEventListener("change", (e) => { rezeptFilter.nurFrei = e.target.checked; zeichneRezepte(); });
 ob.rezepteInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-aktion]");
   if (!knopf) return;

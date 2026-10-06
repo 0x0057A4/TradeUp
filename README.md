@@ -33,6 +33,15 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
     - **Zone ohne Wand ist inaktiv** (z. B. nach dem Hallenausbau): keine Lieferungen, keine Abholung, nichts Neues hinein; Kuriere holen den Rest aus der Importzone weiter ab. Mit `M` an eine Wand verschieben macht sie wieder aktiv.
     - **Weiterbauen** (`E`) öffnet das Baumenü im Reiter „Bänder“ mit dem Fließband als Werkzeug – genau wie Bau → Bänder → Fließband.
 
+- **Phase 7c:** Komponenten & Gehäuse:
+  - **300 Komponenten** aus der Tabelle „Komponentenforschung“ (COMP-001 bis COMP-300) in **12 Kategorien** (Energie, Prozessoren & Logik, Speicher, Displays, Konnektivität, Audio, Optik & Kamera, Umwelt- und Bewegungs-Sensorik, Kühlung & Thermik, Eingabe & Interface, Mechanik & Aktuatoren), je 5 Linien × 5 Stufen mit Name, Tier (T1–T3), Raster (1 × 1 bis 2 × 3) und Hitze aus der Tabelle; Kühlteile haben negative Hitze. Jede Kategorie hat eine Farbe und ein Symbol (Designer, Lager, Rezepte). Die 60 Start-Komponenten sind sofort baubar.
+  - **Gehäuse mit Formen**: Jedes Produkt braucht genau ein Gehäuse (Montagetisch verbraucht eines pro Stück). Holz (10 Zellen, aus dem neuen Rohstoff **Holz**), Kunststoff (14), Eisen (18), Aluminium (24) und Carbon (33). Die Form bestimmt das Raster im Designer, die **Wärmeabfuhr** wird von jeder Kachel abgezogen, bessere Gehäuse erhöhen den Produktwert (× 1,0 bis × 1,5). Gehäuse stellt die Werkbank her.
+  - **Produktklassen nach Kategorien**: Eine Klasse verlangt je ein Teil aus bestimmten Kategorien (z. B. Taschenlampe = Energie, Displays, Eingabe), dazu fünf neue Klassen: Wetterstation, Digitalkamera, Fitness-Tracker, Drohne, Smartphone.
+  - **Freischaltung per Herstellung und Klick**: Werkbänke zählen mit, was sie herstellen. Ist das Ziel erreicht (z. B. 100 Holzgehäuse → Kunststoffgehäuse), meldet das Spiel „freischaltbar“ (Hinweis und Chip „🔓 n freischaltbar“ im HUD); freigeschaltet wird im Designer per Knopf „Freischalten“. Stufe 2 jeder Linie (Zeit-Forschung) kommt erst mit Teilschritt 7d, ebenso die Maschinen.
+  - **Designer**: oben das Ziel-Endprodukt mit ✓/✗ je Kategorie (Klick zeigt die passenden Teile), in der Mitte das Raster in der Form des Gehäuses (die Kacheln passen sich an, auch Carbon 7 × 6 passt), darunter die Gehäuse als Karten (Zellen, Wärmeabfuhr, Wertfaktor; gesperrte mit Schloss und Fortschritt). Fallen beim Wechsel Teile heraus, steht darunter welche (mit Rückgängig). Die Bauteil-Leiste hat Kategorie-Reiter, eine Suche und den Filter „nur freigeschaltete“.
+  - **Werkbank** und **Rezepte-Fenster** (`Z`) mit Suche und Kategorie-Filter, Gehäuse als eigene Gruppe oben.
+  - **Alte Spielstände** werden umgestellt: Die 8 alten Bauteile heißen jetzt wie ihre Nachfolger (z. B. Akku → Knopfzelle, Taster → Mikroschalter), Bestände wandern mit; alte Blaupausen kommen ins Kunststoffgehäuse (passt es nicht, sind sie „veraltet“ und lassen sich im Designer neu anordnen).
+
 ## Spiel starten
 
 **Lokal:** `index.html` per Doppelklick im Browser öffnen. Es wird eine Internetverbindung benötigt, weil Three.js von `unpkg.com` geladen wird.
@@ -91,6 +100,8 @@ Alle Tastenkürzel außer `Esc`, `Leertaste`, `Strg+C`/`Strg+V` und den Pfeiltas
 | Entfernen | aus dem Raster ziehen, Doppelklick oder `Entf` |
 | Rückgängig / Wiederholen | `Strg+Z` / `Strg+Y` |
 | Hitze-Ansicht | `H` |
+| Bauteile finden | Kategorie-Reiter, Suchfeld (Teil des Namens genügt), Filter „nur freigeschaltete“ |
+| Gehäuse wählen | Karte unter dem Raster anklicken |
 
 ## Selbst anpassen
 
@@ -99,7 +110,7 @@ Alles, was du ändern darfst, steht in `index.html` in Blöcken mit der Übersch
 - **Bedienoberfläche** (im `<style>`-Bereich ganz oben): Farben, Schriften und Abstände der Infobox als CSS-Variablen.
 - **Abschnitt 1 – 3D & Grafik** (`const GRAFIK`): Farben der Szene, Kamerawinkel, Zoomgrenzen, Licht, Schatten, Fugenbreite.
 - **Abschnitt 2 – Raster & Logik** (`const LEVELS`, `const LOGIK`): Name und Größe der Level, Laufgeschwindigkeit und Pathfinding.
-- **Abschnitt 2c – Layout-Designer** (`const LAYOUT`, `const BAUTEILE`): Größe des Produkt-Rasters und der Bauteil-Katalog mit Form, Stufe, Hitze, Kühlung, Toleranz, Farbe sowie Rezept und Zeit an der Werkbank.
+- **Abschnitt 2c – Layout-Designer** (`const LAYOUT`, `const KOMPONENTEN`, `const KATEGORIEN`, `const GEHAEUSE`): Muster der 5 Stufen (Tier, Raster, Hitze, Zeit, Freischaltung), Toleranzen, Rezept-Faktoren und `herstellZielFaktor` (verkürzt alle Herstellungsziele), die 12 Kategorien mit Farbe, Symbol, Grundrezept und Namen sowie die Gehäuse mit Form, Wärmeabfuhr, Rezept und Wertfaktor. Der Bauteil-Katalog `BAUTEILE` wird daraus erzeugt.
 - **Abschnitt 2d – Produktion & Logistik** (`const PRODUKTION`, `ROHSTOFFE`, `GEBAEUDE_TYPEN`, `KURIER_STUFEN`): Startbestand, Gebäudegrößen und Fassungsvermögen, Item-Volumen (`volumenProdukt` usw.), Montagezeiten, Ausschussquote, Mitarbeiterzahl, Kurier-Grundwert (`kurierTraglast`) und die Kurier-Stufen (Zusatz-Traglast, Tempo, Ladezeit).
 - **Abschnitt 11i – Import- und Exportzone** (`const ZONEN`): Lieferzeit, Abholintervall, Rhythmen und Startplätze der Zonen.
 

@@ -25,6 +25,12 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
   - **Max per Zahl** im Lager-Fenster (Zahl eintippen, Enter): Bänder, Greifarme, Arbeiter und Kuriere liefern nur bis Max.
   - **Smart-Verteiler** (liefert nur dorthin, wo das Ziel am Ende der Strecke Platz hat), **Überlauf-Ventil** (geradeaus, bei vollem Ziel zur Seite), **Mülltonne** (vernichtet, pro Ware einstellbar).
   - Kuriere tragen grundsätzlich 5 Items pro Gang; Ausrüstung und Forschung addieren sich.
+  - **Nachtrag:**
+    - **Verteiler-Puffer**: Splitter, Smart-Verteiler und Überlauf-Ventil haben ein eigenes kleines Lager von 30 Items; das Info-Fenster zeigt „Puffer: n / 30“ mit den Items darin.
+    - **Hauptlager-Regeln** wie beim Schrank: pro Ware ⇣ Annahme, ⇡ Abgabe und Max (Zahl eintippen, ↺ zurück auf Automatik). So lassen sich die 300 Volumen bedarfsgerecht verteilen; abgewiesene Ware geht ins nächste Hauptlager. Nimmt kein Hauptlager eine wartende Ware an, meldet das HUD „kein Lager für …“.
+    - **Lager überall anbindbar**: Bänder dürfen ein Lager von allen Seiten anfahren. Kuriere entnehmen und liefern vorn am Pfeil – liegt dort ein Bandteil, ist der Zugang blockiert (Hinweis im Info-Fenster).
+    - **Exportzone an der Wand** mit Gittertor; das Tor fährt hoch, wenn der Abholwagen kommt.
+    - **Weiterbauen** (`E`) öffnet das Baumenü im Reiter „Bänder“ mit dem Fließband als Werkzeug – genau wie Bau → Bänder → Fließband.
 
 ## Spiel starten
 

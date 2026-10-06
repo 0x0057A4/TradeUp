@@ -6,9 +6,10 @@
 <title>Trade Up</title>
 <!--
   ============================================================================
-  TRADE UP – Phase 5: Wirtschaft, Logistik-Erweiterung & Forschung (Startlevel "Garage")
+  TRADE UP – Phase 6: Automatisierung, Fließbänder & Personalumbau (Startlevel "Garage")
   (Phase 1: Fundament & Bau-Raster · Phase 2: Spieler & Pathfinding ·
-   Phase 3: Produkt-Layout-Designer · Phase 4: Erste Produktion & Kuriere)
+   Phase 3: Produkt-Layout-Designer · Phase 4: Erste Produktion & Kuriere ·
+   Phase 5: Wirtschaft, Logistik-Erweiterung & Forschung)
   ============================================================================
   Diese EINE Datei enthält das komplette Spiel:
     1. <style>   → Aussehen der Bedienoberfläche (HUD, Designer, Baumenü) [UI/UX-Agent]
@@ -1244,6 +1245,89 @@
     #hud-info dt:has(+ #hud-auswahl), #hud-auswahl,
     #hud-info dt:has(+ #hud-figur), #hud-figur { display: none; }
   }
+
+  /* --- Phase 6: Bänder, Segment-Fenster, freie Arbeiter, Hallenausbau --- */
+  .hud-frei {
+    display: block;
+    width: 100%;
+    margin: 6px 0 2px;
+    padding: 5px 10px;
+    font: inherit;
+    font-size: var(--groesse-klein);
+    font-weight: 700;
+    text-align: left;
+    color: #7a5200;
+    background: #fff4d6;
+    border: 1px solid #e3a92b;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .hud-frei[hidden] { display: none; }
+  .hud-frei:hover { background: #ffecbd; }
+  .hud-frei:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .band-kosten { flex: 0 0 auto; align-self: center; padding: 0 8px; font-size: var(--groesse-text); color: var(--farbe-text-leise); line-height: 1.3; }
+  .band-kosten b { color: var(--farbe-text); }
+  .tempo-wahl { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tempo-wahl button { flex: 1 1 56px; white-space: nowrap; }
+  .tempo-wahl button, .modus-wahl.zwei button {
+    padding: 6px 2px;
+    font: inherit;
+    font-size: var(--groesse-klein);
+    font-weight: 700;
+    color: var(--farbe-text);
+    background: #fff;
+    border: 2px solid var(--farbe-rand);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .tempo-wahl button[aria-pressed="true"], .modus-wahl.zwei button[aria-pressed="true"] { color: #fff; background: var(--farbe-akzent); border-color: var(--farbe-akzent); }
+  .tempo-wahl button:disabled { opacity: 0.5; cursor: default; }
+  .tempo-wahl button:focus-visible { outline: 2px solid var(--farbe-text); outline-offset: 1px; }
+  .modus-wahl.zwei { grid-template-columns: 1fr 1fr; }
+  .band-name { display: flex; gap: 6px; align-items: center; }
+  .band-name input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    font: inherit;
+    font-size: var(--groesse-text);
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 8px;
+  }
+  .band-name input:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .filter-liste { display: flex; flex-wrap: wrap; gap: 4px; }
+  .filter-knopf {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px;
+    font: inherit;
+    font-size: var(--groesse-klein);
+    color: var(--farbe-text);
+    background: #fff;
+    border: 1px solid var(--farbe-rand);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .filter-knopf::before { content: ""; width: 0.7em; height: 0.7em; border-radius: 2px; background: var(--item-farbe); }
+  .filter-knopf[aria-pressed="true"] { border-color: var(--farbe-akzent); background: #fff1e4; font-weight: 700; }
+  .anschluss-liste { margin: 0; padding-left: 1.1em; font-size: var(--groesse-klein); }
+  .info-ok { margin: 6px 0; font-size: var(--groesse-text); font-weight: 700; color: var(--farbe-frei); }
+  .personal-auto { display: flex; align-items: center; gap: 6px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .personal-frei { padding: 8px 10px; background: #fff4d6; border: 1px solid #e3a92b; border-radius: 10px; font-size: var(--groesse-text); }
+  .personal-frei > small { display: block; margin: 2px 0 6px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .personal-frei ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .personal-frei li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .personal-frei-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+  .personal-frei select { font: inherit; font-size: var(--groesse-klein); padding: 1px 4px; border: 1px solid var(--farbe-rand); border-radius: 6px; background: #fff; }
+  .mini-knopf.gefahr { color: var(--farbe-minus); }
+  .mini-knopf.bestaetigen { color: #fff; background: var(--farbe-minus); border-color: var(--farbe-minus); }
+  .personal-umschulen { grid-column: 2 / 4; }
+  .halle-ausbau { display: flex; flex-wrap: wrap; gap: 12px; width: 100%; align-items: flex-start; }
+  .halle-jetzt { display: grid; gap: 4px; min-width: 240px; font-size: var(--groesse-text); }
+  .halle-jetzt small { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .halle-tabelle { flex: 1; min-width: 280px; }
+  .forschung-reiter { padding: 10px 18px 0; }
 </style>
 </head>
 <body>
@@ -1258,6 +1342,8 @@
     <h1 id="hud-level">Garage</h1>
     <span class="masse" id="hud-masse">16 × 8 Kacheln</span>
   </div>
+  <!-- Phase 6: freie Arbeiter (Klick öffnet den Personal-Reiter) -->
+  <button id="hud-frei" class="hud-frei" type="button" hidden title="Arbeiter ohne Aufgabe – Personal öffnen">👤 0 ohne Aufgabe</button>
   <!-- Phase 5: Konto, Kalender, Reputation, Forschungspunkte -->
   <div class="wirtschaft-leiste">
     <button id="hud-konto" class="wl-chip" type="button" title="Kontor öffnen (K)">
@@ -1366,7 +1452,9 @@
     <div class="bau-reiter" role="tablist" aria-label="Kategorie">
       <button type="button" role="tab" data-reiter="lager" aria-selected="true">Lager</button>
       <button type="button" role="tab" data-reiter="stationen" aria-selected="false">Stationen</button>
+      <button type="button" role="tab" data-reiter="baender" aria-selected="false">Bänder</button>
       <button type="button" role="tab" data-reiter="personal" aria-selected="false">Personal</button>
+      <button type="button" role="tab" data-reiter="halle" aria-selected="false">Halle</button>
     </div>
     <span class="bau-platz"></span>
     <button id="bau-verschieben" class="lz-knopf" type="button" aria-pressed="false">Verschieben <kbd>M</kbd></button>
@@ -1453,6 +1541,7 @@
       <span class="lz-platz" style="flex:1"></span>
       <button id="forschung-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Forschung schließen">✕</button>
     </header>
+    <div id="forschung-reiter" class="bau-reiter forschung-reiter" role="tablist" aria-label="Techtree"></div>
     <div id="forschung-kopf" class="forschung-kopf"></div>
     <div class="techtree-huelle"><div id="techtree" class="techtree"></div></div>
     <p id="forschung-stationen" class="forschung-stationen"></p>
@@ -1486,6 +1575,7 @@
   <span><kbd>K</kbd> Kontor</span>
   <span><kbd>T</kbd> Forschung</span>
   <span><kbd>M</kbd> Verschieben</span>
+  <span><kbd>F</kbd> Fließband</span>
   <span><kbd>P</kbd><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> Tempo</span>
   <span><kbd>Leertaste</kbd> Figur</span>
   <span><kbd>Rechts</kbd> ziehen: verschieben</span>
@@ -1605,6 +1695,20 @@ const GRAFIK = {
   schwebeDauer:         1.4,         // Sekunden, die eine schwebende Zahl sichtbar ist
   schwebeHoehe:         0.9,         // so hoch steigt sie dabei (Kacheln)
   splitterIntervall:    0.35,        // Forschungsstation: alle so viele Sekunden fliegt ein Splitter auf
+
+  // --- Phase 6: Fließbänder, Greifarme, Brücken ---
+  farbeBand:            "#4b545c",   // Gummibahn der Bänder (dunkelgrau)
+  farbeBandStreifen:    "#9aa3ab",   // helle Querstreifen, die mit dem Tempo laufen
+  farbeBandRahmen:      "#aeb8bf",   // Seitenleisten und Stützen
+  farbeSplitter:        "#4a7fc1",   // Splitter (Blau)
+  farbeZusammen:        "#5a9a5e",   // Zusammenführung (Grün)
+  farbeArm:             "#f5c542",   // Greifarm (Gelb)
+  farbeArmGelenk:       "#3a3f47",   // Gelenke und Greifer
+  farbeSegment:         "#f08a3c",   // Rahmen um das ausgewählte Segment
+  bandHoehe:            0.09,        // Höhe der Bandoberfläche über dem Boden (Kacheln)
+  brueckenHoehe:        1.2,         // Höhe des Hochbands einer Brücke über dem Boden
+  bandItemGroesse:      0.2,         // Kantenlänge der Item-Würfel auf den Bändern
+  maxBandItems:         3000,        // so viele Item-Würfel können höchstens gleichzeitig gezeichnet werden
 };
 
 /* ============================================================================
@@ -1614,7 +1718,9 @@ const GRAFIK = {
    Eintrag in die Liste ein.
    ============================================================================ */
 const LEVELS = [
-  { name: "Garage", breite: 16, tiefe: 8 },    // Startlevel: 16 Kacheln breit, 8 tief (Phase 5: von 48 auf 8 verkleinert)
+  // Startlevel: 16 Kacheln breit, 8 tief (Phase 5: von 48 auf 8 verkleinert).
+  // Phase 6: Die Halle kann durch Kauf nach vorn wachsen, höchstens bis "maxTiefe" (Ausbaustufen: HALLE_STUFEN).
+  { name: "Garage", breite: 16, tiefe: 8, maxTiefe: 48 },
 ];
 const START_LEVEL = 0;      // Welches Level beim Start geladen wird (0 = erstes in der Liste)
 const KACHEL_GROESSE = 1;   // Kantenlänge einer Kachel in 3D-Einheiten
@@ -1706,7 +1812,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   2,     // Format-Version des Spielstands (Phase 5: 2; ein Spielstand mit 1 wird umgewandelt)
+  spielstandVersion:   3,     // Format-Version des Spielstands (Phase 6: 3; Spielstände mit 1 und 2 werden umgewandelt)
 };
 
 // Rohstoffe: werden eingekauft (Phase 5), kommen ins Hauptlager und werden an der
@@ -1826,6 +1932,8 @@ const KASSEN_ARTEN = {
   verkauf: "Direktverkauf", auftraege: "Aufträge", depot: "Depot-Verkauf",
   bau: "Gebäude", einkauf: "Einkauf", loehne: "Löhne", miete: "Miete", personal: "Einstellungen",
   forschung: "Forschung", ausruestung: "Ausrüstung", strafen: "Vertragsstrafen",
+  // Phase 6
+  baender: "Bänder & Greifarme", laufkosten: "Laufkosten Bänder", abfindung: "Abfindungen", ausbau: "Hallenausbau",
 };
 
 /* ============================================================================
@@ -1939,6 +2047,106 @@ const FORSCHUNG = [
   { id: "k7", baum: "kurier", name: "Disponent", symbol: "📋", kosten: { fp: 150, geld: 0 }, braucht: ["k3", "k5"],
     wirkung: { art: "disponent" }, spalte: 2, zeile: 0,
     beschreibung: "Ein Kurier übernimmt am Ziel sofort den nächsten Auftrag von dort aus (weniger Leerwege)." },
+  // Phase 6: Zweig "Automatisierung" (Fließbänder und Greifarme sind ohne Forschung baubar)
+  { id: "a1", baum: "automatisierung", name: "Schnellband", symbol: "⏩", kosten: { fp: 60, geld: 0 }, braucht: [],
+    wirkung: { art: "bandStufe", stufe: "schnell" }, spalte: 0, zeile: 0,
+    beschreibung: "Schaltet die Tempostufe „Schnell“ für Bandsegmente frei (1,6 Kacheln/s)." },
+  { id: "a2", baum: "automatisierung", name: "Expressband", symbol: "🚀", kosten: { fp: 150, geld: 1000 }, braucht: ["a1"],
+    wirkung: { art: "bandStufe", stufe: "express" }, spalte: 1, zeile: 0,
+    beschreibung: "Schaltet die Tempostufe „Express“ frei (2,4 Kacheln/s)." },
+  { id: "a3", baum: "automatisierung", name: "Wartungsarm", symbol: "🔧", kosten: { fp: 80, geld: 0 }, braucht: ["a1"],
+    wirkung: { art: "bandKosten", faktor: 0.6 }, spalte: 1, zeile: 1,
+    beschreibung: "Laufkosten aller Bänder und Greifarme −40 %." },
+  { id: "a4", baum: "automatisierung", name: "Präzisionsmaschinen", symbol: "⚙", kosten: { fp: 200, geld: 0 }, braucht: ["a2"],
+    wirkung: { art: "automatikTempo", faktor: 1.2 }, spalte: 2, zeile: 0,
+    beschreibung: "Automatisch laufende Stationen arbeiten 20 % schneller." },
+  { id: "a5", baum: "automatisierung", name: "Schnellgreifer", symbol: "🦾", kosten: { fp: 100, geld: 0 }, braucht: ["a1"],
+    wirkung: { art: "greifZeit", faktor: 0.6 }, spalte: 1, zeile: 2,
+    beschreibung: "Greifarme schwenken 40 % schneller." },
+];
+// Reiter im Techtree-Fenster (Phase 6): ein Reiter pro Baum
+const FORSCHUNG_BAEUME = [
+  { id: "kurier", name: "Kuriere" },
+  { id: "automatisierung", name: "Automatisierung" },
+];
+
+/* ============================================================================
+   ABSCHNITT 2h: KONFIGURATION – Fließbänder, Automatisierung & Halle (Phase 6) [Logik-Agent]
+   Alle Werte sind Platzhalter und dürfen frei geändert werden.
+   Richtungen: 0 = nach vorn (+z), 1 = nach links (−x), 2 = nach hinten (−z), 3 = nach rechts (+x)
+   (wie die Drehung der Gebäude: Richtung = Drehung / 90).
+   ============================================================================ */
+// Bandteile. Jedes Teil belegt genau eine Kachel.
+//   typ        – interner Name (nicht ändern, sonst passen gespeicherte Spielstände nicht mehr)
+//   spur       – true = Items fahren über das Teil (Band, Übergang, Rampen, Hochband)
+//   begehbar   – Personen dürfen die Kachel betreten (Splitter, Zusammenführung, Greifarm: nein)
+//   laufKosten – so teuer ist die Kachel für den Wegfinder (1 = freier Boden)
+//   tagesKosten – Laufkosten pro Tag (bei Spur-Teilen hängen sie vom Tempo des Segments ab)
+//   ebeneEin / ebeneAus – auf welcher Ebene Items hinein- bzw. hinausfahren (0 = Boden, 1 = Brücke)
+//   imMenue    – erscheint als eigene Karte im Baumenü (Rampen und Hochband entstehen mit dem Werkzeug "Brücke")
+const BAND_TEILE = [
+  { typ: "band", name: "Fließband", symbol: "➜", preis: 15, spur: true, begehbar: true, laufKosten: 8,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true, ziehen: true,
+    beschreibung: "Fördert Items. Ziehen legt eine Strecke, Kurven entstehen automatisch." },
+  { typ: "bruecke", name: "Brücke", symbol: "⌒", preis: 0, imMenue: true, ziehen: true, nurWerkzeug: true,
+    beschreibung: "Band auf zweiter Ebene: gerade ziehen (mind. 3 Kacheln). Darunter darf alles liegen außer Gebäuden." },
+  { typ: "splitter", name: "Splitter", symbol: "⑂", preis: 120, spur: false, begehbar: false, tagesKosten: 2,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Verteilt Items von hinten reihum nach links, vorn und rechts (oder sortiert nach Filter)." },
+  { typ: "zusammen", name: "Zusammenführung", symbol: "⑃", preis: 120, spur: false, begehbar: false, tagesKosten: 2,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Führt Bänder von links, hinten und rechts reihum auf ein Band nach vorn zusammen." },
+  { typ: "uebergang", name: "Übergang", symbol: "⇵", preis: 60, spur: true, begehbar: true, laufKosten: 1,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Band mit kleiner Treppe darüber: Personen queren es ohne Umweg." },
+  { typ: "greifarm", name: "Greifarm", symbol: "🦾", preis: 350, spur: false, begehbar: false, tagesKosten: 3,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Nimmt von der Kachel hinter sich (Band oder Gebäude) und legt auf die Kachel vor sich." },
+  { typ: "rampeHoch", name: "Auffahrt", symbol: "⟋", preis: 40, spur: true, begehbar: true, laufKosten: 8,
+    ebeneEin: 0, ebeneAus: 1, beschreibung: "Bringt Items auf die Brücke." },
+  { typ: "hochband", name: "Hochband", symbol: "═", preis: 30, spur: true, begehbar: true, laufKosten: 1,
+    ebeneEin: 1, ebeneAus: 1, hoch: true, beschreibung: "Band auf der Brücke. Darunter ist Platz." },
+  { typ: "rampeRunter", name: "Abfahrt", symbol: "⟍", preis: 40, spur: true, begehbar: true, laufKosten: 8,
+    ebeneEin: 1, ebeneAus: 0, beschreibung: "Bringt Items von der Brücke zurück auf den Boden." },
+];
+
+const BAENDER = {
+  mindestAbstand:   0.5,   // Abstand zwischen zwei Items auf einem Band (0,5 = 2 Items pro Kachel)
+  knotenTempo:      2.5,   // so schnell (Kacheln/s) laufen Items durch Splitter und Zusammenführungen
+  stauWarnung:      5,     // nach so vielen Sekunden Stillstand am Ende zeigt das Segment "Stau"
+  greifZyklus:      1.2,   // Sekunden für einen Greifarm-Zyklus (greifen, schwenken, ablegen)
+  bandVersorgtSek:  60,    // so lange nach der letzten Band-Lieferung gilt ein Material als "vom Band versorgt" (Kuriere bringen es dann nicht)
+  ablaufStauSek:    30,    // Zwischenlager mit Ablauf: Kuriere holen Export-Ware erst, wenn das Band so lange voll ist
+  minBrueckenLaenge: 3,    // eine Brücke hat mindestens Auffahrt + 1 Hochband + Abfahrt
+  laufTempoAufBand: 0.4,   // Personen, die über ein Band steigen, laufen nur so schnell (40 %)
+};
+// Tempostufen eines Segments. "forschung" = diese Forschung schaltet die Stufe frei (null = immer da).
+// tagesKosten = Laufkosten pro Kachel und Tag.
+const BAND_TEMPO = [
+  { id: "pause",   name: "Pause",   symbol: "⏸", tempo: 0,   tagesKosten: 0, forschung: null },
+  { id: "langsam", name: "Langsam", symbol: "",  tempo: 0.5, tagesKosten: 1, forschung: null },
+  { id: "normal",  name: "Normal",  symbol: "",  tempo: 1.0, tagesKosten: 2, forschung: null },
+  { id: "schnell", name: "Schnell", symbol: "",  tempo: 1.6, tagesKosten: 4, forschung: "a1" },
+  { id: "express", name: "Express", symbol: "",  tempo: 2.4, tagesKosten: 7, forschung: "a2" },
+];
+const STANDARD_BAND_TEMPO = "normal";
+
+// Personalumbau (Phase 6)
+const PERSONAL = {
+  abfindungTage:      0.5,  // Entlassen kostet so viele Tageslöhne Abfindung
+  autoZuweisung:      false, // Standard: freie Arbeiter NICHT automatisch an andere Stationen setzen
+};
+
+// Ausbaustufen der Halle (Phase 6). Die Halle wächst nach vorn (+z); Gebautes bleibt an seinem Platz.
+//   tiefe – Reihen nach dem Ausbau (Breite bleibt 16), preis – Kaufpreis, miete – Euro pro Tag,
+//   maxMitarbeiter – so viele Kuriere + Arbeiter passen in diese Halle
+const HALLE_STUFEN = [
+  { name: "Garage",       tiefe: 8,  preis: 0,     miete: 100, maxMitarbeiter: 8  },
+  { name: "Große Garage", tiefe: 12, preis: 6000,  miete: 150, maxMitarbeiter: 10 },
+  { name: "Werkstatt",    tiefe: 16, preis: 10000, miete: 200, maxMitarbeiter: 12 },
+  { name: "Kleine Halle", tiefe: 24, preis: 16000, miete: 300, maxMitarbeiter: 14 },
+  { name: "Halle",        tiefe: 32, preis: 24000, miete: 400, maxMitarbeiter: 16 },
+  { name: "Große Halle",  tiefe: 48, preis: 40000, miete: 600, maxMitarbeiter: 18 },
 ];
 
 /* ============================================================================
@@ -2019,18 +2227,25 @@ szene.add(sonne);
    hier ihre ID als "objekt" ein und machen ihre Kacheln unbegehbar.
    Koordinaten: x = Spalte (0 bis breite-1), z = Reihe (0 bis tiefe-1).
    ============================================================================ */
-const level = LEVELS[START_LEVEL];
+// Phase 6: "level" ist eine Kopie, weil die Halle durch Kauf wachsen kann (level.tiefe ändert sich).
+// basisTiefe bleibt fest: Daran hängen die 3D-Koordinaten, damit beim Ausbau nichts verrutscht.
+const level = { ...LEVELS[START_LEVEL], basisTiefe: LEVELS[START_LEVEL].tiefe };
+level.maxTiefe = Math.max(level.tiefe, level.maxTiefe || level.tiefe);
 
-// rasterDaten[x][z] = Zustand einer Kachel
+// rasterDaten[x][z] = Zustand einer Kachel. Angelegt wird gleich die größte Ausbaustufe,
+// gültig ist aber nur, was innerhalb von level.tiefe liegt (siehe istImRaster).
 const rasterDaten = [];
 for (let x = 0; x < level.breite; x++) {
   rasterDaten[x] = [];
-  for (let z = 0; z < level.tiefe; z++) {
+  for (let z = 0; z < level.maxTiefe; z++) {
     rasterDaten[x][z] = {
       belegt: false,    // Steht hier schon etwas?
       objekt: null,     // Was steht hier? (ID eines Gebäudes, z. B. "g3")
       begehbar: true,   // Darf man hier entlanglaufen? (getrennt von "belegt", weil z. B.
-                        // ein Kabelkanal belegt, aber begehbar sein kann)
+                        // ein Fließband belegt, aber begehbar sein kann)
+      kosten: 1,        // Phase 6: "Preis" der Kachel für den Wegfinder (Band = teurer, man steigt nur im Notfall darüber)
+      band: null,       // Phase 6: ID des Bandteils am Boden (Band, Splitter, Greifarm, Rampe …)
+      hochband: null,   // Phase 6: ID des Hochbands einer Brücke über dieser Kachel
     };
   }
 }
@@ -2038,6 +2253,10 @@ for (let x = 0; x < level.breite; x++) {
 // Prüft, ob eine Koordinate innerhalb der Garage liegt.
 function istImRaster(x, z) {
   return x >= 0 && x < level.breite && z >= 0 && z < level.tiefe;
+}
+// Phase 6: Wie teuer ist eine Kachel für den Wegfinder? (1 = freier Boden)
+function kachelKosten(x, z) {
+  return istImRaster(x, z) ? rasterDaten[x][z].kosten : 1;
 }
 
 // Liefert den gespeicherten Zustand einer Kachel (oder null außerhalb).
@@ -2050,7 +2269,7 @@ function kachelZuWelt(x, z) {
   return new THREE.Vector3(
     (x - level.breite / 2 + 0.5) * KACHEL_GROESSE,
     0,
-    (z - level.tiefe / 2 + 0.5) * KACHEL_GROESSE
+    (z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE   // Phase 6: fester Bezug, damit beim Hallenausbau nichts verrutscht
   );
 }
 
@@ -2058,7 +2277,7 @@ function kachelZuWelt(x, z) {
 function weltZuKachel(punkt) {
   return {
     x: Math.floor(punkt.x / KACHEL_GROESSE + level.breite / 2),
-    z: Math.floor(punkt.z / KACHEL_GROESSE + level.tiefe / 2),
+    z: Math.floor(punkt.z / KACHEL_GROESSE + level.basisTiefe / 2),
   };
 }
 
@@ -2194,9 +2413,13 @@ function findePfad(start, ziel) {
       const diagonal = dx !== 0 && dz !== 0;
       // Kein Ecken-Schneiden: diagonal nur, wenn beide geraden Nachbarn frei sind.
       if (diagonal && (!istBegehbar(x + dx, z) || !istBegehbar(x, z + dz))) continue;
+      // Phase 6: Über Bänder nur gerade steigen (nie schräg über eine Bandecke)
+      if (diagonal && (kachelKosten(x, z) > 1 || kachelKosten(nx, nz) > 1 || kachelKosten(x + dx, z) > 1 || kachelKosten(x, z + dz) > 1)) continue;
       const nNr = nummerVon(nx, nz);
       if (erledigt[nNr]) continue;
-      const neueKosten = kosten[nr] + (diagonal ? LOGIK.kostenDiagonal : LOGIK.kostenGerade);
+      // Phase 6: Jede Kachel hat einen "Preis" (Band = 8): Ein Umweg ist oft billiger als übersteigen,
+      // aber ein Weg über ein Band wird immer gefunden, wenn es keinen anderen gibt.
+      const neueKosten = kosten[nr] + (diagonal ? LOGIK.kostenDiagonal : LOGIK.kostenGerade) * kachelKosten(nx, nz);
       if (neueKosten < kosten[nNr]) {
         kosten[nNr] = neueKosten;
         vorgaenger[nNr] = nr;
@@ -2216,7 +2439,9 @@ function findePfad(start, ziel) {
 
 // Prüft, ob die Figur auf gerader Linie von Punkt a nach Punkt b laufen kann (3D-Punkte
 // auf dem Boden), ohne mit ihrer Breite (figurRadius) eine Blockade zu streifen.
-function sichtlinieFrei(a, b) {
+// Phase 6: "erlaubt" (Menge von Kachel-Schlüsseln "x,z") – teure Kacheln (Bänder) dürfen dann nur
+// gestreift werden, wenn sie zu diesem Weg gehören. So glättet die Abkürzung nie quer über Bänder.
+function sichtlinieFrei(a, b, erlaubt = null) {
   const r = LOGIK.figurRadius;
   const laenge = Math.hypot(b.x - a.x, b.z - a.z);
   const schritte = Math.max(1, Math.ceil(laenge / 0.1));   // alle 0,1 Kacheln prüfen
@@ -2227,6 +2452,7 @@ function sichtlinieFrei(a, b) {
     for (const [ox, oz] of [[-r, -r], [r, -r], [r, r], [-r, r]]) {
       const k = weltZuKachel({ x: px + ox, z: pz + oz });
       if (!istBegehbar(k.x, k.z)) return false;
+      if (erlaubt && kachelKosten(k.x, k.z) > 1 && !erlaubt.has(k.x + "," + k.z)) return false;
     }
   }
   return true;
@@ -2237,13 +2463,14 @@ function sichtlinieFrei(a, b) {
 function glaettePfad(pfad) {
   const punkte = pfad.map(k => kachelZuWelt(k.x, k.z));
   if (!LOGIK.wegGlaetten || punkte.length <= 2) return punkte;
+  const erlaubt = new Set(pfad.map((k) => k.x + "," + k.z));   // Phase 6: nur Bänder streifen, die der Weg ohnehin quert
   const ergebnis = [punkte[0]];
   let anker = 0;
   while (anker < punkte.length - 1) {
     // Den am weitesten entfernten Punkt suchen, der noch auf gerader Linie erreichbar ist.
     let weitester = anker + 1;
     for (let j = punkte.length - 1; j > anker + 1; j--) {
-      if (sichtlinieFrei(punkte[anker], punkte[j])) { weitester = j; break; }
+      if (sichtlinieFrei(punkte[anker], punkte[j], erlaubt)) { weitester = j; break; }
     }
     ergebnis.push(punkte[weitester]);
     anker = weitester;
@@ -2254,8 +2481,13 @@ function glaettePfad(pfad) {
 /* ============================================================================
    ABSCHNITT 5: Raster-Darstellung & Hover                          [3D-Agent]
    ============================================================================ */
-const breiteWelt = level.breite * KACHEL_GROESSE;
-const tiefeWelt = level.tiefe * KACHEL_GROESSE;
+// Phase 6: Breite und Tiefe der Halle in 3D-Einheiten (die Tiefe wächst beim Ausbau mit)
+let breiteWelt = level.breite * KACHEL_GROESSE;
+let tiefeWelt = level.tiefe * KACHEL_GROESSE;
+// Mitte der Halle in der 3D-Welt (verschiebt sich beim Ausbau nach vorn)
+function hallenMitte() {
+  return new THREE.Vector3(0, 0, (level.tiefe - level.basisTiefe) / 2 * KACHEL_GROESSE);
+}
 const rasterHoehe = GRAFIK.sockelHoehe + GRAFIK.kachelDicke; // Oberkante der Kacheln
 
 // Außenboden: eine große Fläche rund um die Garage.
@@ -2277,12 +2509,14 @@ const sockel = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: GRAFIK.farbeGarageKante, roughness: 0.9 })
 );
 sockel.position.y = GRAFIK.sockelHoehe / 2;
+sockel.position.z = hallenMitte().z;
 sockel.castShadow = true;
 sockel.receiveShadow = true;
 szene.add(sockel);
 
 // Alle Kacheln als EIN Objekt (InstancedMesh) – sehr schnell, auch bei tausenden Kacheln.
-const kachelAnzahl = level.breite * level.tiefe;
+// Phase 6: Platz für die größte Ausbaustufe; Kacheln außerhalb der Halle sind unsichtbar (Größe 0).
+const kachelAnzahl = level.breite * level.maxTiefe;
 const kachelMass = KACHEL_GROESSE - GRAFIK.fugenBreite;
 const kacheln = new THREE.InstancedMesh(
   new THREE.BoxGeometry(kachelMass, GRAFIK.kachelDicke, kachelMass),
@@ -2291,26 +2525,57 @@ const kacheln = new THREE.InstancedMesh(
 );
 kacheln.receiveShadow = true;
 
-// Jede Kachel bekommt eine Nummer: nummer = x * tiefe + z
-const kachelNummer = (x, z) => x * level.tiefe + z;
+// Jede Kachel bekommt eine Nummer: nummer = x * maxTiefe + z
+const kachelNummer = (x, z) => x * level.maxTiefe + z;
 const hilfsMatrix = new THREE.Matrix4();
-for (let x = 0; x < level.breite; x++) {
-  for (let z = 0; z < level.tiefe; z++) {
-    const mitte = kachelZuWelt(x, z);
-    hilfsMatrix.makeTranslation(mitte.x, GRAFIK.sockelHoehe + GRAFIK.kachelDicke / 2, mitte.z);
-    kacheln.setMatrixAt(kachelNummer(x, z), hilfsMatrix);
+const nullMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
+// Setzt alle Bodenkacheln: innerhalb der Halle sichtbar, dahinter (noch nicht gekauft) unsichtbar.
+function setzeKachelMatrizen() {
+  for (let x = 0; x < level.breite; x++) {
+    for (let z = 0; z < level.maxTiefe; z++) {
+      if (z < level.tiefe) {
+        const mitte = kachelZuWelt(x, z);
+        hilfsMatrix.makeTranslation(mitte.x, GRAFIK.sockelHoehe + GRAFIK.kachelDicke / 2, mitte.z);
+        kacheln.setMatrixAt(kachelNummer(x, z), hilfsMatrix);
+      } else {
+        kacheln.setMatrixAt(kachelNummer(x, z), nullMatrix);
+      }
+    }
   }
+  kacheln.instanceMatrix.needsUpdate = true;
+  kacheln.computeBoundingSphere();
 }
+setzeKachelMatrizen();
 szene.add(kacheln);
 
 // Sonne und ihren Schattenbereich so einstellen, dass die ganze Garage abgedeckt ist.
-const schattenRadius = Math.max(breiteWelt, tiefeWelt) / 2 + 4;
-Object.assign(sonne.shadow.camera, {
-  left: -schattenRadius, right: schattenRadius,
-  top: schattenRadius, bottom: -schattenRadius,
-  near: 1, far: 200,
-});
-sonne.shadow.camera.updateProjectionMatrix();
+// Phase 6: wird nach jedem Hallenausbau neu eingestellt (Sonne folgt der Hallenmitte).
+szene.add(sonne.target);
+function passeSchattenAn() {
+  const schattenRadius = Math.max(breiteWelt, tiefeWelt) / 2 + 4;
+  Object.assign(sonne.shadow.camera, {
+    left: -schattenRadius, right: schattenRadius,
+    top: schattenRadius, bottom: -schattenRadius,
+    near: 1, far: 200 + schattenRadius,
+  });
+  sonne.shadow.camera.updateProjectionMatrix();
+  const mitte = hallenMitte();
+  sonne.target.position.copy(mitte);
+  sonne.position.set(GRAFIK.sonnenRichtung.x + mitte.x, GRAFIK.sonnenRichtung.y, GRAFIK.sonnenRichtung.z + mitte.z);
+}
+passeSchattenAn();
+
+// Phase 6: Die Halle ist gewachsen – Sockel, Kacheln, Schatten und Anzeige anpassen.
+function passeHalleAn3d() {
+  breiteWelt = level.breite * KACHEL_GROESSE;
+  tiefeWelt = level.tiefe * KACHEL_GROESSE;
+  sockel.geometry.dispose();
+  sockel.geometry = new THREE.BoxGeometry(breiteWelt + GRAFIK.sockelUeberstand * 2, GRAFIK.sockelHoehe, tiefeWelt + GRAFIK.sockelUeberstand * 2);
+  sockel.position.z = hallenMitte().z;
+  setzeKachelMatrizen();
+  for (let x = 0; x < level.breite; x++) for (let z = 0; z < level.tiefe; z++) faerbeKachel(x, z);
+  passeSchattenAn();
+}
 
 // Färbt eine Kachel je nach Zustand: ausgewählt > Maus darüber > normal.
 const farbeNormal = new THREE.Color(GRAFIK.farbeKachel);
@@ -2642,10 +2907,11 @@ function kachelUnterMaus(pixelX, pixelY) {
 
 // Hält das Kameraziel in der Nähe der Garage, damit man sich nicht "verirrt".
 function begrenzeKameraZiel() {
+  const mitte = hallenMitte();                      // Phase 6: die Halle kann nach vorn wachsen
   const grenzeX = breiteWelt / 2 + GRAFIK.randUmGarage;
   const grenzeZ = tiefeWelt / 2 + GRAFIK.randUmGarage;
-  kameraZiel.x = THREE.MathUtils.clamp(kameraZiel.x, -grenzeX, grenzeX);
-  kameraZiel.z = THREE.MathUtils.clamp(kameraZiel.z, -grenzeZ, grenzeZ);
+  kameraZiel.x = THREE.MathUtils.clamp(kameraZiel.x, mitte.x - grenzeX, mitte.x + grenzeX);
+  kameraZiel.z = THREE.MathUtils.clamp(kameraZiel.z, mitte.z - grenzeZ, mitte.z + grenzeZ);
 }
 
 // Zustand der Maustasten
@@ -2656,6 +2922,7 @@ const maus = {
   rechtsStartX: 0, rechtsStartY: 0, // wo die rechte/mittlere Taste gedrückt wurde
   ankerPunkt: null,       // Bodenpunkt, der beim Verschieben unter der Maus "kleben" bleibt
   letzteX: 0, letzteY: 0, // letzte bekannte Mausposition
+  zieht: false,           // Phase 6: wird gerade eine Bandstrecke gezogen?
 };
 
 zeichenflaeche.addEventListener("pointerdown", (e) => {
@@ -2665,6 +2932,13 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
     // Linke Taste: möglicher Klick – erst beim Loslassen entscheiden.
     maus.linksUnten = true;
     maus.startX = e.clientX; maus.startY = e.clientY;
+    // Phase 6: Mit dem Band-, Brücken- oder Abriss-Werkzeug wird gezogen (Strecke legen)
+    const k = ziehWerkzeugAktiv() ? kachelUnterMaus(e.clientX, e.clientY) : null;
+    if (k) {
+      maus.zieht = true;
+      zeichenflaeche.setPointerCapture(e.pointerId);
+      ziehen("start", k, e.shiftKey);
+    }
   } else if (e.button === 1 || e.button === 2) {
     // Rechte oder mittlere Taste: Kamera verschieben beginnen.
     maus.verschiebt = true;
@@ -2689,10 +2963,17 @@ zeichenflaeche.addEventListener("pointermove", (e) => {
     }
   }
   setzeHover(kachelUnterMaus(e.clientX, e.clientY));
+  if (maus.zieht && hoverKachel) ziehen("bewegt", hoverKachel, e.shiftKey);   // Phase 6
 });
 
 zeichenflaeche.addEventListener("pointerup", (e) => {
   if (eingaben3dGesperrt) return;
+  if (e.button === 0 && maus.zieht) {                // Phase 6: Strecke fertig gezogen
+    maus.zieht = false;
+    maus.linksUnten = false;
+    ziehen("ende", kachelUnterMaus(e.clientX, e.clientY), e.shiftKey);
+    return;
+  }
   if (e.button === 0 && maus.linksUnten) {
     maus.linksUnten = false;
     const bewegt = Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY);
@@ -2767,6 +3048,7 @@ function sperre3dEingaben(an) {
   maus.linksUnten = false;
   maus.verschiebt = false;
   maus.ankerPunkt = null;
+  if (maus.zieht) { maus.zieht = false; ziehen("abbruch", null, false); }   // Phase 6
   if (an) setzeHover(null);
   document.body.classList.toggle("designer-offen", an); // Szene weich unscharf (siehe CSS)
 }
@@ -2792,12 +3074,13 @@ function bewegeMitTastatur(sekunden) {
 
 // Startansicht: Zoom so wählen, dass die ganze Garage ins Bild passt.
 function zoomeAufGarage() {
-  kameraZiel.set(0, 0, 0);
+  const mitte = hallenMitte();
+  kameraZiel.copy(mitte);
   aktualisiereKamera();
   // Die vier Ecken der Garage in Kamera-Koordinaten umrechnen und den größten Abstand suchen.
   let maxX = 0, maxY = 0;
   for (const [ex, ez] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    const ecke = new THREE.Vector3(ex * breiteWelt / 2, rasterHoehe, ez * tiefeWelt / 2);
+    const ecke = new THREE.Vector3(mitte.x + ex * breiteWelt / 2, rasterHoehe, mitte.z + ez * tiefeWelt / 2);
     ecke.applyMatrix4(kamera.matrixWorldInverse);
     maxX = Math.max(maxX, Math.abs(ecke.x));
     maxY = Math.max(maxY, Math.abs(ecke.y));
@@ -2902,7 +3185,8 @@ function schickePerson(p, zielKachel) {
   // außer die Person steht nicht in der Mitte und muss erst um eine Ecke.
   const punkte = glaettePfad(pfad);
   punkte.shift();
-  if (!sichtlinieFrei(p.position, punkte[0])) punkte.unshift(kachelZuWelt(start.x, start.z));
+  const erlaubt = new Set(pfad.map((k) => k.x + "," + k.z));   // Phase 6: nicht quer über fremde Bänder
+  if (!sichtlinieFrei(p.position, punkte[0], erlaubt)) punkte.unshift(kachelZuWelt(start.x, start.z));
   p.wegpunkte = punkte;
   p.ziel = ende;
   if (p.zustand !== "laeuft") {
@@ -2942,6 +3226,9 @@ function winkelDifferenz(von, nach) {
 //   hoechstTempo – Höchstgeschwindigkeit dieser Person (Kacheln pro Sekunde)
 function bewegePerson(p, sekunden, hoechstTempo) {
   if (p.zustand === "laeuft") {
+    // Phase 6: Wer über ein Band steigt, ist langsamer
+    const k = personKachel(p);
+    if (kachelKosten(k.x, k.z) > 1) hoechstTempo *= BAENDER.laufTempoAufBand;
     // Tempo: anlaufen, Höchsttempo halten, rechtzeitig vor dem Ziel abbremsen
     const bremsTempo = Math.sqrt(2 * LOGIK.beschleunigung * restwegVon(p));
     const zielTempo = Math.max(0.6, Math.min(hoechstTempo, bremsTempo));
@@ -4111,7 +4398,7 @@ for (const b of BAUTEILE) ITEMS.set(b.typ, { id: b.typ, name: b.name, farbe: b.f
 const spiel = {
   gebaeude: new Map(),          // id → Gebäude
   naechsteId: 1,
-  depot: { gebaeude: {}, items: {} },  // Lager AUSSERHALB des Rasters: abgebaute Maschinen und Items
+  depot: { gebaeude: {}, items: {}, baender: {} },  // Lager AUSSERHALB des Rasters: abgebaute Maschinen, Items und (Phase 6) Bandteile
   naechstePersonId: 1,
   tempo: 1,                     // 0 = Pause, 1, 2, 3
   tempoVorPause: 1,
@@ -4141,6 +4428,13 @@ const spiel = {
   autoVerkauf: {},              // Item → true (automatisch verkaufen)
   produktTeile: {},             // Blaupausen-ID → { Bauteil: Anzahl } (bleibt, auch wenn die Blaupause gelöscht wird)
   produktUeberhitzt: {},        // Blaupausen-ID → true/false
+
+  // --- Phase 6: Fließbänder, Automatisierung, Halle (Abschnitte 11h bis 11j) ---
+  baender: new Map(),           // Bandteil-ID → Bandteil (Band, Splitter, Zusammenführung, Übergang, Greifarm, Brücke)
+  naechsteBandId: 1,
+  bandVersion: 0,               // zählt jede Änderung an den Bändern (die 3D-Ansicht baut dann neu)
+  halleStufe: 0,                // Ausbaustufe der Halle (Index in HALLE_STUFEN)
+  autoZuweisung: PERSONAL.autoZuweisung,   // freie Arbeiter automatisch an Stationen setzen?
 };
 
 // Name, Farbe und Art eines Items
@@ -4309,10 +4603,12 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
   for (const c of geo.zellen) {
     const k = holeKachel(c.x, c.z);
     if (!k) gruende.push("Das Gebäude ragt aus der Halle.");
+    else if (k.band || k.hochband) gruende.push(k.hochband ? "Unter einer Brücke ist kein Platz für Gebäude." : "Hier liegt ein Fließband.");
     else if ((k.belegt || !k.begehbar) && !istEigen(c)) gruende.push("Der Platz ist schon belegt.");
     else if (allePersonen().some((p) => personBeruehrtKachel(p, c))) gruende.push("Hier steht gerade jemand.");
   }
   if (!istBegehbar(geo.zugang.x, geo.zugang.z) && !istEigen(geo.zugang)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
+  else if (holeKachel(geo.zugang.x, geo.zugang.z)?.band) gruende.push("Der Zugang (Pfeil) liegt auf einem Fließband.");   // Phase 6
   if (t.maxAnzahl && anzahlTyp(typ) - (eigenes ? 1 : 0) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
   if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
   if (gruende.length === 0 && !bleibtAllesErreichbar(geo, eigenes)) {
@@ -4875,6 +5171,7 @@ function bedarf(g, res) {
   let platz = freierPlatz(g, res, fach);
   for (const [item, soll] of Object.entries(sollbestand(g))) {
     if (!darfKurierLiefern(g, item, fach)) continue;
+    if (fach === "eingang" && vomBandVersorgt(g, item)) continue;   // Phase 6: das bringt schon ein Band oder Greifarm
     const fehlt = soll - (inhalt[item] || 0) - reserviert(res.rein, fachSchluessel(g.id, fach), item);
     if (fehlt > 0 && platz > 0) {
       const n = Math.min(fehlt, platz);
@@ -5011,7 +5308,7 @@ function einstellGebuehr(rolle) {
 // Stellt einen Kurier oder Arbeiter ein. Rückgabe: die neue Person oder null
 // (Höchstzahl erreicht oder nicht genug Geld). daten.kostenlos: ohne Gebühr (Spielstart, Laden).
 function stelleEin(rolle, daten = {}) {
-  if (!MITARBEITER_ROLLEN[rolle] || mitarbeiter.length >= PRODUKTION.maxMitarbeiter) return null;
+  if (!MITARBEITER_ROLLEN[rolle] || mitarbeiter.length >= maxMitarbeiter()) return null;   // Phase 6: wächst mit der Halle
   if (!daten.kostenlos) {
     const gebuehr = einstellGebuehr(rolle);
     if (!kannBezahlen(gebuehr)) return null;
@@ -5026,6 +5323,7 @@ function stelleEin(rolle, daten = {}) {
     ausruestung: Math.max(daten.ausruestung || 0, daten.stufe || 0), // höchste gekaufte Stufe (Phase 5)
     ep: daten.ep || 0,           // Erfahrungspunkte (Phase 5)
     stationId: null,             // Arbeiter: zugeordnete Station
+    ohneAufgabe: !!daten.ohneAufgabe,   // Phase 6: Station läuft automatisch – wartet in der Pausenecke auf eine neue Aufgabe
     traegt: {},                  // Items in den Händen
     auftrag: null,               // laufender Auftrag
     phase: "frei",               // Schritt im Ablauf (siehe Kopf dieses Abschnitts)
@@ -5049,9 +5347,15 @@ function setzePersonZurueck(p) {
   p.phase = "frei";
 }
 
-function entlasse(id) {
+// Phase 6: Entlassen kostet eine Abfindung (PERSONAL.abfindungTage Tageslöhne).
+function abfindungVon(p) {
+  return Math.round(lohnVon(p) * PERSONAL.abfindungTage);
+}
+function entlasse(id, { ohneAbfindung = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === id);
   if (!p) return false;
+  const abfindung = ohneAbfindung ? 0 : abfindungVon(p);
+  if (abfindung > 0) bucheGeld(-abfindung, "abfindung");
   setzePersonZurueck(p);
   const s = p.stationId && spiel.gebaeude.get(p.stationId);
   if (s) s.arbeiterId = null;
@@ -5066,12 +5370,13 @@ function weiseZu(personId, stationId) {
   const p = mitarbeiter.find((m) => m.id === personId);
   if (!p || p.rolle !== "arbeiter") return false;
   const neu = stationId ? spiel.gebaeude.get(stationId) : null;
-  if (stationId && (!neu || !istStation(neu))) return false;
+  if (stationId && (!neu || !istStation(neu) || neu.automatik)) return false;   // Phase 6: Automatik braucht niemanden
+  p.ohneAufgabe = false;
   const alt = p.stationId && spiel.gebaeude.get(p.stationId);
   if (alt) alt.arbeiterId = null;
   if (neu && neu.arbeiterId) {                     // bisheriger Arbeiter der Station wird frei
     const vorher = mitarbeiter.find((m) => m.id === neu.arbeiterId);
-    if (vorher) { setzePersonZurueck(vorher); vorher.stationId = null; vorher.manuellFrei = false; }   // sucht sich eine andere freie Station
+    if (vorher) { setzePersonZurueck(vorher); vorher.stationId = null; vorher.manuellFrei = false; vorher.ohneAufgabe = false; }   // sucht sich eine andere freie Station
   }
   setzePersonZurueck(p);
   p.stationId = neu ? neu.id : null;
@@ -5083,14 +5388,18 @@ function weiseZu(personId, stationId) {
 
 // Freie Arbeiter (nicht bewusst freigestellt) bekommen die nächstgelegene Station ohne Arbeiter.
 function weiseArbeiterAutomatischZu() {
-  const offen = gebaeudeListe((g) => istStation(g) && !g.arbeiterId);
+  const offen = gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik);   // Phase 6: Automatik-Stationen brauchen niemanden
   if (!offen.length) return;
   for (const p of mitarbeiter) {
-    if (p.rolle !== "arbeiter" || p.stationId || p.manuellFrei || !offen.length) continue;
+    // Phase 6: Wer durch Automatik frei wurde, wird nur mit dem Schalter "automatisch zuweisen" neu verteilt
+    const darf = !p.manuellFrei || (p.ohneAufgabe && spiel.autoZuweisung);
+    if (p.rolle !== "arbeiter" || p.stationId || !darf || !offen.length) continue;
     const k = personKachel(p);
     offen.sort((a, b) => abstand(a.zugang, k) - abstand(b.zugang, k));
     const s = offen.shift();
     p.stationId = s.id;
+    p.ohneAufgabe = false;
+    p.manuellFrei = false;
     s.arbeiterId = p.id;
     meldeStruktur();
   }
@@ -5158,7 +5467,8 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   if (platzImLager > 0) {
     for (const s of gebaeudeListe(istStation)) {
       const voll = kapazitaetVon(s) > 0 && summe(s.bestand) >= kapazitaetVon(s);
-      for (const item of Object.keys(s.bestand)) {
+      // Phase 6: Das Ausgabefach leert ein Band oder Greifarm (Ablauf) – Kuriere lassen es in Ruhe
+      for (const item of s.bandAblauf ? [] : Object.keys(s.bestand)) {
         if (!darfKurierAbholen(s, item)) continue;                         // Export aus: bleibt liegen
         const n = verfuegbar(s, item, res);
         if (n <= 0 || (!voll && s.bestand[item] < exportPegel(s, item))) continue;   // Pegel noch nicht erreicht
@@ -5169,6 +5479,8 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       }
     }
     for (const lager of gebaeudeListe(istZwischenlager)) {
+      // Phase 6: Ein Lager mit Ablauf gibt Export-Ware ans Band; Kuriere helfen erst, wenn das Band lange voll ist
+      if (lager.bandAblauf && spiel.zeit - (lager.ablaufFrei ?? -Infinity) < BAENDER.ablaufStauSek) continue;
       const voll = summe(lager.bestand) >= kapazitaetVon(lager);
       for (const [item, n] of Object.entries(abholbar(lager, res))) {
         // Reine Export-Ware drängt (sonst läuft das Lager voll), der Überschuss eines Puffers nicht
@@ -5407,10 +5719,11 @@ function legeErzeugnisNotfallsAb(p, s) {
 }
 
 // Ein Durchgang ist fertig: Forschungspunkte und Erfahrung verteilen (Phase 5).
+// Phase 6: p = null bei Automatik-Stationen (keine Erfahrung, keine FP für die Arbeit selbst).
 function belohneArbeit(p, s, r) {
   const art = typVon(s).art;
-  gibErfahrung(p, r.zeit);
-  let fp = art === "werkbank" ? FORSCHUNG_WERTE.fpWerkbank : art === "montage" ? FORSCHUNG_WERTE.fpMontage : 0;
+  if (p) gibErfahrung(p, r.zeit);
+  let fp = !p ? 0 : art === "werkbank" ? FORSCHUNG_WERTE.fpWerkbank : art === "montage" ? FORSCHUNG_WERTE.fpMontage : 0;
   if (r.fp) {                                         // Forschungsstation: zerlegt
     fp += r.fp;
     spiel.statistik.zerlegt++;
@@ -5450,8 +5763,10 @@ function schrittArbeiter(p, dt) {
   if (!s) {                                      // keine (oder abgerissene) Station
     if (hatItems(p) || p.auftrag) setzePersonZurueck(p);
     p.stationId = null;
+    gehInPausenecke(p, dt);                      // Phase 6: nicht im Weg herumstehen
     return;
   }
+  if (s.automatik) { gibArbeiterFrei(s, p); return; }   // Phase 6: die Station läuft jetzt ohne ihn
 
   switch (p.phase) {
     case "frei": {
@@ -5572,6 +5887,11 @@ function stationsStatus(s) {
   const r = rezeptVon(s);
   if (!r) return "rezeptFehlt";
   if (s.pausiert) return "pausiert";
+  if (s.automatik) {                              // Phase 6: läuft ohne Arbeiter
+    const voll = !!r.ausgabe && summe(s.bestand) >= kapazitaetVon(s);
+    if (s.autoRezept) return voll ? "ausgabeVoll" : "automatik";
+    return voll ? "ausgabeVoll" : "wartetAufBand";
+  }
   const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
   if (!p) return "keinArbeiter";
   // Phase 5b: Eine Station mit Import ins eigene Eingangsfach braucht kein Lager
@@ -5591,6 +5911,7 @@ let auftragsTimer = 0;      // bis zur nächsten Runde der Auftragsbörse
 function simSchritt(dt) {
   wirtschaftsSchritt(dt);                       // Phase 5: Kalender, Aufträge, Konkurrenz, Bankrott
   if (spiel.insolvent) return;
+  if (bandTopologieAlt) baueBandTopologie();    // Phase 6: Bänder, Anschlüsse und Automatik aktuell halten
   weiseArbeiterAutomatischZu();
   auftragsTimer -= dt;
   if (auftragsTimer <= 0) { auftragsTimer = PRODUKTION.auftragsIntervall; verteileAuftraege(); }
@@ -5598,6 +5919,8 @@ function simSchritt(dt) {
     if (p.rolle === "kurier") schrittKurier(p, dt);
     else schrittArbeiter(p, dt);
   }
+  for (const s of gebaeudeListe(istStation)) if (s.automatik) schrittStationAutomatik(s, dt);   // Phase 6
+  waechterSchritt(dt);                          // Phase 6: niemand bleibt stecken
   for (const s of gebaeudeListe(istStation)) s.status = stationsStatus(s);
   // "Überschuss zurückschicken" ist erledigt, sobald nichts mehr abzuholen ist
   for (const g of gebaeudeListe((x) => x.rueckgabe)) {
@@ -5610,6 +5933,8 @@ function simSchritt(dt) {
 function simuliere(simSekunden) {
   if (spiel.insolvent) return;                  // Phase 5: nach der Insolvenz steht alles still
   for (const p of mitarbeiter) bewegePerson(p, simSekunden, laufTempoVon(p));
+  // Phase 6: Items auf den Bändern fahren flüssig mit jedem Bild (in kleinen Schritten)
+  for (let rest = simSekunden; rest > 1e-6; rest -= 0.05) baenderSchritt(Math.min(0.05, rest));
   simRest += simSekunden;
   let schritte = 0;
   while (simRest >= PRODUKTION.simSchritt && schritte < 10) {
@@ -5637,16 +5962,17 @@ function schaltePauseUm() {
 // Was würde "Halle bereinigen" verschieben? (für das Bestätigungsfenster)
 function zaehleHalle() {
   let items = 0;
-  for (const g of spiel.gebaeude.values()) items += summe(g.bestand) + summe(g.eingang);
+  for (const g of spiel.gebaeude.values()) items += summe(g.bestand) + summe(g.eingang) + summe(g.autoRezept ? g.autoRezept.eingaben : {});
   for (const p of mitarbeiter) items += summe(p.traegt);
-  return { gebaeude: spiel.gebaeude.size, items };
+  for (const t of spiel.baender.values()) items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);   // Phase 6
+  return { gebaeude: spiel.gebaeude.size, items, baender: spiel.baender.size };
 }
 
 // "Halle bereinigen": baut ALLES ab (auch das Hauptlager). Maschinen und sämtliche Items
 // wandern ins Depot. Der alte Aufbau wird als Schnappschuss gemerkt.
 // Rückgabe: { gebaeude, items } (Anzahl) oder null, wenn die Halle schon leer ist
 function halleBereinigen() {
-  if (spiel.gebaeude.size === 0) return null;
+  if (spiel.gebaeude.size === 0 && spiel.baender.size === 0) return null;
   const liste = gebaeudeListe();
   const nummer = new Map(liste.map((g, i) => [g.id, i]));
   spiel.schnappschuss = {
@@ -5655,8 +5981,14 @@ function halleBereinigen() {
       verknuepft: g.verknuepft.map((id) => nummer.get(id)).filter((i) => i !== undefined),
       arbeiter: g.arbeiterId, modus: g.modus, regeln: JSON.parse(JSON.stringify(g.regeln)),
     })),
+    baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], haelt: null })),   // Phase 6
   };
   let items = 0;
+  // Phase 6: Bänder und Greifarme zuerst ins Depot (Items darauf ebenfalls)
+  for (const t of [...spiel.baender.values()]) {
+    items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);
+    entferneBandteil(t.id, { insDepot: true });
+  }
   // 1. Alle brechen ab; was sie tragen (auch Material in Arbeit) geht ins Depot
   for (const p of mitarbeiter) {
     items += summe(p.traegt);
@@ -5706,6 +6038,11 @@ function stelleAufbauWiederHer() {
     const p = e.arbeiter && mitarbeiter.find((m) => m.id === e.arbeiter);
     if (p && !p.stationId) weiseZu(p.id, neueIds[i]);
   });
+  // Phase 6: Bänder und Greifarme wieder hinlegen (aus dem Depot, sonst gekauft)
+  for (const e of schnappschuss.baender || []) {
+    const ergebnis = baueBandteil(e.typ, e.x, e.z, e.richtung, { daten: e, ohnePruefungDerPersonen: true });
+    if (!ergebnis.ok) uebersprungen++;
+  }
   spiel.schnappschuss = null;
   meldeStruktur();
   return { gebaut: neueIds.filter(Boolean).length, uebersprungen };
@@ -5731,13 +6068,21 @@ function spielstandDaten() {
     gebaeude: gebaeudeListe().map((g) => ({
       id: g.id, typ: g.typ, nummer: g.nummer, x: g.x, z: g.z, drehung: g.drehung,
       bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
-      modus: g.modus, regeln: g.regeln, eingang: g.eingang,   // Phase 5b
+      modus: g.modus, regeln: g.regeln,
+      // Phase 5b: Eingangsfach (Phase 6: plus Material, das eine Automatik-Station gerade verarbeitet)
+      eingang: g.autoRezept ? (() => { const e = { ...g.eingang }; bucheItems(e, g.autoRezept.eingaben); return e; })() : g.eingang,
     })),
+    // Phase 6: Hallenausbau, Bänder, Greifarme
+    halle: { stufe: spiel.halleStufe },
+    baender: [...spiel.baender.values()].map(bandteilDaten),
+    naechsteBandId: spiel.naechsteBandId,
+    autoZuweisung: spiel.autoZuweisung,
     naechsteId: spiel.naechsteId,
     depot: spiel.depot,
     mitarbeiter: mitarbeiter.map((p) => ({
       id: p.id, name: p.name, rolle: p.rolle, stufe: p.stufe, stationId: p.stationId,
       manuellFrei: !!p.manuellFrei, kachel: personKachel(p), ausruestung: p.ausruestung, ep: p.ep,
+      ohneAufgabe: !!p.ohneAufgabe,   // Phase 6
     })),
     naechstePersonId: spiel.naechstePersonId,
     produktNamen: spiel.produktNamen,
@@ -5774,7 +6119,8 @@ function leseSpielstand() {
     if (!text) return null;
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
-    return daten && (daten.version === PRODUKTION.spielstandVersion || daten.version === 1) && Array.isArray(daten.gebaeude) ? daten : null;
+    // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
+    return daten && [1, 2, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -5788,8 +6134,10 @@ function wendeSpielstandAn(d) {
   spiel.produktNamen = { ...(d.produktNamen || {}), ...spiel.produktNamen };
   spiel.statistik = { ...spiel.statistik, ...(d.statistik || {}) };
   ladeWirtschaft(d.wirtschaft || null);          // Phase 5 (fehlt bei version 1: Neustart der Wirtschaft)
-  spiel.depot = { gebaeude: { ...(d.depot?.gebaeude || {}) }, items: { ...(d.depot?.items || {}) } };
+  spiel.depot = { gebaeude: { ...(d.depot?.gebaeude || {}) }, items: { ...(d.depot?.items || {}) }, baender: { ...(d.depot?.baender || {}) } };
   spiel.schnappschuss = d.schnappschuss || null;
+  setzeHallenStufe(d.halle?.stufe || 0);         // Phase 6: zuerst die Hallengröße, dann das Gebaute
+  spiel.autoZuweisung = typeof d.autoZuweisung === "boolean" ? d.autoZuweisung : PERSONAL.autoZuweisung;
   let insDepot = 0;
   for (const e of d.gebaeude) {
     if (!gebaeudeTypNach.has(e.typ)) continue;
@@ -5808,13 +6156,26 @@ function wendeSpielstandAn(d) {
   if (insDepot) setTimeout(() => meldeEreignis("hinweis", { text: `${insDepot} Gebäude passten nicht mehr in die Garage und liegen jetzt kostenlos im Depot.` }), 800);
   // Verknüpfungen auf noch vorhandene Gebäude beschränken
   for (const g of spiel.gebaeude.values()) g.verknuepft = g.verknuepft.filter((id) => spiel.gebaeude.has(id));
+  // Phase 6: Bänder und Greifarme (was nicht mehr passt, kommt ins Depot)
+  spiel.naechsteBandId = d.naechsteBandId || 1;
+  for (const e of d.baender || []) {
+    if (!bandTypNach.has(e.typ) || !pruefeBandteil(e.typ, e.x, e.z, e.richtung, { laden: true }).passt) {
+      spiel.depot.baender[e.typ] = (spiel.depot.baender[e.typ] || 0) + 1;
+      for (const it of e.items || []) bucheItems(spiel.depot.items, { [it.item]: 1 });
+      if (e.haelt) bucheItems(spiel.depot.items, { [e.haelt]: 1 });
+      continue;
+    }
+    setzeBandteil(e.typ, e.x, e.z, e.richtung, e);
+  }
+  baueBandTopologie();                           // Anschlüsse und Automatik (noch ohne Mitarbeiter)
   for (const m of d.mitarbeiter || []) {
     const kachel = m.kachel && istBegehbar(m.kachel.x, m.kachel.z) ? m.kachel : undefined;
     const p = stelleEin(m.rolle, { id: m.id, name: m.name, stufe: m.stufe, ausruestung: m.ausruestung, ep: m.ep, kachel, kostenlos: true });
     if (!p) continue;
     p.manuellFrei = !!m.manuellFrei;
     const s = m.stationId && spiel.gebaeude.get(m.stationId);
-    if (s && istStation(s) && !s.arbeiterId) { p.stationId = s.id; s.arbeiterId = p.id; }
+    if (s && istStation(s) && !s.arbeiterId && !s.automatik) { p.stationId = s.id; s.arbeiterId = p.id; }
+    else if (s && s.automatik && p.rolle === "arbeiter") { p.ohneAufgabe = true; p.manuellFrei = true; }   // Phase 6
   }
   bucheInsLager(d.unterwegs || {});
 }
@@ -5836,6 +6197,7 @@ function starteSpiel() {
   const gespeichert = leseSpielstand();
   if (gespeichert) wendeSpielstandAn(gespeichert);
   else starteNeuesSpiel();
+  if (level.tiefe !== level.basisTiefe) zoomeAufGarage();   // Phase 6: ausgebaute Halle ganz zeigen
   spielstandAktiv = true;
   meldeStruktur();
   setInterval(speichereSpielstand, PRODUKTION.speicherIntervall * 1000);
@@ -6071,7 +6433,9 @@ function lohnSumme() {
 // Um 20:00 Uhr: Löhne und Miete abbuchen, Nachfrage erholt sich, Konkurrenz wächst.
 function tagesabschluss(tag) {
   bucheGeld(-lohnSumme(), "loehne", tag);
-  bucheGeld(-WIRTSCHAFT.miete, "miete", tag);
+  bucheGeld(-aktuelleMiete(), "miete", tag);       // Phase 6: Miete wächst mit der Halle
+  const laufkosten = bandLaufkosten();               // Phase 6: Bänder und Greifarme
+  if (laufkosten > 0) bucheGeld(-laufkosten, "laufkosten", tag);
   for (const id of [...PRODUKTKLASSEN.map((k) => k.id), "sonstige"]) {
     let f = spiel.nachfrage[id] ?? 1;
     f += (1 - f) * WIRTSCHAFT.erholungProTag;
@@ -6413,6 +6777,1054 @@ function ladeWirtschaft(w) {
 }
 
 /* ============================================================================
+   ABSCHNITT 11h: Fließbänder – Bauen, Segmente, Transport (Phase 6)  [Logik-Agent]
+   Reine Logik ohne 3D und ohne HTML. Ein Bandteil sieht so aus:
+     { id: "b4", typ: "band", x, z, richtung: 0..3,     // Richtung wie bei Gebäuden: 0 = +z, 1 = −x, 2 = −z, 3 = +x
+       items: [{ item: "metall", pos: 0.7, von: 0..3 }], // nur Spur-Teile; pos 0 = Eingang, 1 = Ausgang;
+                                                         // das vorderste Item steht vorn; "von" = Fahrtrichtung beim Hineinfahren
+       tempo: "normal", name: "Band 2",                  // Einstellungen des Segments (alle Teile eines Segments gleich)
+       modus: "reihum" | "sortieren", filter: { links, vorn, rechts },   // Splitter
+       vorrang: null | "links" | "hinten" | "rechts",                    // Zusammenführung
+       armFilter: null | Item, haelt: null | Item,                       // Greifarm
+       ablaufFilter: [Items],                                            // Ablauf an einem Gebäude: nur diese Items
+       bruecke: null | "b7",                                             // Teile einer Brücke gehören zusammen
+       ausDepot: true/false }                                            // kam kostenlos aus dem Depot
+   Nicht gespeichert, sondern aus dem Raster berechnet (baueBandTopologie):
+     ziel, vorgaenger, kurve, segment, ausgaenge (Splitter), ablaufVon (Gebäude-ID)
+   Ereignis: baenderGeaendert (Bau, Abriss, Umbau – die 3D-Ansicht baut neu)
+   ============================================================================ */
+const bandTypNach = new Map(BAND_TEILE.map((t) => [t.typ, t]));
+// Die vier Richtungen (Index = Richtung). Gleiche Reihenfolge wie die Drehung der Gebäude.
+const RICHTUNGEN = [{ x: 0, z: 1 }, { x: -1, z: 0 }, { x: 0, z: -1 }, { x: 1, z: 0 }];
+const richtungVonVektor = (dx, dz) => RICHTUNGEN.findIndex((r) => r.x === dx && r.z === dz);
+// Seiten eines Teils relativ zu seiner Richtung (in Vierteldrehungen)
+const SEITEN_DREHUNG = { vorn: 0, rechts: 1, hinten: 2, links: 3 };
+const SEITEN_NAMEN = { vorn: "vorn", rechts: "rechts", hinten: "hinten", links: "links" };
+
+function bandTyp(t) { return bandTypNach.get(t.typ); }
+function istSpur(t) { return !!bandTyp(t).spur; }
+function absRichtung(t, seite) { return (t.richtung + SEITEN_DREHUNG[seite]) % 4; }
+function nachbarKachel(t, richtung) { const r = RICHTUNGEN[richtung]; return { x: t.x + r.x, z: t.z + r.z }; }
+function hinterKachel(t) { return nachbarKachel(t, (t.richtung + 2) % 4); }
+function vorKachel(t) { return nachbarKachel(t, t.richtung); }
+// Aus welcher Seite kommt ein Item, das in Fahrtrichtung "richtung" in das Teil fährt?
+function seiteVonFahrt(t, richtung) {
+  return ["hinten", "links", "vorn", "rechts"][(richtung - t.richtung + 4) % 4];
+}
+// Gebäude, das auf einer Kachel steht (oder null)
+function gebaeudeAufKachel(k) {
+  const kachel = k && holeKachel(k.x, k.z);
+  return kachel && kachel.objekt ? spiel.gebaeude.get(kachel.objekt) || null : null;
+}
+// Ist hier der Zugang (die Kachel vor einem Gebäude, auf der Personen stehen)?
+function istZugangsKachel(x, z) {
+  for (const g of spiel.gebaeude.values()) if (g.zugang.x === x && g.zugang.z === z) return true;
+  return false;
+}
+
+// Bandteil auf einer Kachel und Ebene (0 = Boden, 1 = Brücke). Rampen gehören zu beiden Ebenen.
+function bandteilAn(x, z, ebene) {
+  const k = holeKachel(x, z);
+  if (!k) return null;
+  if (ebene === 1) {
+    if (k.hochband) return spiel.baender.get(k.hochband) || null;
+    const b = k.band && spiel.baender.get(k.band);
+    return b && (b.typ === "rampeHoch" || b.typ === "rampeRunter") ? b : null;
+  }
+  return k.band ? spiel.baender.get(k.band) || null : null;
+}
+
+/* --- Verbindungen zwischen den Teilen --- */
+
+// Nimmt "ziel" ein Item an, das in Fahrtrichtung "richtung" auf Ebene "ebene" hineinfährt?
+// Bänder und Zusammenführungen nehmen von hinten und von der Seite, alles andere nur von hinten.
+function nimmtVonSeite(ziel, richtung, ebene) {
+  const typ = bandTyp(ziel);
+  if (!typ.spur && ziel.typ !== "splitter" && ziel.typ !== "zusammen") return false;   // Greifarm
+  if (typ.ebeneEin !== ebene) return false;
+  const seite = seiteVonFahrt(ziel, richtung);
+  if (seite === "vorn") return false;                       // frontal gegeneinander: nein
+  if (ziel.typ === "band" || ziel.typ === "zusammen") return true;
+  return seite === "hinten";
+}
+// Wohin gibt ein Teil (in eine Richtung) ab? { art: "band", teil } | { art: "gebaeude", g } | null
+function zielVon(t, richtung = t.richtung) {
+  const k = nachbarKachel(t, richtung);
+  const ebene = bandTyp(t).ebeneAus;
+  const b = bandteilAn(k.x, k.z, ebene);
+  if (b) return nimmtVonSeite(b, richtung, ebene) ? { art: "band", teil: b } : null;
+  if (ebene === 0) {
+    const g = gebaeudeAufKachel(k);
+    if (g) return { art: "gebaeude", g };
+  }
+  return null;
+}
+
+let bandTopologieAlt = true;     // muss die Topologie neu berechnet werden?
+let bandReihenfolge = [];        // alle Teile, die "vorderen" zuerst (so rückt ein Stau sauber nach)
+let bandAblaeufe = [];           // Spur-Teile, auf die ein Gebäude Items legt
+let bandSegmente = [];           // [{ id, teile: [vom Anfang bis zum Ende] }]
+function markiereBaender() {
+  bandTopologieAlt = true;
+  spiel.bandVersion++;
+  spiel.version++;
+  meldeEreignis("baenderGeaendert", {});
+}
+// Gebäude kommen und gehen: Anschlüsse neu berechnen
+for (const art of ["gebaeudeGebaut", "gebaeudeEntfernt", "gebaeudeVerschoben"]) {
+  spielEreignisse.addEventListener(art, () => { bandTopologieAlt = true; spiel.bandVersion++; });
+}
+
+// Berechnet aus dem Raster: Ziele, Vorgänger, Kurven, Segmente, Zuläufe und Abläufe der Gebäude,
+// die Reihenfolge für den Transport und welche Stationen automatisch laufen.
+function baueBandTopologie() {
+  bandTopologieAlt = false;
+  const teile = [...spiel.baender.values()];
+  for (const g of spiel.gebaeude.values()) { g.bandZulauf = 0; g.bandAblauf = 0; g.bandAnschluesse = []; }
+  for (const t of teile) {
+    t.ziel = null; t.vorgaenger = []; t.kette = null; t.kurve = null; t.segment = null; t.ablaufVon = null;
+    t.ausgaenge = null; t.stau = t.stau || 0;
+    if (t.items === undefined && (istSpur(t) || t.typ === "splitter" || t.typ === "zusammen")) t.items = [];
+  }
+  // 1. Ziele und Vorgänger
+  for (const t of teile) {
+    if (t.typ === "greifarm") continue;
+    if (t.typ === "splitter") {
+      t.ausgaenge = ["links", "vorn", "rechts"].map((seite) => {
+        const richtung = absRichtung(t, seite);
+        return { seite, richtung, ziel: zielVon(t, richtung) };
+      }).filter((a) => a.ziel);
+      for (const a of t.ausgaenge) if (a.ziel.art === "band") a.ziel.teil.vorgaenger.push({ teil: t, richtung: a.richtung });
+      t.naechster = Math.min(t.naechster || 0, Math.max(0, t.ausgaenge.length - 1));
+    } else {
+      t.ziel = zielVon(t);
+      if (t.ziel && t.ziel.art === "band") t.ziel.teil.vorgaenger.push({ teil: t, richtung: t.richtung });
+    }
+  }
+  // 2. Zuläufe in Gebäude, Abläufe aus Gebäuden, Greifarme
+  const zulauf = (g, t) => { g.bandZulauf++; g.bandAnschluesse.push({ art: "zulauf", id: t.id }); };
+  const ablauf = (g, t) => { g.bandAblauf++; g.bandAnschluesse.push({ art: "ablauf", id: t.id }); };
+  bandAblaeufe = [];
+  for (const t of teile) {
+    if (t.typ === "greifarm") {
+      const quelle = gebaeudeAufKachel(hinterKachel(t)), ziel = gebaeudeAufKachel(vorKachel(t));
+      if (quelle) ablauf(quelle, t);
+      if (ziel) zulauf(ziel, t);
+      continue;
+    }
+    if (t.ziel && t.ziel.art === "gebaeude") zulauf(t.ziel.g, t);
+    if (t.typ === "splitter") for (const a of t.ausgaenge) if (a.ziel.art === "gebaeude") zulauf(a.ziel.g, t);
+    // Ablauf: ein Spur-Teil am Boden, das vom Gebäude weg zeigt und hinten keinen Band-Zulauf hat
+    if (istSpur(t) && bandTyp(t).ebeneEin === 0 && !t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten")) {
+      const g = gebaeudeAufKachel(hinterKachel(t));
+      if (g) { t.ablaufVon = g.id; ablauf(g, t); bandAblaeufe.push(t); }
+    }
+  }
+  // 3. Kurven: ein Band ohne Zulauf von hinten, aber mit genau einem von der Seite
+  for (const t of teile) {
+    if (t.typ !== "band") continue;
+    const hinten = t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten") || !!t.ablaufVon;
+    const seitlich = t.vorgaenger.filter((v) => seiteVonFahrt(t, v.richtung) !== "hinten");
+    if (!hinten && seitlich.length === 1) t.kurve = seitlich[0].richtung;
+  }
+  // 4. Segmente: Ketten aus Spur-Teilen, die genau ineinander fördern (Splitter, Zusammenführungen,
+  //    Einfädler und Gebäude beenden ein Segment)
+  const spuren = teile.filter(istSpur);
+  const hatKettenVorgaenger = new Set();
+  for (const t of spuren) {
+    const vor = t.vorgaenger.filter((v) => istSpur(v.teil));
+    let haupt = vor.find((v) => seiteVonFahrt(t, v.richtung) === "hinten");
+    if (!haupt && t.kurve !== null) haupt = vor.find((v) => v.richtung === t.kurve);
+    if (haupt) { haupt.teil.kette = t; hatKettenVorgaenger.add(t); }
+  }
+  bandSegmente = [];
+  const besucht = new Set();
+  const neuesSegment = (start) => {
+    const seg = { id: start.id, teile: [] };
+    for (let t = start; t && !besucht.has(t); t = t.kette) { besucht.add(t); seg.teile.push(t); t.segment = seg; }
+    bandSegmente.push(seg);
+  };
+  for (const t of spuren) if (!hatKettenVorgaenger.has(t)) neuesSegment(t);
+  for (const t of spuren) if (!besucht.has(t)) neuesSegment(t);   // Ringe ohne Anfang
+  // Einstellungen: Ein Segment übernimmt, was die meisten seiner Teile schon haben (verbunden:
+  // das längere Stück gewinnt; geteilt: beide Hälften behalten ihre Werte; neue Teile stimmen nicht mit).
+  const namenVergeben = new Set(spuren.map((t) => t.name).filter(Boolean));
+  for (const seg of bandSegmente) {
+    const mehrheit = (feld) => {
+      const zaehler = new Map();
+      for (const t of seg.teile) if (t[feld]) zaehler.set(t[feld], (zaehler.get(t[feld]) || 0) + 1);
+      let bester = null, anzahl = 0;
+      for (const [wert, n] of zaehler) if (n > anzahl) { bester = wert; anzahl = n; }
+      return bester;
+    };
+    const tempo = mehrheit("tempo") || STANDARD_BAND_TEMPO;
+    let name = mehrheit("name");
+    if (!name) {
+      let n = 1;
+      while (namenVergeben.has(`Band ${n}`)) n++;
+      name = `Band ${n}`;
+      namenVergeben.add(name);
+    }
+    for (const t of seg.teile) { t.tempo = tempo; t.name = name; }
+  }
+  // 5. Reihenfolge: Teile, die weiter vorn liegen, zuerst (umgekehrte topologische Ordnung)
+  const nachfolger = (t) => t.typ === "splitter" ? t.ausgaenge.filter((a) => a.ziel.art === "band").map((a) => a.ziel.teil)
+    : t.ziel && t.ziel.art === "band" ? [t.ziel.teil] : [];
+  const eingang = new Map(teile.map((t) => [t, 0]));
+  for (const t of teile) for (const n of nachfolger(t)) eingang.set(n, eingang.get(n) + 1);
+  const ordnung = [], schlange = teile.filter((t) => eingang.get(t) === 0);
+  while (schlange.length) {
+    const t = schlange.shift();
+    ordnung.push(t);
+    for (const n of nachfolger(t)) { eingang.set(n, eingang.get(n) - 1); if (eingang.get(n) === 0) schlange.push(n); }
+  }
+  const drin = new Set(ordnung);
+  for (const t of teile) if (!drin.has(t)) ordnung.push(t);       // Ringe: irgendeine Reihenfolge
+  bandReihenfolge = ordnung.reverse();
+  // 6. Welche Stationen laufen jetzt automatisch?
+  aktualisiereAutomatik();
+}
+
+/* --- Segmente --- */
+function segmentVon(t) {
+  if (bandTopologieAlt) baueBandTopologie();
+  return t && t.segment ? t.segment : null;
+}
+function tempoStufe(id) { return BAND_TEMPO.find((st) => st.id === id) || BAND_TEMPO.find((st) => st.id === STANDARD_BAND_TEMPO); }
+function tempoFreigeschaltet(id) { const st = tempoStufe(id); return !st.forschung || istErforscht(st.forschung); }
+// Geschwindigkeit eines Teils in Kacheln pro Sekunde
+function bandTempo(t) {
+  if (t.typ === "splitter" || t.typ === "zusammen") return BAENDER.knotenTempo;
+  return tempoStufe(t.tempo).tempo;
+}
+// Stellt das Tempo eines ganzen Segments ein. Rückgabe: { ok } oder { ok: false, grund }
+function setzeSegmentTempo(teilId, tempoId) {
+  const t = spiel.baender.get(teilId);
+  const seg = segmentVon(t);
+  const st = BAND_TEMPO.find((x) => x.id === tempoId);
+  if (!seg || !st) return { ok: false, grund: "Kein Segment ausgewählt." };
+  if (!tempoFreigeschaltet(tempoId)) return { ok: false, grund: `${st.name} ist noch nicht erforscht (Techtree, Taste T).` };
+  for (const teil of seg.teile) teil.tempo = tempoId;
+  spiel.bandVersion++;
+  meldeStruktur();
+  return { ok: true };
+}
+function benenneSegmentUm(teilId, name) {
+  const seg = segmentVon(spiel.baender.get(teilId));
+  const neu = String(name || "").trim().slice(0, 30);
+  if (!seg || !neu) return false;
+  for (const t of seg.teile) t.name = neu;
+  meldeStruktur();
+  return true;
+}
+// Kehrt die Fahrtrichtung eines ganzen Segments um (Brücken: Auffahrt und Abfahrt tauschen).
+function dreheSegmentUm(teilId) {
+  const seg = segmentVon(spiel.baender.get(teilId));
+  if (!seg) return false;
+  const teile = seg.teile;
+  const neu = teile.map((t, i) => {
+    if (i > 0) return richtungVonVektor(teile[i - 1].x - t.x, teile[i - 1].z - t.z);
+    return ((t.kurve !== null && t.kurve !== undefined ? t.kurve : t.richtung) + 2) % 4;
+  });
+  if (neu.some((r) => r < 0)) return false;
+  teile.forEach((t, i) => {
+    t.richtung = neu[i];
+    if (t.typ === "rampeHoch") t.typ = "rampeRunter";
+    else if (t.typ === "rampeRunter") t.typ = "rampeHoch";
+    t.items = t.items.map((it) => ({ ...it, pos: 1 - it.pos, von: neu[i] })).reverse();
+  });
+  markiereBaender();
+  return true;
+}
+// Laufkosten aller Bänder und Greifarme pro Tag (Phase 6, beim Tagesabschluss)
+function bandLaufkosten() {
+  let kosten = 0;
+  for (const t of spiel.baender.values()) {
+    kosten += bandTyp(t).spur ? tempoStufe(t.tempo).tagesKosten : bandTyp(t).tagesKosten || 0;
+  }
+  return Math.round(kosten * forschungsWirkung("bandKosten"));
+}
+// Zahlen für das Segment-Fenster
+function segmentInfo(seg) {
+  const anfang = seg.teile[0], ende = seg.teile[seg.teile.length - 1];
+  let items = 0;
+  for (const t of seg.teile) items += t.items.length;
+  const name = (g) => gebaeudeName(g);
+  let von = "offener Anfang";
+  if (anfang.ablaufVon && spiel.gebaeude.get(anfang.ablaufVon)) von = `${name(spiel.gebaeude.get(anfang.ablaufVon))} (Ablauf)`;
+  else if (anfang.vorgaenger.length) von = bandTyp(anfang.vorgaenger[0].teil).name;
+  let nach = "offenes Ende";
+  if (ende.ziel && ende.ziel.art === "gebaeude") nach = `${name(ende.ziel.g)} (Zulauf)`;
+  else if (ende.ziel && ende.ziel.art === "band") nach = bandTyp(ende.ziel.teil).name;
+  else {
+    const arm = bandteilAn(vorKachel(ende).x, vorKachel(ende).z, 0);
+    if (arm && arm.typ === "greifarm") nach = "Greifarm";
+  }
+  const stau = ende.stau >= BAENDER.stauWarnung;
+  return {
+    laenge: seg.teile.length, items, von, nach, stau, stauSeit: ende.stau, stauGrund: stau ? stauGrund(ende) : "",
+    tempo: tempoStufe(anfang.tempo), name: anfang.name,
+    kostenTag: Math.round(seg.teile.length * tempoStufe(anfang.tempo).tagesKosten * forschungsWirkung("bandKosten")),
+  };
+}
+function stauGrund(t) {
+  const vorn = t.items && t.items[0];
+  if (!vorn) return "";
+  const item = itemInfo(vorn.item).name;
+  if (t.ziel && t.ziel.art === "gebaeude") return `${gebaeudeName(t.ziel.g)} nimmt ${item} gerade nicht an.`;
+  if (t.ziel && t.ziel.art === "band") return `Das nächste Band ist voll.`;
+  return `Das Band endet hier (${item} wartet).`;
+}
+
+/* --- Transport --- */
+
+// Ist am Anfang (bzw. an der Stelle "pos") eines Spur-Teils Platz für ein neues Item?
+function hatPlatz(t, pos = 0) {
+  return t.items.every((it) => Math.abs(it.pos - pos) >= BAENDER.mindestAbstand - 1e-9);
+}
+// Legt ein Item auf ein Teil (die Liste bleibt nach Position sortiert, vorderstes zuerst)
+function legeAufBand(t, item, pos, von) {
+  const it = { item, pos, von };
+  const i = t.items.findIndex((x) => x.pos < pos);
+  if (i < 0) t.items.push(it); else t.items.splice(i, 0, it);
+}
+// Items eines Teils vorrücken lassen (nie näher als den Mindestabstand an das vordere heran)
+function bewegeItems(t, weg) {
+  let grenze = 1;
+  for (const it of t.items) {
+    it.pos = Math.max(it.pos, Math.min(it.pos + weg, grenze));
+    grenze = it.pos - BAENDER.mindestAbstand;
+  }
+}
+// Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung zu fahren?
+function wartetVor(v) {
+  const vorn = v.teil.items && v.teil.items[0];
+  return !!vorn && vorn.pos >= 1 - 1e-6;
+}
+// Zusammenführung: reihum von jedem Eingang, an dem etwas wartet (oder der Vorrang-Eingang zuerst)
+function zusammenLaesstDurch(z, richtung) {
+  const seite = seiteVonFahrt(z, richtung);
+  const andereWarten = z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) !== seite && wartetVor(v));
+  if (z.vorrang && seite !== z.vorrang && z.vorgaenger.some((v) => seiteVonFahrt(z, v.richtung) === z.vorrang && wartetVor(v))) return false;
+  if (z.letzteSeite === seite && andereWarten && seite !== z.vorrang) return false;
+  return true;
+}
+function nimmAufBand(ziel, item, richtung) {
+  if (!hatPlatz(ziel)) return false;
+  if (ziel.typ === "zusammen") {
+    if (!zusammenLaesstDurch(ziel, richtung)) return false;
+    ziel.letzteSeite = seiteVonFahrt(ziel, richtung);
+  }
+  legeAufBand(ziel, item, 0, richtung);
+  return true;
+}
+// Splitter: reihum an den nächsten freien Ausgang (Modus "sortieren": nach Filter)
+function splitterFilterPasst(t, seite, item) {
+  const filter = t.filter || {};
+  if (filter[seite]) return filter[seite] === item;
+  // Ausgang ohne Filter = "alles andere"
+  return !t.ausgaenge.some((a) => filter[a.seite] === item);
+}
+function splitterGibWeiter(t, it) {
+  const n = t.ausgaenge.length;
+  for (let i = 0; i < n; i++) {
+    const a = t.ausgaenge[(t.naechster + i) % n];
+    if (t.modus === "sortieren" && !splitterFilterPasst(t, a.seite, it.item)) continue;
+    const ok = a.ziel.art === "band" ? nimmAufBand(a.ziel.teil, it.item, a.richtung) : gebaeudeNimmtVomBand(a.ziel.g, it.item);
+    if (ok) { t.naechster = (t.naechster + i + 1) % n; return true; }
+  }
+  return false;
+}
+function gibWeiter(t, it) {
+  if (t.typ === "splitter") return splitterGibWeiter(t, it);
+  const z = t.ziel;
+  if (!z) return false;
+  if (z.art === "band") return nimmAufBand(z.teil, it.item, t.richtung);
+  return gebaeudeNimmtVomBand(z.g, it.item);
+}
+
+// Was nimmt ein Gebäude vom Band (oder Greifarm) an?
+//   Hauptlager: alles, solange Platz ist
+//   Zwischenlager: Items mit ⇣ Import bis zum Soll, Erzeugnisse wie bei Arbeitern (Export/Puffer)
+//   Station: Material des Rezepts ins Eingangsfach, bis zum Import-Pegel
+function bandSoll(s, item, r) {
+  const m = s.regeln[item];
+  const n = r.eingaben[item];
+  const soll = m && m.soll !== undefined ? Math.max(n, m.soll) : n * PRODUKTION.vorratDurchgaenge;
+  return Math.max(n, Math.min(fachGroesse(s, "eingang"), soll));
+}
+function gebaeudeNimmtAn(g, item) {
+  const art = typVon(g).art;
+  if (art === "hauptlager") return summe(g.bestand) < kapazitaetVon(g);
+  if (istZwischenlager(g)) {
+    if (summe(g.bestand) >= kapazitaetVon(g)) return false;
+    const r = regelVon(g, item);
+    if (r.imp && (g.bestand[item] || 0) < Math.max(1, sollbestand(g)[item] || 0)) return true;
+    return nimmtErzeugnisAn(g, item);
+  }
+  if (istStation(g)) {
+    const r = rezeptVon(g);
+    if (!r || g.pausiert || !(item in r.eingaben) || !fachGroesse(g, "eingang")) return false;
+    if (summe(g.eingang) >= fachGroesse(g, "eingang")) return false;
+    return (g.eingang[item] || 0) < bandSoll(g, item, r);
+  }
+  return false;
+}
+function gebaeudeNimmtVomBand(g, item) {
+  if (!gebaeudeNimmtAn(g, item)) return false;
+  if (istStation(g)) {
+    aendereFach(g, "eingang", item, 1);
+    g.bandVersorgt = g.bandVersorgt || {};
+    g.bandVersorgt[item] = spiel.zeit;           // Kuriere bringen dieses Material jetzt nicht mehr
+  } else {
+    aendereBestand(g, item, 1);
+    if (istZwischenlager(g)) g.zuletztBeliefert = spiel.zeit;
+  }
+  return true;
+}
+// Bringt gerade ein Band oder Greifarm dieses Material? (dann liefern Kuriere es nicht)
+function vomBandVersorgt(s, item) {
+  return !!s.bandZulauf && !!s.bandVersorgt && spiel.zeit - (s.bandVersorgt[item] ?? -Infinity) < BAENDER.bandVersorgtSek;
+}
+// Was gibt ein Gebäude an einen Ablauf ab? Rückgabe: Item (schon entnommen) oder null.
+//   Station: Erzeugnisse aus dem Ausgabefach; Zwischenlager: Export-Ware (wie für Kuriere);
+//   Hauptlager: nur die Items im Ausgabe-Filter, reihum.
+function gebaeudeGibAb(g, t) {
+  const filter = t.ablaufFilter && t.ablaufFilter.length ? t.ablaufFilter : null;
+  const art = typVon(g).art;
+  let item = null;
+  if (istStation(g)) {
+    item = Object.keys(g.bestand).find((i) => g.bestand[i] > 0 && (!filter || filter.includes(i))) || null;
+  } else if (istZwischenlager(g)) {
+    const ab = abholbar(g, reservierungen());
+    item = Object.keys(ab).find((i) => !filter || filter.includes(i)) || null;
+  } else if (art === "hauptlager" && filter) {
+    const res = reservierungen();
+    for (let i = 0; i < filter.length; i++) {
+      const kandidat = filter[((t.ablaufIndex || 0) + i) % filter.length];
+      if (verfuegbar(g, kandidat, res) > 0) { item = kandidat; t.ablaufIndex = ((t.ablaufIndex || 0) + i + 1) % filter.length; break; }
+    }
+  }
+  if (item) aendereBestand(g, item, -1);
+  return item;
+}
+
+// Ein Schritt für alle Bänder (wird mit jedem Bild in kleinen Schritten aufgerufen).
+function baenderSchritt(dt) {
+  if (!spiel.baender.size) return;
+  if (bandTopologieAlt) baueBandTopologie();
+  for (const t of bandReihenfolge) {
+    if (t.typ === "greifarm") { greifarmSchritt(t, dt); continue; }
+    const tempo = bandTempo(t);
+    if (tempo <= 0) continue;                     // Segment pausiert
+    bewegeItems(t, tempo * dt);
+    const vorn = t.items[0];
+    if (vorn && vorn.pos >= 1 - 1e-6) {
+      if (gibWeiter(t, vorn)) { t.items.shift(); t.stau = 0; }
+      else t.stau += dt;
+    } else {
+      t.stau = 0;
+    }
+  }
+  // Abläufe: Gebäude legen Items auf den Anfang "ihres" Bands, sobald dort Platz ist
+  for (const t of bandAblaeufe) {
+    const g = spiel.gebaeude.get(t.ablaufVon);
+    if (!g || bandTempo(t) <= 0) continue;
+    if (!hatPlatz(t)) continue;
+    g.ablaufFrei = spiel.zeit;                    // das Band nimmt ab (Kuriere müssen nicht helfen)
+    const item = gebaeudeGibAb(g, t);
+    if (item) legeAufBand(t, item, 0, t.richtung);
+  }
+}
+
+/* --- Greifarm --- */
+
+// Wohin legt der Arm ab? { art: "band", teil } | { art: "gebaeude", g } | null
+function armZiel(a) {
+  const k = vorKachel(a);
+  const b = bandteilAn(k.x, k.z, 0);
+  if (b) return istSpur(b) && bandTyp(b).ebeneEin === 0 ? { art: "band", teil: b } : null;
+  const g = gebaeudeAufKachel(k);
+  return g ? { art: "gebaeude", g } : null;
+}
+function armQuelle(a) {
+  const k = hinterKachel(a);
+  const b = bandteilAn(k.x, k.z, 0);
+  if (b) return istSpur(b) && bandTyp(b).ebeneAus === 0 ? { art: "band", teil: b } : null;
+  const g = gebaeudeAufKachel(k);
+  return g ? { art: "gebaeude", g } : null;
+}
+function armZielNimmt(ziel, item) {
+  if (!ziel) return false;
+  if (ziel.art === "band") return hatPlatz(ziel.teil, 0.5);
+  return gebaeudeNimmtAn(ziel.g, item);
+}
+// Welche Items darf der Arm aus einem Gebäude nehmen? (wie Kuriere bzw. Arbeiter)
+function armKandidaten(g) {
+  const res = reservierungen();
+  if (istStation(g)) return Object.keys(g.bestand).filter((i) => g.bestand[i] > 0);
+  if (istZwischenlager(g)) {
+    const ab = abholbar(g, res);
+    return Object.keys(g.bestand).filter((i) => (ab[i] || 0) > 0 || (darfArbeiterEntnehmen(g, i) && verfuegbar(g, i, res) > 0));
+  }
+  if (typVon(g).art === "hauptlager") return Object.keys(g.bestand).filter((i) => verfuegbar(g, i, res) > 0);
+  return [];
+}
+// Greift ein passendes Item. Rückgabe: Item oder null
+function armGreife(a) {
+  const ziel = armZiel(a), quelle = armQuelle(a);
+  if (!ziel || !quelle) return null;
+  const passt = (item) => (!a.armFilter || a.armFilter === item) && armZielNimmt(ziel, item);
+  if (quelle.art === "band") {
+    const t = quelle.teil;
+    const it = t.items[0];
+    if (it && it.pos >= 0.5 && passt(it.item)) { t.items.shift(); return it.item; }
+    return null;
+  }
+  const g = quelle.g;
+  // Vom Hauptlager auf ein Band nur mit Filter (sonst würde der Arm das ganze Lager auf das Band legen)
+  if (typVon(g).art === "hauptlager" && ziel.art === "band" && !a.armFilter) return null;
+  for (const item of armKandidaten(g)) {
+    if (!passt(item)) continue;
+    aendereBestand(g, item, -1);
+    return item;
+  }
+  return null;
+}
+function armLegeAb(a, item) {
+  const ziel = armZiel(a);
+  if (!ziel) return false;
+  if (ziel.art === "band") {
+    if (!hatPlatz(ziel.teil, 0.5)) return false;
+    legeAufBand(ziel.teil, item, 0.5, ziel.teil.richtung);
+    return true;
+  }
+  return gebaeudeNimmtVomBand(ziel.g, item);
+}
+// Ablauf: greifen → zum Ziel schwenken → ablegen → leer zurückschwenken.
+// a.winkel (0 = hinten, π = vorn) liest die 3D-Darstellung.
+function greifarmSchritt(a, dt) {
+  const zyklus = BAENDER.greifZyklus * forschungsWirkung("greifZeit");
+  if (a.haelt) {
+    a.timer = Math.min(zyklus, (a.timer || 0) + dt);
+    a.winkel = Math.PI * a.timer / zyklus;
+    if (a.timer < zyklus) return;
+    if (armLegeAb(a, a.haelt)) { a.haelt = null; a.timer = 0; a.zurueck = zyklus * 0.5; a.wartet = 0; }
+    else a.wartet = (a.wartet || 0) + dt;
+    return;
+  }
+  if (a.zurueck > 0) {
+    a.zurueck = Math.max(0, a.zurueck - dt);
+    a.winkel = Math.PI * a.zurueck / (zyklus * 0.5);
+    return;
+  }
+  a.winkel = 0;
+  const item = armGreife(a);
+  if (item) { a.haelt = item; a.timer = 0; a.wartet = 0; }
+}
+
+/* --- Bauen und Abreißen --- */
+
+// Bleiben alle Zugänge und Personen erreichbar, wenn diese Kacheln gesperrt werden?
+function bleibtErreichbarMit(gesperrt) {
+  const B = level.breite, T = level.tiefe;
+  const frei = new Uint8Array(B * T);
+  for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
+  for (const c of gesperrt) frei[c.x * T + c.z] = 0;
+  const ziele = gebaeudeListe().map((g) => g.zugang).filter((k) => istImRaster(k.x, k.z));
+  for (const p of allePersonen()) {
+    const k = personKachel(p);
+    if (istBegehbar(k.x, k.z)) ziele.push(k);
+  }
+  const start = ziele.find((k) => frei[k.x * T + k.z]);
+  if (!start) return !ziele.length;
+  const erreicht = new Uint8Array(B * T);
+  const stapel = [start.x * T + start.z];
+  erreicht[stapel[0]] = 1;
+  while (stapel.length) {
+    const nr = stapel.pop();
+    const x = Math.floor(nr / T), z = nr % T;
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, nz = z + dz;
+      if (nx < 0 || nz < 0 || nx >= B || nz >= T) continue;
+      const nNr = nx * T + nz;
+      if (frei[nNr] && !erreicht[nNr]) { erreicht[nNr] = 1; stapel.push(nNr); }
+    }
+  }
+  return ziele.every((k) => erreicht[k.x * T + k.z]);
+}
+
+// Prüft, ob ein Bandteil auf eine Kachel passt. Rückgabe: { passt, gruende, ersetzt (vorhandenes Band) }
+//   ersetzen: ein vorhandenes Band/Übergang darf umgelegt (neu ausgerichtet) werden
+//   laden: beim Laden des Spielstands (Personen zählen nicht, keine Erreichbarkeits-Prüfung)
+function pruefeBandteil(typ, x, z, richtung, { ersetzen = false, laden = false, gesperrt = [] } = {}) {
+  const info = bandTypNach.get(typ);
+  const gruende = [];
+  const k = holeKachel(x, z);
+  let ersetzt = null;
+  if (!info || info.nurWerkzeug) gruende.push("Unbekanntes Bandteil.");
+  else if (!k) gruende.push("Außerhalb der Halle.");
+  else if (k.objekt) gruende.push("Hier steht ein Gebäude.");
+  else if (info.hoch) {
+    if (k.hochband) gruende.push("Hier ist schon eine Brücke.");
+    else if (k.band && ["rampeHoch", "rampeRunter"].includes(spiel.baender.get(k.band)?.typ)) gruende.push("Hier liegt eine Rampe.");
+  } else {
+    const vorhanden = k.band ? spiel.baender.get(k.band) : null;
+    if (vorhanden) {
+      const umlegbar = ersetzen && ["band", "uebergang"].includes(vorhanden.typ) && vorhanden.typ === typ;
+      if (umlegbar) ersetzt = vorhanden; else gruende.push("Hier liegt schon ein Bandteil.");
+    }
+    if (!laden && istZugangsKachel(x, z)) gruende.push("Hier stehen Mitarbeiter, um ein Gebäude zu bedienen (Zugang).");
+    if ((typ === "rampeHoch" || typ === "rampeRunter") && k.hochband) gruende.push("Über dieser Kachel verläuft eine Brücke.");
+    if (!info.begehbar && !laden) {
+      if (allePersonen().some((p) => personBeruehrtKachel(p, { x, z }))) gruende.push("Hier steht gerade jemand.");
+      else if (!gruende.length && !bleibtErreichbarMit([...gesperrt, { x, z }])) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
+    }
+  }
+  if (richtung < 0 || richtung > 3) gruende.push("Ungültige Richtung.");
+  return { passt: gruende.length === 0, gruende: [...new Set(gruende)], ersetzt };
+}
+
+// Was kostet ein Bandteil gerade? (aus dem Depot: nichts)
+function bandteilPreis(typ) {
+  return (spiel.depot.baender[typ] || 0) > 0 ? 0 : bandTypNach.get(typ).preis;
+}
+
+// Legt ein Bandteil ohne Prüfung hin (auch beim Laden). "daten": gespeicherte Felder.
+function setzeBandteil(typ, x, z, richtung, daten = {}) {
+  const info = bandTypNach.get(typ);
+  const t = {
+    id: daten.id || "b" + spiel.naechsteBandId++,
+    typ, x, z, richtung,
+    items: info.spur || typ === "splitter" || typ === "zusammen"
+      ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung })) : undefined,
+    tempo: daten.tempo || null,
+    name: daten.name || null,
+    modus: daten.modus === "sortieren" ? "sortieren" : "reihum",
+    filter: { ...(daten.filter || {}) },
+    vorrang: daten.vorrang || null,
+    armFilter: daten.armFilter || null,
+    haelt: daten.haelt || null,
+    ablaufFilter: Array.isArray(daten.ablaufFilter) ? [...daten.ablaufFilter] : [],
+    bruecke: daten.bruecke || null,
+    ausDepot: !!daten.ausDepot,
+    stau: 0, timer: 0, zurueck: 0, winkel: 0, naechster: 0,
+  };
+  if (t.items) t.items.sort((a, b) => b.pos - a.pos);
+  // Gespeicherte IDs: Zähler weiterschieben, damit keine doppelt vergeben wird
+  const nummer = Number(String(t.id).slice(1));
+  if (nummer >= spiel.naechsteBandId) spiel.naechsteBandId = nummer + 1;
+  spiel.baender.set(t.id, t);
+  const k = rasterDaten[x][z];
+  if (info.hoch) {
+    k.hochband = t.id;
+  } else {
+    k.band = t.id;
+    k.begehbar = !!info.begehbar;
+    k.kosten = info.laufKosten || 1;
+  }
+  markiereBaender();
+  meldeEreignis("rasterGeaendert", { x, z, kachel: k });
+  return t;
+}
+
+// Baut ein einzelnes Bandteil (Splitter, Zusammenführung, Übergang, Greifarm, ein Band).
+// Rückgabe: { ok: true, teil, kosten } oder { ok: false, gruende }
+function baueBandteil(typ, x, z, richtung, { daten = null, ohnePruefungDerPersonen = false } = {}) {
+  const pruefung = pruefeBandteil(typ, x, z, richtung, { ersetzen: typ === "band" || typ === "uebergang", laden: ohnePruefungDerPersonen });
+  if (!pruefung.passt) return { ok: false, gruende: pruefung.gruende };
+  if (pruefung.ersetzt) { pruefung.ersetzt.richtung = richtung; markiereBaender(); planeLaufendeNeu(); return { ok: true, teil: pruefung.ersetzt, kosten: 0 }; }
+  const kosten = bandteilPreis(typ);
+  if (kosten > 0 && !kannBezahlen(kosten)) return { ok: false, gruende: [geldGrund(kosten)] };
+  const ausDepot = (spiel.depot.baender[typ] || 0) > 0;
+  if (ausDepot) { spiel.depot.baender[typ]--; if (!spiel.depot.baender[typ]) delete spiel.depot.baender[typ]; }
+  else if (kosten > 0) bucheGeld(-kosten, "baender");
+  const extra = daten ? { ...daten, id: undefined, items: [], haelt: null } : {};
+  const t = setzeBandteil(typ, x, z, richtung, { ...extra, ausDepot });
+  planeLaufendeNeu();
+  meldeStruktur();
+  return { ok: true, teil: t, kosten };
+}
+
+// Eine gezogene Strecke: Liste von { x, z, richtung }. Erst wird alles geprüft, dann gebaut.
+// Vorhandene Bänder auf der Strecke werden neu ausgerichtet (kostenlos).
+// Rückgabe: { ok, gebaut, kosten, gruende, fehler: [Index] }
+function pruefeBandStrecke(strecke, typ = "band") {
+  const fehler = [], gruende = [];
+  let kosten = 0, neu = 0;
+  const depot = spiel.depot.baender[typ] || 0;
+  strecke.forEach((k, i) => {
+    const p = pruefeBandteil(typ, k.x, k.z, k.richtung, { ersetzen: true });
+    if (!p.passt) { fehler.push(i); gruende.push(...p.gruende); return; }
+    if (!p.ersetzt) { neu++; if (neu > depot) kosten += bandTypNach.get(typ).preis; }
+  });
+  if (!fehler.length && kosten > 0 && !kannBezahlen(kosten)) gruende.push(geldGrund(kosten));
+  return { passt: !gruende.length, fehler, gruende: [...new Set(gruende)], kosten };
+}
+function baueBandStrecke(strecke, typ = "band") {
+  const pruefung = pruefeBandStrecke(strecke, typ);
+  if (!pruefung.passt) return { ok: false, ...pruefung };
+  let gebaut = 0;
+  for (const k of strecke) { const r = baueBandteil(typ, k.x, k.z, k.richtung); if (r.ok) gebaut++; }
+  return { ok: true, gebaut, kosten: pruefung.kosten };
+}
+
+// Brücke: gerade Strecke (mind. 3 Kacheln) – Auffahrt, Hochband, Abfahrt.
+// Rückgabe der Planung: { teile: [{ typ, x, z, richtung }], passt, gruende, fehler, kosten }
+function planeBruecke(start, ende) {
+  const dx = ende.x - start.x, dz = ende.z - start.z;
+  const waagerecht = Math.abs(dx) >= Math.abs(dz);
+  const laenge = (waagerecht ? Math.abs(dx) : Math.abs(dz)) + 1;
+  const schritt = waagerecht ? { x: Math.sign(dx) || 1, z: 0 } : { x: 0, z: Math.sign(dz) || 1 };
+  const richtung = richtungVonVektor(schritt.x, schritt.z);
+  const teile = [];
+  for (let i = 0; i < laenge; i++) {
+    const typ = i === 0 ? "rampeHoch" : i === laenge - 1 ? "rampeRunter" : "hochband";
+    teile.push({ typ, x: start.x + schritt.x * i, z: start.z + schritt.z * i, richtung });
+  }
+  const gruende = [], fehler = [];
+  if (laenge < BAENDER.minBrueckenLaenge) gruende.push(`Eine Brücke braucht mindestens ${BAENDER.minBrueckenLaenge} Kacheln (Auffahrt, Hochband, Abfahrt).`);
+  let kosten = 0;
+  teile.forEach((t, i) => {
+    const p = pruefeBandteil(t.typ, t.x, t.z, t.richtung);
+    if (!p.passt) { fehler.push(i); gruende.push(...p.gruende); }
+    kosten += bandTypNach.get(t.typ).preis;
+  });
+  if (!gruende.length && !kannBezahlen(kosten)) gruende.push(geldGrund(kosten));
+  return { teile, passt: !gruende.length, gruende: [...new Set(gruende)], fehler, kosten };
+}
+function baueBruecke(start, ende) {
+  const plan = planeBruecke(start, ende);
+  if (!plan.passt) return { ok: false, ...plan };
+  bucheGeld(-plan.kosten, "baender");
+  let brueckenId = null;
+  for (const t of plan.teile) {
+    const teil = setzeBandteil(t.typ, t.x, t.z, t.richtung, { bruecke: brueckenId });
+    if (!brueckenId) { brueckenId = teil.id; teil.bruecke = teil.id; }
+  }
+  planeLaufendeNeu();
+  meldeStruktur();
+  return { ok: true, kosten: plan.kosten, laenge: plan.teile.length };
+}
+
+// Entfernt ein Bandteil. Items darauf gehen ins Hauptlager (bzw. Depot). Der Preis wird erstattet
+// (außer das Teil kam aus dem Depot – dann geht es dorthin zurück). insDepot: "Halle bereinigen".
+function entferneBandteil(id, { insDepot = false } = {}) {
+  const t = spiel.baender.get(id);
+  if (!t) return null;
+  spiel.baender.delete(id);
+  const k = rasterDaten[t.x][t.z];
+  if (bandTyp(t).hoch) { if (k.hochband === id) k.hochband = null; }
+  else if (k.band === id) { k.band = null; k.begehbar = !k.objekt; k.kosten = 1; }
+  const items = {};
+  for (const it of t.items || []) bucheItems(items, { [it.item]: 1 });
+  if (t.haelt) bucheItems(items, { [t.haelt]: 1 });
+  bucheInsLager(items, insDepot);
+  if (insDepot || t.ausDepot) spiel.depot.baender[t.typ] = (spiel.depot.baender[t.typ] || 0) + 1;
+  else if (bandTyp(t).preis > 0) bucheGeld(bandTyp(t).preis, "baender");
+  markiereBaender();
+  meldeEreignis("rasterGeaendert", { x: t.x, z: t.z, kachel: k });
+  return t;
+}
+// Abriss aus dem Spiel: eine Brücke wird als Ganzes entfernt. Rückgabe: Anzahl entfernter Teile
+function reisseBandteilAb(id) {
+  const t = spiel.baender.get(id);
+  if (!t) return 0;
+  const ids = t.bruecke ? [...spiel.baender.values()].filter((b) => b.bruecke === t.bruecke).map((b) => b.id) : [id];
+  for (const x of ids) entferneBandteil(x);
+  planeLaufendeNeu();
+  meldeStruktur();
+  return ids.length;
+}
+// Welches Bandteil liegt auf einer Kachel? (Brücke oben zuerst, außer "boden" ist gewünscht)
+function bandteilAufKachel(k, boden = false) {
+  const kachel = k && holeKachel(k.x, k.z);
+  if (!kachel) return null;
+  const oben = kachel.hochband && spiel.baender.get(kachel.hochband);
+  const unten = kachel.band && spiel.baender.get(kachel.band);
+  return boden ? unten || oben || null : oben || unten || null;
+}
+// Alle laufenden Personen planen ihren Weg neu (Bänder haben die Kosten der Kacheln geändert)
+function planeLaufendeNeu() {
+  for (const p of allePersonen()) if (p.zustand === "laeuft" && p.zielWunsch) schickePerson(p, p.zielWunsch);
+}
+
+// Einstellungen von Splitter, Zusammenführung, Greifarm und Ablauf
+function setzeBandEinstellung(id, feld, wert) {
+  const t = spiel.baender.get(id);
+  if (!t) return false;
+  if (feld === "modus" && t.typ === "splitter") t.modus = wert === "sortieren" ? "sortieren" : "reihum";
+  else if (feld.startsWith("filter.") && t.typ === "splitter") {
+    const seite = feld.slice(7);
+    if (wert) t.filter[seite] = wert; else delete t.filter[seite];
+  }
+  else if (feld === "vorrang" && t.typ === "zusammen") t.vorrang = ["links", "hinten", "rechts"].includes(wert) ? wert : null;
+  else if (feld === "armFilter" && t.typ === "greifarm") t.armFilter = wert || null;
+  else if (feld === "ablaufFilter") {
+    const liste = new Set(t.ablaufFilter);
+    if (liste.has(wert)) liste.delete(wert); else if (wert) liste.add(wert);
+    t.ablaufFilter = [...liste];
+  }
+  else if (feld === "drehen" && !bandTyp(t).spur) { t.richtung = (t.richtung + 1) % 4; markiereBaender(); }
+  else return false;
+  meldeStruktur();
+  return true;
+}
+
+// Gespeicherte Form eines Bandteils (Spielstand und Schnappschuss)
+function bandteilDaten(t) {
+  return {
+    id: t.id, typ: t.typ, x: t.x, z: t.z, richtung: t.richtung,
+    items: t.items ? t.items.map((i) => ({ item: i.item, pos: Math.round(i.pos * 1000) / 1000, von: i.von })) : undefined,
+    tempo: t.tempo, name: t.name, modus: t.modus, filter: t.filter, vorrang: t.vorrang,
+    armFilter: t.armFilter, haelt: t.haelt, ablaufFilter: t.ablaufFilter, bruecke: t.bruecke, ausDepot: t.ausDepot,
+  };
+}
+
+/* ============================================================================
+   ABSCHNITT 11i: Automatisierung, Personalumbau & Wächter (Phase 6)  [Logik-Agent]
+   Eine Station läuft automatisch, wenn sie einen Zulauf (Band oder Greifarm hinein) UND einen
+   Ablauf (Band oder Greifarm heraus) hat; die Forschungsstation braucht nur den Zulauf.
+   Ihr Arbeiter wird frei ("ohne Aufgabe") und wartet in der Pausenecke, bis du entscheidest.
+   Ereignisse: arbeiterFrei, automatikAus, personFestgefahren
+   ============================================================================ */
+function aktualisiereAutomatik() {
+  for (const s of gebaeudeListe(istStation)) {
+    const an = !!s.bandZulauf && (typVon(s).art === "forschung" || !!s.bandAblauf);
+    if (an === !!s.automatik) continue;
+    s.automatik = an;
+    if (an) {
+      if (s.arbeiterId) gibArbeiterFrei(s);
+    } else {
+      // Material, das die Maschine gerade verarbeitet, zurück ins Eingangsfach
+      if (s.autoRezept) { bucheItems(s.eingang, s.autoRezept.eingaben); s.autoRezept = null; s.fortschritt = 0; s.version++; }
+      if (spielstandAktiv) meldeEreignis("automatikAus", { station: s });
+    }
+    meldeStruktur();
+  }
+}
+
+// Ein Schritt einer Automatik-Station: Material aus dem Eingangsfach → arbeiten → Ausgabefach
+function schrittStationAutomatik(s, dt) {
+  const r = rezeptVon(s);
+  if (!r || s.pausiert) return;
+  if (!s.autoRezept) {
+    if (r.ausgabe && summe(s.bestand) >= kapazitaetVon(s)) return;           // Ausgabefach voll
+    if (!Object.entries(r.eingaben).every(([i, n]) => (s.eingang[i] || 0) >= n)) return;
+    for (const [i, n] of Object.entries(r.eingaben)) aendereFach(s, "eingang", i, -n);
+    s.autoRezept = r;
+    s.fortschritt = 0;
+  }
+  const ra = s.autoRezept;
+  if (ra.ausgabe && summe(s.bestand) >= kapazitaetVon(s)) return;
+  s.fortschritt += dt / ra.zeit * forschungsWirkung("automatikTempo");
+  if (s.fortschritt < 1) return;
+  s.fortschritt = 0;
+  s.autoRezept = null;
+  belohneArbeit(null, s, ra);                    // nur FP fürs Zerlegen, keine Erfahrung
+  spiel.version++;
+  if (!ra.ausgabe) return;
+  if (ra.ausschuss > 0 && Math.random() < ra.ausschuss) {
+    spiel.statistik.ausschuss++;
+    meldeEreignis("ausschuss", { station: s, rezept: ra });
+    return;
+  }
+  spiel.statistik.produziert++;
+  aendereBestand(s, ra.ausgabe, 1);
+}
+
+// Der Arbeiter einer Station wird nicht mehr gebraucht.
+function gibArbeiterFrei(s, person = null) {
+  const p = person || mitarbeiter.find((m) => m.id === s.arbeiterId);
+  if (s.arbeiterId === (p && p.id) || !p) s.arbeiterId = null;
+  if (!p) return;
+  // Was er gerade trägt (Material für den Durchgang), kommt ins Eingangsfach – sonst ins Hauptlager
+  if (hatItems(p)) {
+    const platz = fachGroesse(s, "eingang") - summe(s.eingang);
+    if (platz >= summe(p.traegt) && p.phase !== "bringtErzeugnis" && p.phase !== "legtAb") { bucheItems(s.eingang, p.traegt); s.version++; }
+    else bucheInsLager(p.traegt);
+    p.traegt = {};
+  }
+  p.auftrag = null;
+  p.phase = "frei";
+  p.stationId = null;
+  p.manuellFrei = true;
+  p.ohneAufgabe = true;
+  if (spielstandAktiv) meldeEreignis("arbeiterFrei", { person: p, station: s });
+  meldeEreignis("mitarbeiterGeaendert", {});
+  meldeStruktur();
+}
+
+// Wer hat gerade keine Aufgabe? (Arbeiter ohne Station)
+function ohneAufgabeListe() {
+  return mitarbeiter.filter((p) => p.rolle === "arbeiter" && !p.stationId);
+}
+
+// Pausenecke: freie Bodenkacheln nahe dem Hauptlager (keine Zugänge, keine Bänder).
+let pausenCache = { version: -1, kacheln: [] };
+function pausenKacheln() {
+  if (pausenCache.version === spiel.strukturVersion + spiel.bandVersion * 100000) return pausenCache.kacheln;
+  const hl = hauptlager();
+  const start = hl ? hl.zugang : startKachel;
+  const B = level.breite, T = level.tiefe;
+  const gesehen = new Uint8Array(B * T);
+  const schlange = [start], ergebnis = [];
+  if (istImRaster(start.x, start.z)) gesehen[start.x * T + start.z] = 1;
+  while (schlange.length && ergebnis.length < 12) {
+    const k = schlange.shift();
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = k.x + dx, nz = k.z + dz;
+      if (!istImRaster(nx, nz) || gesehen[nx * T + nz] || !istBegehbar(nx, nz)) continue;
+      gesehen[nx * T + nz] = 1;
+      schlange.push({ x: nx, z: nz });
+      const kachel = rasterDaten[nx][nz];
+      if (kachel.kosten === 1 && !kachel.band && !istZugangsKachel(nx, nz) && abstand({ x: nx, z: nz }, start) >= 2) ergebnis.push({ x: nx, z: nz });
+    }
+  }
+  pausenCache = { version: spiel.strukturVersion + spiel.bandVersion * 100000, kacheln: ergebnis };
+  return ergebnis;
+}
+// Schickt einen Arbeiter ohne Station in die Pausenecke (alle 2 Sekunden ein neuer Versuch)
+function gehInPausenecke(p, dt) {
+  if (p.zustand !== "steht") return;
+  const plaetze = pausenKacheln();
+  if (!plaetze.length) return;
+  const nr = ohneAufgabeListe().indexOf(p);
+  const ziel = plaetze[Math.max(0, nr) % plaetze.length];
+  if (istAngekommen(p, ziel)) return;
+  p.timer = (p.timer || 0) - dt;
+  if (p.timer > 0) return;
+  p.timer = 2;
+  geheZu(p, ziel);
+}
+
+// Schult einen Mitarbeiter um: "kurier" (Logistik) oder "arbeiter". Name, Erfahrung und Ausrüstung bleiben.
+function schuleUm(id, rolle) {
+  const p = mitarbeiter.find((m) => m.id === id);
+  if (!p || !MITARBEITER_ROLLEN[rolle] || p.rolle === rolle) return false;
+  const s = p.stationId && spiel.gebaeude.get(p.stationId);
+  if (s && s.arbeiterId === p.id) s.arbeiterId = null;
+  setzePersonZurueck(p);
+  haltePersonAn(p);
+  p.rolle = rolle;
+  p.stationId = null;
+  p.stufe = 0;
+  p.ohneAufgabe = false;
+  p.manuellFrei = false;          // ein neuer Arbeiter sucht sich eine freie Station
+  meldeEreignis("mitarbeiterGeaendert", { umgeschult: p.id });
+  meldeStruktur();
+  return true;
+}
+// Freie Forschungsstationen (ohne Arbeiter, nicht automatisch), die nächste zuerst
+function freieStationen(art, p = null) {
+  const k = p ? personKachel(p) : null;
+  return gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik && (!art || typVon(g).art === art))
+    .sort((a, b) => (k ? abstand(a.zugang, k) - abstand(b.zugang, k) : 0));
+}
+// "Forschung": an die nächste freie Forschungsstation. Rückgabe: Station oder null
+function schickeInForschung(id) {
+  const p = mitarbeiter.find((m) => m.id === id);
+  if (!p) return null;
+  if (p.rolle !== "arbeiter") schuleUm(p.id, "arbeiter");
+  const s = freieStationen("forschung", p)[0];
+  if (!s) return null;
+  weiseZu(p.id, s.id);
+  return s;
+}
+function setzeAutoZuweisung(an) {
+  spiel.autoZuweisung = !!an;
+  meldeStruktur();
+}
+// Höchstzahl der Mitarbeiter (wächst mit dem Hallenausbau)
+function maxMitarbeiter() {
+  return (HALLE_STUFEN[spiel.halleStufe] || HALLE_STUFEN[0]).maxMitarbeiter || PRODUKTION.maxMitarbeiter;
+}
+
+/* --- Wächter: niemand bleibt stecken --- */
+// Nächste begehbare Kachel (Breitensuche), z. B. wenn unter einer Person etwas gebaut wurde
+function naechsteBegehbare(k) {
+  const B = level.breite, T = level.tiefe;
+  const gesehen = new Uint8Array(B * T);
+  const schlange = [k];
+  while (schlange.length) {
+    const c = schlange.shift();
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = c.x + dx, nz = c.z + dz;
+      if (!istImRaster(nx, nz) || gesehen[nx * T + nz]) continue;
+      gesehen[nx * T + nz] = 1;
+      if (istBegehbar(nx, nz)) return { x: nx, z: nz };
+      schlange.push({ x: nx, z: nz });
+    }
+  }
+  return null;
+}
+// 1. Steht jemand auf einer gesperrten Kachel, wird er auf die nächste freie gesetzt.
+// 2. Kommt jemand 3 Sekunden lang seinem Ziel nicht näher, plant er neu.
+// 3. Klappt das 3-mal nicht, gibt er auf (Items zurück ins Lager, Auftrag an die Börse).
+function waechterSchritt(dt) {
+  for (const p of mitarbeiter) {
+    const k = personKachel(p);
+    if (istImRaster(k.x, k.z) && !istBegehbar(k.x, k.z)) {
+      const frei = naechsteBegehbare(k);
+      if (frei) {
+        p.position.copy(kachelZuWelt(frei.x, frei.z));
+        if (p.zustand === "laeuft" && p.zielWunsch) schickePerson(p, p.zielWunsch);
+      }
+    }
+    if (p.zustand !== "laeuft") { p.waechter = null; continue; }
+    const rest = restwegVon(p);
+    const w = p.waechter || (p.waechter = { rest, zeit: 0, versuche: 0 });
+    if (rest < w.rest - 0.05) { w.rest = rest; w.zeit = 0; continue; }
+    w.zeit += dt;
+    if (w.zeit < 3) continue;
+    w.zeit = 0;
+    w.versuche++;
+    if (w.versuche <= 3 && p.zielWunsch) { schickePerson(p, p.zielWunsch); w.rest = restwegVon(p); continue; }
+    // Aufgeben: nichts geht verloren
+    const zielId = zielGebaeudeVon(p);
+    const ziel = zielId && spiel.gebaeude.get(zielId);
+    haltePersonAn(p);
+    p.waechter = null;
+    if (p.rolle === "kurier") {
+      if (hatItems(p)) { bucheInsLager(p.traegt); p.traegt = {}; }
+      beendeAuftrag(p);
+    } else {
+      setzePersonZurueck(p);
+    }
+    meldeEreignis("personFestgefahren", { person: p, ziel });
+  }
+}
+
+/* ============================================================================
+   ABSCHNITT 11j: Hallenausbau (Phase 6)                          [Logik-Agent]
+   Die Halle wächst nach vorn (+z). Alles Gebaute bleibt, wo es ist.
+   Ereignis: halleGewachsen
+   ============================================================================ */
+function halleStufe() { return HALLE_STUFEN[spiel.halleStufe] || HALLE_STUFEN[0]; }
+function naechsteHallenStufe() { return HALLE_STUFEN[spiel.halleStufe + 1] || null; }
+function aktuelleMiete() { return halleStufe().miete ?? WIRTSCHAFT.miete; }
+// Setzt die Ausbaustufe ohne Kosten (beim Laden). Die neuen Reihen sind leer und begehbar.
+function setzeHallenStufe(stufe) {
+  stufe = Math.max(0, Math.min(HALLE_STUFEN.length - 1, Math.round(stufe || 0)));
+  const alt = level.tiefe;
+  spiel.halleStufe = stufe;
+  level.tiefe = Math.min(level.maxTiefe, HALLE_STUFEN[stufe].tiefe);
+  level.name = HALLE_STUFEN[stufe].name;
+  if (level.tiefe !== alt) meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+  meldeEreignis("rasterGeaendert", {});
+}
+// Kauft die nächste Ausbaustufe. Rückgabe: { ok, stufe } oder { ok: false, grund }
+function baueHalleAus() {
+  const n = naechsteHallenStufe();
+  if (!n) return { ok: false, grund: "Die Halle hat schon die größte Ausbaustufe." };
+  if (!kannBezahlen(n.preis)) return { ok: false, grund: geldGrund(n.preis) };
+  bucheGeld(-n.preis, "ausbau");
+  setzeHallenStufe(spiel.halleStufe + 1);
+  meldeStruktur();
+  return { ok: true, stufe: n };
+}
+
+/* ============================================================================
    ABSCHNITT 12: 3D – Gebäude, Mitarbeiter, Füllstände (Phase 4)    [3D-Agent]
    Alle Modelle bestehen aus Grundformen im Low-Poly-Stil. Ein Gebäude wird mit
    seiner Vorderseite nach +z gebaut (dorthin zeigt der Zugang) und um seine
@@ -6622,6 +8034,8 @@ const STATUS_ANZEIGE = {
   rezeptFehlt:       { farbe: "#e0533d", text: "Blaupause fehlt",     ampel: "rot"   },
   keinLager:         { farbe: "#e3a92b", text: "kein Zwischenlager verknüpft", ampel: "gelb" },
   pausiert:          { farbe: "#8a948c", text: "pausiert",            ampel: "grau"  },
+  automatik:         { farbe: "#4f9d69", text: "läuft automatisch",   ampel: "gruen" },   // Phase 6
+  wartetAufBand:     { farbe: "#e3a92b", text: "wartet auf das Band", ampel: "gelb"  },   // Phase 6
 };
 // Zeichnet die Schilder einmal auf kleine Bilder (Canvas) – keine Bilddateien nötig.
 const statusTexturen = {};
@@ -6633,7 +8047,7 @@ for (const [art, info] of Object.entries(STATUS_ANZEIGE)) {
   k.beginPath(); k.arc(64, 64, 56, 0, Math.PI * 2); k.fill();
   k.lineWidth = 10; k.strokeStyle = info.farbe; k.stroke();
   k.fillStyle = info.farbe; k.strokeStyle = info.farbe;
-  if (art === "arbeitet") {                       // Zahnrad
+  if (art === "arbeitet" || art === "automatik") {   // Zahnrad
     k.save(); k.translate(64, 64);
     for (let i = 0; i < 8; i++) { k.rotate(Math.PI / 4); k.fillRect(-7, -34, 14, 14); }
     k.beginPath(); k.arc(0, 0, 24, 0, Math.PI * 2); k.fill();
@@ -6654,7 +8068,7 @@ for (const [art, info] of Object.entries(STATUS_ANZEIGE)) {
     k.beginPath(); k.ellipse(78, 64, 20, 12, -0.6, 0, Math.PI * 2); k.stroke();
   } else {                                        // Ausrufe- bzw. Fragezeichen
     k.font = "bold 76px sans-serif"; k.textAlign = "center"; k.textBaseline = "middle";
-    k.fillText(art === "wartetAufMaterial" || art === "rezeptFehlt" ? "!" : "?", 64, 68);
+    k.fillText(art === "wartetAufMaterial" || art === "rezeptFehlt" || art === "wartetAufBand" ? "!" : "?", 64, 68);
   }
   statusTexturen[art] = new THREE.CanvasTexture(c);
   statusTexturen[art].colorSpace = THREE.SRGBColorSpace;
@@ -6833,11 +8247,12 @@ function aktualisiereGebaeude3d(sekunden, zeit) {
       const mitte = gebaeudeMitteWelt(g);
       st.anzeige.position.set(mitte.x, rasterHoehe + GRAFIK.statusHoehe + schweben, mitte.z);
       st.anzeige.quaternion.copy(kamera.quaternion);
-      const fortschritt = art === "arbeitet" ? g.fortschritt : 0;
-      st.ring.visible = st.hintergrund.visible = art === "arbeitet";
+      const laeuft = art === "arbeitet" || art === "automatik";
+      const fortschritt = laeuft ? g.fortschritt : 0;
+      st.ring.visible = st.hintergrund.visible = laeuft;
       st.ring.geometry.setDrawRange(0, Math.round(fortschritt * RING_SEGMENTE) * 6);
       // Phase 5: Forschungsstation – beim Zerlegen fliegen kleine Splitter auf
-      if (art === "arbeitet" && typVon(g).art === "forschung" && !wenigerAnimation && spiel.tempo > 0) {
+      if (laeuft && typVon(g).art === "forschung" && !wenigerAnimation && spiel.tempo > 0) {
         eintrag.splitterTimer -= sekunden * spiel.tempo;
         if (eintrag.splitterTimer <= 0) { eintrag.splitterTimer = GRAFIK.splitterIntervall; erzeugeSplitter(g); }
       }
@@ -6941,11 +8356,16 @@ spielEreignisse.addEventListener("mitarbeiterGeaendert", () => {
     if (!ids.has(id)) { szene.remove(modell.gruppe); mitarbeiter3d.delete(id); }
   }
   for (const p of mitarbeiter) {
+    // Phase 6: Nach einer Umschulung bekommt die Person die Kleidung ihrer neuen Rolle
+    const alt = mitarbeiter3d.get(p.id);
+    if (alt && alt.rolle !== p.rolle) { szene.remove(alt.gruppe); mitarbeiter3d.delete(p.id); }
     if (mitarbeiter3d.has(p.id)) continue;
     const farben = p.rolle === "kurier"
       ? { koerper: GRAFIK.farbeKurierKoerper, helm: GRAFIK.farbeKurierHelm, weste: GRAFIK.farbeKurierWeste }
       : { koerper: GRAFIK.farbeArbeiterKoerper, helm: GRAFIK.farbeArbeiterHelm };
-    mitarbeiter3d.set(p.id, baueFigurModell(farben));
+    const modell = baueFigurModell(farben);
+    modell.rolle = p.rolle;
+    mitarbeiter3d.set(p.id, modell);
   }
 });
 
@@ -7130,6 +8550,420 @@ function zeigeGebaeudeAuswahl(g) {
 }
 
 /* ============================================================================
+   ABSCHNITT 12b: 3D – Fließbänder, Greifarme, Brücken & Items (Phase 6)  [3D-Agent]
+   Jedes Bandteil hat ein kleines Modell aus Grundformen. Es wird neu gebaut, sobald sich
+   Typ, Richtung, Kurve oder Tempo ändern (die Logik zählt dafür spiel.bandVersion hoch).
+   Alle Items auf allen Bändern sind EIN InstancedMesh (schnell, auch bei vielen Items).
+   Modelle zeigen mit ihrer Fahrtrichtung nach +z und werden wie Gebäude gedreht.
+   ============================================================================ */
+const BAND_BREITE = 0.72;                       // Breite der Gummibahn (Kacheln)
+const bandModelle = new Map();                  // Bandteil-ID → { gruppe, schluessel, arm, greifer }
+let bandVersion3d = -1;
+
+// Gummibahn mit Querstreifen: je Tempostufe ein Material, dessen Streifen mit dem Tempo laufen
+function baueStreifenTextur() {
+  const c = document.createElement("canvas");
+  c.width = 32; c.height = 64;
+  const k = c.getContext("2d");
+  k.fillStyle = GRAFIK.farbeBand; k.fillRect(0, 0, 32, 64);
+  k.fillStyle = GRAFIK.farbeBandStreifen;
+  k.fillRect(0, 2, 32, 7); k.fillRect(0, 34, 32, 7);   // zwei Streifen pro Kachel
+  const textur = new THREE.CanvasTexture(c);
+  textur.colorSpace = THREE.SRGBColorSpace;
+  textur.wrapS = textur.wrapT = THREE.RepeatWrapping;
+  return textur;
+}
+const bandMaterialien = new Map(BAND_TEMPO.map((st) =>
+  [st.id, new THREE.MeshStandardMaterial({ map: baueStreifenTextur(), roughness: 0.9 })]));
+const bandPfeilMaterial = new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.85, depthWrite: false });
+const bandAuswahl = { id: null };               // vom Info-Fenster gesetzt: dieses Segment wird umrandet
+
+// Flache Gummibahn (Länge in Fahrtrichtung +z) mit Mitte bei (x, y, z)
+function bahn(gruppe, breite, laenge, material, x, y, z, winkel = 0) {
+  const geo = new THREE.PlaneGeometry(breite, laenge);
+  geo.rotateX(-Math.PI / 2);
+  // Die Textur wiederholt sich einmal pro Kachel, damit alle Teile gleich schnell laufen
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * laenge);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = winkel;
+  mesh.receiveShadow = true;
+  gruppe.add(mesh);
+  return mesh;
+}
+function bandPfeil(gruppe, x, y, z, winkel, groesse = 0.6) {
+  const pfeil = new THREE.Mesh(pfeilGeometrie, bandPfeilMaterial);
+  pfeil.position.set(x, y, z);
+  pfeil.rotation.y = winkel;
+  pfeil.scale.setScalar(groesse);
+  gruppe.add(pfeil);
+  return pfeil;
+}
+// Lokaler Winkel einer Richtung relativ zum Teil (0 = vorn/+z)
+function lokalerWinkel(t, richtung) {
+  return gebaeudeWinkel(RICHTUNGEN[(richtung - t.richtung + 4) % 4]);
+}
+
+// Gerades Band (Bahn + Seitenleisten) auf Höhe y; "laenge" in Fahrtrichtung
+function geradesBand(g, material, y = GRAFIK.bandHoehe) {
+  const leiste = BAND_BREITE / 2 + 0.03;
+  quader(g, BAND_BREITE + 0.04, Math.max(0.02, y - 0.01), 1, GRAFIK.farbeBandRahmen, 0, 0, 0);
+  for (const x of [-leiste, leiste]) quader(g, 0.06, 0.06, 1, GRAFIK.farbeBandRahmen, x, y - 0.03, 0);
+  bahn(g, BAND_BREITE, 1, material, 0, y + 0.002, 0);
+}
+
+// Baut das Modell eines Bandteils. Rückgabe: { gruppe, arm, greifer }
+function baueBandModell(t) {
+  const g = new THREE.Group();
+  const material = bandMaterialien.get(t.tempo) || bandMaterialien.get(STANDARD_BAND_TEMPO);
+  const H = GRAFIK.bandHoehe, HB = GRAFIK.brueckenHoehe;
+  const leiste = BAND_BREITE / 2 + 0.03;
+  let arm = null, greifer = null;
+  switch (t.typ) {
+    case "band":
+    case "uebergang": {
+      if (t.typ === "band" && t.kurve !== null && t.kurve !== undefined) {
+        // Kurve: hinein von der Seite (Richtung "kurve"), hinaus nach vorn
+        const rel = (t.kurve - t.richtung + 4) % 4;      // 1: Items kommen von +x, 3: von −x
+        const s = rel === 1 ? 1 : -1;
+        const halb = BAND_BREITE / 2;
+        quader(g, BAND_BREITE + 0.04, H - 0.01, 0.5 + halb, GRAFIK.farbeBandRahmen, 0, 0, (0.5 - halb) / 2);
+        quader(g, 0.5 - halb, H - 0.01, BAND_BREITE + 0.04, GRAFIK.farbeBandRahmen, s * (0.5 + halb) / 2, 0, 0);
+        bahn(g, BAND_BREITE, 0.5 + halb, material, 0, H + 0.002, (0.5 - halb) / 2);
+        bahn(g, BAND_BREITE, 0.5 - halb, material, s * (0.5 + halb) / 2, H + 0.002, 0, gebaeudeWinkel(RICHTUNGEN[rel]));
+        quader(g, 0.06, 0.06, 0.5 + halb + 0.06, GRAFIK.farbeBandRahmen, -s * leiste, H - 0.03, (0.5 - halb - 0.06) / 2);
+        quader(g, 0.5 + halb, 0.06, 0.06, GRAFIK.farbeBandRahmen, s * (0.5 - halb) / 2, H - 0.03, -leiste);
+        quader(g, 0.06, 0.06, 0.5 - halb, GRAFIK.farbeBandRahmen, s * leiste, H - 0.03, (0.5 + halb) / 2);
+        quader(g, 0.5 - halb, 0.06, 0.06, GRAFIK.farbeBandRahmen, s * (0.5 + halb) / 2, H - 0.03, leiste);
+      } else {
+        geradesBand(g, material);
+      }
+      if (t.typ === "uebergang") {
+        // Kleine Treppe quer über das Band: zwei Stufen links und rechts, ein Steg darüber
+        for (const s of [-1, 1]) {
+          quader(g, 0.12, 0.16, 0.36, GRAFIK.farbeHolzDunkel, s * 0.44, 0, 0);
+          quader(g, 0.06, 0.34, 0.06, GRAFIK.farbeHolzDunkel, s * 0.44, 0, 0.15);
+          quader(g, 0.06, 0.34, 0.06, GRAFIK.farbeHolzDunkel, s * 0.44, 0, -0.15);
+        }
+        quader(g, 0.98, 0.05, 0.36, GRAFIK.farbeHolz, 0, 0.34, 0);
+      }
+      break;
+    }
+    case "splitter":
+    case "zusammen": {
+      const farbe = t.typ === "splitter" ? GRAFIK.farbeSplitter : GRAFIK.farbeZusammen;
+      quader(g, 0.92, H - 0.01, 0.92, farbe, 0, 0, 0);
+      bahn(g, BAND_BREITE, BAND_BREITE, bandMaterialien.get("pause"), 0, H + 0.002, 0);
+      for (const x of [-0.42, 0.42]) for (const z of [-0.42, 0.42]) quader(g, 0.07, 0.46, 0.07, farbe, x, H, z);
+      quader(g, 0.92, 0.06, 0.92, farbe, 0, H + 0.46, 0);
+      const dach = H + 0.525;
+      if (t.typ === "splitter") {
+        for (const rel of [3, 0, 1]) {   // links, vorn, rechts (wie die Logik)
+          const r = RICHTUNGEN[rel];
+          bandPfeil(g, r.x * 0.27, dach, r.z * 0.27, gebaeudeWinkel(r), 0.45);
+        }
+      } else {
+        for (const rel of [3, 2, 1]) {   // Eingänge links, hinten, rechts zeigen zur Mitte
+          const r = RICHTUNGEN[rel];
+          bandPfeil(g, r.x * 0.3, dach, r.z * 0.3, gebaeudeWinkel({ x: -r.x, z: -r.z }), 0.32);
+        }
+        bandPfeil(g, 0, dach, 0.12, 0, 0.5);
+      }
+      break;
+    }
+    case "greifarm": {
+      quader(g, 0.86, 0.04, 0.86, GRAFIK.farbeMetallDunkel, 0, 0, 0);
+      bandPfeil(g, 0, 0.045, 0.3, 0, 0.4);
+      const fuss = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.12, 14), figurMaterial(GRAFIK.farbeArmGelenk));
+      fuss.position.y = 0.1;
+      fuss.castShadow = true;
+      g.add(fuss);
+      arm = new THREE.Group();
+      arm.position.y = 0.16;
+      const saeule = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.5, 10), figurMaterial(GRAFIK.farbeArm));
+      saeule.position.y = 0.25;
+      saeule.castShadow = true;
+      arm.add(saeule);
+      const gelenk = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), figurMaterial(GRAFIK.farbeArmGelenk));
+      gelenk.position.y = 0.52;
+      arm.add(gelenk);
+      quader(arm, 0.09, 0.09, 0.92, GRAFIK.farbeArm, 0, 0.48, 0.46);
+      quader(arm, 0.05, 0.24, 0.05, GRAFIK.farbeArmGelenk, 0, 0.3, 0.9);
+      quader(arm, 0.2, 0.04, 0.05, GRAFIK.farbeArmGelenk, 0, 0.28, 0.9);
+      for (const x of [-0.09, 0.09]) quader(arm, 0.03, 0.1, 0.05, GRAFIK.farbeArmGelenk, x, 0.19, 0.9);
+      greifer = new THREE.Object3D();
+      greifer.position.set(0, 0.17, 0.9);
+      arm.add(greifer);
+      g.add(arm);
+      break;
+    }
+    case "hochband": {
+      const y = HB + H;
+      quader(g, BAND_BREITE + 0.04, 0.08, 1, GRAFIK.farbeBandRahmen, 0, y - 0.09, 0);
+      for (const x of [-leiste, leiste]) quader(g, 0.06, 0.08, 1, GRAFIK.farbeBandRahmen, x, y - 0.03, 0);
+      bahn(g, BAND_BREITE, 1, material, 0, y + 0.002, 0);
+      for (const x of [-0.46, 0.46]) quader(g, 0.07, y - 0.09, 0.07, GRAFIK.farbeMetallDunkel, x, 0, 0);
+      quader(g, 0.99, 0.06, 0.08, GRAFIK.farbeMetallDunkel, 0, y - 0.15, 0);
+      break;
+    }
+    case "rampeHoch":
+    case "rampeRunter": {
+      const hoch = t.typ === "rampeHoch";
+      const winkel = Math.atan2(HB, 1);
+      const laenge = Math.hypot(1, HB);
+      const deck = new THREE.Group();
+      deck.position.y = H + HB / 2;
+      deck.rotation.x = hoch ? -winkel : winkel;
+      quader(deck, BAND_BREITE + 0.04, 0.06, laenge, GRAFIK.farbeBandRahmen, 0, -0.07, 0);
+      for (const x of [-leiste, leiste]) quader(deck, 0.06, 0.07, laenge, GRAFIK.farbeBandRahmen, x, -0.03, 0);
+      bahn(deck, BAND_BREITE, laenge, material, 0, 0.002, 0);
+      g.add(deck);
+      // Stütze unter dem hohen Ende
+      const zHoch = hoch ? 0.42 : -0.42;
+      for (const x of [-0.46, 0.46]) quader(g, 0.07, HB * 0.9, 0.07, GRAFIK.farbeMetallDunkel, x, 0, zHoch);
+      break;
+    }
+  }
+  return { gruppe: g, arm, greifer };
+}
+
+function entferneBandModell(id) {
+  const m = bandModelle.get(id);
+  if (!m) return;
+  szene.remove(m.gruppe);
+  m.gruppe.traverse((teil) => { if (teil.isMesh && teil.geometry !== pfeilGeometrie) teil.geometry.dispose(); });
+  bandModelle.delete(id);
+}
+// Gleicht die Modelle mit spiel.baender ab (nur geänderte Teile werden neu gebaut)
+function gleicheBandModelleAb() {
+  for (const id of [...bandModelle.keys()]) if (!spiel.baender.has(id)) entferneBandModell(id);
+  for (const t of spiel.baender.values()) {
+    const schluessel = `${t.typ}|${t.richtung}|${t.kurve ?? ""}|${t.tempo}|${t.x},${t.z}`;
+    const alt = bandModelle.get(t.id);
+    if (alt && alt.schluessel === schluessel) continue;
+    if (alt) entferneBandModell(t.id);
+    const modell = baueBandModell(t);
+    const mitte = kachelZuWelt(t.x, t.z);
+    modell.gruppe.position.set(mitte.x, rasterHoehe, mitte.z);
+    modell.gruppe.rotation.y = gebaeudeWinkel(RICHTUNGEN[t.richtung]);
+    modell.schluessel = schluessel;
+    szene.add(modell.gruppe);
+    bandModelle.set(t.id, modell);
+  }
+}
+
+/* --- Items auf den Bändern: ein InstancedMesh für alle --- */
+const bandItems = new THREE.InstancedMesh(
+  new THREE.BoxGeometry(GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse),
+  new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true }),
+  GRAFIK.maxBandItems);
+bandItems.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+bandItems.castShadow = true;
+bandItems.frustumCulled = false;
+bandItems.count = 0;
+bandItems.setColorAt(0, new THREE.Color("#ffffff"));
+szene.add(bandItems);
+const itemFarben = new Map();
+function itemFarbe(item) {
+  if (!itemFarben.has(item)) itemFarben.set(item, new THREE.Color(itemInfo(item).farbe));
+  return itemFarben.get(item);
+}
+const bandHilfsVektor = new THREE.Vector3();
+const bandHilfsQuat = new THREE.Quaternion();
+const bandHilfsSkala = new THREE.Vector3(1, 1, 1);
+// Höhe der Bahn auf Ebene 0 bzw. 1
+const bahnHoehe = (ebene) => ebene ? GRAFIK.brueckenHoehe + GRAFIK.bandHoehe : GRAFIK.bandHoehe;
+
+// Weltposition eines Items: Bogen von der Eintrittskante über die Mitte zur Austrittskante
+function bandItemPunkt(t, it, ziel) {
+  const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
+  const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
+  const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung];
+  const aus = t.typ === "splitter" ? { x: 0, z: 0 } : RICHTUNGEN[t.richtung];
+  const p = it.pos, q = 1 - p;
+  const ex = mx - ein.x * 0.5, ez = mz - ein.z * 0.5;
+  const ax = mx + aus.x * 0.5, az = mz + aus.z * 0.5;
+  const typ = bandTyp(t);
+  const y = bahnHoehe(typ.ebeneEin) * q + bahnHoehe(typ.ebeneAus) * p;
+  ziel.set(q * q * ex + 2 * q * p * mx + p * p * ax, rasterHoehe + y + GRAFIK.bandItemGroesse / 2, q * q * ez + 2 * q * p * mz + p * p * az);
+  return ziel;
+}
+function zeichneBandItems() {
+  let n = 0;
+  const max = GRAFIK.maxBandItems;
+  for (const t of spiel.baender.values()) {
+    if (t.items) {
+      for (const it of t.items) {
+        if (n >= max) break;
+        bandItemPunkt(t, it, bandHilfsVektor);
+        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
+        bandItems.setMatrixAt(n, hilfsMatrix);
+        bandItems.setColorAt(n, itemFarbe(it.item));
+        n++;
+      }
+    }
+    // Greifarm: das gehaltene Item hängt am Greifer
+    if (t.typ === "greifarm" && t.haelt && n < max) {
+      const m = bandModelle.get(t.id);
+      if (m && m.greifer) {
+        m.greifer.getWorldPosition(bandHilfsVektor);
+        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
+        bandItems.setMatrixAt(n, hilfsMatrix);
+        bandItems.setColorAt(n, itemFarbe(t.haelt));
+        n++;
+      }
+    }
+  }
+  bandItems.count = n;
+  bandItems.instanceMatrix.needsUpdate = true;
+  if (bandItems.instanceColor) bandItems.instanceColor.needsUpdate = true;
+}
+
+/* --- Segment-Rahmen (ausgewähltes Segment) und Stau-Schilder --- */
+const segmentRahmenGeo = new THREE.ShapeGeometry(rahmenForm);
+segmentRahmenGeo.rotateX(-Math.PI / 2);
+const MAX_RAHMEN = 900;
+const segmentRahmen = new THREE.InstancedMesh(segmentRahmenGeo,
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeSegment, transparent: true, opacity: 0.95, depthWrite: false }), MAX_RAHMEN);
+segmentRahmen.frustumCulled = false;
+segmentRahmen.renderOrder = 6;
+segmentRahmen.count = 0;
+szene.add(segmentRahmen);
+let segmentRahmenMerker = "";
+function zeichneSegmentRahmen() {
+  const t = bandAuswahl.id && spiel.baender.get(bandAuswahl.id);
+  const merker = t ? `${t.id}|${spiel.bandVersion}` : "";
+  if (merker === segmentRahmenMerker) return;
+  segmentRahmenMerker = merker;
+  const teile = !t ? [] : (segmentVon(t) ? segmentVon(t).teile : [t]);
+  let n = 0;
+  for (const teil of teile) {
+    if (n >= MAX_RAHMEN) break;
+    const mitte = kachelZuWelt(teil.x, teil.z);
+    const typ = bandTyp(teil);
+    const y = (bahnHoehe(typ.ebeneEin) + bahnHoehe(typ.ebeneAus)) / 2 + 0.02;
+    hilfsMatrix.makeTranslation(mitte.x, rasterHoehe + y, mitte.z);
+    segmentRahmen.setMatrixAt(n++, hilfsMatrix);
+  }
+  segmentRahmen.count = n;
+  segmentRahmen.instanceMatrix.needsUpdate = true;
+}
+
+// "!" über einem Bandende, an dem sich Items stauen
+const stauTextur = (() => {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const k = c.getContext("2d");
+  k.fillStyle = "#e3a92b";
+  k.beginPath(); k.moveTo(32, 4); k.lineTo(61, 58); k.lineTo(3, 58); k.closePath(); k.fill();
+  k.fillStyle = "#ffffff"; k.font = "bold 40px sans-serif"; k.textAlign = "center"; k.textBaseline = "middle";
+  k.fillText("!", 32, 40);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const stauSchilder = [];
+function zeichneStauSchilder(zeit) {
+  let n = 0;
+  for (const t of spiel.baender.values()) {
+    if (!(t.stau >= BAENDER.stauWarnung) || (istSpur(t) && t.kette)) continue;
+    if (n >= 40) break;
+    let schild = stauSchilder[n];
+    if (!schild) {
+      schild = new THREE.Sprite(new THREE.SpriteMaterial({ map: stauTextur, transparent: true, depthTest: false }));
+      schild.scale.set(0.42, 0.42, 1);
+      schild.renderOrder = 25;
+      szene.add(schild);
+      stauSchilder.push(schild);
+    }
+    const mitte = kachelZuWelt(t.x, t.z);
+    const typ = bandTyp(t);
+    const schweben = wenigerAnimation ? 0 : Math.sin(zeit * 3 + t.x) * 0.04;
+    schild.position.set(mitte.x, rasterHoehe + bahnHoehe(typ.ebeneAus) + 0.6 + schweben, mitte.z);
+    schild.visible = true;
+    n++;
+  }
+  for (let i = n; i < stauSchilder.length; i++) stauSchilder[i].visible = false;
+}
+
+/* --- Vorschau beim Ziehen und Platzieren (und rote Abriss-Markierung) --- */
+const MAX_VORSCHAU = 900;
+const bandVorschauPlatten = new THREE.InstancedMesh(new THREE.BoxGeometry(0.92, 0.04, 0.92),
+  new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.45, depthWrite: false }), MAX_VORSCHAU);
+const bandVorschauPfeile = new THREE.InstancedMesh(pfeilGeometrie,
+  new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.9, depthWrite: false }), MAX_VORSCHAU);
+for (const m of [bandVorschauPlatten, bandVorschauPfeile]) {
+  m.frustumCulled = false;
+  m.renderOrder = 7;
+  m.count = 0;
+  m.setColorAt(0, new THREE.Color("#ffffff"));
+  szene.add(m);
+}
+const farbeVorschauOk3d = new THREE.Color(GRAFIK.farbeVorschauOk);
+const farbeVorschauFehler3d = new THREE.Color(GRAFIK.farbeVorschauFehler);
+// liste: [{ x, z, richtung (oder null), typ, passt, abriss }]  – leer/null blendet aus
+function zeigeBandVorschau(liste) {
+  let n = 0, np = 0;
+  for (const e of liste || []) {
+    if (n >= MAX_VORSCHAU) break;
+    const mitte = kachelZuWelt(e.x, e.z);
+    const typ = e.typ && bandTypNach.get(e.typ);
+    const y = rasterHoehe + (typ && typ.ebeneEin !== undefined ? (bahnHoehe(typ.ebeneEin) + bahnHoehe(typ.ebeneAus)) / 2 : GRAFIK.bandHoehe) + 0.03;
+    const farbe = e.passt && !e.abriss ? farbeVorschauOk3d : farbeVorschauFehler3d;
+    hilfsMatrix.makeTranslation(mitte.x, y, mitte.z);
+    bandVorschauPlatten.setMatrixAt(n, hilfsMatrix);
+    bandVorschauPlatten.setColorAt(n, farbe);
+    n++;
+    if (e.richtung !== null && e.richtung !== undefined && !e.abriss) {
+      bandHilfsQuat.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, gebaeudeWinkel(RICHTUNGEN[e.richtung]));
+      bandHilfsVektor.set(mitte.x, y + 0.03, mitte.z);
+      hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
+      bandVorschauPfeile.setMatrixAt(np, hilfsMatrix);
+      bandVorschauPfeile.setColorAt(np, farbe);
+      np++;
+    }
+  }
+  bandHilfsQuat.identity();
+  bandVorschauPlatten.count = n;
+  bandVorschauPfeile.count = np;
+  for (const m of [bandVorschauPlatten, bandVorschauPfeile]) {
+    m.instanceMatrix.needsUpdate = true;
+    if (m.instanceColor) m.instanceColor.needsUpdate = true;
+  }
+}
+
+// Jedes Bild: Modelle abgleichen, Streifen laufen lassen, Greifarme drehen, Items zeichnen
+const bandLauf = Object.fromEntries(BAND_TEMPO.map((st) => [st.id, 0]));
+function aktualisiereBaender3d(simSekunden, zeit) {
+  if (bandTopologieAlt && spiel.baender.size) baueBandTopologie();
+  if (bandVersion3d !== spiel.bandVersion) { bandVersion3d = spiel.bandVersion; gleicheBandModelleAb(); }
+  if (!wenigerAnimation) {
+    for (const st of BAND_TEMPO) {
+      bandLauf[st.id] = (bandLauf[st.id] + st.tempo * simSekunden) % 1;
+      bandMaterialien.get(st.id).map.offset.y = bandLauf[st.id];
+    }
+  }
+  for (const t of spiel.baender.values()) {
+    if (t.typ !== "greifarm") continue;
+    const m = bandModelle.get(t.id);
+    if (m && m.arm) { m.arm.rotation.y = Math.PI - (t.winkel || 0); m.gruppe.updateMatrixWorld(true); }
+  }
+  zeichneBandItems();
+  zeichneSegmentRahmen();
+  zeichneStauSchilder(zeit);
+}
+
+// Hallenausbau: Boden, Sockel und Schatten mitwachsen lassen, Anzeige oben links erneuern
+spielEreignisse.addEventListener("halleGewachsen", () => {
+  passeHalleAn3d();
+  document.getElementById("hud-level").textContent = level.name;
+  document.getElementById("hud-masse").textContent = `${level.breite} × ${level.tiefe} Kacheln`;
+  begrenzeKameraZiel();
+  aktualisiereKamera();
+});
+
+/* ============================================================================
    ABSCHNITT 13: Baumenü, Info-, Lager- & Personal-Fenster (Phase 4) [UI/UX-Agent]
    Übersetzt Klicks und Tasten in Aufrufe der Logik (Abschnitt 11) und zeigt
    deren Zustand an. Zeichnet nur neu, wenn sich etwas geändert hat:
@@ -7168,6 +9002,8 @@ let insolvenzOffen = false;   // Phase 5: Spielende
 let dialogAktion = null;
 let vorschauErgebnis = null;  // Ergebnis von passtGebaeude für die Bau-Vorschau
 const anzeige = { struktur: -1, version: -1, timer: 0, infoStrukturFehlt: false };
+let auswahlBandId = null;     // Phase 6: Bandteil im Info-Fenster
+const zug = { start: null, ende: null, shift: false, plan: null };   // Phase 6: gerade gezogene Bandstrecke
 
 // Liste von Items als Zeilen: Name | Menge (| Soll). "markiere(id)" liefert einen Zusatztext (Phase 5).
 function itemZeilen(bestand, soll = null, markiere = null) {
@@ -7226,6 +9062,9 @@ function setzeWerkzeug(werkzeug) {
   for (const karte of ob.bauInhalt.querySelectorAll("[data-typ]")) {
     karte.setAttribute("aria-pressed", String(!!werkzeug && werkzeug.art === "bauen" && werkzeug.typ === karte.dataset.typ));
   }
+  for (const karte of ob.bauInhalt.querySelectorAll("[data-bandtyp]")) {   // Phase 6
+    karte.setAttribute("aria-pressed", String(!!werkzeug && werkzeug.art === "band" && werkzeug.typ === karte.dataset.bandtyp));
+  }
   aktualisiereVorschau();
   aktualisiereAbrissMarke();
 }
@@ -7235,6 +9074,12 @@ function waehleBauTyp(typ) {
 }
 function dreheWerkzeug() {
   const w = bau.werkzeug;
+  if (w && w.art === "band") {                     // Phase 6: Bandteile drehen in Vierteln
+    w.richtung = (w.richtung + 1) % 4;
+    bau.letzteDrehung.bandRichtung = w.richtung;
+    aktualisiereVorschau();
+    return;
+  }
   if (!w || !(w.art === "bauen" || (w.art === "verschieben" && w.id))) return;
   w.drehung = (w.drehung + 90) % 360;
   if (w.art === "bauen") bau.letzteDrehung[w.typ] = w.drehung;
@@ -7262,6 +9107,8 @@ function zeichneBauInhalt() {
   ob.bauWiederherstellen.hidden = !spiel.schnappschuss;
   ob.bauBereinigen.disabled = spiel.gebaeude.size === 0;
   if (bau.reiter === "personal") { zeichnePersonal(); return; }
+  if (bau.reiter === "baender") { zeichneBaender(); return; }   // Phase 6
+  if (bau.reiter === "halle") { zeichneHalle(); return; }       // Phase 6
   const kategorie = bau.reiter === "lager" ? "lager" : "station";
   ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet).map((t) => {
     const imDepot = spiel.depot.gebaeude[t.typ] || 0;
@@ -7290,6 +9137,7 @@ function personZustandText(p) {
     return `bringt ${was} ${a.art === "liefern" ? "zu" : "ins"} ${name(a.zielId)}`;
   }
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") return `bringt ${textVon(p.traegt)} zu ${name(a && a.zielId)}`;
+  if (!p.stationId && p.ohneAufgabe) return "ohne Aufgabe · wartet in der Pausenecke";   // Phase 6
   if (!p.stationId) return p.manuellFrei ? "ohne Station" : "sucht eine Station";
   const s = spiel.gebaeude.get(p.stationId);
   switch (p.phase) {
@@ -7305,7 +9153,7 @@ function sterneText(stufe) {
   return "★".repeat(stufe) + "☆".repeat(FORSCHUNG_WERTE.erfahrungsStufen.length - stufe);
 }
 function zeichnePersonal() {
-  const anzahl = mitarbeiter.length, max = PRODUKTION.maxMitarbeiter;
+  const anzahl = mitarbeiter.length, max = maxMitarbeiter();
   const zeilen = mitarbeiter.map((p) => {
     const station = p.stationId && spiel.gebaeude.get(p.stationId);
     const st = kurierStufe(p);
@@ -7324,10 +9172,11 @@ function zeichnePersonal() {
     }).join("") + `</div>`;
     return `<li data-id="${p.id}">
         <span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)} <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${Math.floor(p.ep || 0)} EP)">${sterneText(stufe)}</span></b>
-        <button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen">✕</button>
+        <button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>
         <small>${unter} · Lohn ${euro(lohnVon(p))}/Tag</small>
         <span class="personal-status" data-status-id="${p.id}">${htmlSicher(personZustandText(p))}</span>
         ${ausruestung}
+        ${p.rolle === "kurier" ? `<span class="personal-umschulen"><button class="mini-knopf" type="button" data-aktion="zuArbeiter" title="Wird Arbeiter an einer freien Station (Erfahrung bleibt)">→ Arbeiter</button></span>` : ""}
       </li>`;
   }).join("");
   ob.bauInhalt.innerHTML = `<div class="personal">
@@ -7336,6 +9185,9 @@ function zeichnePersonal() {
         <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="kurier" ${anzahl >= max ? "disabled" : ""}>+ Kurier · ${euro(einstellGebuehr("kurier"))}</button>
         <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="arbeiter" ${anzahl >= max ? "disabled" : ""}>+ Arbeiter · ${euro(einstellGebuehr("arbeiter"))}</button>
       </div>
+      <label class="personal-auto"><input type="checkbox" data-aktion="autoZuweisung" ${spiel.autoZuweisung ? "checked" : ""}>
+        Freie Arbeiter gehen selbst an freie Stationen</label>
+      ${ohneAufgabeHtml()}
       <ul class="personal-liste">${zeilen || `<li class="info-leer">Noch niemand eingestellt.</li>`}</ul>
     </div>`;
 }
@@ -7373,8 +9225,16 @@ function aktualisiereBauTipp() {
     } else {
       html = `${htmlSicher(gebaeudeName(g))}: an den neuen Platz klicken · <kbd>R</kbd> drehen · alter Platz oder <kbd>Esc</kbd>: abbrechen · Inhalt und Verknüpfungen bleiben`;
     }
+  } else if (w && w.art === "band") {                // Phase 6
+    ({ html, warnung = false } = bandTipp(w));
+  } else if (w && w.art === "abriss" && zug.start) {
+    ({ html, warnung = false } = bandTipp(w));
   } else if (w && w.art === "abriss") {
-    html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · <kbd>Esc</kbd> abbrechen";
+    html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · <kbd>Esc</kbd> abbrechen";
+  } else if (bau.reiter === "baender") {
+    html = "Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. <kbd>F</kbd> Fließband";
+  } else if (bau.reiter === "halle") {
+    html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
     html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
   } else {
@@ -7405,6 +9265,7 @@ function aktualisiereVorschau() {
   const umzug = bau.offen && w && w.art === "verschieben" && !eingaben3dGesperrt
     ? (verschiebt || gebaeudeUnter(hoverKachel)) : null;
   zeigeUmzugMarke(umzug || null);
+  aktualisiereBandVorschau();                       // Phase 6
   aktualisiereBauTipp();
 }
 function gebaeudeUnter(k) {
@@ -7432,6 +9293,7 @@ function behandleKachelKlick(k, shift) {
   }
   // 2. Bauen
   const w = bau.offen ? bau.werkzeug : null;
+  if (w && w.art === "band") { bandKlick(w, k, shift); return; }   // Phase 6: ein Bandteil legen
   if (w && w.art === "bauen") {
     const anker = ankerFuerMitte(w.typ, w.drehung, k);
     const ergebnis = baueGebaeude(w.typ, anker.x, anker.z, w.drehung);
@@ -7465,7 +9327,11 @@ function behandleKachelKlick(k, shift) {
   }
   // 3. Abreißen
   if (w && w.art === "abriss") {
-    if (!g) { zeigeMeldung("Hier steht kein Gebäude.", true); return; }
+    if (!g) {
+      if (bandAbrissKlick(k)) return;              // Phase 6: Bandteil abreißen
+      zeigeMeldung("Hier steht nichts zum Abreißen.", true);
+      return;
+    }
     const name = gebaeudeName(g);
     const inhalt = summe(g.bestand);
     reisseAb(g.id);
@@ -7475,6 +9341,9 @@ function behandleKachelKlick(k, shift) {
   }
   // 4. Gebäude angeklickt: Info-Fenster
   if (g) { setzeAuswahl(null); waehleGebaeude(g.id); return; }
+  // 4b. Bandteil angeklickt: Segment-Fenster (Phase 6)
+  const bandteil = bandteilAufKachel(k);
+  if (bandteil) { waehleBandteil(bandteil.id); return; }
   // 5. Freie Kachel: auswählen und (außerhalb des Bau-Modus) hinlaufen
   waehleGebaeude(null);
   setzeAuswahl(k);
@@ -7488,13 +9357,16 @@ ob.bauLeiste.addEventListener("click", (e) => {
   if (reiter) { bau.reiter = reiter.dataset.reiter; setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); return; }
   const karte = e.target.closest("[data-typ]");
   if (karte) { waehleBauTyp(karte.dataset.typ); aktualisiereBauTipp(); return; }
+  const bandKarte = e.target.closest("[data-bandtyp]");                         // Phase 6
+  if (bandKarte) { waehleBandTyp(bandKarte.dataset.bandtyp); aktualisiereBauTipp(); return; }
   const knopf = e.target.closest("[data-aktion]");
-  if (!knopf) return;
+  if (!knopf || knopf.tagName === "SELECT" || knopf.tagName === "INPUT") return;
+  if (personalAktion(knopf)) return;                                            // Phase 6
   if (knopf.dataset.aktion === "einstellen") {
     const rolle = knopf.dataset.rolle;
     const p = stelleEin(rolle);
     if (p) zeigeMeldung(`${p.name} ist jetzt ${MITARBEITER_ROLLEN[p.rolle].name} in der Halle (−${euro(einstellGebuehr(rolle))}).`);
-    else zeigeMeldung(mitarbeiter.length >= PRODUKTION.maxMitarbeiter ? "Die Halle ist voll besetzt." : geldGrund(einstellGebuehr(rolle)), true);
+    else zeigeMeldung(mitarbeiter.length >= maxMitarbeiter() ? "Die Halle ist voll besetzt – ein Hallenausbau schafft Platz für mehr." : geldGrund(einstellGebuehr(rolle)), true);
   } else if (knopf.dataset.aktion === "ausruestung") {
     const p = mitarbeiter.find((m) => m.id === knopf.closest("li").dataset.id);
     const stufe = Number(knopf.dataset.stufe);
@@ -7512,7 +9384,8 @@ ob.bauLeiste.addEventListener("click", (e) => {
       return;
     }
     const p = mitarbeiter.find((m) => m.id === knopf.closest("li").dataset.id);
-    if (p && entlasse(p.id)) zeigeMeldung(`${p.name} wurde entlassen.`);
+    const abfindung = p ? abfindungVon(p) : 0;
+    if (p && entlasse(p.id)) zeigeMeldung(`${p.name} wurde entlassen${abfindung ? ` (Abfindung −${euro(abfindung)})` : ""}.`);
   }
 });
 ob.bauAbriss.addEventListener("click", schalteAbriss);
@@ -7547,6 +9420,8 @@ function aufbauWiederherstellen() {
 
 /* --- Info-Fenster --- */
 function waehleGebaeude(id) {
+  auswahlBandId = null;                             // Phase 6
+  bandAuswahl.id = null;
   auswahlGebaeudeId = id && spiel.gebaeude.has(id) ? id : null;
   verknuepfModus = null;
   const g = auswahlGebaeudeId ? spiel.gebaeude.get(auswahlGebaeudeId) : null;
@@ -7643,7 +9518,9 @@ function zeichneInfo() {
         </select></label>
       </div>`;
   }
-  if (istStation(g)) {
+  if (istStation(g) && g.automatik) {               // Phase 6: läuft ohne Arbeiter
+    html += `<p class="info-ok">⚙ Läuft automatisch über Bänder – kein Arbeiter nötig.</p>`;
+  } else if (istStation(g)) {
     html += `<label class="info-feld">Arbeiter <select data-aktion="arbeiter">
         <option value="">– niemand –</option>
         ${mitarbeiter.filter((p) => p.rolle === "arbeiter").map((p) => {
@@ -7759,7 +9636,7 @@ function aktualisiereInfoZahlen() {
     const st = STATUS_ANZEIGE[art];
     const r = rezeptVon(g);
     html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
-    if (art === "arbeitet") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
+    if (art === "arbeitet" || art === "automatik") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
     // Worauf wartet der Arbeiter genau? (und ob das Hauptlager überhaupt etwas davon hat)
     const wartender = art === "wartetAufMaterial" && mitarbeiter.find((m) => m.id === g.arbeiterId);
     const quelle = wartender && wartender.auftrag && spiel.gebaeude.get(wartender.auftrag.quelleId);
@@ -7801,6 +9678,7 @@ function aktualisiereInfoZahlen() {
   } else if (t.art === "hauptlager") {
     html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3></div>${itemGruppen(g.bestand)}`;
   }
+  html += bandAnschlussHtml(g);                     // Phase 6
   setzeHtml(ziel, html);
 }
 // Schreibt HTML nur, wenn es sich geändert hat. Verglichen wird mit dem zuletzt
@@ -7812,6 +9690,10 @@ function setzeHtml(element, html) {
 }
 // Zwischen Drücken und Loslassen der Maus darf sich ein Knopf nicht austauschen (sonst geht der Klick verloren)
 let infoKlickSperre = 0;
+let bauKlickSperre = 0;      // Phase 6: dasselbe für das Baumenü
+ob.bauLeiste.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button, select, input")) bauKlickSperre = performance.now() + 400;
+});
 ob.info.addEventListener("pointerdown", (e) => {
   if (e.target.closest("button, select, input")) infoKlickSperre = performance.now() + 400;
 });
@@ -7919,6 +9801,9 @@ function zeichneLager() {
             ? `<button class="mini-knopf" type="button" data-aktion="depotVerkauf" data-typ="${typ}" title="Verkauft eine Maschine für ${Math.round(WIRTSCHAFT.depotVerkaufAnteil * 100)} % des Preises">Verkaufen +${euro(erloes)}</button>` : ""}</div></td></tr>`;
         }).join("")}</tbody></table>`
       : `<p class="info-leer">keine</p>`}</div>
+    ${Object.keys(spiel.depot.baender).length ? `<div class="info-block"><h3>Bandteile</h3>${`<dl class="info-zeilen zwei">` +
+      Object.entries(spiel.depot.baender).map(([typ, n]) => `<dt>${bandTypNach.get(typ)?.name || typ}</dt><dd>${n}</dd>`).join("") + `</dl>`}
+      <p class="info-leer">Werden beim nächsten Bau kostenlos verwendet.</p></div>` : ""}
     <div class="info-block"><h3>Items</h3></div>${itemGruppen(spiel.depot.items)}`;
   ob.lagerWiederherstellen.disabled = !spiel.schnappschuss;
   const statistik = `Produziert: ${spiel.statistik.produziert} · Ausschuss: ${spiel.statistik.ausschuss} · Verkauft: ${spiel.statistik.verkauft}`;
@@ -8257,7 +10142,7 @@ function kontorKassenbuch() {
   const zeilen = arten.map((art) => `<tr><td>${KASSEN_ARTEN[art]}</td>${tage.map((t) => zelle(t, art)).join("")}</tr>`).join("");
   const bilanz = tage.map((t) => { const b = tagesBilanz(t); return `<td class="zahl ${b > 0 ? "plus" : b < 0 ? "minus" : ""}">${vorzeichenEuro(b)}</td>`; }).join("");
   const rest = WIRTSCHAFT.tagSekunden - (spiel.zeit % WIRTSCHAFT.tagSekunden);
-  return `<p class="kontor-hinweis">Tagesabschluss um ${WIRTSCHAFT.tagEnde}:00 Uhr (in ${dauerText(rest)}): Löhne ${euro(lohnSumme())} und Miete ${euro(WIRTSCHAFT.miete)}.
+  return `<p class="kontor-hinweis">Tagesabschluss um ${WIRTSCHAFT.tagEnde}:00 Uhr (in ${dauerText(rest)}): Löhne ${euro(lohnSumme())}, Miete ${euro(aktuelleMiete())}${bandLaufkosten() ? ` und Laufkosten der Bänder ${euro(bandLaufkosten())}` : ""}.
       Ist das Konto im Minus, bleiben ${WIRTSCHAFT.bankrottTage} Tage bis zur Insolvenz; Bauen, Einkauf und Forschung sind dann gesperrt.</p>
     ${tage.length ? `<div class="kontor-tabelle-huelle"><table class="kontor-tabelle">
       <thead><tr><th>Buchung</th>${kopf}</tr></thead>
@@ -8339,11 +10224,14 @@ function zeichneForschung() {
     ? `Forschungsstationen: ${stationen.length} (${besetzt} besetzt) · bisher ${spiel.statistik.zerlegt} Teile zerlegt. Was zerlegt wird, stellst du im Info-Fenster der Station ein.`
     : "Noch keine Forschungsstation: Baumenü (B) → Stationen. Sie zerlegt Bauteile und Produkte in Forschungspunkte.");
 
-  const zustaende = FORSCHUNG.map((e) => forschungsZustand(e));
-  const merker = zustaende.join() + "|" + spiel.fp + "|" + (spiel.konto < 0);
+  // Phase 6: ein Reiter pro Baum
+  const eintraege = FORSCHUNG.filter((e) => e.baum === forschungBaum.id);
+  const zustaende = eintraege.map((e) => forschungsZustand(e));
+  const merker = forschungBaum.id + "|" + zustaende.join() + "|" + spiel.fp + "|" + (spiel.konto < 0);
   if (merker === forschungMerker) return;
   forschungMerker = merker;
-  const knoten = FORSCHUNG.map((e, i) => {
+  setzeText(ob.forschungTitel, `Forschung · Techtree ${FORSCHUNG_BAEUME.find((b) => b.id === forschungBaum.id)?.name || ""}`);
+  const knoten = eintraege.map((e, i) => {
     const zustand = zustaende[i];
     const kosten = `${e.kosten.fp} FP${e.kosten.geld ? ` · ${euro(e.kosten.geld)}` : ""}`;
     const fehlt = e.braucht.filter((b) => !istErforscht(b)).map((b) => FORSCHUNG.find((x) => x.id === b).name);
@@ -8369,7 +10257,7 @@ function zeichneTechtreeLinien() {
   const basis = ob.techtree.getBoundingClientRect();
   const rechteck = (id) => ob.techtree.querySelector(`[data-id="${id}"]`)?.getBoundingClientRect();
   let linien = "";
-  for (const e of FORSCHUNG) {
+  for (const e of FORSCHUNG.filter((x) => x.baum === forschungBaum.id)) {
     const ziel = rechteck(e.id);
     for (const b of e.braucht) {
       const von = rechteck(b);
@@ -8496,6 +10384,7 @@ window.addEventListener("keydown", (e) => {
     case "t": erledigt(); oeffneForschung(); break;
     case "m": erledigt(); schalteVerschieben(); aktualisiereBauTipp(); break;
     case "x": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
+    case "f": erledigt(); schalteBandWerkzeug(); break;   // Phase 6: Fließband
     case "r": if (bau.offen && bau.werkzeug) { erledigt(); dreheWerkzeug(); } break;
     case "p": erledigt(); schaltePauseUm(); break;
     case "1": case "2": case "3": erledigt(); setzeTempo(Number(taste)); break;
@@ -8523,7 +10412,10 @@ function aktualisiereOberflaeche(sekunden) {
   if (anzeige.timer > 0) return;
   anzeige.timer = 0.25;
 
-  if (anzeige.struktur !== spiel.strukturVersion) {
+  // Phase 6: Baumenü nicht austauschen, während dort geklickt wird oder ein Auswahlfeld offen ist
+  const bauBeschaeftigt = performance.now() < bauKlickSperre ||
+    (document.activeElement instanceof HTMLSelectElement && ob.bauLeiste.contains(document.activeElement));
+  if (anzeige.struktur !== spiel.strukturVersion && !(bau.offen && bauBeschaeftigt)) {
     anzeige.struktur = spiel.strukturVersion;
     if (bau.offen) zeichneBauInhalt();
     if (auswahlGebaeudeId) {
@@ -8531,8 +10423,16 @@ function aktualisiereOberflaeche(sekunden) {
       zeigeGebaeudeAuswahl(g);                         // Verknüpfungslinien können sich geändert haben
       anzeige.infoStrukturFehlt = true;
     }
+    if (auswahlBandId) anzeige.infoStrukturFehlt = true;   // Phase 6
     if (lagerOffen) zeichneLager();
   }
+  // Phase 6: Bandteil im Info-Fenster (nicht neu bauen, solange ein Feld darin den Fokus hat)
+  const feldImInfo = (document.activeElement instanceof HTMLSelectElement || document.activeElement instanceof HTMLInputElement) && ob.info.contains(document.activeElement);
+  if (auswahlBandId) {
+    if (anzeige.infoStrukturFehlt && !feldImInfo) zeichneBandInfo();
+    if (auswahlBandId) aktualisiereBandInfoZahlen();
+  }
+  aktualisiereFreiChip();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
   if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !(document.activeElement instanceof HTMLSelectElement && ob.info.contains(document.activeElement))) {
     zeichneInfo();
@@ -8555,6 +10455,550 @@ function aktualisiereOberflaeche(sekunden) {
 }
 
 /* ============================================================================
+   ABSCHNITT 13c: Bänder, Segment-Fenster, Personalumbau & Hallenausbau (Phase 6) [UI/UX-Agent]
+   Baumenü-Reiter "Bänder" und "Halle", das Band-Werkzeug (Ziehen in L-Form, Brücken,
+   Abriss durch Ziehen), das Info-Fenster für Bandteile und die Knöpfe für freie Arbeiter.
+   ============================================================================ */
+const forschungBaum = { id: "kurier" };   // gewählter Reiter im Techtree
+Object.assign(ob, {
+  hudFrei: $("hud-frei"),
+  forschungReiter: $("forschung-reiter"), forschungTitel: $("forschung-titel"),
+});
+
+// Alle Items, die man in Filtern wählen kann (Rohstoffe, Bauteile, bekannte Produkte)
+function alleItems() {
+  return [...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()];
+}
+function itemOptionen(gewaehlt, leerText) {
+  return `<option value="">${leerText}</option>` + alleItems().map((item) =>
+    `<option value="${htmlSicher(item)}" ${gewaehlt === item ? "selected" : ""}>${htmlSicher(itemInfo(item).name)}</option>`).join("");
+}
+const RICHTUNGS_PFEIL = ["↓", "←", "↑", "→"];   // so sieht die Richtung aus der Startansicht ungefähr aus
+
+/* --- Baumenü: Reiter "Bänder" --- */
+function zeichneBaender() {
+  const karten = BAND_TEILE.filter((t) => t.imMenue).map((t) => {
+    const gewaehlt = bau.werkzeug && bau.werkzeug.art === "band" && bau.werkzeug.typ === t.typ;
+    const imDepot = spiel.depot.baender[t.typ] || 0;
+    let preis;
+    if (t.typ === "bruecke") {
+      const p = ["rampeHoch", "hochband", "rampeRunter"].map((x) => bandTypNach.get(x).preis);
+      preis = `<small class="bau-preis">${euro(p[0] + p[2])} + ${euro(p[1])}/Kachel</small>`;
+    } else {
+      preis = imDepot ? `<small class="bau-depot">im Depot: ${imDepot} · kostenlos</small>`
+        : `<small class="${kannBezahlen(t.preis) ? "bau-preis" : "bau-teuer"}">${euro(t.preis)}${t.typ === "band" ? " pro Kachel" : ""}</small>`;
+    }
+    const unter = t.typ === "band" ? "ziehen · Kurven automatisch" : t.typ === "bruecke" ? "gerade ziehen · mind. 3 Kacheln"
+      : t.typ === "greifarm" ? `1 × 1 · ${bandTypNach.get("greifarm").tagesKosten} €/Tag` : t.begehbar ? "1 × 1 · begehbar" : "1 × 1 · nicht begehbar";
+    return `<button class="bau-karte" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}" title="${htmlSicher(t.beschreibung)}">
+        <span class="bau-symbol" aria-hidden="true">${t.symbol}</span>
+        <span><b>${t.name}</b><small>${unter}</small>${preis}</span></button>`;
+  }).join("");
+  const kosten = bandLaufkosten();
+  ob.bauInhalt.innerHTML = karten + `<div class="band-kosten"><b>${spiel.baender.size}</b> Bandteile<br>
+    <small>Laufkosten ${euro(kosten)}/Tag</small></div>`;
+}
+
+/* --- Baumenü: Reiter "Halle" --- */
+function zeichneHalle() {
+  const jetzt = halleStufe(), naechste = naechsteHallenStufe();
+  const zeilen = HALLE_STUFEN.map((st, i) => {
+    const klasse = i === spiel.halleStufe ? "du" : "";
+    const status = i < spiel.halleStufe ? "✓" : i === spiel.halleStufe ? "jetzt" : euro(st.preis);
+    return `<tr class="${klasse}"><td>${st.name}</td><td class="zahl">${level.breite} × ${st.tiefe}</td>
+      <td class="zahl">${euro(st.miete)}/Tag</td><td class="zahl">${st.maxMitarbeiter}</td><td class="zahl">${status}</td></tr>`;
+  }).join("");
+  ob.bauInhalt.innerHTML = `<div class="halle-ausbau">
+      <div class="halle-jetzt">
+        <b>${jetzt.name} · ${level.breite} × ${level.tiefe} Kacheln</b>
+        <small>Miete ${euro(aktuelleMiete())}/Tag · bis ${maxMitarbeiter()} Mitarbeiter</small>
+        ${naechste ? `<button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="ausbauen" ${kannBezahlen(naechste.preis) ? "" : "disabled"}
+            title="Die Halle wächst nach vorn um ${naechste.tiefe - level.tiefe} Reihen. Alles Gebaute bleibt stehen.">
+            Ausbauen zu ${naechste.name} (${level.breite} × ${naechste.tiefe}) · ${euro(naechste.preis)}</button>
+          <small>danach Miete ${euro(naechste.miete)}/Tag · bis ${naechste.maxMitarbeiter} Mitarbeiter</small>`
+          : `<small>Die Halle hat ihre größte Ausbaustufe erreicht.</small>`}
+      </div>
+      <table class="kontor-tabelle halle-tabelle"><thead><tr><th>Stufe</th><th class="zahl">Größe</th><th class="zahl">Miete</th>
+        <th class="zahl">Personal</th><th class="zahl">Preis</th></tr></thead><tbody>${zeilen}</tbody></table>
+    </div>`;
+}
+
+/* --- Band-Werkzeug --- */
+function waehleBandTyp(typ) {
+  if (bau.werkzeug && bau.werkzeug.art === "band" && bau.werkzeug.typ === typ) { setzeWerkzeug(null); return; }
+  setzeWerkzeug({ art: "band", typ, richtung: bau.letzteDrehung["band:" + typ] ?? bau.letzteDrehung.bandRichtung ?? 0 });
+}
+// Taste F: Baumenü auf "Bänder" und Fließband in die Hand (nochmal F: weglegen)
+function schalteBandWerkzeug() {
+  if (!bau.offen) oeffneBau();
+  if (bau.reiter !== "baender") { bau.reiter = "baender"; zeichneBauInhalt(); }
+  waehleBandTyp("band");
+  aktualisiereBauTipp();
+}
+// Ist ein Werkzeug aktiv, mit dem man über mehrere Kacheln zieht? (Abschnitt 6 fragt das ab)
+function ziehWerkzeugAktiv() {
+  const w = bau.offen && !eingaben3dGesperrt ? bau.werkzeug : null;
+  if (!w) return false;
+  if (w.art === "abriss") return true;
+  return w.art === "band" && !!bandTypNach.get(w.typ).ziehen;
+}
+// Strecke in L-Form von "start" nach "ende": erst entlang x, dann entlang z (Shift: umgekehrt).
+// Jede Kachel zeigt zur nächsten; die letzte behält die Richtung des letzten Schritts.
+function bandStrecke(start, ende, zuerstZ = false) {
+  const kacheln = [{ x: start.x, z: start.z }];
+  const gehe = (achse, ziel) => {
+    let k = kacheln[kacheln.length - 1];
+    while (k[achse] !== ziel) {
+      k = { ...k, [achse]: k[achse] + Math.sign(ziel - k[achse]) };
+      kacheln.push(k);
+    }
+  };
+  if (zuerstZ) { gehe("z", ende.z); gehe("x", ende.x); } else { gehe("x", ende.x); gehe("z", ende.z); }
+  let richtung = bau.werkzeug && bau.werkzeug.richtung !== undefined ? bau.werkzeug.richtung : 0;
+  return kacheln.map((k, i) => {
+    const n = kacheln[i + 1];
+    if (n) richtung = richtungVonVektor(n.x - k.x, n.z - k.z);
+    return { x: k.x, z: k.z, richtung };
+  });
+}
+// Rechteck zwischen zwei Kacheln (Abriss durch Ziehen)
+function kachelnImRechteck(a, b) {
+  const liste = [];
+  for (let x = Math.min(a.x, b.x); x <= Math.max(a.x, b.x); x++) {
+    for (let z = Math.min(a.z, b.z); z <= Math.max(a.z, b.z); z++) liste.push({ x, z });
+  }
+  return liste;
+}
+function bandteileImRechteck(a, b) {
+  const ids = new Set();
+  for (const k of kachelnImRechteck(a, b)) {
+    const kachel = holeKachel(k.x, k.z);
+    if (!kachel) continue;
+    if (kachel.band) ids.add(kachel.band);
+    if (kachel.hochband) ids.add(kachel.hochband);
+  }
+  // Brücken immer ganz
+  const brueckenIds = new Set([...ids].map((id) => spiel.baender.get(id)?.bruecke).filter(Boolean));
+  for (const t of spiel.baender.values()) if (t.bruecke && brueckenIds.has(t.bruecke)) ids.add(t.id);
+  return [...ids].map((id) => spiel.baender.get(id)).filter(Boolean);
+}
+
+// Planung des aktuellen Zugs: { liste (für die 3D-Vorschau), passt, gruende, kosten, text }
+function planeZug() {
+  const w = bau.werkzeug;
+  if (!w || !zug.start) return null;
+  const ende = zug.ende || zug.start;
+  if (w.art === "abriss") {
+    const teile = bandteileImRechteck(zug.start, ende);
+    const liste = teile.map((t) => ({ x: t.x, z: t.z, typ: t.typ, abriss: true }));
+    if (!teile.length) for (const k of kachelnImRechteck(zug.start, ende)) liste.push({ x: k.x, z: k.z, abriss: true });
+    return { liste, passt: teile.length > 0, gruende: teile.length ? [] : ["Hier liegen keine Bänder."], anzahl: teile.length };
+  }
+  if (w.typ === "bruecke") {
+    const plan = planeBruecke(zug.start, ende);
+    return { liste: plan.teile.map((t, i) => ({ ...t, passt: !plan.fehler.includes(i) && plan.passt })), passt: plan.passt, gruende: plan.gruende, kosten: plan.kosten, anzahl: plan.teile.length };
+  }
+  const strecke = bandStrecke(zug.start, ende, zug.shift);
+  const p = pruefeBandStrecke(strecke, w.typ);
+  return { liste: strecke.map((k, i) => ({ ...k, typ: w.typ, passt: !p.fehler.includes(i) })), passt: p.passt, gruende: p.gruende, kosten: p.kosten, anzahl: strecke.length, strecke };
+}
+
+// Wird von Abschnitt 6 beim Ziehen aufgerufen: phase = "start" | "bewegt" | "ende" | "abbruch"
+function ziehen(phase, k, shift) {
+  const w = bau.werkzeug;
+  if (phase === "abbruch" || !w) { zug.start = null; zug.ende = null; zug.plan = null; aktualisiereBandVorschau(); return; }
+  if (phase === "start") { zug.start = k; zug.ende = k; }
+  else if (k) zug.ende = k;
+  zug.shift = shift;
+  if (phase !== "ende") {
+    zug.plan = planeZug();
+    aktualisiereBandVorschau();
+    aktualisiereBauTipp();
+    return;
+  }
+  const start = zug.start, ende = zug.ende || start;
+  const plan = planeZug();
+  zug.start = null; zug.ende = null; zug.plan = null;
+  if (!start) { aktualisiereBandVorschau(); return; }
+  // Nur eine Kachel: wie ein normaler Klick (ein Teil legen, Gebäude oder Band abreißen)
+  if (start.x === ende.x && start.z === ende.z && !(w.art === "band" && w.typ === "bruecke")) {
+    behandleKachelKlick(start, shift);
+    aktualisiereBandVorschau();
+    return;
+  }
+  if (w.art === "abriss") {
+    const teile = plan ? bandteileImRechteck(start, ende) : [];
+    if (!teile.length) zeigeMeldung("Hier liegen keine Bänder. (Gebäude reißt du mit einem Klick ab.)", true);
+    else {
+      const geld = teile.filter((t) => !t.ausDepot).reduce((s, t) => s + bandTyp(t).preis, 0);
+      for (const t of teile) if (spiel.baender.has(t.id)) entferneBandteil(t.id);
+      planeLaufendeNeu();
+      meldeStruktur();
+      zeigeMeldung(`${teile.length} Bandteile abgerissen${geld ? ` (+${euro(geld)} erstattet)` : ""}.`);
+    }
+  } else if (w.typ === "bruecke") {
+    const r = baueBruecke(start, ende);
+    if (!r.ok) zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true);
+    else zeigeMeldung(`Brücke gebaut: ${r.laenge} Kacheln (−${euro(r.kosten)}). Darunter ist Platz für Bänder und Wege.`);
+  } else {
+    const r = baueBandStrecke(plan.strecke, w.typ);
+    if (!r.ok) zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true);
+    else {
+      const letzte = plan.strecke[plan.strecke.length - 1];
+      w.richtung = letzte.richtung;
+      bau.letzteDrehung.bandRichtung = letzte.richtung;
+      zeigeMeldung(`${r.gebaut} × ${bandTypNach.get(w.typ).name} gelegt${r.kosten ? ` (−${euro(r.kosten)})` : ""}.`);
+    }
+  }
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+}
+
+// Vorschau: beim Ziehen die ganze Strecke, sonst das Teil unter der Maus (bzw. rote Abriss-Markierung)
+let bandVorschauGrund = "";
+function aktualisiereBandVorschau() {
+  const w = bau.offen && !eingaben3dGesperrt ? bau.werkzeug : null;
+  bandVorschauGrund = "";
+  if (!w || (w.art !== "band" && w.art !== "abriss")) { zeigeBandVorschau(null); return; }
+  if (zug.start && zug.plan) {
+    zeigeBandVorschau(zug.plan.liste);
+    bandVorschauGrund = zug.plan.passt ? "" : zug.plan.gruende[0] || "";
+    return;
+  }
+  const k = hoverKachel;
+  if (!k) { zeigeBandVorschau(null); return; }
+  if (w.art === "abriss") {
+    const t = bandteilAufKachel(k);
+    zeigeBandVorschau(t && !gebaeudeUnter(k) ? [{ x: t.x, z: t.z, typ: t.typ, abriss: true }] : null);
+    return;
+  }
+  if (w.typ === "bruecke") { zeigeBandVorschau([{ x: k.x, z: k.z, typ: "rampeHoch", richtung: null, passt: true }]); return; }
+  const p = pruefeBandteil(w.typ, k.x, k.z, w.richtung, { ersetzen: w.typ === "band" || w.typ === "uebergang" });
+  bandVorschauGrund = p.passt ? "" : p.gruende[0];
+  zeigeBandVorschau([{ x: k.x, z: k.z, typ: w.typ, richtung: w.richtung, passt: p.passt }]);
+}
+
+// Bau-Tipp für das Band-Werkzeug (aus aktualisiereBauTipp)
+function bandTipp(w) {
+  if (zug.start && zug.plan) {
+    const p = zug.plan;
+    if (w.art === "abriss") return p.anzahl ? { html: `Loslassen reißt ${p.anzahl} Bandteile ab.` } : { html: "Hier liegen keine Bänder.", warnung: true };
+    if (!p.passt) return { html: `Hier geht das nicht: ${htmlSicher(p.gruende[0] || "")}`, warnung: true };
+    return { html: `${p.anzahl} Kacheln · ${p.kosten ? euro(p.kosten) : "kostenlos"} · Loslassen zum Bauen${w.typ === "bruecke" ? "" : " · <kbd>Shift</kbd> Ecke tauschen"}` };
+  }
+  const t = bandTypNach.get(w.typ);
+  if (bandVorschauGrund) return { html: `Hier geht das nicht: ${htmlSicher(bandVorschauGrund)}`, warnung: true };
+  if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): ziehen legt eine Strecke, Klick ein Stück · Richtung ${RICHTUNGS_PFEIL[w.richtung]} <kbd>R</kbd> drehen · <kbd>Esc</kbd> fertig` };
+  if (w.typ === "bruecke") return { html: "Brücke: gerade von der Auffahrt zur Abfahrt ziehen (mind. 3 Kacheln). Darunter bleibt Platz für Bänder und Wege." };
+  const kosten = bandteilPreis(w.typ);
+  return { html: `${t.name} (${kosten ? euro(kosten) : "aus dem Depot"}): Klicken zum Aufstellen · Richtung ${RICHTUNGS_PFEIL[w.richtung]} <kbd>R</kbd> drehen · <kbd>Esc</kbd> fertig` };
+}
+
+// Ein einzelnes Teil legen (Klick mit dem Band-Werkzeug)
+function bandKlick(w, k, shift) {
+  if (w.typ === "bruecke") { zeigeMeldung("Eine Brücke ziehst du mit gedrückter Maustaste (mindestens 3 Kacheln).", true); return; }
+  const r = baueBandteil(w.typ, k.x, k.z, w.richtung);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
+  const t = bandTypNach.get(w.typ);
+  zeigeMeldung(r.kosten ? `${t.name} gebaut (−${euro(r.kosten)}).` : `${t.name} gelegt.`);
+  if (!shift && w.typ !== "band" && w.typ !== "uebergang") setzeWerkzeug(null);
+  aktualisiereBandVorschau();
+}
+// Ein Bandteil abreißen (Klick mit dem Abriss-Werkzeug)
+function bandAbrissKlick(k) {
+  const t = bandteilAufKachel(k);
+  if (!t) return false;
+  reisseBandAb(t);
+  return true;
+}
+function reisseBandAb(t) {
+  const name = t.bruecke ? "Brücke" : bandTyp(t).name;
+  const geld = t.bruecke ? [...spiel.baender.values()].filter((b) => b.bruecke === t.bruecke && !b.ausDepot).reduce((s, b) => s + bandTyp(b).preis, 0)
+    : (t.ausDepot ? 0 : bandTyp(t).preis);
+  reisseBandteilAb(t.id);
+  zeigeMeldung(`${name} abgerissen${geld ? ` (+${euro(geld)} erstattet)` : ""}.`);
+  aktualisiereBandVorschau();
+}
+
+/* --- Info-Fenster für Bandteile --- */
+function waehleBandteil(id) {
+  waehleGebaeude(null);
+  setzeAuswahl(null);
+  const t = spiel.baender.get(id);
+  if (!t) return;
+  auswahlBandId = id;
+  bandAuswahl.id = id;
+  ob.info.hidden = false;
+  zeichneBandInfo();
+}
+function bandInfoKnopf(aktion, text, extra = "", klasse = "lz-knopf") {
+  return `<button class="${klasse}" type="button" data-band-aktion="${aktion}" ${extra}>${text}</button>`;
+}
+function zeichneBandInfo() {
+  const t = spiel.baender.get(auswahlBandId);
+  if (!t) { waehleGebaeude(null); return; }
+  if (bandTopologieAlt) baueBandTopologie();
+  const typ = bandTyp(t);
+  const seg = segmentVon(t);
+  ob.infoTitel.textContent = seg ? `${t.name} · ${typ.name}` : typ.name;
+  ob.infoUnter.textContent = typ.beschreibung;
+  let html = "";
+  if (seg) {
+    const anfang = seg.teile[0];
+    html += `<div class="info-block"><h3>Tempo des Segments</h3><div class="tempo-wahl" role="group" aria-label="Tempo">` +
+      BAND_TEMPO.map((st) => {
+        const frei = tempoFreigeschaltet(st.id);
+        return `<button type="button" data-band-aktion="tempo" data-tempo-id="${st.id}" aria-pressed="${t.tempo === st.id}" ${frei ? "" : "disabled"}
+          title="${frei ? `${st.tempo} Kacheln/s · ${st.tagesKosten} € pro Kachel und Tag` : "Noch nicht erforscht (Techtree → Automatisierung)"}">${frei ? "" : "🔒 "}${st.name}</button>`;
+      }).join("") + `</div></div>`;
+    html += `<label class="info-feld">Name <span class="band-name"><input type="text" maxlength="30" value="${htmlSicher(t.name)}" data-band-aktion="name">
+      ${bandInfoKnopf("umbenennen", "OK", "", "mini-knopf")}</span></label>`;
+    // Ablauf am Anfang des Segments: welche Items darf das Gebäude auf das Band legen?
+    const quelle = anfang.ablaufVon && spiel.gebaeude.get(anfang.ablaufVon);
+    if (quelle) {
+      const art = typVon(quelle).art;
+      const items = istStation(quelle) ? [rezeptVon(quelle)?.ausgabe].filter(Boolean)
+        : [...new Set([...Object.keys(quelle.bestand), ...(art === "hauptlager" ? ROHSTOFFE.map((r) => r.id) : Object.keys(quelle.regeln))])];
+      html += `<div class="info-block"><h3>Ablauf von ${htmlSicher(gebaeudeName(quelle))}</h3>
+        <p class="modus-text">${art === "hauptlager" ? "Das Hauptlager legt nur die markierten Items auf das Band (reihum)."
+          : "Ohne Markierung kommt alles aufs Band, was das Gebäude abgibt; mit Markierung nur diese Items."}</p>
+        <div class="filter-liste">${items.length ? items.map((item) => `<button type="button" class="filter-knopf" data-band-aktion="ablauf" data-teil="${anfang.id}" data-item="${htmlSicher(item)}"
+          aria-pressed="${anfang.ablaufFilter.includes(item)}" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</button>`).join("")
+          : `<span class="leise">Noch nichts zum Abgeben.</span>`}</div></div>`;
+    }
+  }
+  if (t.typ === "splitter") {
+    html += `<div class="info-block"><h3>Verteilung</h3><div class="modus-wahl zwei" role="group">
+        ${bandInfoKnopf("modus", "Reihum", `data-wert="reihum" aria-pressed="${t.modus === "reihum"}"`, "")}
+        ${bandInfoKnopf("modus", "Sortieren", `data-wert="sortieren" aria-pressed="${t.modus === "sortieren"}"`, "")}</div>
+        <p class="modus-text">${t.modus === "sortieren" ? "Jeder Ausgang nimmt nur sein Item; ein Ausgang ohne Filter nimmt alles andere." : "Items gehen abwechselnd nach links, vorn und rechts (wo ein Band oder Gebäude anschließt)."}</p>
+        ${t.modus === "sortieren" ? ["links", "vorn", "rechts"].map((seite) => `<label class="info-feld">${SEITEN_NAMEN[seite]}
+          <select data-band-aktion="filter" data-seite="${seite}">${itemOptionen(t.filter[seite] || "", "– alles andere –")}</select></label>`).join("") : ""}
+      </div>`;
+  } else if (t.typ === "zusammen") {
+    html += `<label class="info-feld">Vorrang <select data-band-aktion="vorrang">
+        ${[["", "– reihum –"], ["links", "links"], ["hinten", "hinten"], ["rechts", "rechts"]].map(([wert, text]) =>
+          `<option value="${wert}" ${(t.vorrang || "") === wert ? "selected" : ""}>${text}</option>`).join("")}
+      </select></label>`;
+  } else if (t.typ === "greifarm") {
+    html += `<label class="info-feld">Nur dieses Item <select data-band-aktion="armFilter">${itemOptionen(t.armFilter || "", "– alles, was das Ziel braucht –")}</select></label>`;
+  }
+  html += `<div id="band-zahlen"></div><div class="info-knoepfe">`;
+  if (seg) html += bandInfoKnopf("umkehren", "Richtung umkehren");
+  if (!typ.spur) html += bandInfoKnopf("drehen", "Drehen ↻");
+  html += bandInfoKnopf("abreissen", t.bruecke ? "Brücke abreißen" : "Abreißen", "", "lz-knopf bau-gefahr") + `</div>`;
+  ob.infoInhalt.innerHTML = html;
+  anzeige.infoStrukturFehlt = false;
+  aktualisiereBandInfoZahlen();
+}
+function aktualisiereBandInfoZahlen() {
+  const ziel = $("band-zahlen");
+  const t = spiel.baender.get(auswahlBandId);
+  if (!ziel || !t) return;
+  if (performance.now() < infoKlickSperre) return;
+  const seg = segmentVon(t);
+  let html = "";
+  if (seg) {
+    const info = segmentInfo(seg);
+    html += `<div class="info-block"><h3>Segment</h3><dl class="info-zeilen zwei">
+      <dt>Länge</dt><dd>${info.laenge} Kacheln</dd>
+      <dt>Items darauf</dt><dd>${info.items}</dd>
+      <dt>Von</dt><dd>${htmlSicher(info.von)}</dd>
+      <dt>Nach</dt><dd>${htmlSicher(info.nach)}</dd>
+      <dt>Laufkosten</dt><dd>${euro(info.kostenTag)}/Tag</dd></dl>
+      ${info.stau ? `<p class="info-warnung">⚠ Stau seit ${Math.round(info.stauSeit)} s: ${htmlSicher(info.stauGrund)}</p>` : ""}</div>`;
+  } else if (t.typ === "greifarm") {
+    const name = (z) => !z ? "nichts" : z.art === "band" ? (z.teil.name || bandTyp(z.teil).name) : gebaeudeName(z.g);
+    const q = armQuelle(t), z = armZiel(t);
+    html += `<div class="info-block"><h3>Greifarm</h3><dl class="info-zeilen zwei">
+      <dt>Nimmt von</dt><dd>${htmlSicher(name(q))}</dd><dt>Legt auf</dt><dd>${htmlSicher(name(z))}</dd>
+      <dt>Hält</dt><dd>${t.haelt ? htmlSicher(itemInfo(t.haelt).name) : "–"}</dd></dl>
+      ${!q || !z ? `<p class="info-warnung">⚠ Hinter und vor dem Arm muss ein Band oder Gebäude stehen.</p>` : ""}
+      ${q && z && q.art === "gebaeude" && typVon(q.g).art === "hauptlager" && z.art === "band" && !t.armFilter ? `<p class="info-warnung">⚠ Vom Hauptlager auf ein Band nur mit Item-Filter.</p>` : ""}
+      ${t.wartet > 3 ? `<p class="info-warnung">⚠ Das Ziel nimmt gerade nichts an.</p>` : ""}</div>`;
+  } else {
+    const items = t.items ? t.items.length : 0;
+    const anschluesse = t.typ === "splitter" ? t.ausgaenge.map((a) => SEITEN_NAMEN[a.seite]).join(", ") || "keine" : null;
+    html += `<div class="info-block"><dl class="info-zeilen zwei"><dt>Items darin</dt><dd>${items}</dd>
+      ${anschluesse !== null ? `<dt>Ausgänge</dt><dd>${anschluesse}</dd>` : ""}
+      <dt>Laufkosten</dt><dd>${euro(bandTyp(t).tagesKosten || 0)}/Tag</dd></dl>
+      ${t.stau >= BAENDER.stauWarnung ? `<p class="info-warnung">⚠ Stau: kein Ausgang nimmt gerade etwas an.</p>` : ""}</div>`;
+  }
+  setzeHtml(ziel, html);
+}
+ob.infoInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-band-aktion]");
+  const t = spiel.baender.get(auswahlBandId);
+  if (!knopf || !t) return;
+  switch (knopf.dataset.bandAktion) {
+    case "tempo": {
+      const r = setzeSegmentTempo(t.id, knopf.dataset.tempoId);
+      if (!r.ok) zeigeMeldung(r.grund, true);
+      break;
+    }
+    case "umbenennen": {
+      const feld = ob.infoInhalt.querySelector("input[data-band-aktion='name']");
+      if (feld && benenneSegmentUm(t.id, feld.value)) zeigeMeldung(`Segment heißt jetzt „${feld.value.trim().slice(0, 30)}“.`);
+      break;
+    }
+    case "ablauf": setzeBandEinstellung(knopf.dataset.teil, "ablaufFilter", knopf.dataset.item); break;
+    case "modus": setzeBandEinstellung(t.id, "modus", knopf.dataset.wert); break;
+    case "umkehren":
+      if (dreheSegmentUm(t.id)) zeigeMeldung(`${t.name} läuft jetzt andersherum.`);
+      else zeigeMeldung("Dieses Segment lässt sich nicht umkehren.", true);
+      break;
+    case "drehen": setzeBandEinstellung(t.id, "drehen"); break;
+    case "abreissen": {
+      reisseBandAb(t);
+      waehleGebaeude(null);
+      return;
+    }
+  }
+  if (spiel.baender.has(auswahlBandId)) zeichneBandInfo();   // Knöpfe sofort im neuen Zustand zeigen
+});
+ob.infoInhalt.addEventListener("change", (e) => {
+  const feld = e.target;
+  const t = spiel.baender.get(auswahlBandId);
+  if (!t || !feld.dataset.bandAktion) return;
+  if (feld.dataset.bandAktion === "filter") setzeBandEinstellung(t.id, "filter." + feld.dataset.seite, feld.value);
+  else if (feld.dataset.bandAktion === "vorrang") setzeBandEinstellung(t.id, "vorrang", feld.value);
+  else if (feld.dataset.bandAktion === "armFilter") setzeBandEinstellung(t.id, "armFilter", feld.value);
+  if (feld instanceof HTMLSelectElement) feld.blur();
+});
+ob.infoInhalt.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.dataset.bandAktion === "name") {
+    const t = spiel.baender.get(auswahlBandId);
+    if (t && benenneSegmentUm(t.id, e.target.value)) zeigeMeldung(`Segment heißt jetzt „${e.target.value.trim().slice(0, 30)}“.`);
+    e.target.blur();
+  }
+});
+
+// Bandanschlüsse und Automatik im Info-Fenster eines Gebäudes (aus aktualisiereInfoZahlen)
+function bandAnschlussHtml(g) {
+  if (bandTopologieAlt) baueBandTopologie();
+  const liste = g.bandAnschluesse || [];
+  if (!liste.length) return "";
+  const zeilen = liste.map((a) => {
+    const t = spiel.baender.get(a.id);
+    if (!t) return "";
+    const name = t.typ === "greifarm" ? "Greifarm" : t.typ === "splitter" ? "Splitter" : t.name || bandTyp(t).name;
+    return `<li>${a.art === "zulauf" ? "⇣ Zulauf" : "⇡ Ablauf"}: ${htmlSicher(name)}</li>`;
+  }).join("");
+  let zusatz = "";
+  if (istStation(g)) {
+    const art = typVon(g).art;
+    zusatz = g.automatik ? `<p class="info-ok">⚙ Läuft automatisch – kein Arbeiter nötig.</p>`
+      : `<p class="leise">Für Automatik fehlt noch ein ${!g.bandZulauf ? "Zulauf (Band oder Greifarm hinein)" : art === "forschung" ? "Zulauf" : "Ablauf (Band oder Greifarm hinaus)"}.</p>`;
+  }
+  return `<div class="info-block"><h3>Bandanschlüsse</h3><ul class="anschluss-liste">${zeilen}</ul>${zusatz}</div>`;
+}
+
+/* --- Personal: freie Arbeiter --- */
+function ohneAufgabeHtml() {
+  const liste = ohneAufgabeListe();
+  if (!liste.length) return "";
+  const stationen = freieStationen(null);
+  return `<div class="personal-frei"><b>Ohne Aufgabe (${liste.length})</b>
+    <small>Diese Arbeiter werden an automatischen Stationen nicht mehr gebraucht. Sie warten in der Pausenecke und bekommen weiter Lohn.</small>
+    <ul>${liste.map((p) => `<li data-id="${p.id}"><span class="personal-punkt arbeiter"></span><b>${htmlSicher(p.name)}</b>
+      <span class="personal-frei-knoepfe">
+        <button class="mini-knopf" type="button" data-aktion="forschung" title="An die nächste freie Forschungsstation">🔬 Forschung</button>
+        <button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier (Erfahrung bleibt)">📦 Logistik</button>
+        <select data-aktion="station" aria-label="An eine Station setzen"><option value="">Station …</option>
+          ${stationen.map((s) => `<option value="${s.id}">${htmlSicher(gebaeudeName(s))}</option>`).join("")}</select>
+        <button class="mini-knopf gefahr" type="button" data-aktion="entlassen-frei" title="Abfindung ${euro(abfindungVon(p))}">Entlassen · ${euro(abfindungVon(p))}</button>
+      </span></li>`).join("")}</ul></div>`;
+}
+ob.bauInhalt.addEventListener("change", (e) => {
+  const feld = e.target;
+  if (feld.dataset.aktion === "station" && feld.value) {
+    const p = mitarbeiter.find((m) => m.id === feld.closest("li").dataset.id);
+    const s = spiel.gebaeude.get(feld.value);
+    if (p && s && weiseZu(p.id, s.id)) zeigeMeldung(`${p.name} arbeitet jetzt an ${gebaeudeName(s)}.`);
+    feld.blur();
+  } else if (feld.dataset.aktion === "autoZuweisung") {
+    setzeAutoZuweisung(feld.checked);
+    zeigeMeldung(feld.checked ? "Freie Arbeiter gehen jetzt selbst an freie Stationen." : "Freie Arbeiter warten auf deine Entscheidung.");
+  }
+});
+// Wird aus dem Klick-Handler des Baumenüs aufgerufen. Rückgabe: true = erledigt
+function personalAktion(knopf) {
+  const li = knopf.closest("li");
+  const p = li && mitarbeiter.find((m) => m.id === li.dataset.id);
+  switch (knopf.dataset.aktion) {
+    case "forschung": {
+      if (!p) return true;
+      const s = schickeInForschung(p.id);
+      zeigeMeldung(s ? `${p.name} forscht jetzt an ${gebaeudeName(s)}.` : "Keine freie Forschungsstation – stelle eine auf (Baumenü → Stationen).", !s);
+      return true;
+    }
+    case "logistik":
+      if (p && schuleUm(p.id, "kurier")) zeigeMeldung(`${p.name} ist jetzt Kurier.`);
+      return true;
+    case "zuArbeiter":
+      if (p && schuleUm(p.id, "arbeiter")) zeigeMeldung(`${p.name} ist jetzt Arbeiter und sucht sich eine freie Station.`);
+      return true;
+    case "entlassen-frei": {
+      if (!knopf.classList.contains("bestaetigen")) {
+        knopf.classList.add("bestaetigen");
+        const alt = knopf.textContent;
+        knopf.textContent = "Sicher?";
+        setTimeout(() => { if (knopf.isConnected) { knopf.classList.remove("bestaetigen"); knopf.textContent = alt; } }, 3000);
+        return true;
+      }
+      if (p) { const abfindung = abfindungVon(p); if (entlasse(p.id)) zeigeMeldung(`${p.name} wurde entlassen (Abfindung −${euro(abfindung)}).`); }
+      return true;
+    }
+    case "ausbauen": {
+      const r = baueHalleAus();
+      if (!r.ok) zeigeMeldung(r.grund, true);
+      else zeigeMeldung(`Hallenausbau: ${r.stufe.name} mit ${level.breite} × ${r.stufe.tiefe} Kacheln (−${euro(r.stufe.preis)}). Miete jetzt ${euro(r.stufe.miete)}/Tag.`);
+      zeichneBauInhalt();
+      return true;
+    }
+  }
+  return false;
+}
+
+// Schnellanzeige oben links: "👤 2 ohne Aufgabe" (Klick öffnet den Personal-Reiter)
+function aktualisiereFreiChip() {
+  const n = ohneAufgabeListe().length;
+  ob.hudFrei.hidden = n === 0;
+  setzeText(ob.hudFrei, `👤 ${n} ohne Aufgabe`);
+}
+ob.hudFrei.addEventListener("click", () => {
+  bau.reiter = "personal";
+  if (bau.offen) { setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); } else oeffneBau();
+});
+
+/* --- Meldungen --- */
+spielEreignisse.addEventListener("arbeiterFrei", (e) => {
+  const { person, station } = e.detail;
+  zeigeMeldung(`${gebaeudeName(station)} läuft jetzt automatisch – ${person.name} hat keine Aufgabe mehr (Personal: Forschung, Logistik oder entlassen).`);
+});
+spielEreignisse.addEventListener("automatikAus", (e) =>
+  zeigeMeldung(`${gebaeudeName(e.detail.station)} läuft nicht mehr automatisch – es fehlt ein Band. Jetzt braucht sie wieder einen Arbeiter.`, true));
+spielEreignisse.addEventListener("personFestgefahren", (e) => {
+  const { person, ziel } = e.detail;
+  zeigeMeldung(`${person.name} kam${ziel ? ` nicht zu ${gebaeudeName(ziel)}` : " nicht weiter"} und hat den Weg abgebrochen – nichts ging verloren. Prüfe, ob Bänder den Weg versperren.`, true);
+});
+spielEreignisse.addEventListener("baenderGeaendert", () => {
+  if (auswahlBandId && !spiel.baender.has(auswahlBandId)) waehleGebaeude(null);
+});
+
+// Techtree-Reiter (Kuriere / Automatisierung)
+ob.forschungReiter.innerHTML = FORSCHUNG_BAEUME.map((b) =>
+  `<button type="button" role="tab" data-baum="${b.id}" aria-selected="${b.id === forschungBaum.id}">${b.name}</button>`).join("");
+ob.forschungReiter.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-baum]");
+  if (!knopf) return;
+  forschungBaum.id = knopf.dataset.baum;
+  for (const k of ob.forschungReiter.querySelectorAll("[data-baum]")) k.setAttribute("aria-selected", String(k.dataset.baum === forschungBaum.id));
+  forschungMerker = "";
+  zeichneForschung();
+});
+
+/* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
@@ -8574,6 +11018,7 @@ function spielschleife() {
   const spielSekunden = sekunden * spiel.tempo;
   simuliere(spielSekunden);
   aktualisiereGebaeude3d(sekunden, zeit);
+  aktualisiereBaender3d(spielSekunden, zeit);       // Phase 6: Bänder, Items, Greifarme
   aktualisiereMitarbeiter3d(spielSekunden, zeit);
   aktualisiereSchwebende(sekunden);              // Phase 5: schwebende Zahlen und Splitter
   aktualisiereOberflaeche(sekunden);
@@ -8621,6 +11066,13 @@ window.tradeUp = {
   erzeugeAngebot, nimmAuftragAn, liefereAuftrag, lieferbar, reputationsStufe, aendereReputation, rangliste,
   erforsche, forschungsZustand, gibForschungspunkte, kaufeAusruestung, waehleAusruestung, erfahrungsStufe,
   oeffneKontor, schliesseKontor, oeffneForschung, schliesseForschung,
+  // Phase 6: Fließbänder, Greifarme, Brücken, Automatik, Personalumbau, Hallenausbau
+  BAND_TEILE, BAENDER, BAND_TEMPO, PERSONAL, HALLE_STUFEN,
+  baueBandteil, baueBandStrecke, baueBruecke, planeBruecke, pruefeBandteil, entferneBandteil, reisseBandteilAb,
+  bandteilAufKachel, segmentVon, setzeSegmentTempo, benenneSegmentUm, dreheSegmentUm, setzeBandEinstellung,
+  baueBandTopologie, bandLaufkosten, segmentInfo, bandStrecke,
+  gibArbeiterFrei, ohneAufgabeListe, schuleUm, schickeInForschung, setzeAutoZuweisung, abfindungVon, maxMitarbeiter,
+  baueHalleAus, setzeHallenStufe, halleStufe, aktuelleMiete, kachelKosten,
 };
 </script>
 

@@ -4950,6 +4950,7 @@ function meldeStruktur() {
 function typVon(g) { return gebaeudeTypNach.get(g.typ); }
 function istStation(g) { return typVon(g).kategorie === "station"; }
 function istZwischenlager(g) { return typVon(g).art === "zwischenlager"; }
+function istHauptlager(g) { return typVon(g).art === "hauptlager"; }   // Phase 7b Nachtrag
 function kapazitaetVon(g) { return typVon(g).kapazitaet; }
 /* --- Volumen (Phase 7b) ---
    Lager (Hauptlager, Zwischenlager, Import-/Exportzone) rechnen in Volumen: ein Produkt braucht mehr Platz
@@ -5541,6 +5542,7 @@ function versorgtDurchLager(s) {
 }
 // Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
 function regelAuto(g, item) {
+  if (istHauptlager(g)) return { imp: true, exp: true };   // Phase 7b Nachtrag: Hauptlager nimmt alles an und gibt alles ab
   if (istStation(g)) {
     const r = rezeptVon(g);
     // Material: direkt ins Eingangsfach liefern, wenn kein Lager die Station versorgt
@@ -5683,7 +5685,7 @@ function stationAnzeigeModus(s) {
 // wert = null: zurück auf Automatik. Rückgabe: true/false
 function setzeRegel(id, item, feld, wert) {
   const g = spiel.gebaeude.get(id);
-  if (!g || !(istZwischenlager(g) || istStation(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
+  if (!g || !(istZwischenlager(g) || istStation(g) || istHauptlager(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
   const m = { ...(g.regeln[item] || {}) };
   if (wert === null || wert === undefined) delete m[feld];
   else if (feld === "soll") {

@@ -5566,10 +5566,15 @@ function regelVon(g, item) {
 }
 
 // Phase 7b: "Max" per Zahl (technisch regeln[item].soll). Bänder, Greifarme, Arbeiter und Kuriere liefern
-// nur, solange Bestand + unterwegs < Max. Ohne eingetippte Zahl gibt es kein Max (Infinity).
+// nur, solange Bestand + unterwegs < Max. Ohne eingetippte Zahl: Import-Ware bis zum automatischen Soll,
+// alles andere ohne Grenze (Infinity).
 function maxVon(g, item) {
   const m = g.regeln && g.regeln[item];
-  return m && m.soll !== undefined ? m.soll : Infinity;
+  if (m && m.soll !== undefined) return m.soll;
+  // Ohne eingetippte Zahl gilt bei Import-Ware das automatische Soll als Max (die graue Zahl im Feld):
+  // auch Bänder und Smart-Verteiler füllen dann nur bis dorthin auf
+  if (istZwischenlager(g) && regelVon(g, item).imp) return Math.max(1, sollbestand(g)[item] || 0);
+  return Infinity;
 }
 function maxErreicht(g, item, res = null) {
   const max = maxVon(g, item);
@@ -6344,7 +6349,9 @@ function schrittKurier(p, dt) {
       for (const [item, n] of Object.entries(p.traegt)) {
         if (a.zielFach === "eingang" && !darfKurierLiefern(ziel, item, "eingang")) continue;   // Rezept unterwegs geändert
         const je = platzBedarf(ziel, item, a.zielFach);
-        const m = Math.min(n, Math.max(0, Math.floor(platz / je)));
+        let m = Math.min(n, Math.max(0, Math.floor(platz / je)));
+        // Phase 7b: auch Kuriere halten sich an Max (z. B. wenn ein Band inzwischen aufgefüllt hat)
+        if (istZwischenlager(ziel) && a.zielFach === "bestand") m = Math.min(m, Math.max(0, maxVon(ziel, item) - (ziel.bestand[item] || 0)));
         if (m <= 0) continue;
         aendereFach(ziel, a.zielFach, item, m);
         bucheItems(p.traegt, { [item]: m }, -1);
@@ -7246,15 +7253,19 @@ function setzeBestellung(id, item, menge, rhythmus) {
   g.bestellungen = g.bestellungen.filter((b) => b.item !== item);
   const n = Math.max(0, Math.min(9999, Math.round(Number(menge)) || 0));
   if (rhythmus && !rhythmusNach.has(rhythmus)) return { ok: false, grund: "Diesen Rhythmus gibt es nicht." };
-  if (n > 0 && rhythmus) {
+  // Nur Menge oder nur Rhythmus: bleibt als Entwurf stehen (aktiv erst mit beidem)
+  if (n > 0 || rhythmus) {
+    const warAktiv = alt && bestellungAktiv(alt);
     // Rhythmus unverändert: der Takt läuft weiter; neu: gleich die erste Lieferung (täglich: um 8:00)
-    const naechste = alt && alt.rhythmus === rhythmus && rhythmus !== "einmal" ? alt.naechste
+    const naechste = warAktiv && alt.rhythmus === rhythmus && rhythmus !== "einmal" ? alt.naechste
       : rhythmus === "taeglich" ? naechsterTagesbeginn() : spiel.zeit;
-    g.bestellungen.push({ item, menge: n, rhythmus, naechste });
+    g.bestellungen.push({ item, menge: n, rhythmus: rhythmus || null, naechste });
   }
   meldeStruktur();
-  return { ok: true };
+  const b = g.bestellungen.find((x) => x.item === item);
+  return { ok: true, aktiv: !!b && bestellungAktiv(b), entwurf: !!b && !bestellungAktiv(b) };
 }
+function bestellungAktiv(b) { return b.menge > 0 && !!b.rhythmus; }
 function naechsterTagesbeginn(zeit = spiel.zeit) {
   const T = WIRTSCHAFT.tagSekunden;
   return zeit % T === 0 ? zeit : (Math.floor(zeit / T) + 1) * T;
@@ -7302,7 +7313,7 @@ function ladeLieferwagenAb(g, w) {
 function importzonenSchritt() {
   for (const g of zonenListe("importzone")) {
     for (const b of [...g.bestellungen]) {
-      if (spiel.zeit < b.naechste) continue;
+      if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
       let n = b.menge;
       // "bis Sollmenge": nur so viel, dass Hauptlager + Importzonen + Wagen die Menge erreichen
       if (b.rhythmus === "bisSoll") n = Math.max(0, b.menge - hlMenge(b.item) - zonenMenge("importzone", b.item) - wagenUnterwegs(b.item));
@@ -11314,17 +11325,18 @@ function aktualisiereInfoZahlen() {
   if (!ziel || !g) return;
   if (performance.now() < infoKlickSperre) return;   // gerade wird geklickt: Knöpfe nicht austauschen
   // Phase 7b: Während im Max-Feld getippt wird, nichts austauschen
-  if ((document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLSelectElement) && ziel.contains(document.activeElement)) return;
+  if (infoFormularAktiv()) return;
   setzeHtml(ziel, infoZahlenHtml(g));
 }
 // Phase 7b: Importzone – Bestellungen pro Rohstoff (Menge + Rhythmus) und Wagen unterwegs
 function importzoneHtml(g) {
   const zeilen = ROHSTOFFE.map((r) => {
     const b = g.bestellungen.find((x) => x.item === r.id);
-    const wann = !b ? "" : spiel.zeit >= b.naechste ? "gleich" : `nächste in ${dauerSek(b.naechste - spiel.zeit)}`;
+    const wann = !b ? "" : !b.rhythmus ? "Rhythmus wählen" : !b.menge ? "Menge eintippen"
+      : spiel.zeit >= b.naechste ? "gleich" : `nächste in ${dauerSek(b.naechste - spiel.zeit)}`;
     return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span> <small class="leise">${euro(r.preis)}</small>${wann ? `<br><small class="leise">${wann}</small>` : ""}</td>
       <td><input class="max-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="bestell-menge" data-item="${r.id}"
-        value="${b ? b.menge : ""}" placeholder="0" aria-label="Menge ${r.name}" title="Menge eintippen, Enter übernimmt"></td>
+        value="${b && b.menge ? b.menge : ""}" placeholder="0" aria-label="Menge ${r.name}" title="Menge eintippen, Enter übernimmt"></td>
       <td><select class="rhythmus-wahl" data-aktion="bestell-rhythmus" data-item="${r.id}" aria-label="Rhythmus ${r.name}">
         <option value="">– aus –</option>${ZONEN.rhythmen.map((x) => `<option value="${x.id}" ${b && b.rhythmus === x.id ? "selected" : ""}>${x.name}</option>`).join("")}
       </select></td></tr>`;
@@ -11521,7 +11533,16 @@ ob.bauLeiste.addEventListener("pointerdown", (e) => {
 });
 ob.info.addEventListener("pointerdown", (e) => {
   if (e.target.closest("button, select, input")) infoKlickSperre = performance.now() + 400;
+  // Phase 7b: Eine aufgeklappte Auswahlliste bekommt nicht in jedem Browser den Fokus (Safari) –
+  // solange sie offen sein kann, wird das Fenster nicht aufgefrischt (bis zur Auswahl oder 10 s)
+  infoFormSperre = e.target.closest("select") ? performance.now() + 10000 : 0;
 });
+let infoFormSperre = 0;
+function infoFormularAktiv() {
+  const a = document.activeElement;
+  return performance.now() < infoFormSperre
+    || ((a instanceof HTMLInputElement || a instanceof HTMLSelectElement) && ob.info.contains(a));
+}
 
 // Auswahlfelder und Knöpfe im Info-Fenster
 ob.infoInhalt.addEventListener("change", (e) => {
@@ -11537,13 +11558,13 @@ ob.infoInhalt.addEventListener("change", (e) => {
     const item = e.target.dataset.item;
     const menge = Number(zeile.querySelector('[data-aktion="bestell-menge"]').value) || 0;
     const wahl = zeile.querySelector('[data-aktion="bestell-rhythmus"]');
-    let rhythmus = wahl.value || null;
-    if (menge > 0 && !rhythmus && e.target === wahl) rhythmus = null;
-    else if (menge > 0 && !rhythmus) rhythmus = "einmal";      // nur Menge eingetippt: einmal bestellen
+    const rhythmus = wahl.value || null;
     const r = setzeBestellung(g.id, item, menge, rhythmus);
     if (!r.ok) zeigeMeldung(r.grund, true);
-    else if (menge > 0 && rhythmus) zeigeMeldung(`${menge}× ${itemInfo(item).name} ${rhythmusNach.get(rhythmus).name} bestellt – der Lieferwagen kommt in ${ZONEN.lieferzeit} s.`);
+    else if (r.aktiv) zeigeMeldung(`${menge}× ${itemInfo(item).name} ${rhythmusNach.get(rhythmus).name} bestellt – der Lieferwagen kommt ${rhythmus === "taeglich" ? "um 8:00" : `in ${ZONEN.lieferzeit} s`}.`);
+    else if (r.entwurf) zeigeMeldung(rhythmus ? `${itemInfo(item).name}: Jetzt noch die Menge eintippen (Enter).` : `${itemInfo(item).name}: Jetzt noch den Rhythmus wählen.`);
     else zeigeMeldung(`Keine Bestellung mehr für ${itemInfo(item).name}.`);
+    infoFormSperre = 0;
   }
   if (e.target.dataset.aktion === "export-ware" && e.target.value) {   // Phase 7b: Exportzone
     setzeExportWare(g.id, e.target.value, true);
@@ -11564,6 +11585,7 @@ ob.infoInhalt.addEventListener("change", (e) => {
     zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
   e.target.blur();
+  infoFormSperre = 0;
   if (e.target.dataset.aktion) sofortAktualisieren();
 });
 ob.infoInhalt.addEventListener("click", (e) => {
@@ -12533,7 +12555,7 @@ function aktualisiereOberflaeche(sekunden) {
   zeichneRezeptStapel();                         // Phase 7a (Nachtrag 2): Zahlen auf den angehefteten Rezepten
   if (rezeptFenster.offen) zeichneRezepte();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
-  if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !(document.activeElement instanceof HTMLSelectElement && ob.info.contains(document.activeElement))) {
+  if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !infoFormularAktiv()) {   // Phase 7b: auch Zahlenfelder
     zeichneInfo();
   }
   if (auswahlGebaeudeId) aktualisiereInfoZahlen();

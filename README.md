@@ -12,7 +12,7 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
   - Hitze-Berechnung: Bauteile heizen direkt angrenzende Kacheln auf, Kühlkörper kühlen; liegt mehr Hitze auf einem Teil als seine Toleranz, ist es überhitzt (rot)
   - Designs als **Blaupause** speichern (im Browser, bleibt nach dem Neuladen erhalten), laden, umbenennen, duplizieren, löschen
 - **Phase 4:** Erste Produktion & Kuriere:
-  - **Baumenü** (`B`): Hauptlager (3 × 2), Kiste (1 × 1) und Schrank (2 × 1) als Zwischenlager, Werkbank und Montagetisch (je 2 × 1) mit Vorschau, Drehen und Zugangspfeil; Gebäude, die jemanden einsperren würden, lassen sich nicht bauen
+  - **Baumenü** (`B`): Hauptlager (seit Phase 7a: 2 × 2, beliebig viele, jedes weitere 1.500 €), Kiste (1 × 1) und Schrank (2 × 1) als Zwischenlager, Werkbank und Montagetisch (je 2 × 1) mit Vorschau, Drehen und Zugangspfeil; Gebäude, die jemanden einsperren würden, lassen sich nicht bauen
   - **Kuriere** tragen Rohstoffe und Bauteile vom Hauptlager in die Zwischenlager (anfangs 1 Item pro Gang) und Fertiges aus den Ausgabefächern zurück; Kurier-Stufen (Hände, Sackkarre, Hubwagen) sind vorbereitet
   - **Arbeiter** holen Material nur aus den verknüpften Zwischenlagern und produzieren: Werkbank = Bauteile aus Metall, Kunststoff, Silizium; Montagetisch = Produkte nach einer Blaupause (überhitzte Blaupausen: 30 % Ausschuss)
   - **Halle bereinigen**: baut alles ab, Maschinen und Items kommen ins Depot; „Aufbau wiederherstellen“ stellt alles zurück
@@ -55,13 +55,16 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | ⇣ Import verknüpfen: Lager, aus dem eine Station ihr Material holt (Station oder Lager gewählt) | `V`, dann das andere Gebäude anklicken |
 | ⇡ Export verknüpfen: Lager, in das eine Station ihre Erzeugnisse bringt | `G`, dann das andere Gebäude anklicken |
 | Mitarbeiter an eine Station setzen | Mitarbeiter mit gedrückter linker Maustaste auf Werkbank, Montagetisch oder Forschungsstation ziehen (Kuriere werden dabei Arbeiter) |
-| Abreißen ohne Werkzeug | `Entf`: ausgewähltes Gebäude bzw. Band (Einzelstück oder ganze Gruppe), sonst das, worauf die Maus zeigt |
+| Abreißen ohne Werkzeug | `Entf`: ausgewähltes Gebäude bzw. Band (Einzelstück, ganze Gruppe oder Mehrfachauswahl), sonst das, worauf die Maus zeigt |
+| Mehrere Teile wählen | `Strg` + Klick auf Gebäude und Bänder (nochmal: wieder heraus), oder mit der linken Maustaste einen Rahmen ziehen (mit `Strg`: dazu) |
+| Auswahl kopieren / einfügen | `Strg+C` / `Strg+V`: die Kopie hängt an der Maus, `R` dreht, Klick stellt auf (mit `Shift` mehrmals), `Esc` bricht ab. Kopiert werden Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und Verknüpfungen innerhalb der Kopie, kein Inhalt |
+| Greifarm-Nehmer / -Geber | Nehmer (roter Ring) holt aus dem Gebäude hinter sich aufs Band, mit Auswahl des Items; Geber (grüner Ring) gibt vom Band in das Gebäude vor sich |
 | Testgeld und alles freischalten | Einstellungen (`O`) → Reiter „Entwicklung“ |
 | Einstellungen (Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
 | Rezepte (Werkbank und Designer-Entwürfe), 📌 anheften | Knopf „Rezepte“, `Z` |
 | Station finden, die eine Ressource herstellt | Klick auf die Ressource in einem angehefteten Rezept |
 
-Alle Tastenkürzel außer `Esc`, `Leertaste` und den Pfeiltasten lassen sich im Einstellungsmenü neu belegen (seit Phase 7a). Der Browser merkt sich die Belegung.
+Alle Tastenkürzel außer `Esc`, `Leertaste`, `Strg+C`/`Strg+V` und den Pfeiltasten lassen sich im Einstellungsmenü neu belegen (seit Phase 7a). Der Browser merkt sich die Belegung.
 
 ### Im Layout-Designer
 

@@ -861,6 +861,12 @@
   .personal-schloss { opacity: 0.6; }
 
   /* --- Info-Fenster rechts (angeklicktes Gebäude) --- */
+  /* Phase 7a (Nachtrag 3): Auswahl-Rahmen beim Ziehen mit der linken Maustaste */
+  #auswahl-rahmen {
+    position: fixed; z-index: 4; pointer-events: none;
+    border: 1.5px dashed #f08a3c; background: rgba(240, 138, 60, 0.12); border-radius: 3px;
+  }
+  body.rahmen-zieht { user-select: none; -webkit-user-select: none; }
   #info-panel {
     position: fixed;
     top: calc(var(--abstand-rand) + env(safe-area-inset-top, 0px));
@@ -1790,6 +1796,8 @@
   <span><kbd data-taste="verschieben">M</kbd> Verschieben</span>
   <span><kbd data-taste="band">F</kbd> Fließband</span>
   <span><kbd data-taste="abreissen">Entf</kbd> Abreißen</span>
+  <span><kbd>Strg</kbd>+Klick / Rahmen ziehen: mehrere wählen</span>
+  <span><kbd>Strg</kbd>+<kbd>C</kbd> / <kbd>Strg</kbd>+<kbd>V</kbd> kopieren, einfügen</span>
   <span>Mitarbeiter ziehen: an Station</span>
   <span><kbd data-taste="einstellungen">O</kbd> Optionen</span>
   <span><kbd data-taste="pause">P</kbd><kbd data-taste="tempo1">1</kbd><kbd data-taste="tempo2">2</kbd><kbd data-taste="tempo3">3</kbd> Tempo</span>
@@ -2038,7 +2046,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   4,     // Format-Version des Spielstands (Phase 7a: 4 mit Import/Export-Verknüpfungen; 1–3 werden umgewandelt)
+  spielstandVersion:   5,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 1–4 werden umgewandelt)
 };
 
 // Rohstoffe: werden eingekauft (Phase 5), kommen ins Hauptlager und werden an der
@@ -2059,12 +2067,13 @@ const ROHSTOFFE = [
 //   kapazitaet   – so viele Items passen hinein (bei Stationen: Größe des Ausgabefachs)
 //   eingangsfach – (Phase 5b, nur Stationen) so viele Items passen ins Eingangsfach, das Kuriere direkt füllen
 //   maxAnzahl    – höchstens so viele pro Halle (0 = unbegrenzt)
+//   preisWeitere – (nur Hauptlager, Phase 7a) Preis für jedes weitere Hauptlager; das erste ist kostenlos
 //   preis        – Kaufpreis in Euro (Phase 5). Gebäude aus dem Depot aufzustellen ist kostenlos.
 //   freigeschaltet – false = (noch) nicht im Baumenü
 const GEBAEUDE_TYPEN = [
   { typ: "hauptlager", name: "Hauptlager", symbol: "▤", kategorie: "lager", art: "hauptlager",
-    breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 300, maxAnzahl: 1, preis: 0, freigeschaltet: true,
-    beschreibung: "Zentrales Lager. Kuriere holen hier Material und bringen Fertiges zurück." },
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 300, maxAnzahl: 0, preis: 0, preisWeitere: 1500, freigeschaltet: true,
+    beschreibung: "Zentrales Lager. Kuriere holen hier Material und bringen Fertiges zurück. Mehrere Hauptlager teilen sich den Bestand." },
   { typ: "kiste", name: "Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
     breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 8, maxAnzahl: 0, preis: 120, freigeschaltet: true,
     beschreibung: "Kleines Zwischenlager neben einer Station." },
@@ -2327,9 +2336,13 @@ const BAND_TEILE = [
   { typ: "uebergang", name: "Übergang", symbol: "⇵", preis: 60, spur: true, begehbar: true, laufKosten: 1,
     ebeneEin: 0, ebeneAus: 0, imMenue: true,
     beschreibung: "Band mit kleiner Treppe darüber: Personen queren es ohne Umweg." },
-  { typ: "greifarm", name: "Greifarm", symbol: "🦾", preis: 350, spur: false, begehbar: false, tagesKosten: 3,
+  // Phase 7a (Nachtrag 3): zwei Greifarme – der Nehmer holt aus einem Gebäude (mit Item-Auswahl), der Geber gibt hinein
+  { typ: "greifarm", name: "Greifarm-Nehmer", symbol: "🦾⇡", preis: 350, spur: false, begehbar: false, tagesKosten: 3,
     ebeneEin: 0, ebeneAus: 0, imMenue: true,
-    beschreibung: "Nimmt von der Kachel hinter sich (Band oder Gebäude) und legt auf die Kachel vor sich." },
+    beschreibung: "Nimmt aus dem Gebäude hinter sich (Lager oder Ausgabefach) das gewählte Item und legt es auf das Band vor sich." },
+  { typ: "greifGeber", name: "Greifarm-Geber", symbol: "🦾⇣", preis: 350, spur: false, begehbar: false, tagesKosten: 3,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Nimmt Items vom Band hinter sich und gibt sie in das Gebäude vor sich (nur, was es annimmt)." },
   { typ: "rampeHoch", name: "Auffahrt", symbol: "⟋", preis: 40, spur: true, begehbar: true, laufKosten: 8,
     ebeneEin: 0, ebeneAus: 1, beschreibung: "Bringt Items auf die Brücke." },
   { typ: "hochband", name: "Hochband", symbol: "═", preis: 30, spur: true, begehbar: true, laufKosten: 1,
@@ -3262,6 +3275,8 @@ const maus = {
   letzteX: 0, letzteY: 0, // letzte bekannte Mausposition
   zieht: false,           // Phase 6: wird gerade eine Bandstrecke gezogen?
   ziehtPerson: false,     // Phase 7a: linke Taste auf einem Mitarbeiter gedrückt (Drag & Drop, Abschnitt 13e)
+  rahmenMoeglich: false,  // Phase 7a (Nachtrag 3): Ziehen ohne Werkzeug spannt einen Auswahl-Rahmen auf (Abschnitt 13g)
+  rahmen: false,          // ... und der Rahmen ist gerade sichtbar
 };
 
 zeichenflaeche.addEventListener("pointerdown", (e) => {
@@ -3283,6 +3298,8 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
       maus.zieht = true;
       zeichenflaeche.setPointerCapture(e.pointerId);
       ziehen("start", k, e.shiftKey);
+    } else {
+      maus.rahmenMoeglich = kannRahmenAuswahl();   // Phase 7a (Nachtrag 3)
     }
   } else if (e.button === 1 || e.button === 2) {
     // Rechte oder mittlere Taste: Kamera verschieben beginnen.
@@ -3309,6 +3326,14 @@ zeichenflaeche.addEventListener("pointermove", (e) => {
   }
   setzeHover(kachelUnterMaus(e.clientX, e.clientY));
   if (maus.zieht && hoverKachel) ziehen("bewegt", hoverKachel, e.shiftKey);   // Phase 6
+  // Phase 7a (Nachtrag 3): linke Taste ohne Werkzeug gezogen → Auswahl-Rahmen
+  if (maus.linksUnten && maus.rahmenMoeglich && !maus.rahmen &&
+      Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY) > GRAFIK.klickToleranz) {
+    maus.rahmen = true;
+    zeichenflaeche.setPointerCapture(e.pointerId);
+    rahmenStart(maus.startX, maus.startY);
+  }
+  if (maus.rahmen) { rahmenBewegt(e.clientX, e.clientY); return; }
   // Phase 7a: Mitarbeiter ziehen (bzw. Hand-Zeiger über einem Mitarbeiter)
   if (maus.ziehtPerson) personZiehenBewegt(e.clientX, e.clientY, Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY) > GRAFIK.klickToleranz);
   else if (!maus.verschiebt && !maus.zieht) zeigeGreifZeiger(e.clientX, e.clientY);
@@ -3321,6 +3346,12 @@ zeichenflaeche.addEventListener("pointerup", (e) => {
     if (personZiehenEnde(e.clientX, e.clientY)) { maus.linksUnten = false; return; }
     // kaum bewegt: ein normaler Klick (unten)
   }
+  if (e.button === 0 && maus.rahmen) {               // Phase 7a (Nachtrag 3): Rahmen fertig
+    maus.rahmen = false; maus.rahmenMoeglich = false; maus.linksUnten = false;
+    rahmenEnde(e.clientX, e.clientY, e.ctrlKey || e.metaKey);
+    return;
+  }
+  if (e.button === 0) maus.rahmenMoeglich = false;
   if (e.button === 0 && maus.zieht) {                // Phase 6: Strecke fertig gezogen
     maus.zieht = false;
     maus.linksUnten = false;
@@ -3336,7 +3367,7 @@ zeichenflaeche.addEventListener("pointerup", (e) => {
       if (k) {
         meldeEreignis("kachelKlick", { ...k, kachel: holeKachel(k.x, k.z), shift: e.shiftKey });
         // Abschnitt 13 entscheidet: bauen, abreißen, Gebäude-Info öffnen oder die Figur hinschicken
-        behandleKachelKlick(k, e.shiftKey);
+        behandleKachelKlick(k, e.shiftKey, e.ctrlKey || e.metaKey);
       }
     }
   }
@@ -3403,6 +3434,8 @@ function sperre3dEingaben(an) {
   maus.ankerPunkt = null;
   if (maus.zieht) { maus.zieht = false; ziehen("abbruch", null, false); }   // Phase 6
   if (maus.ziehtPerson) { maus.ziehtPerson = false; personZiehenAbbruch(); }  // Phase 7a
+  if (maus.rahmen) rahmenAbbruch();                                        // Phase 7a (Nachtrag 3)
+  maus.rahmen = false; maus.rahmenMoeglich = false;
   if (an) setzeHover(null);
   document.body.classList.toggle("designer-offen", an); // Szene weich unscharf (siehe CSS)
 }
@@ -4872,6 +4905,63 @@ function hauptlager() {
   for (const g of spiel.gebaeude.values()) if (typVon(g).art === "hauptlager") return g;
   return null;
 }
+/* --- Phase 7a (Nachtrag 3): Es darf beliebig viele Hauptlager geben ---
+   Zusammen bilden sie EINEN Bestand (Kontor, Aufträge, Verkauf). Kuriere holen aus dem nächsten
+   Hauptlager, das die Ware hat, und bringen zurück ins nächste mit Platz. Einkäufe landen dort,
+   wo am meisten Platz ist. */
+function hauptlagerListe() {
+  return gebaeudeListe((g) => typVon(g).art === "hauptlager");
+}
+// Das nächste Hauptlager zu einer Kachel (optional nur solche, die "filter" erfüllen)
+function naechstesHauptlager(kachel, filter = () => true) {
+  let bestes = null, besterAbstand = Infinity;
+  for (const hl of hauptlagerListe()) {
+    if (!filter(hl)) continue;
+    const d = kachel ? abstand(hl.zugang, kachel) : 0;
+    if (d < besterAbstand) { bestes = hl; besterAbstand = d; }
+  }
+  return bestes;
+}
+// Gesamtbestand aller Hauptlager (Item → Anzahl)
+function hlBestand() {
+  const b = {};
+  for (const hl of hauptlagerListe()) bucheItems(b, hl.bestand);
+  return b;
+}
+function hlMenge(item) {
+  return hauptlagerListe().reduce((n, hl) => n + (hl.bestand[item] || 0), 0);
+}
+function hlVerfuegbar(item, res) {
+  return hauptlagerListe().reduce((n, hl) => n + Math.max(0, verfuegbar(hl, item, res)), 0);
+}
+function hlFreierPlatz(res) {
+  return hauptlagerListe().reduce((n, hl) => n + Math.max(0, freierPlatz(hl, res)), 0);
+}
+function hlKapazitaet() {
+  return hauptlagerListe().reduce((n, hl) => n + kapazitaetVon(hl), 0);
+}
+// Nimmt bis zu n Stück aus den Hauptlagern (das vollste zuerst). Rückgabe: entnommene Anzahl
+function hlEntnimm(item, n, res = null) {
+  let rest = n;
+  const liste = hauptlagerListe().sort((a, b) => (b.bestand[item] || 0) - (a.bestand[item] || 0));
+  for (const hl of liste) {
+    if (rest <= 0) break;
+    const m = Math.min(rest, res ? Math.max(0, verfuegbar(hl, item, res)) : hl.bestand[item] || 0);
+    if (m > 0) { aendereBestand(hl, item, -m); rest -= m; }
+  }
+  return n - rest;
+}
+// Legt bis zu n Stück in die Hauptlager (das leerste zuerst). Rückgabe: eingelagerte Anzahl
+function hlEinlagern(item, n, res = null) {
+  let rest = n;
+  const platz = (hl) => Math.max(0, res ? freierPlatz(hl, res) : kapazitaetVon(hl) - summe(hl.bestand));
+  for (const hl of hauptlagerListe().sort((a, b) => platz(b) - platz(a))) {
+    if (rest <= 0) break;
+    const m = Math.min(rest, platz(hl));
+    if (m > 0) { aendereBestand(hl, item, m); rest -= m; }
+  }
+  return n - rest;
+}
 function gebaeudeListe(filter = () => true) {
   return [...spiel.gebaeude.values()].filter(filter);
 }
@@ -4881,7 +4971,9 @@ function anzahlTyp(typ) {
 // Anzeigename, z. B. "Kiste 2" (das Hauptlager gibt es nur einmal und hat keine Nummer)
 function gebaeudeName(g) {
   const t = typVon(g);
-  return t.maxAnzahl === 1 ? t.name : `${t.name} ${g.nummer}`;
+  // Phase 7a (Nachtrag 3): Solange es nur ein Hauptlager gibt, heißt es ohne Nummer
+  if (t.maxAnzahl === 1 || (t.art === "hauptlager" && anzahlTyp(t.typ) <= 1 && g.nummer === 1)) return t.name;
+  return `${t.name} ${g.nummer}`;
 }
 // Kleinste freie Nummer für einen Gebäudetyp (Kiste 1, Kiste 2, ...)
 function freieNummer(typ) {
@@ -5039,7 +5131,11 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
 
 // Was kostet es, dieses Gebäude jetzt aufzustellen? (aus dem Depot: nichts)
 function baukosten(typ) {
-  return spiel.depot.gebaeude[typ] > 0 ? 0 : gebaeudeTypNach.get(typ).preis;
+  if (spiel.depot.gebaeude[typ] > 0) return 0;
+  const t = gebaeudeTypNach.get(typ);
+  // Phase 7a (Nachtrag 3): das erste Hauptlager ist kostenlos, jedes weitere kostet "preisWeitere"
+  if (t.preisWeitere && anzahlTyp(typ) > 0) return t.preisWeitere;
+  return t.preis;
 }
 // Wie passtGebaeude, prüft aber zusätzlich, ob genug Geld da ist (für die Bau-Vorschau).
 function pruefeBauplatz(typ, x, z, drehung) {
@@ -5235,15 +5331,8 @@ function verknuepfeAutomatisch(g) {
 // Bucht Items ins Hauptlager (soweit Platz ist), den Rest ins Depot.
 // Mit nurDepot = true geht alles direkt ins Depot.
 function bucheInsLager(items, nurDepot = false) {
-  const hl = nurDepot ? null : hauptlager();
   for (const [item, n] of Object.entries(items)) {
-    let rest = n;
-    if (hl) {
-      const platz = Math.max(0, kapazitaetVon(hl) - summe(hl.bestand));
-      const rein = Math.min(rest, platz);
-      if (rein > 0) aendereBestand(hl, item, rein);
-      rest -= rein;
-    }
+    const rest = n - (nurDepot ? 0 : hlEinlagern(item, n));   // Phase 7a (Nachtrag 3): auf alle Hauptlager verteilen
     if (rest > 0) bucheItems(spiel.depot.items, { [item]: rest });
   }
   spiel.version++;
@@ -5251,8 +5340,7 @@ function bucheInsLager(items, nurDepot = false) {
 
 // Ein (neues) Hauptlager holt sich alle Items aus dem Depot, soweit Platz ist.
 function raeumeDepotInsHauptlager() {
-  const hl = hauptlager();
-  if (!hl) return;
+  if (!hauptlager()) return;
   const items = spiel.depot.items;
   spiel.depot.items = {};
   bucheInsLager(items);
@@ -5614,10 +5702,8 @@ function bedarf(g, res) {
 
 // Fertigware im Hauptlager (für das HUD)
 function fertigwareImLager() {
-  const hl = hauptlager();
-  if (!hl) return 0;
   let n = 0;
-  for (const [item, menge] of Object.entries(hl.bestand)) if (item.startsWith("p:")) n += menge;
+  for (const [item, menge] of Object.entries(hlBestand())) if (item.startsWith("p:")) n += menge;
   return n;
 }
 
@@ -5952,7 +6038,8 @@ function beendeAuftrag(p) {
 //              bzw. Eingangsfach einer Station mit Bedarf (nur Items mit Import ⇣)
 // distanzGewicht: wie stark ein kurzer Weg zur Quelle zählt ("Disponent" bevorzugt nahe Quellen).
 function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
-  const hl = hauptlager();
+  // Phase 7a (Nachtrag 3): mehrere Hauptlager – zurück ins nächste mit Platz, Ware aus dem nächsten, das sie hat
+  const zielHl = (quelle) => naechstesHauptlager(quelle.zugang, (h) => freierPlatz(h, res) > 0);
   const k = personKachel(p);
   const kandidaten = [];
   let bester = null, besteWertung = -Infinity;
@@ -5966,8 +6053,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   };
 
   // "abholen": volle Fächer und volle Ausgang-Lager zuerst (sonst steht die Station still)
-  const platzImLager = hl ? freierPlatz(hl, res) : 0;
-  if (platzImLager > 0) {
+  if (hlFreierPlatz(res) > 0) {
     for (const s of gebaeudeListe(istStation)) {
       const voll = kapazitaetVon(s) > 0 && summe(s.bestand) >= kapazitaetVon(s);
       // Phase 6: Das Ausgabefach leert ein Band oder Greifarm (Ablauf) – Kuriere lassen es in Ruhe
@@ -5975,10 +6061,12 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
         if (!darfKurierAbholen(s, item)) continue;                         // Export aus: bleibt liegen
         const n = verfuegbar(s, item, res);
         if (n <= 0 || (!voll && s.bestand[item] < exportPegel(s, item))) continue;   // Pegel noch nicht erreicht
-        pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, platzImLager), prio: voll ? 5 : 2 });
+        const hl = zielHl(s);
+        pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio: voll ? 5 : 2 });
       }
       for (const [item, n] of Object.entries(abholbarEingang(s, res))) {   // Reste im Eingangsfach
-        pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, platzImLager), prio: 1.5 });
+        const hl = zielHl(s);
+        pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio: 1.5 });
       }
     }
     for (const lager of gebaeudeListe(istZwischenlager)) {
@@ -5988,7 +6076,8 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       for (const [item, n] of Object.entries(abholbar(lager, res))) {
         // Reine Export-Ware drängt (sonst läuft das Lager voll), der Überschuss eines Puffers nicht
         const prio = regelVon(lager, item).imp ? 1.5 : voll ? 5 : 2;
-        pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, platzImLager), prio });
+        const hl = zielHl(lager);
+        pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio });
       }
     }
   }
@@ -6009,10 +6098,8 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       const fuellung = ((fachInhalt(ziel, fach)[item] || 0) + reserviert(res.rein, fachSchluessel(ziel.id, fach), item)) / soll[item];
       const prio = item in vermisst ? 4.5 + Math.min(1, (spiel.zeit - vermisst[item]) / PRODUKTION.lieferAlterung)
                                   : 1 + 2 * (1 - fuellung) + wartezeit;
-      if (hl) {
-        const n = verfuegbar(hl, item, res);
-        if (n > 0) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio });
-      }
+      const hl = naechstesHauptlager(ziel.zugang, (h) => verfuegbar(h, item, res) > 0);
+      if (hl) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, verfuegbar(hl, item, res)), prio });
       if (!direkt) continue;
       // Direktlieferung: aus Ausgabefächern und (abholbaren) Zwischenlagern, ohne Umweg übers Hauptlager
       for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)))) {
@@ -6152,8 +6239,9 @@ function schrittKurier(p, dt) {
 // So geht nie ein Item verloren.
 function leiteUm(p) {
   const a = p.auftrag;
-  const hl = hauptlager();
-  if (hl && a.zielId !== hl.id && freierPlatz(hl, reservierungen()) >= summe(p.traegt)) {
+  const res = reservierungen();
+  const hl = naechstesHauptlager(personKachel(p), (h) => h.id !== a.zielId && freierPlatz(h, res) >= summe(p.traegt));
+  if (hl) {
     p.auftrag = { art: "zurueck", quelleId: null, zielId: hl.id, items: { ...p.traegt }, abgeholt: true };
     p.phase = "zumZiel";
     geheZu(p, hl.zugang);
@@ -6632,7 +6720,7 @@ function leseSpielstand() {
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
-    return daten && [1, 2, 3, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, 4, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -6690,6 +6778,13 @@ function wendeSpielstandAn(d) {
       continue;
     }
     setzeBandteil(e.typ, e.x, e.z, e.richtung, e);
+  }
+  // Phase 7a (Nachtrag 3): Alte Greifarme mit einem Band dahinter werden Geber (sonst bleiben sie Nehmer)
+  if ((d.version || 1) < 5) {
+    for (const t of spiel.baender.values()) {
+      const h = t.typ === "greifarm" && hinterKachel(t);
+      if (h && !gebaeudeAufKachel(h)) t.typ = "greifGeber";
+    }
   }
   baueBandTopologie();                           // Anschlüsse und Automatik (noch ohne Mitarbeiter)
   for (const m of d.mitarbeiter || []) {
@@ -6878,9 +6973,9 @@ function verkaufspreis(item) {
 }
 // Verkauft bis zu "anzahl" Stück aus dem Hauptlager. Rückgabe: { anzahl, erloes }
 function verkaufe(item, anzahl) {
-  const hl = hauptlager();
-  if (!hl || spiel.insolvent) return { anzahl: 0, erloes: 0 };
-  const n = Math.min(anzahl, verfuegbar(hl, item, reservierungen()));
+  if (!hauptlager() || spiel.insolvent) return { anzahl: 0, erloes: 0 };
+  const res = reservierungen();
+  const n = Math.min(anzahl, hlVerfuegbar(item, res));
   let erloes = 0;
   const klasse = item.startsWith("p:") ? produktKlasse(item.slice(2)) : null;
   for (let i = 0; i < n; i++) {
@@ -6890,7 +6985,7 @@ function verkaufe(item, anzahl) {
     if (item.startsWith("p:")) senkeNachfrage(klasse ? klasse.id : "sonstige");   // jede Einheit sättigt den Markt
   }
   if (!erloes) return { anzahl: 0, erloes: 0 };
-  aendereBestand(hl, item, -n);
+  hlEntnimm(item, n, res);
   spiel.statistik.verkauft += n;
   bucheGeld(erloes, "verkauf");
   return { anzahl: n, erloes };
@@ -6911,14 +7006,14 @@ function setzeAutoVerkauf(item, an) {
 // Kauft Rohstoffe direkt ins Hauptlager. Rückgabe: { ok, anzahl, kosten } oder { ok: false, grund }
 function kaufeRohstoff(id, anzahl) {
   const preis = rohstoffPreis(id);
-  const hl = hauptlager();
   if (!preis) return { ok: false, grund: "Diesen Rohstoff gibt es nicht." };
-  if (!hl) return { ok: false, grund: "Kein Hauptlager: Die Lieferung hätte keinen Platz." };
-  const n = Math.min(anzahl, freierPlatz(hl, reservierungen()));
-  if (n <= 0) return { ok: false, grund: "Das Hauptlager ist voll." };
+  if (!hauptlager()) return { ok: false, grund: "Kein Hauptlager: Die Lieferung hätte keinen Platz." };
+  const res = reservierungen();
+  const n = Math.min(anzahl, hlFreierPlatz(res));
+  if (n <= 0) return { ok: false, grund: "Die Hauptlager sind voll – ein weiteres Hauptlager schafft Platz." };
   const kosten = n * preis;
   if (!kannBezahlen(kosten)) return { ok: false, grund: geldGrund(kosten) };
-  aendereBestand(hl, id, n);
+  hlEinlagern(id, n, res);                       // Phase 7a (Nachtrag 3): dorthin, wo am meisten Platz ist
   bucheGeld(-kosten, "einkauf");
   return { ok: true, anzahl: n, kosten };
 }
@@ -6930,14 +7025,13 @@ function setzeAutoKauf(id, mindestens) {
 }
 let automatikTimer = 0;
 function automatikSchritt() {
-  const hl = hauptlager();
-  if (!hl) return;
+  if (!hauptlager()) return;
   for (const [id, mindestens] of Object.entries(spiel.autoKauf)) {
-    const fehlt = mindestens - (hl.bestand[id] || 0);
+    const fehlt = mindestens - hlMenge(id);
     if (fehlt > 0) kaufeRohstoff(id, Math.ceil(fehlt / WIRTSCHAFT.einkaufSchritt) * WIRTSCHAFT.einkaufSchritt);
   }
   for (const item of Object.keys(spiel.autoVerkauf)) {
-    if ((hl.bestand[item] || 0) > 0 && !fuerAuftragGebraucht(item)) verkaufe(item, hl.bestand[item]);
+    if (hlMenge(item) > 0 && !fuerAuftragGebraucht(item)) verkaufe(item, hlMenge(item));
   }
 }
 
@@ -7095,16 +7189,15 @@ function nimmAuftragAn(id) {
 
 // Wie viel passende Fertigware liegt im Hauptlager? Rückgabe: [{ item, n }]
 function passendeWare(auftrag) {
-  const hl = hauptlager();
-  if (!hl) return [];
+  if (!hauptlager()) return [];
   const klasse = klasseNachId.get(auftrag.klasse);
   const res = reservierungen();
   const liste = [];
-  for (const item of Object.keys(hl.bestand)) {
+  for (const item of Object.keys(hlBestand())) {
     if (!item.startsWith("p:")) continue;
     const id = item.slice(2), teile = spiel.produktTeile[id];
     if (!teile || !erfuelltKlasse(teile, spiel.produktUeberhitzt[id], klasse)) continue;
-    const n = verfuegbar(hl, item, res);
+    const n = hlVerfuegbar(item, res);
     if (n > 0) liste.push({ item, n });
   }
   return liste;
@@ -7120,7 +7213,7 @@ function liefereAuftrag(id) {
   for (const { item, n } of passendeWare(a)) {
     const m = Math.min(n, a.menge - a.geliefert);
     if (m <= 0) break;
-    aendereBestand(hauptlager(), item, -m);
+    hlEntnimm(item, m, reservierungen());
     a.geliefert += m;
     geliefert += m;
   }
@@ -7417,7 +7510,7 @@ function baueBandTopologie() {
   }
   // 1. Ziele und Vorgänger
   for (const t of teile) {
-    if (t.typ === "greifarm") continue;
+    if (istGreifarm(t)) continue;
     if (t.typ === "splitter") {
       t.ausgaenge = ["links", "vorn", "rechts"].map((seite) => {
         const richtung = absRichtung(t, seite);
@@ -7435,9 +7528,9 @@ function baueBandTopologie() {
   const ablauf = (g, t) => { g.bandAblauf++; g.bandAnschluesse.push({ art: "ablauf", id: t.id }); };
   bandAblaeufe = [];
   for (const t of teile) {
-    if (t.typ === "greifarm") {
+    if (istGreifarm(t)) {
       const quelle = gebaeudeAufKachel(hinterKachel(t)), ziel = gebaeudeAufKachel(vorKachel(t));
-      if (quelle) ablauf(quelle, t);
+      if (quelle && t.typ === "greifarm") ablauf(quelle, t);   // Phase 7a (Nachtrag 3): nur der Nehmer holt aus Gebäuden
       if (ziel) zulauf(ziel, t);
       continue;
     }
@@ -7587,7 +7680,7 @@ function segmentInfo(seg) {
   else if (ende.ziel && ende.ziel.art === "band") nach = bandTyp(ende.ziel.teil).name;
   else {
     const arm = bandteilAn(vorKachel(ende).x, vorKachel(ende).z, 0);
-    if (arm && arm.typ === "greifarm") nach = "Greifarm";
+    if (arm && istGreifarm(arm)) nach = bandTyp(arm).name;
   }
   const stau = ende.stau >= BAENDER.stauWarnung;
   return {
@@ -7765,7 +7858,7 @@ function baenderSchritt(dt) {
   if (!spiel.baender.size) return;
   if (bandTopologieAlt) baueBandTopologie();
   for (const t of bandReihenfolge) {
-    if (t.typ === "greifarm") { greifarmSchritt(t, dt); continue; }
+    if (istGreifarm(t)) { greifarmSchritt(t, dt); continue; }
     const tempo = bandTempo(t);
     if (tempo <= 0) continue;                     // Segment pausiert
     bewegeItems(t, tempo * dt);
@@ -7789,6 +7882,10 @@ function baenderSchritt(dt) {
 }
 
 /* --- Greifarm --- */
+// Phase 7a (Nachtrag 3): "greifarm" = Nehmer (Gebäude → Band), "greifGeber" = Geber (Band → Gebäude)
+function istGreifarm(t) {
+  return !!t && (t.typ === "greifarm" || t.typ === "greifGeber");
+}
 
 // Wohin legt der Arm ab? { art: "band", teil } | { art: "gebaeude", g } | null
 function armZiel(a) {
@@ -7825,6 +7922,8 @@ function armKandidaten(g) {
 function armGreife(a) {
   const ziel = armZiel(a), quelle = armQuelle(a);
   if (!ziel || !quelle) return null;
+  // Phase 7a (Nachtrag 3): der Nehmer greift nur aus Gebäuden, der Geber nur vom Band
+  if ((a.typ === "greifarm") !== (quelle.art === "gebaeude")) return null;
   const passt = (item) => (!a.armFilter || a.armFilter === item) && armZielNimmt(ziel, item);
   if (quelle.art === "band") {
     const t = quelle.teil;
@@ -7877,7 +7976,8 @@ function greifarmSchritt(a, dt) {
 /* --- Bauen und Abreißen --- */
 
 // Bleiben alle Zugänge und Personen erreichbar, wenn diese Kacheln gesperrt werden?
-function bleibtErreichbarMit(gesperrt) {
+// "extraZiele" (Phase 7a, Nachtrag 3: Einfügen): weitere Kacheln, die erreichbar sein müssen (neue Zugänge)
+function bleibtErreichbarMit(gesperrt, extraZiele = []) {
   const B = level.breite, T = level.tiefe;
   const frei = new Uint8Array(B * T);
   for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
@@ -7887,6 +7987,7 @@ function bleibtErreichbarMit(gesperrt) {
     const k = personKachel(p);
     if (istBegehbar(k.x, k.z)) ziele.push(k);
   }
+  ziele.push(...extraZiele.filter((k) => istImRaster(k.x, k.z)));
   const start = ziele.find((k) => frei[k.x * T + k.z]);
   if (!start) return !ziele.length;
   const erreicht = new Uint8Array(B * T);
@@ -8151,7 +8252,7 @@ function setzeBandEinstellung(id, feld, wert) {
   }
   else if (feld === "seiteZurueck" && knoten) delete t.seiten[wert];
   else if (feld === "vorrang" && t.typ === "zusammen") t.vorrang = ["links", "hinten", "rechts"].includes(wert) ? wert : null;
-  else if (feld === "armFilter" && t.typ === "greifarm") t.armFilter = wert || null;
+  else if (feld === "armFilter" && istGreifarm(t)) t.armFilter = wert || null;
   else if (feld === "ablaufFilter") {
     const liste = new Set(t.ablaufFilter);
     if (liste.has(wert)) liste.delete(wert); else if (wert) liste.add(wert);
@@ -8445,28 +8546,26 @@ function quader(gruppe, breite, hoehe, tiefe, farbe, x, yUnten, z, material = nu
 // Bauplan jedes Gebäudes. Rückgabe: { gruppe, plaetze: [Positionen für Füllstand-Würfel], wuerfel: Kantenlänge }
 // Maße in Kacheln; der Boden liegt bei y = 0, die Mitte der Grundfläche bei x = z = 0.
 const MODELLE = {
-  // Hauptlager (3 × 2): Hochregal hinten, zwei Paletten vorn
+  // Hauptlager (2 × 2, Phase 7a): Hochregal hinten, eine Palette vorn
   hauptlager(m) {
     const g = new THREE.Group(), plaetze = [];
-    quader(g, 2.92, 0.04, 1.92, GRAFIK.farbeLagerBoden, 0, 0, 0, m);
-    for (const x of [-1.4, -0.47, 0.47, 1.4]) {
+    quader(g, 1.92, 0.04, 1.92, GRAFIK.farbeLagerBoden, 0, 0, 0, m);
+    for (const x of [-0.93, 0, 0.93]) {
       for (const z of [-0.88, -0.3]) quader(g, 0.06, 1.55, 0.06, GRAFIK.farbeRegalPfosten, x, 0.04, z, m);
     }
     for (const y of [0.12, 0.62, 1.12]) {
-      quader(g, 2.86, 0.04, 0.6, GRAFIK.farbeRegalBoden, 0, y, -0.59, m);
-      quader(g, 2.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.29, m);
-      quader(g, 2.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.89, m);
-      for (let i = 0; i < 6; i++) plaetze.push(new THREE.Vector3(-1.2 + i * 0.48, y + 0.04 + 0.15, -0.59));
+      quader(g, 1.86, 0.04, 0.6, GRAFIK.farbeRegalBoden, 0, y, -0.59, m);
+      quader(g, 1.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.29, m);
+      quader(g, 1.86, 0.07, 0.04, GRAFIK.farbeRegalTraeger, 0, y - 0.03, -0.89, m);
+      for (let i = 0; i < 4; i++) plaetze.push(new THREE.Vector3(-0.72 + i * 0.48, y + 0.04 + 0.15, -0.59));
     }
-    for (const px of [-0.75, 0.75]) {
-      quader(g, 1.1, 0.12, 0.8, GRAFIK.farbeHolz, px, 0.04, 0.45, m);
-      for (let lage = 0; lage < 2; lage++) {
-        for (let iz = 0; iz < 2; iz++) {
-          for (let ix = 0; ix < 3; ix++) plaetze.push(new THREE.Vector3(px - 0.34 + ix * 0.34, 0.16 + 0.15 + lage * 0.31, 0.29 + iz * 0.32));
-        }
+    quader(g, 1.3, 0.12, 0.8, GRAFIK.farbeHolz, 0, 0.04, 0.45, m);
+    for (let lage = 0; lage < 2; lage++) {
+      for (let iz = 0; iz < 2; iz++) {
+        for (let ix = 0; ix < 4; ix++) plaetze.push(new THREE.Vector3(-0.48 + ix * 0.32, 0.16 + 0.15 + lage * 0.31, 0.29 + iz * 0.32));
       }
     }
-    return { gruppe: g, plaetze, wuerfel: 0.3 };
+    return { gruppe: g, plaetze, wuerfel: 0.28 };
   },
 
   // Kiste (1 × 1): offene Holzkiste mit Eckleisten
@@ -9171,7 +9270,7 @@ function zeigeGebaeudeAuswahl(g) {
 function ioKanten(g) {
   // Liefert die Flüsse, an denen g selbst beteiligt ist: [{ von, nach }] (Gebäude-IDs)
   const kanten = [];
-  const hl = hauptlager();
+  const hl = naechstesHauptlager(g.zugang);           // Phase 7a (Nachtrag 3): das nächste von mehreren
   const r = istStation(g) ? rezeptVon(g) : null;
   if (istStation(g)) {
     // Phase 7a (Nachtrag 2): die Verknüpfungen selbst – Import grün (Lager → Station), Export rot (Station → Lager)
@@ -9209,7 +9308,7 @@ function bandQuellen(start) {
     const t = offen.pop();
     if (besucht.has(t.id)) continue;
     besucht.add(t.id);
-    if (t.typ === "greifarm") { const q = gebaeudeAufKachel(hinterKachel(t)); if (q) quellen.add(q.id); continue; }
+    if (istGreifarm(t)) { const q = gebaeudeAufKachel(hinterKachel(t)); if (q) quellen.add(q.id); continue; }
     if (t.ablaufVon) quellen.add(t.ablaufVon);
     for (const v of t.vorgaenger || []) offen.push(v.teil);
   }
@@ -9222,7 +9321,7 @@ function bandZiele(start) {
     const t = offen.pop();
     if (besucht.has(t.id)) continue;
     besucht.add(t.id);
-    if (t.typ === "greifarm") { const z = gebaeudeAufKachel(vorKachel(t)); if (z) ziele.add(z.id); continue; }
+    if (istGreifarm(t)) { const z = gebaeudeAufKachel(vorKachel(t)); if (z) ziele.add(z.id); continue; }
     const naechste = t.typ === "splitter" ? (t.ausgaenge || []).map((a) => a.ziel) : [t.ziel];
     for (const z of naechste) {
       if (!z) continue;
@@ -9474,9 +9573,16 @@ function baueBandModell(t) {
       }
       break;
     }
-    case "greifarm": {
+    case "greifarm":
+    case "greifGeber": {
       quader(g, 0.86, 0.04, 0.86, GRAFIK.farbeMetallDunkel, 0, 0, 0);
       bandPfeil(g, 0, 0.045, 0.3, 0, 0.4);
+      // Phase 7a (Nachtrag 3): Ring am Sockel – rot = Nehmer (holt heraus), grün = Geber (gibt hinein)
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.035, 8, 24),
+        figurMaterial(t.typ === "greifarm" ? GRAFIK.farbeExport : GRAFIK.farbeImport));
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.06;
+      g.add(ring);
       const fuss = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.3, 0.12, 14), figurMaterial(GRAFIK.farbeArmGelenk));
       fuss.position.y = 0.1;
       fuss.castShadow = true;
@@ -9616,7 +9722,7 @@ function zeichneBandItems() {
       }
     }
     // Greifarm: das gehaltene Item hängt am Greifer
-    if (t.typ === "greifarm" && t.haelt && n < max) {
+    if (istGreifarm(t) && t.haelt && n < max) {
       const m = bandModelle.get(t.id);
       if (m && m.greifer) {
         m.greifer.getWorldPosition(bandHilfsVektor);
@@ -9647,12 +9753,13 @@ let segmentRahmenMerker = "";
 function bandRahmenNeu() { segmentRahmenMerker = "?"; }
 function zeichneSegmentRahmen() {
   const t = bandAuswahl.id && spiel.baender.get(bandAuswahl.id);
-  const merker = t ? `${t.id}|${bandAuswahl.gruppe}|${spiel.bandVersion}` : "";
+  const merker = (t ? `${t.id}|${bandAuswahl.gruppe}` : "") + `|${mehrfachVersion}|${spiel.bandVersion}`;
   if (merker === segmentRahmenMerker) return;
   segmentRahmenMerker = merker;
   // Phase 7a: Einfachklick umrandet nur das Stück, Doppelklick die ganze Gruppe
   const seg = t && bandAuswahl.gruppe && segmentVon(t);
-  const teile = !t ? [] : (seg ? seg.teile : [t]);
+  const teile = !t ? [] : (seg ? [...seg.teile] : [t]);
+  for (const id of mehrfach.baender) { const b = spiel.baender.get(id); if (b) teile.push(b); }   // Nachtrag 3: Mehrfachauswahl
   let n = 0;
   for (const teil of teile) {
     if (n >= MAX_RAHMEN) break;
@@ -9761,7 +9868,7 @@ function aktualisiereBaender3d(simSekunden, zeit) {
     }
   }
   for (const t of spiel.baender.values()) {
-    if (t.typ !== "greifarm") continue;
+    if (!istGreifarm(t)) continue;
     const m = bandModelle.get(t.id);
     if (m && m.arm) { m.arm.rotation.y = Math.PI - (t.winkel || 0); m.gruppe.updateMatrixWorld(true); }
   }
@@ -9897,6 +10004,11 @@ function waehleBauTyp(typ) {
 }
 function dreheWerkzeug() {
   const w = bau.werkzeug;
+  if (w && w.art === "einfuegen") {                // Phase 7a (Nachtrag 3): die ganze Kopie um 90° drehen
+    w.drehung = (w.drehung + 1) % 4;
+    aktualisiereVorschau();
+    return;
+  }
   if (w && w.art === "band") {                     // Phase 6: Bandteile drehen in Vierteln
     w.richtung = (w.richtung + 1) % 4;
     bau.letzteDrehung.bandRichtung = w.richtung;
@@ -9944,7 +10056,7 @@ function zeichneBauInhalt() {
           <small>${t.breite} × ${t.tiefe} Kacheln · ${t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : t.art === "forschung" ? "Teile → FP" : `Fach ${t.kapazitaet}`}</small>
           ${voll ? "<small>steht schon in der Halle</small>"
             : imDepot ? `<small class="bau-depot">im Depot: ${imDepot} · kostenlos</small>`
-            : t.preis ? `<small class="${kannBezahlen(t.preis) ? "bau-preis" : "bau-teuer"}">${euro(t.preis)}</small>` : "<small>kostenlos</small>"}
+            : baukosten(t.typ) ? `<small class="${kannBezahlen(baukosten(t.typ)) ? "bau-preis" : "bau-teuer"}">${euro(baukosten(t.typ))}</small>` : "<small>kostenlos</small>"}
         </span></button>`;
   }).join("");
 }
@@ -10048,6 +10160,8 @@ function aktualisiereBauTipp() {
       const kosten = baukosten(w.typ);
       html = `${t.name} (${kosten ? euro(kosten) : "kostenlos"}): Klicken zum Aufstellen · ${kbd("drehen")} / Rechtsklick drehen · <kbd>Shift</kbd> mehrere · <kbd>Esc</kbd> abbrechen`;
     }
+  } else if (w && w.art === "einfuegen") {           // Phase 7a (Nachtrag 3)
+    ({ html, warnung = false } = einfuegeTipp());
   } else if (w && w.art === "verschieben") {
     const g = w.id && spiel.gebaeude.get(w.id);
     if (!g) {
@@ -10098,6 +10212,7 @@ function aktualisiereVorschau() {
   const umzug = bau.offen && w && w.art === "verschieben" && !eingaben3dGesperrt
     ? (verschiebt || gebaeudeUnter(hoverKachel)) : null;
   zeigeUmzugMarke(umzug || null);
+  aktualisiereEinfuegeVorschau(aktiv && w.art === "einfuegen");   // Phase 7a (Nachtrag 3)
   aktualisiereBandVorschau();                       // Phase 6
   aktualisiereBauTipp();
 }
@@ -10123,7 +10238,7 @@ function verknuepfungsText(idA, idB, richtung, ergebnis) {
 }
 
 // Linksklick auf eine Kachel (aufgerufen aus Abschnitt 6)
-function behandleKachelKlick(k, shift) {
+function behandleKachelKlick(k, shift, strg = false) {
   const g = gebaeudeUnter(k);
   // 1. Verknüpfen-Modus: angeklicktes Gebäude verknüpfen bzw. lösen
   if (verknuepfModus) {
@@ -10138,6 +10253,7 @@ function behandleKachelKlick(k, shift) {
   // 2. Bauen
   const w = bau.offen ? bau.werkzeug : null;
   if (w && w.art === "band") { bandKlick(w, k, shift); return; }   // Phase 6: ein Bandteil legen
+  if (w && w.art === "einfuegen") { einfuegeKlick(w, k, shift); return; }   // Phase 7a (Nachtrag 3): Kopie aufstellen
   if (w && w.art === "bauen") {
     const anker = ankerFuerMitte(w.typ, w.drehung, k);
     const ergebnis = baueGebaeude(w.typ, anker.x, anker.z, w.drehung);
@@ -10183,6 +10299,8 @@ function behandleKachelKlick(k, shift) {
     aktualisiereAbrissMarke();
     return;
   }
+  // 3b. Strg + Klick (Phase 7a, Nachtrag 3): Teil zur Mehrfachauswahl dazu oder heraus
+  if (strg) { mehrfachKlick(k); return; }
   // 4. Gebäude angeklickt: Info-Fenster
   if (g) { setzeAuswahl(null); waehleGebaeude(g.id); return; }
   // 4b. Bandteil angeklickt (Phase 7a): Einfachklick wählt das einzelne Stück,
@@ -10271,6 +10389,7 @@ function aufbauWiederherstellen() {
 
 /* --- Info-Fenster --- */
 function waehleGebaeude(id) {
+  leereMehrfach();                                  // Phase 7a (Nachtrag 3)
   auswahlBandId = null;                             // Phase 6
   bandAuswahl.id = null;
   auswahlGebaeudeId = id && spiel.gebaeude.has(id) ? id : null;
@@ -10510,12 +10629,11 @@ function infoZahlenHtml(g) {
     const wartender = art === "wartetAufMaterial" && mitarbeiter.find((m) => m.id === g.arbeiterId);
     const quelle = wartender && wartender.auftrag && spiel.gebaeude.get(wartender.auftrag.quelleId);
     if (quelle) {
-      const hl = hauptlager();
       const inhalt = fachInhalt(quelle, wartender.auftrag.quelleFach);
       const fehlt = Object.entries(wartender.auftrag.items)
         .filter(([item, n]) => (inhalt[item] || 0) < n)
         .map(([item, n]) => `${n - (inhalt[item] || 0)}× ${htmlSicher(itemInfo(item).name)}`
-          + (hl && (hl.bestand[item] || 0) > 0 ? "" : " (nicht im Hauptlager)"));
+          + (hlMenge(item) > 0 ? "" : " (nicht im Hauptlager)"));
       if (fehlt.length) html += `<p class="info-leer">Fehlt noch: ${fehlt.join(", ")}</p>`;
     }
     html += `</div>`;
@@ -10729,9 +10847,9 @@ function schliesseLager() {
   ob.hudLager.focus({ preventScroll: true });
 }
 function zeichneLager() {
-  const hl = hauptlager();
-  ob.lagerHaupt.innerHTML = `<h3>Hauptlager${hl ? ` · ${summe(hl.bestand)} / ${kapazitaetVon(hl)}` : ""}</h3>` +
-    (hl ? itemGruppen(hl.bestand, (id) => (fuerAuftragGebraucht(id) ? "für Auftrag" : "")) : `<p class="info-warnung">Kein Hauptlager aufgestellt – Kuriere haben nichts zu tun. Baumenü (B) → Lager.</p>`);
+  const hl = hauptlager(), anzahl = hauptlagerListe().length, bestand = hlBestand();   // Phase 7a (Nachtrag 3): alle zusammen
+  ob.lagerHaupt.innerHTML = `<h3>${anzahl > 1 ? `${anzahl} Hauptlager` : "Hauptlager"}${hl ? ` · ${summe(bestand)} / ${hlKapazitaet()}` : ""}</h3>` +
+    (hl ? itemGruppen(bestand, (id) => (fuerAuftragGebraucht(id) ? "für Auftrag" : "")) : `<p class="info-warnung">Kein Hauptlager aufgestellt – Kuriere haben nichts zu tun. Baumenü (B) → Lager.</p>`);
   const maschinen = Object.entries(spiel.depot.gebaeude).filter(([, n]) => n > 0);
   ob.lagerDepot.innerHTML = `<h3>Depot (außerhalb der Halle)</h3>
     <div class="info-block"><h3>Maschinen</h3>${maschinen.length
@@ -10998,13 +11116,12 @@ function kontorAuftraege() {
 
 // Reiter "Verkauf": Direktverkauf aus dem Hauptlager und Nachfrage je Klasse
 function kontorVerkauf() {
-  const hl = hauptlager();
   const res = reservierungen();
-  const items = [...new Set([...Object.keys(hl ? hl.bestand : {}), ...Object.keys(spiel.autoVerkauf)])]
+  const items = [...new Set([...Object.keys(hlBestand()), ...Object.keys(spiel.autoVerkauf)])]
     .filter((item) => verkaufspreis(item) > 0)
     .sort((a, b) => (itemInfo(b).art === "produkt") - (itemInfo(a).art === "produkt") || itemInfo(a).name.localeCompare(itemInfo(b).name));
   const zeilen = items.map((item) => {
-    const n = hl ? verfuegbar(hl, item, res) : 0;
+    const n = hlVerfuegbar(item, res);
     const preis = verkaufspreis(item);
     const klasse = item.startsWith("p:") ? produktKlasse(item.slice(2)) : null;
     const auftrag = fuerAuftragGebraucht(item);
@@ -11040,13 +11157,13 @@ function kontorVerkauf() {
 // Reiter "Einkauf": Rohstoffe direkt ins Hauptlager, mit automatischem Nachkauf
 function kontorEinkauf() {
   const hl = hauptlager();
-  const frei = hl ? freierPlatz(hl, reservierungen()) : 0;
+  const frei = hlFreierPlatz(reservierungen());     // Phase 7a (Nachtrag 3): alle Hauptlager zusammen
   const zeilen = ROHSTOFFE.map((r) => {
     const schritt = WIRTSCHAFT.einkaufSchritt;
     const knopf = (n) => `<button class="mini-knopf" type="button" data-aktion="kaufen" data-id="${r.id}" data-n="${n}"
         ${hl && frei > 0 && kannBezahlen(r.preis * Math.min(n, frei)) ? "" : "disabled"}>+${n} · ${euro(r.preis * n)}</button>`;
     return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span></td>
-      <td class="zahl">${euro(r.preis)}</td><td class="zahl">${hl ? hl.bestand[r.id] || 0 : 0}</td>
+      <td class="zahl">${euro(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td>
       <td><div class="knoepfe">${knopf(schritt)}${knopf(schritt * 5)}</div></td>
       <td><label title="Hält diesen Mindestbestand im Hauptlager (0 = aus)">mind.
         <input type="number" min="0" step="${schritt}" value="${spiel.autoKauf[r.id] || 0}" data-aktion="autoKauf" data-id="${r.id}"></label></td></tr>`;
@@ -11470,6 +11587,14 @@ window.addEventListener("keydown", (e) => {
   }
   const ziel = e.target;
   if (ziel instanceof HTMLInputElement || ziel instanceof HTMLSelectElement || ziel instanceof HTMLTextAreaElement) return;
+  // Phase 7a (Nachtrag 3): Strg + C / Strg + V – Auswahl kopieren und einfügen (feste Tasten)
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && ["c", "v"].includes(e.key.toLowerCase())) {
+    if (dialogOffen || insolvenzOffen || einstellungsFenster.offen || rezeptFenster.offen || lagerOffen || kontor.offen || forschungOffen) return;
+    if (e.key.toLowerCase() === "c" && window.getSelection && String(window.getSelection())) return;   // markierter Text: normal kopieren
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (e.key.toLowerCase() === "c") kopierenAktion(); else einfuegenAktion();
+    return;
+  }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const taste = e.key.toLowerCase();
   const erledigt = () => { e.preventDefault(); e.stopImmediatePropagation(); };
@@ -11519,7 +11644,7 @@ window.addEventListener("keydown", (e) => {
     if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
     else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
     else if (bau.offen) { erledigt(); schliesseBau(); }
-    else if (auswahlGebaeudeId) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
+    else if (auswahlGebaeudeId || mehrfachAktiv()) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
     return;
   }
   switch (aktion) {
@@ -11578,6 +11703,7 @@ function aktualisiereOberflaeche(sekunden) {
       anzeige.infoStrukturFehlt = true;
     }
     if (auswahlBandId) anzeige.infoStrukturFehlt = true;   // Phase 6
+    if (mehrfachAktiv()) { zeichneMehrfachInfo(); zeigeMehrfachRahmen(); }   // Phase 7a (Nachtrag 3)
     if (lagerOffen) zeichneLager();
   }
   // Phase 6: Bandteil im Info-Fenster (nicht neu bauen, solange ein Feld darin den Fokus hat)
@@ -11645,7 +11771,7 @@ function zeichneBaender() {
         : `<small class="${kannBezahlen(t.preis) ? "bau-preis" : "bau-teuer"}">${euro(t.preis)}${t.typ === "band" ? " pro Kachel" : ""}</small>`;
     }
     const unter = t.typ === "band" ? "ziehen · Kurven automatisch" : t.typ === "bruecke" ? "gerade ziehen · mind. 3 Kacheln"
-      : t.typ === "greifarm" ? `1 × 1 · ${bandTypNach.get("greifarm").tagesKosten} €/Tag` : t.begehbar ? "1 × 1 · begehbar" : "1 × 1 · nicht begehbar";
+      : istGreifarm(t) ? `1 × 1 · ${bandTypNach.get("greifarm").tagesKosten} €/Tag` : t.begehbar ? "1 × 1 · begehbar" : "1 × 1 · nicht begehbar";
     return `<button class="bau-karte" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}" title="${htmlSicher(t.beschreibung)}">
         <span class="bau-symbol" aria-hidden="true">${t.symbol}</span>
         <span><b>${t.name}</b><small>${unter}</small>${preis}</span></button>`;
@@ -12022,8 +12148,15 @@ function zeichneBandInfo() {
           `<option value="${wert}" ${(t.vorrang || "") === wert ? "selected" : ""}>${text}</option>`).join("")}
       </select></label>`;
     html += seitenHtml(t);
-  } else if (t.typ === "greifarm") {
-    html += `<label class="info-feld">Nur dieses Item <select data-band-aktion="armFilter">${itemOptionen(t.armFilter || "", "– alles, was das Ziel braucht –")}</select></label>`;
+  } else if (t.typ === "greifarm") {                // Phase 7a (Nachtrag 3): Nehmer – welches Item entnommen wird
+    const q = armQuelle(t);
+    const bestand = q && q.art === "gebaeude" ? q.g.bestand : {};
+    const optionen = alleItems().map((item) => `<option value="${htmlSicher(item)}" ${t.armFilter === item ? "selected" : ""}>`
+      + `${htmlSicher(itemInfo(item).name)}${bestand[item] ? ` (${bestand[item]} da)` : ""}</option>`).join("");
+    html += `<label class="info-feld">Welches Item entnehmen? <select data-band-aktion="armFilter">
+        <option value="">– alles aus dem Ausgabefach bzw. alles Abholbare –</option>${optionen}</select></label>`;
+  } else if (t.typ === "greifGeber") {
+    html += `<label class="info-feld">Nur dieses Item <select data-band-aktion="armFilter">${itemOptionen(t.armFilter || "", "– alles, was das Ziel annimmt –")}</select></label>`;
   }
   const zahlen = bandInfoZahlenHtml(t);
   html += `<div id="band-zahlen">${zahlen}</div><div class="info-knoepfe">`;
@@ -12063,13 +12196,15 @@ function bandInfoZahlenHtml(t) {
       <dt>Nach</dt><dd>${htmlSicher(info.nach)}</dd>
       <dt>Laufkosten</dt><dd>${euro(info.kostenTag)}/Tag</dd></dl>
       ${info.stau ? `<p class="info-warnung">⚠ Stau seit ${Math.round(info.stauSeit)} s: ${htmlSicher(info.stauGrund)}</p>` : ""}</div>`;
-  } else if (t.typ === "greifarm") {
+  } else if (istGreifarm(t)) {
     const name = (z) => !z ? "nichts" : z.art === "band" ? (z.teil.name || bandTyp(z.teil).name) : gebaeudeName(z.g);
     const q = armQuelle(t), z = armZiel(t);
-    html += `<div class="info-block"><h3>Greifarm</h3><dl class="info-zeilen zwei">
+    html += `<div class="info-block"><h3>${bandTyp(t).name}</h3><dl class="info-zeilen zwei">
       <dt>Nimmt von</dt><dd>${htmlSicher(name(q))}</dd><dt>Legt auf</dt><dd>${htmlSicher(name(z))}</dd>
       <dt>Hält</dt><dd>${t.haelt ? htmlSicher(itemInfo(t.haelt).name) : "–"}</dd></dl>
       ${!q || !z ? `<p class="info-warnung">⚠ Hinter und vor dem Arm muss ein Band oder Gebäude stehen.</p>` : ""}
+      ${q && t.typ === "greifarm" && q.art !== "gebaeude" ? `<p class="info-warnung">⚠ Der Nehmer holt nur aus einem Gebäude hinter sich. Für Items vom Band: Greifarm-Geber.</p>` : ""}
+      ${q && t.typ === "greifGeber" && q.art !== "band" ? `<p class="info-warnung">⚠ Der Geber nimmt nur vom Band hinter sich. Für Items aus einem Gebäude: Greifarm-Nehmer.</p>` : ""}
       ${q && z && q.art === "gebaeude" && typVon(q.g).art === "hauptlager" && z.art === "band" && !t.armFilter ? `<p class="info-warnung">⚠ Vom Hauptlager auf ein Band nur mit Item-Filter.</p>` : ""}
       ${t.wartet > 3 ? `<p class="info-warnung">⚠ Das Ziel nimmt gerade nichts an.</p>` : ""}</div>`;
   } else {
@@ -12147,7 +12282,7 @@ function bandAnschlussHtml(g) {
   const zeilen = liste.map((a) => {
     const t = spiel.baender.get(a.id);
     if (!t) return "";
-    const name = t.typ === "greifarm" ? "Greifarm" : t.typ === "splitter" ? "Splitter" : t.name || bandTyp(t).name;
+    const name = istGreifarm(t) ? bandTyp(t).name : t.typ === "splitter" ? "Splitter" : t.name || bandTyp(t).name;
     return `<li>${a.art === "zulauf" ? "⇣ Zulauf" : "⇡ Ablauf"}: ${htmlSicher(name)}</li>`;
   }).join("");
   let zusatz = "";
@@ -12409,6 +12544,7 @@ function zeigeZuweisMarke(ziel) {
 // Reihenfolge: gewähltes Band (Stück oder ganze Gruppe) → gewähltes Gebäude → Gebäude bzw. Band unter der Maus.
 // Abgerissenes kommt wie beim Abriss-Werkzeug ins Depot bzw. wird erstattet; Inhalte gehen ins Hauptlager.
 function entfAbriss() {
+  if (mehrfachAktiv()) { reisseMehrfachAb(); return true; }   // Phase 7a (Nachtrag 3)
   const band = auswahlBandId && spiel.baender.get(auswahlBandId);
   if (band) {
     if (bandAuswahl.gruppe && segmentVon(band)) {
@@ -12674,6 +12810,425 @@ function zeigeHerstellendeStation(item) {
 }
 
 /* ============================================================================
+   ABSCHNITT 13g: Mehrfachauswahl, Kopieren & Einfügen (Phase 7a, Nachtrag 3) [UI/UX-Agent]
+   - Strg + Klick nimmt Gebäude und Bandteile zur Auswahl dazu oder wieder heraus.
+   - Ziehen mit der linken Maustaste (ohne Werkzeug) spannt einen Rahmen auf: alles darin wird gewählt
+     (mit Strg kommt es zur bisherigen Auswahl dazu).
+   - Strg + C merkt sich die Auswahl: Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und die
+     Import-/Export-Verknüpfungen zwischen den kopierten Teilen. Inhalt, Arbeiter und Fortschritt nicht.
+   - Strg + V hängt die Kopie als Vorschau an die Maus: R dreht die Gruppe, Klick stellt auf
+     (alles oder nichts, Depot zuerst), Shift lässt die Vorschau für weitere Kopien an der Maus.
+   ============================================================================ */
+const mehrfach = { gebaeude: new Set(), baender: new Set() };
+let mehrfachVersion = 0;      // ändert sich mit der Auswahl (für die Band-Rahmen)
+let zwischenablage = null;    // { nummer, gebaeude: [...], baender: [...] }
+let einfuegePlan = null;      // Ergebnis von planeEinfuegen für die Vorschau unter der Maus
+
+function mehrfachAnzahl() { return mehrfach.gebaeude.size + mehrfach.baender.size; }
+function mehrfachAktiv() { return mehrfachAnzahl() > 0; }
+function leereMehrfach() {
+  if (!mehrfachAktiv()) return;
+  mehrfach.gebaeude.clear();
+  mehrfach.baender.clear();
+  mehrfachVersion++;
+  zeigeMehrfachRahmen();
+}
+// Eine Brücke gehört immer ganz dazu (Auffahrt, Hochband, Abfahrt)
+function brueckeVon(t) {
+  return t.bruecke ? [...spiel.baender.values()].filter((b) => b.bruecke === t.bruecke) : [t];
+}
+const teileText = (n) => `${n} ${n === 1 ? "Teil" : "Teile"}`;
+
+// Was ist gerade ausgewählt? Mehrfachauswahl, sonst das Gebäude, Bandstück bzw. die Bandgruppe im Info-Fenster.
+function aktuelleAuswahl() {
+  if (mehrfachAktiv()) return { gebaeude: [...mehrfach.gebaeude], baender: [...mehrfach.baender] };
+  if (auswahlGebaeudeId && spiel.gebaeude.has(auswahlGebaeudeId)) return { gebaeude: [auswahlGebaeudeId], baender: [] };
+  const t = auswahlBandId && spiel.baender.get(auswahlBandId);
+  if (t) {
+    const seg = bandAuswahl.gruppe && segmentVon(t);
+    return { gebaeude: [], baender: (seg ? seg.teile : [t]).map((b) => b.id) };
+  }
+  return { gebaeude: [], baender: [] };
+}
+
+// Setzt die Auswahl. Ein einzelnes Teil wird wie mit einem normalen Klick gewählt (eigenes Info-Fenster).
+// Rückgabe: Anzahl der gewählten Teile
+function setzeMehrfach(gebaeudeIds, bandIds) {
+  const gs = [...new Set(gebaeudeIds)].filter((id) => spiel.gebaeude.has(id));
+  const bs = new Set();
+  for (const id of bandIds) {
+    const t = spiel.baender.get(id);
+    if (t) for (const b of brueckeVon(t)) bs.add(b.id);
+  }
+  waehleGebaeude(null);                             // hebt auch die alte Mehrfachauswahl auf
+  setzeAuswahl(null);
+  if (gs.length === 1 && !bs.size) { waehleGebaeude(gs[0]); return 1; }
+  if (!gs.length && bs.size === 1) { waehleBandteil([...bs][0]); return 1; }
+  if (!gs.length && !bs.size) return 0;
+  for (const id of gs) mehrfach.gebaeude.add(id);
+  for (const id of bs) mehrfach.baender.add(id);
+  mehrfachVersion++;
+  zeigeMehrfachRahmen();
+  ob.info.hidden = false;
+  zeichneMehrfachInfo();
+  aktualisiereBauTipp();
+  return gs.length + bs.size;
+}
+
+// Strg + Klick: Teil unter der Maus dazu oder heraus
+function mehrfachKlick(k) {
+  const g = gebaeudeUnter(k);
+  const t = !g && bandteilAufKachel(k);
+  if (!g && !t) return;
+  const auswahl = aktuelleAuswahl();
+  const gs = new Set(auswahl.gebaeude), bs = new Set(auswahl.baender);
+  if (g) {
+    if (gs.has(g.id)) gs.delete(g.id); else gs.add(g.id);
+  } else {
+    const drin = bs.has(t.id);
+    for (const b of brueckeVon(t)) { if (drin) bs.delete(b.id); else bs.add(b.id); }
+  }
+  setzeMehrfach([...gs], [...bs]);
+}
+
+/* --- Auswahl-Rahmen (linke Maustaste ziehen) --- */
+const rahmenEl = document.createElement("div");
+rahmenEl.id = "auswahl-rahmen";
+rahmenEl.hidden = true;
+document.body.appendChild(rahmenEl);
+const rahmenZug = { x0: 0, y0: 0, x1: 0, y1: 0 };
+// Ohne Werkzeug und ohne Verknüpfen-Modus darf ein Rahmen aufgezogen werden
+function kannRahmenAuswahl() {
+  return !(bau.offen && bau.werkzeug) && !verknuepfModus && !eingaben3dGesperrt;
+}
+function rahmenStart(x, y) {
+  Object.assign(rahmenZug, { x0: x, y0: y, x1: x, y1: y });
+  rahmenEl.hidden = false;
+  document.body.classList.add("rahmen-zieht");      // beim Ziehen keinen Text in den Fenstern markieren
+  if (window.getSelection) window.getSelection().removeAllRanges();
+  rahmenBewegt(x, y);
+}
+function rahmenBewegt(x, y) {
+  rahmenZug.x1 = x; rahmenZug.y1 = y;
+  const links = Math.min(rahmenZug.x0, x), oben = Math.min(rahmenZug.y0, y);
+  rahmenEl.style.left = `${links}px`;
+  rahmenEl.style.top = `${oben}px`;
+  rahmenEl.style.width = `${Math.abs(x - rahmenZug.x0)}px`;
+  rahmenEl.style.height = `${Math.abs(y - rahmenZug.y0)}px`;
+}
+function rahmenAbbruch() { rahmenEl.hidden = true; document.body.classList.remove("rahmen-zieht"); }
+// Bildschirmposition (Pixel) eines Punkts in der 3D-Welt
+function bildschirmPunkt(x, y, z) {
+  const v = new THREE.Vector3(x, y, z).project(kamera);
+  const r = zeichenflaeche.getBoundingClientRect();
+  return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+}
+// Alles, dessen Mitte im Rahmen liegt. Rückgabe: { gebaeude: [ID], baender: [ID] }
+function teileImRahmen(x0, y0, x1, y1) {
+  const links = Math.min(x0, x1), rechts = Math.max(x0, x1), oben = Math.min(y0, y1), unten = Math.max(y0, y1);
+  const drin = (p) => p.x >= links && p.x <= rechts && p.y >= oben && p.y <= unten;
+  const gebaeude = gebaeudeListe().filter((g) => {
+    const m = gebaeudeMitteWelt(g);
+    return drin(bildschirmPunkt(m.x, rasterHoehe, m.z));
+  }).map((g) => g.id);
+  const baender = [...spiel.baender.values()].filter((t) => {
+    const m = kachelZuWelt(t.x, t.z);
+    const typ = bandTyp(t);
+    return drin(bildschirmPunkt(m.x, rasterHoehe + (bahnHoehe(typ.ebeneEin) + bahnHoehe(typ.ebeneAus)) / 2, m.z));
+  }).map((t) => t.id);
+  return { gebaeude, baender };
+}
+function rahmenEnde(x, y, strg) {
+  rahmenAbbruch();
+  const neu = teileImRahmen(rahmenZug.x0, rahmenZug.y0, x, y);
+  const alt = strg ? aktuelleAuswahl() : { gebaeude: [], baender: [] };
+  const n = setzeMehrfach([...alt.gebaeude, ...neu.gebaeude], [...alt.baender, ...neu.baender]);
+  if (!n) zeigeMeldung("Im Rahmen liegt nichts zum Auswählen.");
+  else if (n > 1) zeigeMeldung(`${teileText(n)} ausgewählt – Strg + C kopiert, ${tastenName(tasteFuer("abreissen"))} reißt ab.`);
+}
+
+/* --- Orangefarbene Rahmen um die gewählten Gebäude (Bänder: Abschnitt 12, zeichneSegmentRahmen) --- */
+const mehrfach3d = new THREE.Group();
+szene.add(mehrfach3d);
+const mehrfachLinie = new THREE.LineBasicMaterial({ color: GRAFIK.farbeKachelAuswahl });
+function zeigeMehrfachRahmen() {
+  while (mehrfach3d.children.length) {
+    const kind = mehrfach3d.children[0];
+    kind.geometry.dispose();
+    mehrfach3d.remove(kind);
+  }
+  for (const id of mehrfach.gebaeude) {
+    const g = spiel.gebaeude.get(id);
+    if (!g) continue;
+    const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
+    const a = kachelZuWelt(Math.min(...xs), Math.min(...zs)), b = kachelZuWelt(Math.max(...xs), Math.max(...zs));
+    const r = 0.56, y = rasterHoehe + 0.02;
+    mehrfach3d.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(a.x - r, y, a.z - r), new THREE.Vector3(b.x + r, y, a.z - r),
+      new THREE.Vector3(b.x + r, y, b.z + r), new THREE.Vector3(a.x - r, y, b.z + r),
+    ]), mehrfachLinie));
+  }
+  bandRahmenNeu();
+}
+
+/* --- Info-Fenster bei mehreren Teilen --- */
+function zeichneMehrfachInfo() {
+  for (const id of [...mehrfach.gebaeude]) if (!spiel.gebaeude.has(id)) mehrfach.gebaeude.delete(id);
+  for (const id of [...mehrfach.baender]) if (!spiel.baender.has(id)) mehrfach.baender.delete(id);
+  const n = mehrfachAnzahl();
+  if (!n) { waehleGebaeude(null); return; }
+  const zaehler = new Map();
+  const zaehle = (name) => zaehler.set(name, (zaehler.get(name) || 0) + 1);
+  for (const id of mehrfach.gebaeude) zaehle(typVon(spiel.gebaeude.get(id)).name);
+  for (const id of mehrfach.baender) zaehle(bandTyp(spiel.baender.get(id)).name);
+  ob.infoTitel.textContent = `${teileText(n)} ausgewählt`;
+  ob.infoUnter.textContent = "Strg + Klick nimmt Teile dazu oder heraus. Mit der linken Maustaste einen Rahmen ziehen wählt alles darin.";
+  const zeilen = [...zaehler].sort((a, b) => b[1] - a[1]).map(([name, anzahl]) => `<dt>${htmlSicher(name)}</dt><dd>${anzahl}</dd>`).join("");
+  morphe(ob.infoInhalt, `<div class="info-block"><h3>Auswahl</h3><dl class="info-zeilen zwei">${zeilen}</dl></div>
+    <p class="modus-text">Kopiert werden Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und die Verknüpfungen zwischen den gewählten Teilen – kein Inhalt, keine Arbeiter.</p>
+    <div class="info-knoepfe">
+      <button class="lz-knopf" type="button" data-mehrfach="kopieren">⧉ Kopieren <kbd>Strg</kbd>+<kbd>C</kbd></button>
+      <button class="lz-knopf" type="button" data-mehrfach="einfuegen" ${zwischenablage ? "" : "disabled"}>Einfügen <kbd>Strg</kbd>+<kbd>V</kbd></button>
+      <button class="lz-knopf bau-gefahr" type="button" data-mehrfach="abreissen">Abreißen ${kbd("abreissen")}</button>
+    </div>`);
+}
+ob.infoInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-mehrfach]");
+  if (!knopf || !mehrfachAktiv()) return;
+  if (knopf.dataset.mehrfach === "kopieren") kopierenAktion();
+  else if (knopf.dataset.mehrfach === "einfuegen") einfuegenAktion();
+  else if (knopf.dataset.mehrfach === "abreissen") reisseMehrfachAb();
+});
+
+// Reißt alles Gewählte ab: Gebäude ins Depot (Inhalt ins Hauptlager), Bänder werden erstattet
+function reisseMehrfachAb() {
+  let gebaeude = 0, teile = 0, geld = 0, items = 0;
+  for (const id of mehrfach.gebaeude) {
+    const g = spiel.gebaeude.get(id);
+    if (!g) continue;
+    items += summe(g.bestand) + summe(g.eingang);
+    reisseAb(id);
+    gebaeude++;
+  }
+  for (const id of mehrfach.baender) {
+    const t = spiel.baender.get(id);
+    if (!t) continue;
+    if (!t.ausDepot) geld += bandTyp(t).preis;
+    entferneBandteil(id);
+    teile++;
+  }
+  planeLaufendeNeu();
+  meldeStruktur();
+  waehleGebaeude(null);
+  aktualisiereAbrissMarke();
+  const was = [gebaeude ? `${gebaeude} Gebäude (ins Depot${items ? `, ${items} Items eingelagert` : ""})` : "",
+               teile ? `${teile} Bandteile${geld ? ` (+${euro(geld)} erstattet)` : ""}` : ""].filter(Boolean).join(" und ");
+  zeigeMeldung(`Abgerissen: ${was}.`);
+}
+
+/* --- Kopieren --- */
+// Merkt sich die Auswahl relativ zu ihrer Mitte. Rückgabe: Anzahl der kopierten Teile
+function kopiereAuswahl() {
+  const auswahl = aktuelleAuswahl();
+  const gebaeude = auswahl.gebaeude.map((id) => spiel.gebaeude.get(id)).filter(Boolean);
+  const bandIds = new Set();
+  for (const id of auswahl.baender) {
+    const t = spiel.baender.get(id);
+    if (t) for (const b of brueckeVon(t)) bandIds.add(b.id);
+  }
+  const baender = [...bandIds].map((id) => spiel.baender.get(id));
+  if (!gebaeude.length && !baender.length) return 0;
+  const xs = [], zs = [];
+  for (const g of gebaeude) for (const c of g.zellen) { xs.push(c.x); zs.push(c.z); }
+  for (const t of baender) { xs.push(t.x); zs.push(t.z); }
+  const ox = Math.floor((Math.min(...xs) + Math.max(...xs)) / 2), oz = Math.floor((Math.min(...zs) + Math.max(...zs)) / 2);
+  const index = new Map(gebaeude.map((g, i) => [g.id, i]));
+  const intern = (liste) => (liste || []).filter((id) => index.has(id)).map((id) => index.get(id));
+  const bruecken = new Map();
+  const kopie = (wert) => JSON.parse(JSON.stringify(wert));
+  zwischenablage = {
+    nummer: (zwischenablage ? zwischenablage.nummer : 0) + 1,
+    gebaeude: gebaeude.map((g) => ({
+      typ: g.typ, drehung: g.drehung, mx: g.mitte.x - ox, mz: g.mitte.z - oz,
+      rezept: g.rezept, pausiert: !!g.pausiert, regeln: kopie(g.regeln || {}),
+      importVon: intern(g.importVon), exportNach: intern(g.exportNach),
+    })),
+    baender: baender.map((t) => {
+      if (t.bruecke && !bruecken.has(t.bruecke)) bruecken.set(t.bruecke, bruecken.size);
+      return {
+        typ: t.typ, dx: t.x - ox, dz: t.z - oz, richtung: t.richtung,
+        tempo: t.tempo, seiten: kopie(t.seiten || {}), vorrang: t.vorrang, armFilter: t.armFilter,
+        ablaufFilter: [...(t.ablaufFilter || [])], bruecke: t.bruecke ? bruecken.get(t.bruecke) : null,
+      };
+    }),
+  };
+  return gebaeude.length + baender.length;
+}
+function kopierenAktion() {
+  const n = kopiereAuswahl();
+  if (!n) { zeigeMeldung("Nichts ausgewählt: Teile anklicken (Strg + Klick für mehrere) oder einen Rahmen ziehen, dann Strg + C.", true); return 0; }
+  zeigeMeldung(`${teileText(n)} kopiert (Strg + V zum Einfügen).`);
+  if (mehrfachAktiv()) zeichneMehrfachInfo();
+  return n;
+}
+
+/* --- Einfügen --- */
+function dreheUm(a, b, schritte) {
+  for (let i = 0; i < schritte; i++) [a, b] = [-b, a];   // 90° im Uhrzeigersinn (wie gebaeudeGeometrie)
+  return [a, b];
+}
+// Wo landet jedes Teil, passt alles, was kostet es? (k = Kachel unter der Maus, drehung in Vierteln)
+function planeEinfuegen(k, drehung) {
+  const z = zwischenablage;
+  const gebaeude = z.gebaeude.map((e) => {
+    const d = (e.drehung + 90 * drehung) % 360;
+    const [mx, mz] = dreheUm(e.mx, e.mz, drehung);
+    const null0 = gebaeudeGeometrie(e.typ, 0, 0, d);
+    const x = Math.round(k.x + mx - null0.mitte.x), zz = Math.round(k.z + mz - null0.mitte.z);
+    return { e, typ: e.typ, x, z: zz, drehung: d, geo: gebaeudeGeometrie(e.typ, x, zz, d), kosten: 0, ausDepot: false };
+  });
+  const baender = z.baender.map((e) => {
+    const [dx, dz] = dreheUm(e.dx, e.dz, drehung);
+    return { e, typ: e.typ, x: k.x + dx, z: k.z + dz, richtung: (e.richtung + drehung) % 4, kosten: 0, ausDepot: false };
+  });
+  const gruende = [];
+  // Jedes Teil für sich (gegen das, was schon steht – die Kopie selbst passt zusammen, sie stand ja so)
+  for (const p of gebaeude) { const r = passtGebaeude(p.typ, p.x, p.z, p.drehung); if (!r.passt) gruende.push(...r.gruende); }
+  for (const p of baender) { const r = pruefeBandteil(p.typ, p.x, p.z, p.richtung); if (!r.passt) gruende.push(...r.gruende); }
+  // Alles zusammen: bleiben alle Zugänge (auch die neuen) und alle Personen erreichbar?
+  if (!gruende.length) {
+    const gesperrt = [...gebaeude.flatMap((p) => p.geo.zellen),
+      ...baender.filter((p) => { const info = bandTypNach.get(p.typ); return !info.begehbar && !info.hoch; }).map((p) => ({ x: p.x, z: p.z }))];
+    if (!bleibtErreichbarMit(gesperrt, gebaeude.map((p) => p.geo.zugang))) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
+  }
+  // Kosten: wie beim normalen Bauen zuerst aus dem Depot, sonst kaufen
+  const depotG = { ...spiel.depot.gebaeude }, depotB = { ...spiel.depot.baender }, dazu = {};
+  let kosten = 0;
+  for (const p of gebaeude) {
+    const t = gebaeudeTypNach.get(p.typ);
+    const vorhanden = anzahlTyp(p.typ) + (dazu[p.typ] || 0);
+    if (t.maxAnzahl && vorhanden >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
+    if (depotG[p.typ] > 0) { depotG[p.typ]--; p.ausDepot = true; }
+    else p.kosten = t.preisWeitere && vorhanden > 0 ? t.preisWeitere : t.preis;
+    dazu[p.typ] = (dazu[p.typ] || 0) + 1;
+    kosten += p.kosten;
+  }
+  for (const p of baender) {
+    if (depotB[p.typ] > 0) { depotB[p.typ]--; p.ausDepot = true; }
+    else p.kosten = bandTypNach.get(p.typ).preis;
+    kosten += p.kosten;
+  }
+  if (!gruende.length && kosten > 0 && !kannBezahlen(kosten)) gruende.push(geldGrund(kosten));
+  return { gebaeude, baender, kosten, passt: !gruende.length, gruende: [...new Set(gruende)] };
+}
+
+// Stellt die Kopie auf (alles oder nichts). Rückgabe: { ok, anzahl, kosten, gebaeude: [neue Gebäude], baender: [neue Teile] } oder { ok: false, gruende }
+function fuegeEin(k, drehung = 0) {
+  if (!zwischenablage) return { ok: false, gruende: ["Noch nichts kopiert (Strg + C)."] };
+  const plan = planeEinfuegen(k, drehung);
+  if (!plan.passt) return { ok: false, gruende: plan.gruende };
+  const neu = plan.gebaeude.map((p) => {
+    if (p.ausDepot) { spiel.depot.gebaeude[p.typ]--; if (!spiel.depot.gebaeude[p.typ]) delete spiel.depot.gebaeude[p.typ]; }
+    else if (p.kosten > 0) bucheGeld(-p.kosten, "bau");
+    return stelleGebaeudeAuf(p.typ, p.x, p.z, p.drehung, { rezept: p.e.rezept, pausiert: p.e.pausiert, regeln: p.e.regeln });
+  });
+  // Verknüpfungen innerhalb der Kopie übernehmen; Gebäude ohne solche verknüpfen sich wie beim normalen Bauen
+  const verknuepft = new Set();
+  plan.gebaeude.forEach((p, i) => {
+    const g = neu[i];
+    if (!istStation(g)) return;
+    g.importVon = p.e.importVon.map((j) => neu[j].id);
+    g.exportNach = p.e.exportNach.map((j) => neu[j].id);
+    for (const j of [...p.e.importVon, ...p.e.exportNach]) { verknuepft.add(i); verknuepft.add(j); }
+  });
+  aktualisiereVerknuepft();
+  if (neu.some((g) => typVon(g).art === "hauptlager")) raeumeDepotInsHauptlager();
+  neu.forEach((g, i) => { if (!verknuepft.has(i)) verknuepfeAutomatisch(g); });
+  // Bänder (eine Brücke bekommt eine neue gemeinsame Kennung)
+  const bruecken = new Map();
+  const teile = plan.baender.map((p) => {
+    if (p.ausDepot) { spiel.depot.baender[p.typ]--; if (!spiel.depot.baender[p.typ]) delete spiel.depot.baender[p.typ]; }
+    else if (p.kosten > 0) bucheGeld(-p.kosten, "baender");
+    const b = p.e.bruecke;
+    const t = setzeBandteil(p.typ, p.x, p.z, p.richtung, {
+      tempo: p.e.tempo, seiten: p.e.seiten, vorrang: p.e.vorrang, armFilter: p.e.armFilter,
+      ablaufFilter: p.e.ablaufFilter, bruecke: b !== null ? bruecken.get(b) || null : null, ausDepot: p.ausDepot,
+    });
+    if (b !== null && !bruecken.has(b)) { bruecken.set(b, t.id); t.bruecke = t.id; }
+    return t;
+  });
+  planeLaufendeNeu();
+  meldeStruktur();
+  return { ok: true, anzahl: neu.length + teile.length, kosten: plan.kosten, gebaeude: neu, baender: teile };
+}
+function einfuegenAktion() {
+  if (!zwischenablage) { zeigeMeldung("Noch nichts kopiert: Teile auswählen und Strg + C drücken.", true); return false; }
+  verknuepfModus = null;
+  if (!bau.offen) oeffneBau();
+  setzeWerkzeug({ art: "einfuegen", drehung: 0 });
+  return true;
+}
+function einfuegeKlick(w, k, shift) {
+  const r = fuegeEin(k, w.drehung);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
+  zeigeMeldung(`${teileText(r.anzahl)} eingefügt${r.kosten ? ` (−${euro(r.kosten)})` : " (aus dem Depot)"}.`);
+  if (!shift) setzeWerkzeug(null); else aktualisiereVorschau();
+}
+function einfuegeTipp() {
+  const z = zwischenablage;
+  const n = z ? z.gebaeude.length + z.baender.length : 0;
+  if (einfuegePlan && !einfuegePlan.passt) return { html: `Hier geht das nicht: ${htmlSicher(einfuegePlan.gruende[0])}`, warnung: true };
+  const preis = einfuegePlan ? ` · ${einfuegePlan.kosten ? euro(einfuegePlan.kosten) : "kostenlos"}` : "";
+  return { html: `Einfügen: ${teileText(n)}${preis} · Klicken zum Aufstellen · ${kbd("drehen")} / Rechtsklick drehen · <kbd>Shift</kbd> mehrmals · <kbd>Esc</kbd> abbrechen`, warnung: false };
+}
+
+/* --- Vorschau der Kopie unter der Maus --- */
+const einfuegeMaterial = new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauOk, transparent: true, opacity: 0.42, depthWrite: false });
+const einfuegePlatte = new THREE.BoxGeometry(0.9, 0.05, 0.9);
+const einfuege3d = new THREE.Group();
+einfuege3d.renderOrder = 5;
+einfuege3d.visible = false;
+szene.add(einfuege3d);
+const einfuegeModelle = { schluessel: "", gebaeude: [], baender: [] };
+function aktualisiereEinfuegeVorschau(aktiv) {
+  const w = bau.werkzeug;
+  if (!aktiv || !zwischenablage || !hoverKachel) { einfuegePlan = null; einfuege3d.visible = false; return; }
+  einfuegePlan = planeEinfuegen(hoverKachel, w.drehung);
+  // Modelle nur neu bauen, wenn eine neue Kopie da ist
+  const schluessel = String(zwischenablage.nummer);
+  if (einfuegeModelle.schluessel !== schluessel) {
+    while (einfuege3d.children.length) einfuege3d.remove(einfuege3d.children[0]);
+    einfuegeModelle.gebaeude = zwischenablage.gebaeude.map((e) => {
+      const m = MODELLE[e.typ](einfuegeMaterial).gruppe;
+      einfuege3d.add(m);
+      return m;
+    });
+    einfuegeModelle.baender = zwischenablage.baender.map(() => {
+      const m = new THREE.Group();
+      m.add(new THREE.Mesh(einfuegePlatte, einfuegeMaterial));
+      const pfeil = new THREE.Mesh(pfeilGeometrie, einfuegeMaterial);
+      pfeil.position.y = 0.04;
+      m.add(pfeil);
+      einfuege3d.add(m);
+      return m;
+    });
+    einfuegeModelle.schluessel = schluessel;
+  }
+  einfuegeMaterial.color.set(einfuegePlan.passt ? GRAFIK.farbeVorschauOk : GRAFIK.farbeVorschauFehler);
+  einfuegePlan.gebaeude.forEach((p, i) => {
+    const m = einfuegeModelle.gebaeude[i], mitte = kachelZuWelt(p.geo.mitte.x, p.geo.mitte.z);
+    m.position.set(mitte.x, rasterHoehe + 0.01, mitte.z);
+    m.rotation.y = gebaeudeWinkel(p.geo.richtung);
+  });
+  einfuegePlan.baender.forEach((p, i) => {
+    const m = einfuegeModelle.baender[i], mitte = kachelZuWelt(p.x, p.z), typ = bandTypNach.get(p.typ);
+    m.position.set(mitte.x, rasterHoehe + (bahnHoehe(typ.ebeneEin) + bahnHoehe(typ.ebeneAus)) / 2, mitte.z);
+    m.rotation.y = gebaeudeWinkel(RICHTUNGEN[p.richtung]);
+  });
+  einfuege3d.visible = true;
+}
+
+/* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
@@ -12756,6 +13311,10 @@ window.tradeUp = {
   verknuepfteLager, verknuepfteStationen, sindVerknuepft, spielstandDaten, waehleGebaeude,
   angestellte, nimmDuAuf, setzeDuFlexibel, DU,
   oeffneRezepte, schliesseRezepte, rezeptDaten, stationenFuer, schalteRezeptPin, zeigeHerstellendeStation,
+  // Phase 7a (Nachtrag 3): mehrere Hauptlager, Greifarm-Nehmer/-Geber, Mehrfachauswahl, Kopieren & Einfügen
+  hauptlagerListe, hlMenge, hlKapazitaet, setzeMehrfach, mehrfach, mehrfachKlick, teileImRahmen, kopiereAuswahl,
+  planeEinfuegen, fuegeEin, einfuegenAktion, reisseMehrfachAb, bildschirmPunkt,
+  get zwischenablage() { return zwischenablage; },
 };
 </script>
 

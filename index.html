@@ -2065,7 +2065,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   6,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen; ältere werden umgewandelt)
+  spielstandVersion:   7,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; ältere werden umgewandelt)
   kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
   // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
   volumenRohstoff:     1,     // Rohstoff
@@ -2106,8 +2106,8 @@ const GEBAEUDE_TYPEN = [
     breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 60, maxAnzahl: 0, preis: 0, preisWeitere: 800, freigeschaltet: true, wand: true,
     beschreibung: "Hier bestellst du Rohstoffe (Menge und Rhythmus). Der Lieferwagen kommt durchs Rolltor – muss an einer Hallenwand stehen." },
   { typ: "exportzone", name: "Exportzone", symbol: "⇧", kategorie: "lager", art: "exportzone",
-    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 60, maxAnzahl: 0, preis: 0, preisWeitere: 600, freigeschaltet: true,
-    beschreibung: "Kuriere und Bänder bringen Ware hierher. Der Abholwagen liefert sie an Aufträge oder verkauft sie." },
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 60, maxAnzahl: 0, preis: 0, preisWeitere: 600, freigeschaltet: true, wand: true,   // Phase 7b Nachtrag: Wandpflicht
+    beschreibung: "Kuriere und Bänder bringen Ware hierher. Der Abholwagen liefert sie an Aufträge oder verkauft sie – muss an einer Hallenwand stehen." },
   { typ: "kiste", name: "Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
     breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 10, maxAnzahl: 0, preis: 120, freigeschaltet: true,
     beschreibung: "Kleines Zwischenlager neben einer Station." },
@@ -2410,7 +2410,10 @@ const BAENDER = {
   ablaufStauSek:    30,    // Zwischenlager mit Ablauf: Kuriere holen Export-Ware erst, wenn das Band so lange voll ist
   minBrueckenLaenge: 3,    // eine Brücke hat mindestens Auffahrt + 1 Hochband + Abfahrt
   laufTempoAufBand: 0.4,   // Personen, die über ein Band steigen, laufen nur so schnell (40 %)
+  verteilerPuffer:  30,    // Phase 7b Nachtrag: so viele Items puffert jeder Verteiler (Splitter, Smart-Verteiler, Ventil)
 };
+// Phase 7b Nachtrag: Größe des Verteiler-Puffers (Items in t.puffer, siehe Abschnitt 11h)
+const PUFFER_GROESSE = BAENDER.verteilerPuffer;
 // Tempostufen eines Segments. "forschung" = diese Forschung schaltet die Stufe frei (null = immer da).
 // tagesKosten = Laufkosten pro Kachel und Tag.
 const BAND_TEMPO = [
@@ -5009,6 +5012,7 @@ function naechsteQuelle(kachel, item, res) {
   for (const g of spiel.gebaeude.values()) {
     const art = typVon(g).art;
     if ((art !== "hauptlager" && art !== "importzone") || verfuegbar(g, item, res) <= 0) continue;
+    if (zugangGesperrt(g) || (art === "hauptlager" && !hlGibtAb(g, item))) continue;   // Phase 7b Nachtrag: Zugang zugebaut, ⇡ Abgabe aus
     const d = kachel ? abstand(g.zugang, kachel) : 0;
     if (d < besterAbstand) { beste = g; besterAbstand = d; }
   }
@@ -5023,8 +5027,9 @@ function hlBestand() {
 function hlMenge(item) {
   return hauptlagerListe().reduce((n, hl) => n + (hl.bestand[item] || 0), 0);
 }
+// Phase 7b Nachtrag: nur Hauptlager mit ⇡ Abgabe (für Kontor-Verkauf und Auftragslieferung; die Summen hlBestand/hlMenge bleiben gesamt)
 function hlVerfuegbar(item, res) {
-  return hauptlagerListe().reduce((n, hl) => n + Math.max(0, verfuegbar(hl, item, res)), 0);
+  return hauptlagerListe().reduce((n, hl) => n + (hlGibtAb(hl, item) ? Math.max(0, verfuegbar(hl, item, res)) : 0), 0);
 }
 function hlFreierPlatz(res) {
   return hauptlagerListe().reduce((n, hl) => n + Math.max(0, freierPlatz(hl, res)), 0);
@@ -5033,9 +5038,10 @@ function hlKapazitaet() {
   return hauptlagerListe().reduce((n, hl) => n + kapazitaetVon(hl), 0);
 }
 // Nimmt bis zu n Stück aus den Hauptlagern (das vollste zuerst). Rückgabe: entnommene Anzahl
+// Phase 7b Nachtrag: nur aus Hauptlagern, deren ⇡ Abgabe für dieses Item an ist
 function hlEntnimm(item, n, res = null) {
   let rest = n;
-  const liste = hauptlagerListe().sort((a, b) => (b.bestand[item] || 0) - (a.bestand[item] || 0));
+  const liste = hauptlagerListe().filter((hl) => hlGibtAb(hl, item)).sort((a, b) => (b.bestand[item] || 0) - (a.bestand[item] || 0));
   for (const hl of liste) {
     if (rest <= 0) break;
     const m = Math.min(rest, res ? Math.max(0, verfuegbar(hl, item, res)) : hl.bestand[item] || 0);
@@ -5044,15 +5050,52 @@ function hlEntnimm(item, n, res = null) {
   return n - rest;
 }
 // Legt bis zu n Stück in die Hauptlager (das leerste zuerst). Rückgabe: eingelagerte Anzahl
+// Phase 7b Nachtrag: nur in Hauptlager, die das Item annehmen (⇣ Annahme an, Max nicht erreicht)
 function hlEinlagern(item, n, res = null) {
   let rest = n;
-  const platz = (hl) => Math.max(0, res ? freierPlatz(hl, res) : kapazitaetVon(hl) - belegt(hl));
+  const platz = (hl) => hlAufnahme(hl, item, res);          // Stück (Volumen, Annahme und Max)
   for (const hl of hauptlagerListe().sort((a, b) => platz(b) - platz(a))) {
     if (rest <= 0) break;
-    const m = Math.min(rest, Math.floor(platz(hl) / itemVolumen(item)));   // Phase 7b: Volumen
+    const m = Math.min(rest, platz(hl));
     if (m > 0) { aendereBestand(hl, item, m); rest -= m; }
   }
   return n - rest;
+}
+/* --- Phase 7b Nachtrag: Hauptlager-Regeln und Zugang ---
+   Hauptlager haben wie Schränke pro Item ⇣ Annahme (regeln[item].imp), ⇡ Abgabe (exp) und Max (soll).
+   Standard: alles an, kein Max. Annahme aus oder Max erreicht: Kuriere, Bänder, Greifarme und hlEinlagern
+   bringen das Item nicht hierher (sondern ins nächste Hauptlager, das es annimmt). Abgabe aus: Kuriere,
+   Greifarm-Nehmer, Abläufe und hlEntnimm holen es hier nicht heraus. Arbeiter verknüpfter Stationen
+   dürfen weiter entnehmen (wie bei Schränken: die Pfeile steuern die Logistik, nicht die Verknüpfung).
+   Lager (alles außer Stationen) dürfen ein Bandteil auf ihrem Zugang haben; dann ist das Lager für
+   Kuriere und Arbeiter gesperrt (zugangGesperrt), Bänder und Greifarme arbeiten weiter. */
+function istLagerTyp(t) { return !!t && t.kategorie !== "station"; }
+// Liegt auf dem Zugang dieses Lagers ein Bandteil? Dann kommen Kuriere nicht heran.
+function zugangGesperrt(g) {
+  if (!g || !istLagerTyp(typVon(g))) return false;
+  const k = holeKachel(g.zugang.x, g.zugang.z);
+  return !!(k && k.band);
+}
+// Nimmt dieses Hauptlager das Item an? (⇣ Annahme an und Max – mit "res" inklusive Unterwegs – nicht erreicht)
+function hlNimmtAn(g, item, res = null) {
+  return !!g && istHauptlager(g) && !!regelVon(g, item).imp && !maxErreicht(g, item, res);
+}
+// Gibt dieses Hauptlager das Item ab? (⇡ Abgabe an)
+function hlGibtAb(g, item) {
+  return !!g && istHauptlager(g) && !!regelVon(g, item).exp;
+}
+// Wie viele Stück dieses Items nimmt ein Hauptlager noch an? (Annahme, Max und Volumen; mit "res" abzüglich Unterwegs)
+function hlAufnahme(g, item, res = null) {
+  if (!hlNimmtAn(g, item, res)) return 0;
+  const max = maxVon(g, item);
+  const unterwegs = res ? reserviert(res.rein, fachSchluessel(g.id, "bestand"), item) : 0;
+  const bisMax = max === Infinity ? Infinity : max - (g.bestand[item] || 0) - unterwegs;
+  const platz = res ? platzFuer(g, item, res) : Math.floor(Math.max(0, kapazitaetVon(g) - belegt(g)) / itemVolumen(item));
+  return Math.max(0, Math.min(bisMax, platz));
+}
+// Kuriere: Zugang frei und das Hauptlager nimmt noch mindestens ein Stück an?
+function hlFuerKurier(g, item, res) {
+  return !zugangGesperrt(g) && hlAufnahme(g, item, res) > 0;
 }
 function gebaeudeListe(filter = () => true) {
   return [...spiel.gebaeude.values()].filter(filter);
@@ -5112,6 +5155,7 @@ function gebaeudeGeometrie(typ, x, z, drehung) {
   const verschoben = punkte.map(([a, b]) => ({ x: x + a - minX, z: z + b - minZ }));
   const zellen = verschoben.slice(0, form.length);
   return {
+    typ,                                        // Phase 7b Nachtrag: für die Zugangs-Prüfung (Lager dürfen auf ein Band zeigen)
     zellen,
     zugang: verschoben[form.length],
     richtung: { x: richtung[0], z: richtung[1] },
@@ -5143,9 +5187,19 @@ function bleibtAllesErreichbar(geo, eigenes = null) {
   for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
   if (eigenes) for (const c of eigenes.zellen) frei[c.x * T + c.z] = 1;
   for (const c of geo.zellen) frei[c.x * T + c.z] = 0;
+  // Phase 7b Nachtrag: Ein Lager darf mit dem Zugang auf einem Band stehen – dann zählt sein Zugang nicht
+  const zk = holeKachel(geo.zugang.x, geo.zugang.z);
+  const zugangZaehlt = !(geo.typ && istLagerTyp(gebaeudeTypNach.get(geo.typ)) && zk && zk.band);
+  const ziele = gebaeudeListe((g) => g !== eigenes && !zugangGesperrt(g)).map((g) => g.zugang);
+  for (const p of allePersonen()) {
+    const k = personKachel(p);
+    if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
+  }
+  const start = zugangZaehlt ? geo.zugang : ziele.find((k) => frei[k.x * T + k.z]);
+  if (!start) return true;
 
   const erreicht = new Uint8Array(B * T);
-  const stapel = [geo.zugang.x * T + geo.zugang.z];
+  const stapel = [start.x * T + start.z];
   erreicht[stapel[0]] = 1;
   while (stapel.length) {
     const nr = stapel.pop();
@@ -5156,11 +5210,6 @@ function bleibtAllesErreichbar(geo, eigenes = null) {
       const nNr = nx * T + nz;
       if (frei[nNr] && !erreicht[nNr]) { erreicht[nNr] = 1; stapel.push(nNr); }
     }
-  }
-  const ziele = gebaeudeListe((g) => g !== eigenes).map((g) => g.zugang);
-  for (const p of allePersonen()) {
-    const k = personKachel(p);
-    if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
   }
   return ziele.every((k) => erreicht[k.x * T + k.z]);
 }
@@ -5180,8 +5229,11 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
     else if ((k.belegt || !k.begehbar) && !istEigen(c)) gruende.push("Der Platz ist schon belegt.");
     else if (allePersonen().some((p) => personBeruehrtKachel(p, c))) gruende.push("Hier steht gerade jemand.");
   }
-  if (!istBegehbar(geo.zugang.x, geo.zugang.z) && !istEigen(geo.zugang)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
-  else if (holeKachel(geo.zugang.x, geo.zugang.z)?.band) gruende.push("Der Zugang (Pfeil) liegt auf einem Fließband.");   // Phase 6
+  // Phase 7b Nachtrag: Lager (keine Station) dürfen mit dem Zugang auf einem Bandteil stehen – Kuriere kommen dann nicht heran
+  const zugangKachel = holeKachel(geo.zugang.x, geo.zugang.z);
+  if (istLagerTyp(t) && zugangKachel && zugangKachel.band && !zugangKachel.objekt) { /* erlaubt */ }
+  else if (!istBegehbar(geo.zugang.x, geo.zugang.z) && !istEigen(geo.zugang)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
+  else if (zugangKachel?.band) gruende.push("Der Zugang (Pfeil) liegt auf einem Fließband.");   // Phase 6
   if (t.maxAnzahl && anzahlTyp(typ) - (eigenes ? 1 : 0) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
   if (t.wand && !stehtAnWand(geo)) gruende.push(`${t.name} muss mit der Rückseite an einer Hallenwand stehen (dort ist das Rolltor).`);   // Phase 7b
   if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
@@ -5586,7 +5638,8 @@ function maxErreicht(g, item, res = null) {
 }
 // Darf ein Kurier dieses Item aus diesem Fach mitnehmen?
 function darfKurierAbholen(g, item, fach = "bestand") {
-  if (typVon(g).art === "hauptlager" || istImportzone(g)) return true;   // Phase 7b: Importzone = alles auf Export
+  if (typVon(g).art === "hauptlager") return hlGibtAb(g, item);           // Phase 7b Nachtrag: ⇡ Abgabe pro Item
+  if (istImportzone(g)) return true;                                      // Phase 7b: Importzone = alles auf Export
   if (istExportzone(g) || typVon(g).art === "muell") return false;
   const r = regelVon(g, item);
   if (istStation(g)) return fach === "eingang" ? !r.imp : r.exp;   // Eingangsfach: nur Reste
@@ -5596,7 +5649,8 @@ function darfKurierAbholen(g, item, fach = "bestand") {
 }
 // Darf ein Kurier dieses Item in dieses Fach liefern?
 function darfKurierLiefern(g, item, fach = "bestand") {
-  if (typVon(g).art === "hauptlager" || istExportzone(g)) return true;
+  if (typVon(g).art === "hauptlager") return hlNimmtAn(g, item);          // Phase 7b Nachtrag: ⇣ Annahme und Max
+  if (istExportzone(g)) return true;
   if (istImportzone(g)) return false;
   if (typVon(g).art === "muell") return muellNimmt(g, item, "kurier");
   if (istStation(g)) return fach === "eingang" && regelVon(g, item).imp;
@@ -5614,7 +5668,7 @@ function darfArbeiterEntnehmen(g, item = null) {
 //   ja, wenn es exportiert wird (Ausgang/Gemischt oder ⇡ von Hand) – Kuriere holen es dann ab,
 //   oder wenn eine andere verknüpfte Station es braucht (⇣) und das Soll noch nicht erreicht ist.
 function nimmtErzeugnisAn(g, item) {
-  if (typVon(g).art === "hauptlager") return true;      // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager
+  if (typVon(g).art === "hauptlager") return hlNimmtAn(g, item);   // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager (7b Nachtrag: Annahme/Max)
   if (!istZwischenlager(g)) return false;
   if (maxErreicht(g, item)) return false;               // Phase 7b: "Max" per Zahl
   const r = regelVon(g, item);
@@ -5941,7 +5995,7 @@ function ladezeitVon(p) {
 }
 // Wo tauchen neue Mitarbeiter auf? Vor dem Hauptlager, sonst neben der Spielfigur.
 function startKachelFuerPersonen() {
-  const hl = hauptlager();
+  const hl = hauptlagerListe().find((h) => !zugangGesperrt(h)) || hauptlager();   // Phase 7b Nachtrag: nicht auf ein Band
   return hl ? { ...hl.zugang } : figurKachel();
 }
 function naechsterName() {
@@ -6172,12 +6226,14 @@ function beendeAuftrag(p) {
 function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   // Phase 7a (Nachtrag 3): mehrere Hauptlager – zurück ins nächste mit Platz, Ware aus dem nächsten, das sie hat
   // Phase 7b: Volumen; eine Mülltonne, die dieses Item von Kurieren annimmt, geht vor
+  // Phase 7b Nachtrag: nur Ziele mit freiem Zugang; Hauptlager nur, wenn es das Item annimmt (⇣, Max)
   const zielHl = (quelle, item) => naechsteMuelltonne(quelle.zugang, item)
     || (istExportzone(quelle) ? null : naechsteExportzone(quelle.zugang, item, res))
-    || naechstesHauptlager(quelle.zugang, (h) => platzFuer(h, item, res) > 0);
-  // Wie viel nimmt das Ziel noch auf? (Exportzone: nur, was sie braucht)
+    || naechstesHauptlager(quelle.zugang, (h) => hlFuerKurier(h, item, res));
+  // Wie viel nimmt das Ziel noch auf? (Exportzone: nur, was sie braucht; Hauptlager: bis Max)
   const aufnahme = (z, item) => typVon(z).art === "muell" ? Infinity
-    : istExportzone(z) ? Math.min(platzFuer(z, item, res), exportBedarf(z, res)[item] || 0) : platzFuer(z, item, res);
+    : istExportzone(z) ? Math.min(platzFuer(z, item, res), exportBedarf(z, res)[item] || 0)
+    : istHauptlager(z) ? hlAufnahme(z, item, res) : platzFuer(z, item, res);
   const k = personKachel(p);
   const kandidaten = [];
   let bester = null, besteWertung = -Infinity;
@@ -6207,7 +6263,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
         if (hl) pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, aufnahme(hl, item)), prio: 1.5 });
       }
     }
-    for (const lager of gebaeudeListe((g) => istZwischenlager(g) || istImportzone(g))) {
+    for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {   // 7b Nachtrag: Zugang frei
       // Phase 6: Ein Lager mit Ablauf gibt Export-Ware ans Band. Phase 7b: keine Notabholung mehr –
       // läuft das Band voll, staut es sich bis zur Station zurück. (Die Importzone räumen Kuriere immer.)
       if (lager.bandAblauf && !istImportzone(lager)) continue;
@@ -6225,7 +6281,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   // wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank).
   // Je länger ein Ziel nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
   const direkt = forschungAktiv("direktlieferung");
-  const ziele = gebaeudeListe((g) => istZwischenlager(g) || istExportzone(g) || (istStation(g) && fachGroesse(g, "eingang") > 0));
+  const ziele = gebaeudeListe((g) => (istZwischenlager(g) || istExportzone(g) || (istStation(g) && fachGroesse(g, "eingang") > 0)) && !zugangGesperrt(g));
   for (const ziel of ziele) {
     const fach = istStation(ziel) ? "eingang" : "bestand";
     const export_ = istExportzone(ziel);                     // Phase 7b: Exportzone bekommt, was Aufträge brauchen
@@ -6242,7 +6298,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       if (hl && hl !== ziel) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, verfuegbar(hl, item, res)), prio });
       if (!direkt) continue;
       // Direktlieferung: aus Ausgabefächern und (abholbaren) Zwischenlagern, ohne Umweg übers Hauptlager
-      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)))) {
+      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)) && !zugangGesperrt(g))) {
         const n = istStation(quelle) ? (darfKurierAbholen(quelle, item) ? verfuegbar(quelle, item, res) : 0)
                                      : (abholbar(quelle, res)[item] || 0);
         if (n > 0) pruefe({ art: "liefern", quelle, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio: prio + 0.5 });
@@ -6288,6 +6344,50 @@ function fehltWartenden(g, fach, res) {
   return fehlt;
 }
 
+// Phase 7b Nachtrag: Für welche Items gibt es gerade kein Hauptlager? (HUD-Chip "Lager")
+// Ein Item zählt, wenn es irgendwo darauf wartet, ins Hauptlager gebracht zu werden (Export-Ware in Lagern und
+// Importzonen, Erzeugnisse und Reste in Stationen, Items, die am Band, Verteiler oder Greifarm vor einem
+// Hauptlager stehen), aber kein Hauptlager es annimmt: ⇣ Annahme aus oder Max erreicht – für Kuriere auch, wenn
+// jedes annehmende Hauptlager einen zugebauten Zugang hat. Volle Hauptlager zählen nicht (das zeigt die
+// Füllstands-Warnung); Ware, die eine Mülltonne oder Exportzone haben will, auch nicht.
+// Rückgabe: [Item-Id], alphabetisch (neu berechnet höchstens zweimal pro Spielsekunde)
+let keinLagerCache = { schluessel: "", liste: [] };
+function keinLagerFuer() {
+  const schluessel = `${spiel.strukturVersion}|${spiel.bandVersion}|${Math.floor(spiel.zeit * 2)}`;
+  if (keinLagerCache.schluessel === schluessel) return [...keinLagerCache.liste];
+  const res = reservierungen();
+  const hls = hauptlagerListe();
+  const nimmtIrgendeins = (item, kurier) => hls.some((h) => hlNimmtAn(h, item) && !(kurier && zugangGesperrt(h)));
+  const fehlt = new Set();
+  const pruefeKurier = (item, quelle) => {
+    if (fehlt.has(item) || nimmtIrgendeins(item, true)) return;
+    if (naechsteMuelltonne(quelle.zugang, item) || naechsteExportzone(quelle.zugang, item, res)) return;
+    fehlt.add(item);
+  };
+  for (const s of gebaeudeListe(istStation)) {
+    if (!s.bandAblauf) for (const item of Object.keys(s.bestand)) if (s.bestand[item] > 0 && darfKurierAbholen(s, item)) pruefeKurier(item, s);
+    for (const item of Object.keys(abholbarEingang(s, res))) pruefeKurier(item, s);
+  }
+  for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {
+    if (lager.bandAblauf && !istImportzone(lager)) continue;
+    for (const item of Object.keys(abholbar(lager, res))) pruefeKurier(item, lager);
+  }
+  // Bänder, Verteiler und Greifarm-Geber, die vor einem Hauptlager warten
+  const vorHl = (z, item) => !!z && z.art === "gebaeude" && istHauptlager(z.g) && !nimmtIrgendeins(item, false);
+  for (const t of spiel.baender.values()) {
+    if (istGreifarm(t)) { if (t.haelt && t.wartet > 0 && vorHl(armZiel(t), t.haelt)) fehlt.add(t.haelt); continue; }
+    if (istVerteiler(t)) {
+      const erstes = pufferVon(t)[0];
+      if (erstes && t.stau > 0 && (t.ausgaenge || []).some((a) => vorHl(a.ziel, erstes))) fehlt.add(erstes);
+      continue;
+    }
+    const vorn = t.items && t.items[0];
+    if (vorn && t.stau > 0 && vorHl(t.ziel, vorn.item)) fehlt.add(vorn.item);
+  }
+  keinLagerCache = { schluessel, liste: [...fehlt].sort() };
+  return [...keinLagerCache.liste];
+}
+
 function starteKurierAuftrag(p, auftrag) {
   p.auftrag = auftrag;
   p.phase = "zurQuelle";
@@ -6313,12 +6413,13 @@ function schrittKurier(p, dt) {
   switch (p.phase) {
     case "zurQuelle":
       if (!quelle || !ziel) return beendeAuftrag(p);          // noch nichts getragen: einfach abbrechen
+      if (zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // Phase 7b Nachtrag: Zugang zugebaut
       if (istAngekommen(p, quelle.zugang)) { p.phase = "laedt"; p.timer = ladezeitVon(p); schaueAuf(p, quelle); }
       else if (istFestgefahren(p, quelle.zugang)) beendeAuftrag(p);
       break;
 
     case "laedt": {
-      if (!quelle || !ziel) return beendeAuftrag(p);
+      if (!quelle || !ziel || zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // 7b Nachtrag: auch Zugang zugebaut
       p.timer -= dt;
       if (p.timer > 0) break;
       const geladen = {};
@@ -6337,13 +6438,13 @@ function schrittKurier(p, dt) {
     }
 
     case "zumZiel":
-      if (!ziel) return leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);   // Phase 7b Nachtrag: Zugang zugebaut → anderes Hauptlager
       if (istAngekommen(p, ziel.zugang)) { p.phase = "entlaedt"; p.timer = ladezeitVon(p); schaueAuf(p, ziel); }
       else if (istFestgefahren(p, ziel.zugang)) leiteUm(p);
       break;
 
     case "entlaedt": {
-      if (!ziel) return leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);
       p.timer -= dt;
       if (p.timer > 0) break;
       // Ablegen, soweit Platz ist (und das Item dort noch erwünscht ist); der Rest geht zurück ins Hauptlager
@@ -6354,6 +6455,7 @@ function schrittKurier(p, dt) {
         let m = Math.min(n, Math.max(0, Math.floor(platz / je)));
         // Phase 7b: auch Kuriere halten sich an Max (z. B. wenn ein Band inzwischen aufgefüllt hat)
         if (istZwischenlager(ziel) && a.zielFach === "bestand") m = Math.min(m, Math.max(0, maxVon(ziel, item) - (ziel.bestand[item] || 0)));
+        if (istHauptlager(ziel)) m = Math.min(m, hlAufnahme(ziel, item));   // Phase 7b Nachtrag: Annahme ⇣ und Max
         if (m <= 0) continue;
         aendereFach(ziel, a.zielFach, item, m);
         bucheItems(p.traegt, { [item]: m }, -1);
@@ -6384,7 +6486,9 @@ function schrittKurier(p, dt) {
 function leiteUm(p) {
   const a = p.auftrag;
   const res = reservierungen();
-  const hl = naechstesHauptlager(personKachel(p), (h) => h.id !== a.zielId && freierPlatz(h, res) >= volumen(p.traegt));
+  // Phase 7b Nachtrag: nur ein Hauptlager mit freiem Zugang, das alles Getragene annimmt
+  const hl = naechstesHauptlager(personKachel(p), (h) => h.id !== a.zielId && freierPlatz(h, res) >= volumen(p.traegt)
+    && !zugangGesperrt(h) && Object.entries(p.traegt).every(([item, n]) => hlAufnahme(h, item, res) >= n));
   if (hl) {
     p.auftrag = { art: "zurueck", quelleId: null, zielId: hl.id, items: { ...p.traegt }, abgeholt: true };
     p.phase = "zumZiel";
@@ -6404,7 +6508,7 @@ function leiteUm(p) {
 // bereitliegt (Phase 7a, Nachtrag 2: auch das Hauptlager, wenn es als Import verknüpft ist).
 // Rückgabe: { g, fach, komplett } oder null (keine Quelle)
 function waehleLager(s, r, res) {
-  const quellen = verknuepfteLager(s, "import").filter((g) => darfArbeiterEntnehmen(g))
+  const quellen = verknuepfteLager(s, "import").filter((g) => darfArbeiterEntnehmen(g) && !zugangGesperrt(g))   // 7b Nachtrag
     .sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang))
     .map((g) => ({ g, fach: "bestand" }));
   const importiert = Object.keys(r.eingaben).some((i) => regelVon(s, i).imp);
@@ -6426,12 +6530,13 @@ function quelleGueltig(s, a) {
   const q = spiel.gebaeude.get(a.quelleId);
   if (!q) return null;
   if (a.quelleFach === "eingang") return q === s ? q : null;
-  return sindVerknuepft(s, q, "import") && darfArbeiterEntnehmen(q) ? q : null;
+  return sindVerknuepft(s, q, "import") && darfArbeiterEntnehmen(q) && !zugangGesperrt(q) ? q : null;   // 7b Nachtrag: Zugang frei
 }
 
 // Wohin mit dem fertigen Erzeugnis? Ein Export-Lager, das es annimmt und Platz hat (sonst null = Ausgabefach).
 function ausgabeLagerFuer(s, item, res) {
-  const lager = verknuepfteLager(s, "export").filter((g) => nimmtErzeugnisAn(g, item) && !maxErreicht(g, item, res) && platzFuer(g, item, res) > 0);
+  const lager = verknuepfteLager(s, "export").filter((g) => nimmtErzeugnisAn(g, item) && !maxErreicht(g, item, res) && platzFuer(g, item, res) > 0
+    && !zugangGesperrt(g));   // Phase 7b Nachtrag: Zugang durch ein Band gesperrt
   // Zuerst dorthin, wo eine andere Station es braucht (spart den Umweg übers Hauptlager), dann der kürzeste Weg
   const gebraucht = (g) => istZwischenlager(g) && regelVon(g, item).imp ? 0 : 1;
   lager.sort((a, b) => gebraucht(a) - gebraucht(b)
@@ -6481,7 +6586,7 @@ function schrittArbeiter(p, dt) {
   const a = p.auftrag;
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") {   // Phase 5: Erzeugnis ins Ausgang-Lager
     const z = a && spiel.gebaeude.get(a.zielId);
-    if (!z || !nimmtErzeugnisAn(z, Object.keys(p.traegt)[0])) return legeErzeugnisNotfallsAb(p, s);
+    if (!z || !nimmtErzeugnisAn(z, Object.keys(p.traegt)[0]) || zugangGesperrt(z)) return legeErzeugnisNotfallsAb(p, s);   // 7b Nachtrag
     if (p.phase === "bringtErzeugnis") {
       if (istAngekommen(p, z.zugang)) { p.phase = "legtAb"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, z); }
       else if (istFestgefahren(p, z.zugang)) legeErzeugnisNotfallsAb(p, s);
@@ -6700,7 +6805,7 @@ function zaehleHalle() {
   let items = 0;
   for (const g of spiel.gebaeude.values()) items += summe(g.bestand) + summe(g.eingang) + summe(g.autoRezept ? g.autoRezept.eingaben : {});
   for (const p of mitarbeiter) items += summe(p.traegt);
-  for (const t of spiel.baender.values()) items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);   // Phase 6
+  for (const t of spiel.baender.values()) items += (t.items ? t.items.length : 0) + pufferVon(t).length + (t.haelt ? 1 : 0);   // Phase 6 (7b Nachtrag: Puffer)
   return { gebaeude: spiel.gebaeude.size, items, baender: spiel.baender.size };
 }
 
@@ -6719,12 +6824,12 @@ function halleBereinigen() {
       exportNach: g.exportNach.map((id) => nummer.get(id)).filter((i) => i !== undefined),
       arbeiter: g.arbeiterId, modus: g.modus, regeln: JSON.parse(JSON.stringify(g.regeln)),
     })),
-    baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], haelt: null })),   // Phase 6
+    baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], puffer: istVerteiler(t) ? [] : undefined, haelt: null })),   // Phase 6
   };
   let items = 0;
   // Phase 6: Bänder und Greifarme zuerst ins Depot (Items darauf ebenfalls)
   for (const t of [...spiel.baender.values()]) {
-    items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);
+    items += (t.items ? t.items.length : 0) + pufferVon(t).length + (t.haelt ? 1 : 0);   // 7b Nachtrag: Puffer
     entferneBandteil(t.id, { insDepot: true });
   }
   // 1. Alle brechen ab; was sie tragen (auch Material in Arbeit) geht ins Depot
@@ -6867,7 +6972,7 @@ function leseSpielstand() {
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
-    return daten && [1, 2, 3, 4, 5, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, 4, 5, 6, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -6921,6 +7026,7 @@ function wendeSpielstandAn(d) {
     if (!bandTypNach.has(e.typ) || !pruefeBandteil(e.typ, e.x, e.z, e.richtung, { laden: true }).passt) {
       spiel.depot.baender[e.typ] = (spiel.depot.baender[e.typ] || 0) + 1;
       for (const it of e.items || []) bucheItems(spiel.depot.items, { [it.item]: 1 });
+      for (const item of e.puffer || []) bucheItems(spiel.depot.items, { [item]: 1 });   // Phase 7b Nachtrag
       if (e.haelt) bucheItems(spiel.depot.items, { [e.haelt]: 1 });
       continue;
     }
@@ -6946,6 +7052,19 @@ function wendeSpielstandAn(d) {
     for (const [item, n] of Object.entries(spiel.autoKauf || {})) if (iz && n > 0) setzeBestellung(iz.id, item, n, "bisSoll");
     spiel.autoKauf = {};
     if (neu.length) setTimeout(() => meldeEreignis("hinweis", { text: `Neu: ${neu.join(" und ")}. Rohstoffe bestellst du jetzt dort, Aufträge gehen über die Exportzone.` }), 900);
+  }
+  // Phase 7b Nachtrag (Version 7): Die Exportzone muss jetzt wie die Importzone an einer Hallenwand stehen
+  if ((d.version || 1) < 7) {
+    const versetzt = [], insDepot = [];
+    for (const g of zonenListe("exportzone")) {
+      const name = gebaeudeName(g);
+      const r = setzeAnWand(g);
+      if (r === "versetzt") versetzt.push(name); else if (r === "depot") insDepot.push(name);
+    }
+    const text = [];
+    if (versetzt.length) text.push(`${versetzt.join(", ")} steht jetzt an der nächsten freien Hallenwand`);
+    if (insDepot.length) text.push(`${insDepot.join(", ")} fand keinen Wandplatz und liegt kostenlos im Depot`);
+    if (text.length) setTimeout(() => meldeEreignis("hinweis", { text: `Exportzonen brauchen jetzt eine Hallenwand (Abholwagen): ${text.join("; ")}.` }), 1000);
   }
   baueBandTopologie();                           // Anschlüsse und Automatik (noch ohne Mitarbeiter)
   for (const m of d.mitarbeiter || []) {
@@ -7172,8 +7291,9 @@ function kaufeRohstoff(id, anzahl) {
   if (!preis) return { ok: false, grund: "Diesen Rohstoff gibt es nicht." };
   if (!hauptlager()) return { ok: false, grund: "Kein Hauptlager: Die Lieferung hätte keinen Platz." };
   const res = reservierungen();
-  const n = Math.min(anzahl, hlFreierPlatz(res));
-  if (n <= 0) return { ok: false, grund: "Die Hauptlager sind voll – ein weiteres Hauptlager schafft Platz." };
+  // Phase 7b Nachtrag: nur so viel, wie die Hauptlager (Annahme ⇣, Max, Volumen) wirklich aufnehmen
+  const n = Math.min(anzahl, hauptlagerListe().reduce((m, hl) => m + hlAufnahme(hl, id, res), 0));
+  if (n <= 0) return { ok: false, grund: "Kein Hauptlager nimmt das gerade an (voll, ⇣ Annahme aus oder Max erreicht)." };   // 7b Nachtrag
   const kosten = n * preis;
   if (!kannBezahlen(kosten)) return { ok: false, grund: geldGrund(kosten) };
   hlEinlagern(id, n, res);                       // Phase 7a (Nachtrag 3): dorthin, wo am meisten Platz ist
@@ -7230,6 +7350,26 @@ function zonenListe(art) { return gebaeudeListe((g) => typVon(g).art === art); }
 // Steht ein Gebäude mit der Rückseite an einer Hallenwand? (Importzone: dort ist das Rolltor)
 function stehtAnWand(geo) {
   return geo.zellen.some((c) => !istImRaster(c.x - geo.richtung.x, c.z - geo.richtung.z));
+}
+// Phase 7b Nachtrag: Richtung von der Zone zur Wand hinter ihr (dort ist das Rolltor, dort hält der Wagen).
+// Gilt für Import- und Exportzone gleich (beide haben Wandpflicht): die Rückseite = −Blickrichtung.
+function wandRichtung(g) {
+  return { x: -g.richtung.x, z: -g.richtung.z };
+}
+// Phase 7b Nachtrag: Steht ein Gebäude mit Wandpflicht nicht (mehr) an einer Wand, kommt es an den nächsten
+// freien Wandplatz (Inhalt und Einstellungen bleiben); passt keiner, kommt es ins Depot (Inhalt ins Hauptlager).
+// Rückgabe: "versetzt", "depot" oder null (stand schon richtig)
+function setzeAnWand(g) {
+  if (!g || !typVon(g).wand || stehtAnWand(g)) return null;
+  const plaetze = [];
+  for (let z = 0; z < level.tiefe; z++) for (let x = 0; x < level.breite; x++) for (const d of [0, 90, 180, 270]) {
+    const geo = gebaeudeGeometrie(g.typ, x, z, d);
+    if (stehtAnWand(geo) && geo.zellen.every((c) => istImRaster(c.x, c.z))) plaetze.push({ x, z, d, weg: abstand(geo.mitte, g.mitte) });
+  }
+  plaetze.sort((a, b) => a.weg - b.weg);
+  for (const v of plaetze) if (verschiebeGebaeude(g.id, v.x, v.z, v.d).ok) return "versetzt";
+  reisseAb(g.id);
+  return "depot";
 }
 // Alle Felder einer Zone, die beim Laden/Bauen fehlen könnten
 function richteZoneEin(g, extra = {}) {
@@ -7406,7 +7546,7 @@ function exportBedarf(g, res) {
 function naechsteExportzone(kachel, item, res) {
   let beste = null, besterAbstand = Infinity;
   for (const g of zonenListe("exportzone")) {
-    if (!((exportBedarf(g, res)[item] || 0) > 0)) continue;
+    if (zugangGesperrt(g) || !((exportBedarf(g, res)[item] || 0) > 0)) continue;   // 7b Nachtrag: Zugang frei
     const d = abstand(g.zugang, kachel);
     if (d < besterAbstand) { beste = g; besterAbstand = d; }
   }
@@ -7893,6 +8033,11 @@ function istZugangsKachel(x, z) {
   for (const g of spiel.gebaeude.values()) if (g.zugang.x === x && g.zugang.z === z) return true;
   return false;
 }
+// Phase 7b Nachtrag: Ist hier der Zugang einer STATION? (Lager-Zugänge dürfen mit Bändern und Greifarmen zugebaut werden)
+function istStationsZugang(x, z) {
+  for (const g of spiel.gebaeude.values()) if (istStation(g) && g.zugang.x === x && g.zugang.z === z) return true;
+  return false;
+}
 
 // Bandteil auf einer Kachel und Ebene (0 = Boden, 1 = Brücke). Rampen gehören zu beiden Ebenen.
 function bandteilAn(x, z, ebene) {
@@ -7957,6 +8102,7 @@ function baueBandTopologie() {
     t.ziel = null; t.vorgaenger = []; t.kette = null; t.kurve = null; t.segment = null; t.ablaufVon = null;
     t.ausgaenge = null; t.stau = t.stau || 0;
     if (t.items === undefined && (istSpur(t) || istVerteiler(t) || t.typ === "zusammen")) t.items = [];
+    if (istVerteiler(t)) pufferVon(t);             // Phase 7b Nachtrag: Puffer (t.puffer) immer vorhanden
   }
   // 1. Ziele und Vorgänger
   for (const t of teile) {
@@ -8190,6 +8336,10 @@ function seiteLaesstDurch(t, seite, item) {
 }
 // Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung "z" zu fahren (und darf es hinein)?
 function wartetVor(v, z = null) {
+  if (istVerteiler(v.teil)) {                    // Phase 7b Nachtrag: ein Verteiler wartet mit seinem Puffer
+    const erstes = pufferVon(v.teil)[0];
+    return !!erstes && (!z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), erstes));
+  }
   const vorn = v.teil.items && v.teil.items[0];
   if (!vorn || vorn.pos < 1 - 1e-6) return false;
   return !z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), vorn.item);
@@ -8203,6 +8353,7 @@ function zusammenLaesstDurch(z, richtung) {
   return true;
 }
 function nimmAufBand(ziel, item, richtung) {
+  if (istVerteiler(ziel)) return legeInPuffer(ziel, item);   // Phase 7b Nachtrag: in den Puffer (solange < PUFFER_GROESSE)
   if (!hatPlatz(ziel)) return false;
   if (ziel.typ === "zusammen") {
     if (!seiteLaesstDurch(ziel, seiteVonFahrt(ziel, richtung), item)) return false;   // Phase 7a: Seite gesperrt/gefiltert
@@ -8308,6 +8459,52 @@ function ventilGibWeiter(t, it) {
   }
   return false;
 }
+/* --- Phase 7b Nachtrag: Puffer der Verteiler ---
+   Jeder Verteiler (Splitter, Smart-Verteiler, Überlauf-Ventil) hat einen eigenen Puffer von PUFFER_GROESSE Items:
+   t.puffer = [Item-Id, …] in Ankunftsreihenfolge (das erste geht zuerst hinaus). Ankommende Items wandern in
+   den Puffer, solange er nicht voll ist (ein voller Puffer staut das Band dahinter). Hinaus gehen sie nach den
+   bisherigen Regeln (splitterGibWeiter, smartGibWeiter, ventilGibWeiter), höchstens so schnell, wie früher
+   Items durch den Knoten fuhren (BAENDER.knotenTempo / BAENDER.mindestAbstand pro Sekunde).
+   Splitter und Ventil arbeiten streng der Reihe nach; der Smart-Verteiler darf ein späteres Item vorziehen,
+   wenn das vorderste gerade nirgends hin kann. t.items bleibt bei Verteilern leer. */
+function pufferVon(t) {
+  if (!istVerteiler(t)) return [];
+  if (!Array.isArray(t.puffer)) t.puffer = [];
+  return t.puffer;
+}
+function legeInPuffer(t, item) {
+  const puffer = pufferVon(t);
+  if (puffer.length >= PUFFER_GROESSE) return false;
+  puffer.push(item);
+  return true;
+}
+// Ein Schritt eines Verteilers: Items aus dem Puffer auf die Ausgänge verteilen
+function verteilerSchritt(t, dt) {
+  const puffer = pufferVon(t);
+  const takt = BAENDER.knotenTempo / BAENDER.mindestAbstand;           // Items pro Sekunde
+  t.takt = Math.min(Math.max(1, (t.ausgaenge || []).length), (t.takt || 0) + dt * takt);
+  if (!puffer.length) { t.stau = 0; t.gehalten = false; return; }
+  let raus = 0;
+  while (t.takt >= 1 && puffer.length) {
+    let index = -1;
+    if (t.typ === "smartVerteiler") {
+      // Das erste Item, das irgendwohin kann (jede Sorte nur einmal prüfen)
+      const geprueft = new Set();
+      for (let i = 0; i < puffer.length; i++) {
+        if (geprueft.has(puffer[i])) continue;
+        geprueft.add(puffer[i]);
+        if (smartGibWeiter(t, { item: puffer[i] })) { index = i; break; }
+      }
+    } else if (gibWeiter(t, { item: puffer[0] })) index = 0;
+    if (index < 0) break;
+    puffer.splice(index, 1);
+    t.takt -= 1;
+    raus++;
+  }
+  if (raus) t.stau = 0;
+  else if (t.takt >= 1) t.stau += dt;             // nichts kam hinaus, obwohl der Takt es erlaubt hätte
+  t.gehalten = !raus && t.typ === "smartVerteiler" && t.takt >= 1;
+}
 function gibWeiter(t, it) {
   if (t.typ === "smartVerteiler") return smartGibWeiter(t, it);
   if (t.typ === "ventil") return ventilGibWeiter(t, it);
@@ -8332,7 +8529,7 @@ function gebaeudeNimmtAn(g, item) {
   const art = typVon(g).art;
   // Phase 7b: Lager rechnen in Volumen – passt das Item nicht mehr ganz hinein, staut sich das Band
   if (istVolumenLager(g) && belegt(g) + itemVolumen(item) > kapazitaetVon(g)) return false;
-  if (art === "hauptlager") return true;
+  if (art === "hauptlager") return hlNimmtAn(g, item);       // Phase 7b Nachtrag: ⇣ Annahme und Max
   if (art === "muell") return muellNimmt(g, item, "band");   // Phase 7b
   if (art === "importzone") return false;                    // Phase 7b: hier liefert nur der Lieferwagen
   if (art === "exportzone") return !maxErreicht(g, item);
@@ -8383,7 +8580,7 @@ function vernichteImMuell(g) {
 function naechsteMuelltonne(kachel, item) {
   let beste = null, besterAbstand = Infinity;
   for (const g of spiel.gebaeude.values()) {
-    if (typVon(g).art !== "muell" || !muellNimmt(g, item, "kurier")) continue;
+    if (typVon(g).art !== "muell" || !muellNimmt(g, item, "kurier") || zugangGesperrt(g)) continue;   // 7b Nachtrag: Zugang frei
     const d = abstand(g.zugang, kachel);
     if (d < besterAbstand) { beste = g; besterAbstand = d; }
   }
@@ -8417,7 +8614,8 @@ function gebaeudeGibAb(g, t) {
     const res = reservierungen();
     for (let i = 0; i < filter.length; i++) {
       const kandidat = filter[((t.ablaufIndex || 0) + i) % filter.length];
-      if (verfuegbar(g, kandidat, res) > 0) { item = kandidat; t.ablaufIndex = ((t.ablaufIndex || 0) + i + 1) % filter.length; break; }
+      if (hlGibtAb(g, kandidat) && verfuegbar(g, kandidat, res) > 0) { item = kandidat;   // 7b Nachtrag: ⇡ Abgabe
+        t.ablaufIndex = ((t.ablaufIndex || 0) + i + 1) % filter.length; break; }
     }
   }
   if (item) aendereBestand(g, item, -1);
@@ -8430,6 +8628,7 @@ function baenderSchritt(dt) {
   if (bandTopologieAlt) baueBandTopologie();
   for (const t of bandReihenfolge) {
     if (istGreifarm(t)) { greifarmSchritt(t, dt); continue; }
+    if (istVerteiler(t)) { verteilerSchritt(t, dt); continue; }   // Phase 7b Nachtrag: Puffer
     const tempo = bandTempo(t);
     if (tempo <= 0) continue;                     // Segment pausiert
     bewegeItems(t, tempo * dt);
@@ -8486,7 +8685,8 @@ function armKandidaten(g) {
     const ab = abholbar(g, res);
     return Object.keys(g.bestand).filter((i) => (ab[i] || 0) > 0 || (darfArbeiterEntnehmen(g, i) && verfuegbar(g, i, res) > 0));
   }
-  if (typVon(g).art === "hauptlager" || istImportzone(g)) return Object.keys(g.bestand).filter((i) => verfuegbar(g, i, res) > 0);
+  if (typVon(g).art === "hauptlager") return Object.keys(g.bestand).filter((i) => hlGibtAb(g, i) && verfuegbar(g, i, res) > 0);   // 7b Nachtrag: ⇡ Abgabe
+  if (istImportzone(g)) return Object.keys(g.bestand).filter((i) => verfuegbar(g, i, res) > 0);
   return [];
 }
 // Greift ein passendes Item. Rückgabe: Item oder null
@@ -8553,7 +8753,9 @@ function bleibtErreichbarMit(gesperrt, extraZiele = []) {
   const frei = new Uint8Array(B * T);
   for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
   for (const c of gesperrt) frei[c.x * T + c.z] = 0;
-  const ziele = gebaeudeListe().map((g) => g.zugang).filter((k) => istImRaster(k.x, k.z));
+  // Phase 7b Nachtrag: Der Zugang eines Lagers darf zugebaut werden (dann kommen nur noch Bänder und Greifarme heran)
+  const zugebaut = (g) => zugangGesperrt(g) || (istLagerTyp(typVon(g)) && gesperrt.some((c) => c.x === g.zugang.x && c.z === g.zugang.z));
+  const ziele = gebaeudeListe((g) => !zugebaut(g)).map((g) => g.zugang).filter((k) => istImRaster(k.x, k.z));
   for (const p of allePersonen()) {
     const k = personKachel(p);
     if (istBegehbar(k.x, k.z)) ziele.push(k);
@@ -8597,7 +8799,7 @@ function pruefeBandteil(typ, x, z, richtung, { ersetzen = false, laden = false, 
       const umlegbar = ersetzen && ["band", "uebergang"].includes(vorhanden.typ) && vorhanden.typ === typ;
       if (umlegbar) ersetzt = vorhanden; else gruende.push("Hier liegt schon ein Bandteil.");
     }
-    if (!laden && istZugangsKachel(x, z)) gruende.push("Hier stehen Mitarbeiter, um ein Gebäude zu bedienen (Zugang).");
+    if (!laden && istStationsZugang(x, z)) gruende.push("Hier stehen Mitarbeiter, um ein Gebäude zu bedienen (Zugang).");   // 7b Nachtrag: nur Stationen
     if ((typ === "rampeHoch" || typ === "rampeRunter") && k.hochband) gruende.push("Über dieser Kachel verläuft eine Brücke.");
     if (!info.begehbar && !laden) {
       if (allePersonen().some((p) => personBeruehrtKachel(p, { x, z }))) gruende.push("Hier steht gerade jemand.");
@@ -8619,8 +8821,13 @@ function setzeBandteil(typ, x, z, richtung, daten = {}) {
   const t = {
     id: daten.id || "b" + spiel.naechsteBandId++,
     typ, x, z, richtung,
-    items: info.spur || VERTEILER_TYPEN.includes(typ) || typ === "zusammen"
-      ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung })) : undefined,
+    items: info.spur || typ === "zusammen"
+      ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung }))
+      : VERTEILER_TYPEN.includes(typ) ? [] : undefined,
+    // Phase 7b Nachtrag: Puffer der Verteiler (ältere Spielstände: leer; Items, die auf dem Verteiler lagen, kommen hinein)
+    puffer: VERTEILER_TYPEN.includes(typ)
+      ? [...(Array.isArray(daten.puffer) ? daten.puffer : []), ...(daten.items || []).map((i) => i.item)].filter((i) => typeof i === "string")
+      : undefined,
     tempo: daten.tempo || null,
     name: daten.name || null,
     seiten: seitenAusDaten(daten),             // Phase 7a: Seiten und Filter (ersetzt "modus" und "filter")
@@ -8678,7 +8885,7 @@ function baueBandteil(typ, x, z, richtung, { daten = null, ohnePruefungDerPerson
   const ausDepot = (spiel.depot.baender[typ] || 0) > 0;
   if (ausDepot) { spiel.depot.baender[typ]--; if (!spiel.depot.baender[typ]) delete spiel.depot.baender[typ]; }
   else if (kosten > 0) bucheGeld(-kosten, "baender");
-  const extra = daten ? { ...daten, id: undefined, items: [], haelt: null } : {};
+  const extra = daten ? { ...daten, id: undefined, items: [], puffer: [], haelt: null } : {};   // 7b Nachtrag: Puffer nicht mitkopieren
   const t = setzeBandteil(typ, x, z, richtung, { ...extra, ausDepot });
   planeLaufendeNeu();
   meldeStruktur();
@@ -8757,6 +8964,7 @@ function entferneBandteil(id, { insDepot = false } = {}) {
   else if (k.band === id) { k.band = null; k.begehbar = !k.objekt; k.kosten = 1; }
   const items = {};
   for (const it of t.items || []) bucheItems(items, { [it.item]: 1 });
+  for (const item of pufferVon(t)) bucheItems(items, { [item]: 1 });   // Phase 7b Nachtrag: Verteiler-Puffer
   if (t.haelt) bucheItems(items, { [t.haelt]: 1 });
   bucheInsLager(items, insDepot);
   if (insDepot || t.ausDepot) spiel.depot.baender[t.typ] = (spiel.depot.baender[t.typ] || 0) + 1;
@@ -8848,6 +9056,7 @@ function bandteilDaten(t) {
     items: t.items ? t.items.map((i) => ({ item: i.item, pos: Math.round(i.pos * 1000) / 1000, von: i.von })) : undefined,
     tempo: t.tempo, name: t.name, seiten: t.seiten, vorrang: t.vorrang,
     armFilter: t.armFilter, haelt: t.haelt, ablaufFilter: t.ablaufFilter, bruecke: t.bruecke, ausDepot: t.ausDepot,
+    puffer: istVerteiler(t) ? [...pufferVon(t)] : undefined,   // Phase 7b Nachtrag
   };
 }
 
@@ -13981,7 +14190,10 @@ function planeEinfuegen(k, drehung) {
   if (!gruende.length) {
     const gesperrt = [...gebaeude.flatMap((p) => p.geo.zellen),
       ...baender.filter((p) => { const info = bandTypNach.get(p.typ); return !info.begehbar && !info.hoch; }).map((p) => ({ x: p.x, z: p.z }))];
-    if (!bleibtErreichbarMit(gesperrt, gebaeude.map((p) => p.geo.zugang))) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
+    // Phase 7b Nachtrag: ein Lager, dessen Zugang die Kopie selbst zubaut, braucht keinen erreichbaren Zugang
+    const neueZugaenge = gebaeude.filter((p) => !istLagerTyp(gebaeudeTypNach.get(p.typ))
+      || !gesperrt.some((c) => c.x === p.geo.zugang.x && c.z === p.geo.zugang.z)).map((p) => p.geo.zugang);
+    if (!bleibtErreichbarMit(gesperrt, neueZugaenge)) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
   }
   // Kosten: wie beim normalen Bauen zuerst aus dem Depot, sonst kaufen
   const depotG = { ...spiel.depot.gebaeude }, depotB = { ...spiel.depot.baender }, dazu = {};
@@ -14203,6 +14415,9 @@ window.tradeUp = {
   vernichteImMuell, setzeMuellRegel, muellNimmt, streckenEnde, ausgangHatPlatz, VERTEILER_TYPEN, istVerteiler,
   ZONEN, setzeBestellung, setzeExportModus, setzeExportWare, exportBedarf, exportModusVon, holeExportAb, inExportzone,
   zonenListe, stehtAnWand, wagenUnterwegs, baukosten, gebaeudeName, stelleZoneAuf,
+  // Phase 7b Nachtrag (Logik): Verteiler-Puffer, Hauptlager-Regeln, Zugang überall, Exportzone an der Wand
+  PUFFER_GROESSE, pufferVon, hlNimmtAn, hlGibtAb, hlAufnahme, keinLagerFuer, zugangGesperrt, istLagerTyp,
+  wandRichtung, setzeAnWand, hlEntnimm, hlEinlagern,
 };
 </script>
 

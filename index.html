@@ -99,6 +99,10 @@
     --farbe-gemischt: #8a948c;          /* Lager mit Import und Export (Grau) */
     --kontor-breite: 860px;             /* höchste Breite des Kontor-Fensters */
     --techtree-knoten: 210px;           /* Breite eines Knotens im Techtree */
+
+    /* --- Lager & Verteiler (Phase 7b Nachtrag) --- */
+    --farbe-warnung-flaeche: #ffe6e0;   /* Hintergrund gut sichtbarer Warnhinweise (z. B. Zugang blockiert) */
+    --farbe-puffer: #4a7fc1;            /* Füllbalken des Verteiler-Puffers */
   }
 
   /* Elemente mit dem Attribut "hidden" sind immer unsichtbar */
@@ -1100,6 +1104,16 @@
   .zonen-liste { margin: 4px 0 0; padding-left: 18px; }
   .fuell-wert.gelb { color: #f0c34a; }
   .fuell-wert.rot { color: #ff6b57; font-weight: 700; }
+  /* Phase 7b Nachtrag: Zugang blockiert (gut sichtbar), Verteiler-Puffer */
+  .info-warnung.zugang-warnung { padding: 6px 8px; background: var(--farbe-warnung-flaeche); border-left: 3px solid var(--farbe-warnung); border-radius: 6px; }
+  .puffer-balken span { background: var(--farbe-puffer); }
+  .puffer-items { margin-top: 4px; }
+  /* Regel-Tabelle (Schrank, Hauptlager) etwas schmaler, damit die ↺-Spalte ins Info-Fenster passt */
+  .regel-tabelle td { padding: 2px 2px; }
+  .regel-tabelle .pfeil-knopf { min-width: 24px; }
+  .regel-tabelle .fix-knoepfe { margin-left: 2px; }
+  .regel-tabelle .fix-knoepfe .mini-knopf { min-width: 20px; padding: 0 2px; }
+  .regel-tabelle td .max-feld { width: 3em; }
   .regel-tabelle .max-feld { width: 3.4em; padding: 1px 3px; font: inherit; font-size: 12px; text-align: right;
     background: var(--farbe-feld, rgba(255,255,255,0.08)); color: inherit; border: 1px solid rgba(255,255,255,0.18); border-radius: 4px; }
   .regel-tabelle .max-feld::-webkit-inner-spin-button { display: none; }
@@ -11092,13 +11106,15 @@ function aktualisiereBauTipp() {
   } else if (w && w.art === "abriss") {
     html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · <kbd>Esc</kbd> abbrechen";
   } else if (bau.reiter === "baender") {
-    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. ${kbd("band")} Fließband`;
+    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen vorn (Pfeil). ${kbd("band")} Fließband`;   // Phase 7b Nachtrag
   } else if (bau.reiter === "halle") {
     html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
     html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
   } else {
-    html = "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
+    html = bau.reiter === "lager"                    // Phase 7b Nachtrag: Lager überall per Band anbindbar
+      ? "Gebäude auswählen und in der Halle aufstellen. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen vorn (Pfeil)."
+      : "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
   }
   if (ob.bauTipp.innerHTML !== html) ob.bauTipp.innerHTML = html;
   ob.bauTipp.classList.toggle("warnung", warnung);
@@ -11395,6 +11411,18 @@ function zeichneInfo() {
             .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
         </select></label>
       </div>`;
+  } else if (istHauptlager(g)) {
+    // Phase 7b Nachtrag: Hauptlager mit derselben Regel-Tabelle wie der Schrank (Annahme, Abgabe, Max)
+    html += `<div class="info-block">
+        <p class="modus-text">Lege fest, was hier eingelagert wird und wie viel. Abgewiesene Ware geht ins nächste Hauptlager.<br>
+          ⇣ grün = Annahme (darf hier eingelagert werden) · ⇡ rot = Abgabe (darf hier entnommen werden) · Max leer = keine Grenze.</p>
+        <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
+          <option value="">– Item wählen –</option>
+          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
+            .filter((item) => !hauptlagerRegelIds(g).includes(item))
+            .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
+        </select></label>
+      </div>`;
   }
   if (istStation(g) && g.automatik) {               // Phase 6: läuft ohne Arbeiter
     html += `<p class="info-ok">⚙ Läuft automatisch über Bänder – kein Arbeiter nötig.</p>`;
@@ -11456,7 +11484,7 @@ function regelZeileHtml(z) {
   const menge = z.max !== undefined ? `${z.ist}`
     : z.soll === null ? `${z.ist}` : `${z.ist} <span class="leise">/ ${z.soll}</span>`;
   const feldWert = z.max !== undefined ? (z.max === null ? "" : z.max) : z.soll ?? "";
-  const platzhalter = z.max !== undefined ? (z.soll !== null ? z.soll : "∞") : "";
+  const platzhalter = z.platzhalter ?? (z.max !== undefined ? (z.soll !== null ? z.soll : "∞") : "");   // Phase 7b Nachtrag: Hauptlager "–"
   const knoepfe = z.sollAenderbar ? `<span class="fix-knoepfe">
       <button class="mini-knopf" type="button" data-aktion="soll-minus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} verringern">−</button>
       <input class="max-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="max" data-item="${id}"
@@ -11467,14 +11495,16 @@ function regelZeileHtml(z) {
   return `<tr>
     <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
     <td class="zahl">${menge}${knoepfe}</td>
-    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, "Import (grün): Kuriere bringen bis zum Soll")}</td>
-    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.station ? "Export (rot): Kuriere holen ab, sobald der Pegel erreicht ist" : "Export (rot): Kuriere holen ab, was über dem Soll liegt")}</td>
+    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, z.hauptlager ? "Annahme: Kuriere, Bänder und Greifarme dürfen es hier einlagern"
+      : "Import (grün): Kuriere bringen bis zum Soll")}</td>
+    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.hauptlager ? "Abgabe: Kuriere, Arbeiter und Bänder dürfen es hier entnehmen"
+      : z.station ? "Export (rot): Kuriere holen ab, sobald der Pegel erreicht ist" : "Export (rot): Kuriere holen ab, was über dem Soll liegt")}</td>
     <td>${z.manuell ? `<button class="mini-knopf" type="button" data-aktion="auto" data-item="${id}" title="Zurück auf Automatik" aria-label="Zurück auf Automatik">↺</button>` : ""}</td>
   </tr>`;
 }
 // Phase 7a: oben Komponenten, darunter Fertigware, unten Ressourcen; in jeder Gruppe alphabetisch
 // (so springen die Zeilen nicht mehr, wenn sich Mengen ändern)
-function regelTabelle(zeilen, kopf = "Ist / Soll") {
+function regelTabelle(zeilen, kopf = "Ist / Soll", pfeilNamen = null) {
   if (!zeilen.length) return `<p class="info-leer">leer</p>`;
   let koerper = "";
   for (const gruppe of ITEM_GRUPPEN) {
@@ -11483,8 +11513,9 @@ function regelTabelle(zeilen, kopf = "Ist / Soll") {
     if (!teil.length) continue;
     koerper += `<tr class="regel-gruppe"><th colspan="5">${gruppe.titel}</th></tr>` + teil.map((z) => z.html).join("");
   }
+  const [imp, exp] = pfeilNamen || ["Import", "Export"];   // Phase 7b Nachtrag: Hauptlager "Annahme" / "Abgabe"
   return `<table class="regel-tabelle"><thead><tr><th>Ressource</th><th class="zahl">${kopf}</th>
-    <th title="Import">⇣</th><th title="Export">⇡</th><th></th></tr></thead><tbody>${koerper}</tbody></table>`;
+    <th title="${imp}">⇣</th><th title="${exp}">⇡</th><th></th></tr></thead><tbody>${koerper}</tbody></table>`;
 }
 // Ressourcen-Reiter eines Zwischenlagers
 function lagerZeilen(g) {
@@ -11501,6 +11532,23 @@ function lagerZeilen(g) {
       notiz: !r.imp && !r.exp ? "bleibt liegen" : fest ? (maxErreicht(g, item) ? "Max erreicht" : "Max") : "",
     });
   }), "Ist / Max");
+}
+// Phase 7b Nachtrag: Regel-Tabelle des Hauptlagers – was liegt hier oder ist eingestellt?
+// Ohne Einstellung: ⇣ Annahme und ⇡ Abgabe an, kein Max (Feld leer mit "–", kein automatisches Soll).
+function hauptlagerRegelIds(g) {
+  return [...new Set([...Object.keys(g.bestand).filter((item) => g.bestand[item] > 0), ...Object.keys(g.regeln || {})])];
+}
+function hauptlagerZeilen(g) {
+  return regelTabelle(hauptlagerRegelIds(g).map((item) => {
+    const r = regelVon(g, item);
+    const fest = !!(g.regeln && g.regeln[item] && g.regeln[item].soll !== undefined);
+    return regelZeile({
+      item, ist: g.bestand[item] || 0, soll: null, max: fest ? g.regeln[item].soll : null, platzhalter: "–",
+      sollAenderbar: true, sollText: "Max", imp: r.imp, exp: r.exp, manuell: r.manuell, hauptlager: true,
+      notiz: !r.imp && !r.exp ? "gesperrt" : !r.imp ? "keine Annahme" : !r.exp ? "keine Abgabe"
+        : fest ? (maxErreicht(g, item) ? "Max erreicht" : "Max") : "",
+    });
+  }), "Ist / Max", ["Annahme", "Abgabe"]);
 }
 // Ressourcen-Reiter einer Station: Material (Eingangsfach, Import-Pegel) und Erzeugnis (Export-Pegel)
 function stationsZeilen(s, r) {
@@ -11602,6 +11650,10 @@ function infoZahlenHtml(g) {
   const t = typVon(g);
   const lagerName = (v) => istZwischenlager(v) ? `${ANZEIGE_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
+  // Phase 7b Nachtrag: Liegt ein Bandteil auf dem Zugang eines Lagers, kommen Kuriere nicht heran
+  if (!istStation(g) && typeof zugangGesperrt === "function" && zugangGesperrt(g)) {
+    html += `<p class="info-warnung zugang-warnung">⚠ Zugang durch Fließband blockiert – Kuriere können hier nichts entnehmen oder liefern.</p>`;
+  }
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
     const st = STATUS_ANZEIGE[art];
@@ -11662,7 +11714,7 @@ function infoZahlenHtml(g) {
           style="--item-farbe:${itemInfo(item).farbe}">${zustand === "nur" ? "✓ " : zustand === "nein" ? "✕ " : ""}${htmlSicher(itemInfo(item).name)}</button>`;
       }).join("")}</div></div>`;
   } else if (t.art === "hauptlager") {
-    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${itemGruppen(g.bestand)}`;
+    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3>${hauptlagerZeilen(g)}</div>`;   // Phase 7b Nachtrag: Regeln
     if (g.verknuepft.length) html += vkLagerHtml(g, lagerName);
   }
   html += bandAnschlussHtml(g);                     // Phase 6
@@ -11793,7 +11845,8 @@ ob.infoInhalt.addEventListener("change", (e) => {
   if (e.target.dataset.aktion === "ressource" && e.target.value) {     // Phase 5b: Ressource aufnehmen (Import an)
     const item = e.target.value;
     setzeRegel(g.id, item, "imp", true);
-    zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
+    if (istHauptlager(g)) zeigeMeldung(`${gebaeudeName(g)}: ${itemInfo(item).name} steht in der Liste – Annahme, Abgabe und Max einstellen.`);   // Phase 7b Nachtrag
+    else zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
   e.target.blur();
   infoFormSperre = 0;
@@ -11836,6 +11889,7 @@ ob.infoInhalt.addEventListener("click", (e) => {
       const aktuell = istStation(g)
         ? (item in (rezeptVon(g)?.eingaben || {}) ? sollEingangsfach(g)[item] || 0 : exportPegel(g, item))
         : maxVon(g, item) !== Infinity ? maxVon(g, item)
+        : istHauptlager(g) ? g.bestand[item] || 0                 // Phase 7b Nachtrag: Hauptlager hat kein automatisches Soll
         : sollbestand(g)[item] ?? (g.bestand[item] || 0);        // Phase 7b: Max startet beim Soll bzw. Bestand
       setzeRegel(g.id, item, "soll", aktuell + (knopf.dataset.aktion === "soll-plus" ? 1 : -1));
       break;
@@ -13108,21 +13162,38 @@ function kannWeiterbauen(t) {
 // Danach zeigt die Vorschau die Strecke vom Ansatzpunkt bis zur Maus; ein Klick baut sie.
 function bandWeiterbauen() {
   const t = auswahlBandId && spiel.baender.get(auswahlBandId);
-  if (!kannWeiterbauen(t)) { zeigeMeldung("Zuerst ein Fließband anklicken, dann weiterbauen.", true); return false; }
+  if (!t) { zeigeMeldung("Zuerst ein Fließband anklicken, dann weiterbauen.", true); return false; }
+  // Phase 7b Nachtrag: E führt immer zu Bau → Bänder → Fließband – auch wenn hier kein Ansatzpunkt frei ist
+  if (!kannWeiterbauen(t)) {
+    oeffneFliessbandWerkzeug(t.richtung);
+    zeigeMeldung(`An ${bandTyp(t).name} setzt das Weiterbauen nicht an – das Fließband-Werkzeug ist gewählt.`);
+    return false;
+  }
   if (bandTopologieAlt) baueBandTopologie();
   // Bei einer Bandgruppe am Ende der Gruppe ansetzen
   const seg = bandAuswahl.gruppe && segmentVon(t);
   const ende = seg ? seg.teile[seg.teile.length - 1] : t;
   const start = vorKachel(ende);
-  if (!istImRaster(start.x, start.z)) { zeigeMeldung("Hier endet die Halle – an dieser Stelle geht es nicht weiter.", true); return false; }
-  const kachel = holeKachel(start.x, start.z);
-  if (kachel.objekt || kachel.band) { zeigeMeldung("Vor dem Band ist kein Platz frei (dort steht schon etwas).", true); return false; }
-  if (!bau.offen) oeffneBau();
-  if (bau.reiter !== "baender") { bau.reiter = "baender"; zeichneBauInhalt(); }
-  setzeWerkzeug({ art: "band", typ: "band", richtung: ende.richtung, anker: { x: start.x, z: start.z } });
+  const kachel = istImRaster(start.x, start.z) && holeKachel(start.x, start.z);
+  if (!kachel || kachel.objekt || kachel.band) {
+    oeffneFliessbandWerkzeug(ende.richtung);
+    zeigeMeldung(!kachel ? "Hier endet die Halle – das Fließband-Werkzeug ist gewählt, setze die Strecke woanders an."
+      : "Vor dem Band ist kein Platz frei (dort steht schon etwas) – das Fließband-Werkzeug ist gewählt.", true);
+    return false;
+  }
+  oeffneFliessbandWerkzeug(ende.richtung, { x: start.x, z: start.z });
   zeigeMeldung("Weiterbauen: Ziel anklicken – die Strecke beginnt vor dem gewählten Band. Esc beendet.");
-  aktualisiereBauTipp();
   return true;
+}
+// Phase 7b Nachtrag: Baumenü öffnen, Reiter "Bänder", Karte "Fließband" aktiv – genau wie von Hand gewählt.
+// anker (optional) = Ansatzpunkt fürs Weiterbauen vor dem gewählten Band.
+function oeffneFliessbandWerkzeug(richtung, anker = null) {
+  if (bau.reiter !== "baender") { bau.reiter = "baender"; if (bau.offen) zeichneBauInhalt(); }
+  if (!bau.offen) oeffneBau();
+  const w = { art: "band", typ: "band", richtung: richtung ?? bau.letzteDrehung["band:band"] ?? bau.letzteDrehung.bandRichtung ?? 0 };
+  if (anker) w.anker = anker;
+  setzeWerkzeug(w);
+  aktualisiereBauTipp();
 }
 function bandInfoKnopf(aktion, text, extra = "", klasse = "lz-knopf") {
   return `<button class="${klasse}" type="button" data-band-aktion="${aktion}" ${extra}>${text}</button>`;
@@ -13196,6 +13267,7 @@ function zeichneBandInfo() {
     }
   }
   if (istVerteiler(t)) {
+    html += `<div id="band-puffer">${pufferHtml(t)}</div>`;   // Phase 7b Nachtrag: Puffer oben, live aufgefrischt
     html += seitenHtml(t);                          // Phase 7a: Seiten und Filter
   } else if (t.typ === "zusammen") {
     html += `<label class="info-feld">Vorrang <select data-band-aktion="vorrang">
@@ -13230,6 +13302,8 @@ function zeichneBandInfo() {
   morphe(ob.infoInhalt, html);                      // Phase 7a: ohne Neuaufbau
   const ziel = $("band-zahlen");
   if (ziel) ziel._html = zahlen;
+  const puffer = $("band-puffer");                  // Phase 7b Nachtrag
+  if (puffer) puffer._html = pufferHtml(t);
   anzeige.infoStrukturFehlt = false;
 }
 function aktualisiereBandInfoZahlen() {
@@ -13238,6 +13312,8 @@ function aktualisiereBandInfoZahlen() {
   if (!ziel || !t) return;
   if (performance.now() < infoKlickSperre) return;
   setzeHtml(ziel, bandInfoZahlenHtml(t));
+  const puffer = $("band-puffer");                  // Phase 7b Nachtrag: Verteiler-Puffer live
+  if (puffer) setzeHtml(puffer, pufferHtml(t));
 }
 function bandInfoZahlenHtml(t) {
   const seg = bandAuswahl.gruppe ? segmentVon(t) : null;
@@ -13272,6 +13348,23 @@ function bandInfoZahlenHtml(t) {
       ${t.typ === "ventil" && t.ueberlauf ? `<p class="info-leer">Vorn ist voll – Items gehen gerade zur Seite.</p>` : ""}</div>`;
   }
   return html;
+}
+// Phase 7b Nachtrag: Puffer eines Verteilers (Splitter, Smart-Verteiler, Ventil) – "Puffer: n / 30"
+// mit Aufschlüsselung nach Items. pufferVon(t) liefert die Logik (Array der Item-Ids).
+function verteilerPufferMax() {
+  return BAENDER.verteilerPuffer || BAENDER.pufferGroesse || BAENDER.puffer || 30;   // Konfigwert der Logik, sonst 30
+}
+function pufferHtml(t) {
+  if (typeof pufferVon !== "function") return "";
+  const liste = pufferVon(t) || [];
+  const max = verteilerPufferMax();
+  const zaehler = {};
+  for (const item of liste) zaehler[item] = (zaehler[item] || 0) + 1;
+  const text = Object.entries(zaehler).sort((a, b) => b[1] - a[1])
+    .map(([item, n]) => `${n}× ${htmlSicher(itemInfo(item).name)}`).join(", ");
+  return `<div class="info-block"><h3>Puffer: ${liste.length} / ${max}</h3>
+    <div class="info-balken puffer-balken"><span style="width:${Math.min(100, Math.round(liste.length / max * 100))}%"></span></div>
+    <p class="info-leer puffer-items">${text || "leer"}</p></div>`;
 }
 ob.infoInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-band-aktion]");
@@ -13449,14 +13542,22 @@ function aktualisiereLagerChip() {
   if (voll.length) teile.push(`${voll.length} Lager voll`);
   if (fast.length) teile.push(`${fast.length} fast voll`);
   if (stau.length) teile.push(`${stau.length} im Stau`);
+  // Phase 7b Nachtrag: Ware wartet, aber kein Hauptlager nimmt sie an ("kein Lager für Metall, Kunststoff +2")
+  const ohneLager = typeof keinLagerFuer === "function" ? [...new Set(keinLagerFuer() || [])] : [];
+  if (ohneLager.length) {
+    const namen = ohneLager.slice(0, 2).map((item) => itemInfo(item).name).join(", ");
+    teile.push(`kein Lager für ${namen}${ohneLager.length > 2 ? ` +${ohneLager.length - 2}` : ""}`);
+  }
   ob.hudLager.hidden = !teile.length;
   ob.hudLager.classList.toggle("rot", voll.length + stau.length > 0);
-  ob.hudLager.classList.toggle("gelb", !voll.length && !stau.length && fast.length > 0);
+  ob.hudLager.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
   setzeText(ob.hudLager, `📦 ${teile.join(" · ")}`);
 }
 ob.hudLager.addEventListener("click", () => {
   const { voll, fast, stau } = lagerWarnListe();
   const liste = [...stau, ...voll, ...fast];
+  // Phase 7b Nachtrag: nur "kein Lager für …" – zu den Hauptlagern springen (dort Annahme/Max ändern)
+  if (!liste.length && typeof keinLagerFuer === "function" && (keinLagerFuer() || []).length) liste.push(...hauptlagerListe());
   if (!liste.length) return;
   lagerWarnSprung = (lagerWarnSprung + 1) % liste.length;
   const g = liste[lagerWarnSprung];

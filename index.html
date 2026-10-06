@@ -11106,14 +11106,14 @@ function aktualisiereBauTipp() {
   } else if (w && w.art === "abriss") {
     html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · <kbd>Esc</kbd> abbrechen";
   } else if (bau.reiter === "baender") {
-    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen vorn (Pfeil). ${kbd("band")} Fließband`;   // Phase 7b Nachtrag
+    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite. ${kbd("band")} Fließband`;   // Phase 7b Nachtrag
   } else if (bau.reiter === "halle") {
     html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
     html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
   } else {
     html = bau.reiter === "lager"                    // Phase 7b Nachtrag: Lager überall per Band anbindbar
-      ? "Gebäude auswählen und in der Halle aufstellen. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen vorn (Pfeil)."
+      ? "Gebäude auswählen und in der Halle aufstellen. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite."
       : "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
   }
   if (ob.bauTipp.innerHTML !== html) ob.bauTipp.innerHTML = html;
@@ -13339,7 +13339,7 @@ function bandInfoZahlenHtml(t) {
       ${q && z && q.art === "gebaeude" && typVon(q.g).art === "hauptlager" && z.art === "band" && !t.armFilter ? `<p class="info-warnung">⚠ Vom Hauptlager auf ein Band nur mit Item-Filter.</p>` : ""}
       ${t.wartet > 3 ? `<p class="info-warnung">⚠ Das Ziel nimmt gerade nichts an.</p>` : ""}</div>`;
   } else {
-    const items = t.items ? t.items.length : 0;
+    const items = (t.items ? t.items.length : 0) + pufferVon(t).length;   // Phase 7b Nachtrag: Verteiler-Puffer
     const anschluesse = istVerteiler(t) ? t.ausgaenge.map((a) => SEITEN_NAMEN[a.seite]).join(", ") || "keine" : null;
     html += `<div class="info-block"><dl class="info-zeilen zwei"><dt>Items darin</dt><dd>${items}</dd>
       ${anschluesse !== null ? `<dt>Ausgänge</dt><dd>${anschluesse}</dd>` : ""}

@@ -1389,6 +1389,8 @@
   }
   .grafik-zeile input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--farbe-akzent); }
   .grafik-zeile small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  div.grafik-zeile { align-items: center; cursor: default; }   /* Phase 7a: Zeilen mit Knopf (Entwicklung) */
+  div.grafik-zeile > span { flex: 1; min-width: 0; }
   .lz-ziel { display: grid; gap: 6px; width: 100%; max-width: 340px; min-width: 0; }
   .lz-auswahl { display: flex; align-items: center; gap: 8px; font-size: var(--groesse-klein); font-weight: 700; color: var(--farbe-text-leise); text-transform: uppercase; letter-spacing: 0.05em; }
   .lz-auswahl select {
@@ -1646,6 +1648,7 @@
     <div class="kontor-reiter" role="tablist" aria-label="Bereich">
       <button type="button" role="tab" data-einstellung-reiter="tasten" aria-selected="true">Tastenkürzel</button>
       <button type="button" role="tab" data-einstellung-reiter="grafik" aria-selected="false">Grafik</button>
+      <button type="button" role="tab" data-einstellung-reiter="entwicklung" aria-selected="false">Entwicklung</button>
     </div>
     <div id="einstellungen-inhalt" class="einstellungen-inhalt"></div>
     <footer class="lz-fuss">
@@ -1684,6 +1687,8 @@
   <span><kbd data-taste="forschung">T</kbd> Forschung</span>
   <span><kbd data-taste="verschieben">M</kbd> Verschieben</span>
   <span><kbd data-taste="band">F</kbd> Fließband</span>
+  <span><kbd data-taste="abreissen">Entf</kbd> Abreißen</span>
+  <span>Mitarbeiter ziehen: an Station</span>
   <span><kbd data-taste="einstellungen">O</kbd> Optionen</span>
   <span><kbd data-taste="pause">P</kbd><kbd data-taste="tempo1">1</kbd><kbd data-taste="tempo2">2</kbd><kbd data-taste="tempo3">3</kbd> Tempo</span>
   <span><kbd>Leertaste</kbd> Figur</span>
@@ -1748,6 +1753,8 @@ const GRAFIK = {
   // --- Animation ---
   hoverTempo:     18,       // Wie schnell der Hover-Rahmen der Maus folgt (höher = schneller)
   klickToleranz:  6,        // Pixel, die sich die Maus beim Klicken bewegen darf
+  ziehHoehe:      0.45,     // Phase 7a: so hoch hängt ein gezogener Mitarbeiter über dem Boden
+  greifRadius:    0.45,     // Phase 7a: so nah (in Kacheln) muss die Maus an einem Mitarbeiter sein, um ihn zu greifen
 
   // --- Spielfigur (Phase 2) ---
   figurGroesse:      0.8,       // Höhe der Figur in Kacheln
@@ -2051,6 +2058,8 @@ const KASSEN_ARTEN = {
   forschung: "Forschung", ausruestung: "Ausrüstung", strafen: "Vertragsstrafen",
   // Phase 6
   baender: "Bänder & Greifarme", laufkosten: "Laufkosten Bänder", abfindung: "Abfindungen", ausbau: "Hallenausbau",
+  // Phase 7a
+  entwicklung: "Entwicklung (Test)",
 };
 
 /* ============================================================================
@@ -2288,6 +2297,7 @@ const TASTEN_STANDARD = [
   { aktion: "verschieben",  name: "Verschieben",                       taste: "m", gruppe: "Bauen" },
   { aktion: "abriss",       name: "Abriss",                            taste: "x", gruppe: "Bauen" },
   { aktion: "verknuepfen",  name: "Verknüpfen (Gebäude ausgewählt)",   taste: "v", gruppe: "Bauen" },
+  { aktion: "abreissen",    name: "Abreißen: Auswahl oder unter der Maus", taste: "delete", gruppe: "Bauen" },
   { aktion: "pause",        name: "Pause",                             taste: "p", gruppe: "Zeit" },
   { aktion: "tempo1",       name: "Tempo 1×",                          taste: "1", gruppe: "Zeit" },
   { aktion: "tempo2",       name: "Tempo 2×",                          taste: "2", gruppe: "Zeit" },
@@ -2298,7 +2308,7 @@ const TASTEN_STANDARD = [
   { aktion: "kameraRechts", name: "Kamera nach rechts",                taste: "d", gruppe: "Kamera" },
 ];
 // Diese Tasten kann man nicht belegen (sie haben feste Aufgaben)
-const TASTEN_FEST = ["escape", "enter", "tab", " ", "shift", "control", "alt", "meta", "delete", "backspace",
+const TASTEN_FEST = ["escape", "enter", "tab", " ", "shift", "control", "alt", "meta", "backspace",
                      "arrowup", "arrowdown", "arrowleft", "arrowright"];
 
 // Grafik-Schalter (true = an, false = aus)
@@ -2346,9 +2356,11 @@ function aktionFuerTaste(taste) {
   return null;
 }
 // Lesbarer Name einer Taste für Knöpfe und Hinweise
+const TASTEN_NAMEN = { delete: "Entf", insert: "Einfg", home: "Pos1", end: "Ende", pageup: "Bild↑", pagedown: "Bild↓" };
 function tastenName(taste) {
   if (!taste) return "–";
   if (taste === " ") return "Leer";
+  if (TASTEN_NAMEN[taste]) return TASTEN_NAMEN[taste];
   return taste.length === 1 ? taste.toUpperCase() : taste.charAt(0).toUpperCase() + taste.slice(1);
 }
 // Kleines Tasten-Schildchen für Knöpfe, z. B. kbd("band") → <kbd>F</kbd>
@@ -3135,6 +3147,7 @@ const maus = {
   ankerPunkt: null,       // Bodenpunkt, der beim Verschieben unter der Maus "kleben" bleibt
   letzteX: 0, letzteY: 0, // letzte bekannte Mausposition
   zieht: false,           // Phase 6: wird gerade eine Bandstrecke gezogen?
+  ziehtPerson: false,     // Phase 7a: linke Taste auf einem Mitarbeiter gedrückt (Drag & Drop, Abschnitt 13e)
 };
 
 zeichenflaeche.addEventListener("pointerdown", (e) => {
@@ -3144,6 +3157,12 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
     // Linke Taste: möglicher Klick – erst beim Loslassen entscheiden.
     maus.linksUnten = true;
     maus.startX = e.clientX; maus.startY = e.clientY;
+    // Phase 7a: Auf einem Mitarbeiter gedrückt? Dann kann er auf eine Station gezogen werden.
+    if (personZiehenStart(e.clientX, e.clientY)) {
+      maus.ziehtPerson = true;
+      zeichenflaeche.setPointerCapture(e.pointerId);
+      return;
+    }
     // Phase 6: Mit dem Band-, Brücken- oder Abriss-Werkzeug wird gezogen (Strecke legen)
     const k = ziehWerkzeugAktiv() ? kachelUnterMaus(e.clientX, e.clientY) : null;
     if (k) {
@@ -3176,10 +3195,18 @@ zeichenflaeche.addEventListener("pointermove", (e) => {
   }
   setzeHover(kachelUnterMaus(e.clientX, e.clientY));
   if (maus.zieht && hoverKachel) ziehen("bewegt", hoverKachel, e.shiftKey);   // Phase 6
+  // Phase 7a: Mitarbeiter ziehen (bzw. Hand-Zeiger über einem Mitarbeiter)
+  if (maus.ziehtPerson) personZiehenBewegt(e.clientX, e.clientY, Math.hypot(e.clientX - maus.startX, e.clientY - maus.startY) > GRAFIK.klickToleranz);
+  else if (!maus.verschiebt && !maus.zieht) zeigeGreifZeiger(e.clientX, e.clientY);
 });
 
 zeichenflaeche.addEventListener("pointerup", (e) => {
   if (eingaben3dGesperrt) return;
+  if (e.button === 0 && maus.ziehtPerson) {          // Phase 7a: Mitarbeiter losgelassen
+    maus.ziehtPerson = false;
+    if (personZiehenEnde(e.clientX, e.clientY)) { maus.linksUnten = false; return; }
+    // kaum bewegt: ein normaler Klick (unten)
+  }
   if (e.button === 0 && maus.zieht) {                // Phase 6: Strecke fertig gezogen
     maus.zieht = false;
     maus.linksUnten = false;
@@ -3261,6 +3288,7 @@ function sperre3dEingaben(an) {
   maus.verschiebt = false;
   maus.ankerPunkt = null;
   if (maus.zieht) { maus.zieht = false; ziehen("abbruch", null, false); }   // Phase 6
+  if (maus.ziehtPerson) { maus.ziehtPerson = false; personZiehenAbbruch(); }  // Phase 7a
   if (an) setzeHover(null);
   document.body.classList.toggle("designer-offen", an); // Szene weich unscharf (siehe CSS)
 }
@@ -8755,6 +8783,11 @@ function aktualisiereMitarbeiter3d(simSekunden, zeit) {
     zeichneGetragenes(modell, p.traegt, p.rolle === "kurier" ? p.stufe : 0);
     const haltung = p.phase === "arbeitet" ? "arbeitet" : hatItems(p) || (p.rolle === "kurier" && p.stufe > 0) ? "traegt" : "normal";
     aktualisiereFigurModell(p, modell, simSekunden, zeit, laufTempoVon(p), haltung);
+    // Phase 7a: Wird die Person gerade gezogen, hängt sie leicht angehoben an der Maus
+    if (personZug.aktiv && personZug.id === p.id && personZug.punkt) {
+      const baumeln = wenigerAnimation ? 0 : Math.sin(zeit * 9) * 0.03;
+      modell.gruppe.position.set(personZug.punkt.x, rasterHoehe + GRAFIK.ziehHoehe + baumeln, personZug.punkt.z);
+    }
   }
 }
 
@@ -11006,7 +11039,9 @@ function zeichneEinstellungen() {
       }
       html += `</div>`;
     }
-    html += `<p class="einstellungen-fest">Fest: <kbd>Esc</kbd> abbrechen · <kbd>Leer</kbd> Kamera zur Figur · Pfeiltasten Kamera · Rechte Maustaste ziehen · Mausrad zoomen</p>`;
+    html += `<p class="einstellungen-fest">Fest: <kbd>Esc</kbd> abbrechen · <kbd>Leer</kbd> Kamera zur Figur · Pfeiltasten Kamera · Rechte Maustaste ziehen · Mausrad zoomen · Mitarbeiter mit gedrückter linker Maustaste auf eine Station ziehen</p>`;
+  } else if (einstellungsFenster.reiter === "entwicklung") {
+    html += entwicklungHtml();                     // Abschnitt 13e
   } else {
     html += `<div class="grafik-liste">`;
     for (const s of GRAFIK_SCHALTER) {
@@ -11087,6 +11122,8 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
     zeichneEinstellungen();
     return;
   }
+  const entwickler = e.target.closest("[data-entwicklung]");   // Phase 7a: Test-Werkzeuge
+  if (entwickler) { entwicklungAktion(entwickler.dataset.entwicklung); zeichneEinstellungen(); return; }
   const belegen = e.target.closest("[data-belegen]");
   if (belegen) {
     const aktion = belegen.dataset.belegen;
@@ -11190,6 +11227,7 @@ window.addEventListener("keydown", (e) => {
       break;
     }
     case "drehen": if (bau.offen && bau.werkzeug) { erledigt(); dreheWerkzeug(); } break;
+    case "abreissen": erledigt(); entfAbriss(); break;        // Phase 7a: Entf
     case "pause": erledigt(); schaltePauseUm(); break;
     case "tempo1": case "tempo2": case "tempo3": erledigt(); setzeTempo(Number(aktion.slice(-1))); break;
   }
@@ -11907,6 +11945,210 @@ ob.forschungReiter.addEventListener("click", (e) => {
 });
 
 /* ============================================================================
+   ABSCHNITT 13e: Mitarbeiter ziehen, Entf-Abriss & Entwickler-Werkzeuge (Phase 7a) [UI/UX-Agent]
+   - Drag & Drop: Mitarbeiter mit gedrückter linker Maustaste greifen und auf eine Station
+     (Werkbank, Montagetisch, Forschungsstation) ziehen – er arbeitet sofort dort.
+     Ein Kurier wird dabei zum Arbeiter umgeschult (Erfahrung bleibt).
+   - Entf: reißt das ausgewählte Gebäude bzw. Band ab, sonst das, worauf die Maus zeigt.
+   - Einstellungen → Entwicklung: +10.000 € und alles freischalten (nur zum Testen).
+   ============================================================================ */
+const personZug = { id: null, aktiv: false, punkt: null, ziel: null };
+
+// Darf man gerade Mitarbeiter greifen? (nicht mit einem Bau-Werkzeug in der Hand und nicht beim Verknüpfen)
+function personZiehenErlaubt() {
+  return !eingaben3dGesperrt && !verknuepfModus && !(bau.offen && bau.werkzeug);
+}
+// Welcher Mitarbeiter ist unter der Maus? Gemessen wird auf dem Bildschirm zur Körpermitte.
+const greifHilfsVektor = new THREE.Vector3();
+function personUnterMaus(pixelX, pixelY) {
+  const rechteck = zeichenflaeche.getBoundingClientRect();
+  const aufBildschirm = (x, y, z) => {
+    greifHilfsVektor.set(x, y, z).project(kamera);
+    return { x: rechteck.left + (greifHilfsVektor.x + 1) / 2 * rechteck.width, y: rechteck.top + (1 - greifHilfsVektor.y) / 2 * rechteck.height };
+  };
+  let beste = null, besterAbstand = Infinity;
+  for (const p of mitarbeiter) {
+    const fuss = aufBildschirm(p.position.x, rasterHoehe, p.position.z);
+    const kopf = aufBildschirm(p.position.x, rasterHoehe + 0.9, p.position.z);
+    const radius = Math.max(10, Math.hypot(kopf.x - fuss.x, kopf.y - fuss.y) * GRAFIK.greifRadius);
+    const mitte = { x: (fuss.x + kopf.x) / 2, y: (fuss.y + kopf.y) / 2 };
+    const abstand = Math.hypot(pixelX - mitte.x, pixelY - mitte.y);
+    // Der ganze Körper zählt: Abstand zur Linie Fuß–Kopf, nicht nur zur Mitte
+    const lang = Math.hypot(kopf.x - fuss.x, kopf.y - fuss.y) || 1;
+    const t = Math.max(0, Math.min(1, ((pixelX - fuss.x) * (kopf.x - fuss.x) + (pixelY - fuss.y) * (kopf.y - fuss.y)) / (lang * lang)));
+    const zurLinie = Math.hypot(pixelX - (fuss.x + t * (kopf.x - fuss.x)), pixelY - (fuss.y + t * (kopf.y - fuss.y)));
+    if (zurLinie <= radius && abstand < besterAbstand) { beste = p; besterAbstand = abstand; }
+  }
+  return beste;
+}
+// Hand-Zeiger, sobald die Maus über einem Mitarbeiter steht
+function zeigeGreifZeiger(pixelX, pixelY) {
+  const zeiger = personZiehenErlaubt() && personUnterMaus(pixelX, pixelY) ? "grab" : "";
+  if (zeichenflaeche.style.cursor !== zeiger) zeichenflaeche.style.cursor = zeiger;
+}
+
+// Station, auf die gerade gezogen wird (oder null) – und ob sie den Mitarbeiter nimmt
+function zugZiel(k) {
+  const g = gebaeudeUnter(k);
+  if (!g) return null;
+  if (!istStation(g)) return { g, passt: false, grund: `${gebaeudeName(g)} ist keine Station – Mitarbeiter arbeiten an Werkbank, Montagetisch oder Forschungsstation.` };
+  if (g.automatik) return { g, passt: false, grund: `${gebaeudeName(g)} läuft automatisch über Bänder und braucht niemanden.` };
+  return { g, passt: true };
+}
+
+// Linke Taste gedrückt: Liegt ein Mitarbeiter darunter? Rückgabe: true = Zug beginnt
+function personZiehenStart(pixelX, pixelY) {
+  if (!personZiehenErlaubt()) return false;
+  const p = personUnterMaus(pixelX, pixelY);
+  if (!p) return false;
+  personZug.id = p.id;
+  personZug.aktiv = false;
+  personZug.punkt = null;
+  personZug.ziel = null;
+  return true;
+}
+function personZiehenBewegt(pixelX, pixelY, weitGenug) {
+  if (!personZug.id) return;
+  if (!personZug.aktiv && !weitGenug) return;      // erst ab ein paar Pixeln ist es ein Ziehen
+  personZug.aktiv = true;
+  zeichenflaeche.style.cursor = "grabbing";
+  const punkt = punktUnterMaus(pixelX, pixelY);
+  if (punkt) personZug.punkt = punkt;
+  personZug.ziel = zugZiel(hoverKachel);
+  zeigeZuweisMarke(personZug.ziel);
+}
+// Losgelassen. Rückgabe: true = es wurde gezogen (kein Klick)
+function personZiehenEnde(pixelX, pixelY) {
+  const war = personZug.aktiv;
+  const p = mitarbeiter.find((m) => m.id === personZug.id);
+  const ziel = zugZiel(kachelUnterMaus(pixelX, pixelY));
+  personZiehenAbbruch();
+  if (!war) return false;
+  zeigeGreifZeiger(pixelX, pixelY);
+  if (!p) return true;
+  if (!ziel) { zeigeMeldung(`${p.name} auf eine Station ziehen, damit er dort arbeitet.`, true); return true; }
+  if (!ziel.passt) { zeigeMeldung(ziel.grund, true); return true; }
+  setzePersonAnStation(p, ziel.g);
+  return true;
+}
+function personZiehenAbbruch() {
+  personZug.id = null;
+  personZug.aktiv = false;
+  personZug.punkt = null;
+  personZug.ziel = null;
+  zeigeZuweisMarke(null);
+  if (zeichenflaeche.style.cursor === "grabbing") zeichenflaeche.style.cursor = "";
+}
+
+// Setzt einen Mitarbeiter an eine Station: er steht sofort vor ihr und beginnt mit der Arbeit.
+function setzePersonAnStation(p, s) {
+  if (p.stationId === s.id) { zeigeMeldung(`${p.name} arbeitet schon an ${gebaeudeName(s)}.`); return true; }
+  const warKurier = p.rolle === "kurier";
+  if (warKurier) schuleUm(p.id, "arbeiter");
+  const vorher = s.arbeiterId && s.arbeiterId !== p.id ? mitarbeiter.find((m) => m.id === s.arbeiterId) : null;
+  if (!weiseZu(p.id, s.id)) { zeigeMeldung(`${p.name} kann nicht an ${gebaeudeName(s)} arbeiten.`, true); return false; }
+  // Dorthin "abgesetzt": direkt vor die Station stellen (nur auf eine begehbare Kachel)
+  if (istBegehbar(s.zugang.x, s.zugang.z)) {
+    haltePersonAn(p);
+    p.position.copy(kachelZuWelt(s.zugang.x, s.zugang.z));
+    p.waechter = null;
+    schaueAuf(p, s);
+    p.blickwinkel = p.blickZiel;
+  }
+  zeigeMeldung(`${p.name} arbeitet jetzt an ${gebaeudeName(s)}${warKurier ? " (vom Kurier zum Arbeiter umgeschult)" : ""}` +
+    `${vorher ? ` – ${vorher.name} sucht sich eine andere Station` : ""}.`);
+  if (auswahlGebaeudeId === s.id) anzeige.infoStrukturFehlt = true;
+  return true;
+}
+
+// Grüne (passt) bzw. rote (passt nicht) Haube über der Station unter dem gezogenen Mitarbeiter
+const zuweisMarke = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 1, 1),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeVorschauOk, transparent: true, opacity: 0.3, depthWrite: false })
+);
+zuweisMarke.visible = false;
+szene.add(zuweisMarke);
+function zeigeZuweisMarke(ziel) {
+  zuweisMarke.visible = !!ziel;
+  if (!ziel) return;
+  const g = ziel.g;
+  const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
+  const mitte = gebaeudeMitteWelt(g);
+  zuweisMarke.material.color.set(ziel.passt ? GRAFIK.farbeVorschauOk : GRAFIK.farbeVorschauFehler);
+  zuweisMarke.scale.set((Math.max(...xs) - Math.min(...xs) + 1) * 0.98, 1.3, (Math.max(...zs) - Math.min(...zs) + 1) * 0.98);
+  zuweisMarke.position.set(mitte.x, rasterHoehe + 0.65, mitte.z);
+}
+
+/* --- Entf: Abreißen ohne Werkzeug --- */
+// Reihenfolge: gewähltes Band (Stück oder ganze Gruppe) → gewähltes Gebäude → Gebäude bzw. Band unter der Maus.
+// Abgerissenes kommt wie beim Abriss-Werkzeug ins Depot bzw. wird erstattet; Inhalte gehen ins Hauptlager.
+function entfAbriss() {
+  const band = auswahlBandId && spiel.baender.get(auswahlBandId);
+  if (band) {
+    if (bandAuswahl.gruppe && segmentVon(band)) {
+      const r = reisseSegmentAb(band.id);
+      if (r) zeigeMeldung(`Bandgruppe abgerissen: ${r.anzahl} Teile${r.geld ? ` (+${euro(r.geld)} erstattet)` : ""}.`);
+    } else {
+      reisseBandAb(band);
+    }
+    waehleGebaeude(null);
+    return true;
+  }
+  const g = (auswahlGebaeudeId && spiel.gebaeude.get(auswahlGebaeudeId)) || gebaeudeUnter(hoverKachel);
+  if (g) {
+    const name = gebaeudeName(g);
+    const inhalt = summe(g.bestand) + summe(g.eingang);
+    reisseAb(g.id);
+    zeigeMeldung(`${name} abgerissen und ins Depot gelegt${inhalt ? ` (${inhalt} Items eingelagert)` : ""}.`);
+    aktualisiereAbrissMarke();
+    return true;
+  }
+  const t = hoverKachel && bandteilAufKachel(hoverKachel);
+  if (t) { reisseBandAb(t); return true; }
+  zeigeMeldung(`Nichts zum Abreißen: ein Gebäude oder Band anklicken oder mit der Maus darauf zeigen, dann ${tastenName(tasteFuer("abreissen"))}.`, true);
+  return false;
+}
+
+/* --- Entwickler-Werkzeuge (Einstellungen → Entwicklung) --- */
+const ENTWICKLUNG = {
+  geld: 10000,   // so viel Euro bringt ein Klick auf "+ Geld"
+};
+function entwicklungHtml() {
+  const offen = FORSCHUNG.filter((e) => !istErforscht(e.id)).length;
+  const hoechste = REPUTATION_STUFEN[REPUTATION_STUFEN.length - 1];
+  return `<p class="kontor-hinweis">Nur zum Testen: Diese Knöpfe verändern den laufenden Spielstand sofort.</p>
+    <div class="grafik-liste">
+      <div class="grafik-zeile"><span><b>Geld</b><small>Bucht ${euro(ENTWICKLUNG.geld)} aufs Konto (im Kassenbuch als „Entwicklung (Test)“). Konto jetzt: ${euro(spiel.konto)}.</small></span>
+        <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="geld">+ ${euro(ENTWICKLUNG.geld)}</button></div>
+      <div class="grafik-zeile"><span><b>Alles freischalten</b><small>Alle Forschungen im Techtree (noch ${offen} offen), alle Gebäude, Bauteile, Bandteile und Ausrüstungen.
+        Reputation auf Level ${hoechste.level} „${hoechste.name}“, damit alle Produktklassen als Aufträge kommen.</small></span>
+        <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="freischalten" ${offen || spiel.reputation < hoechste.ab ? "" : "disabled"}>Freischalten</button></div>
+    </div>`;
+}
+function entwicklungAktion(aktion) {
+  if (aktion === "geld") {
+    bucheGeld(ENTWICKLUNG.geld, "entwicklung");
+    einstellungsFenster.hinweis = `+${euro(ENTWICKLUNG.geld)} gebucht.`;
+  } else if (aktion === "freischalten") {
+    const n = schalteAllesFrei();
+    einstellungsFenster.hinweis = `Alles freigeschaltet (${n} Forschungen neu).`;
+  }
+}
+// Erforscht alles (ohne Kosten), schaltet Gebäude und Bauteile frei und hebt die Reputation auf das höchste Level.
+function schalteAllesFrei() {
+  let neu = 0;
+  for (const e of FORSCHUNG) if (!istErforscht(e.id)) { spiel.erforscht.push(e.id); neu++; }
+  for (const t of GEBAEUDE_TYPEN) t.freigeschaltet = true;
+  for (const b of BAUTEILE) b.freigeschaltet = true;
+  const hoechste = REPUTATION_STUFEN[REPUTATION_STUFEN.length - 1];
+  if (spiel.reputation < hoechste.ab) aendereReputation(hoechste.ab - spiel.reputation);
+  forschungMerker = "";
+  meldeStruktur();
+  zeigeMeldung(`Entwicklung: alles freigeschaltet${neu ? ` (${neu} Forschungen)` : ""}.`);
+  return neu;
+}
+
+/* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]
    Wird ca. 60-mal pro Sekunde aufgerufen: bewegt, animiert und zeichnet neu.
    ============================================================================ */
@@ -11983,6 +12225,7 @@ window.tradeUp = {
   baueHalleAus, setzeHallenStufe, halleStufe, aktuelleMiete, kachelKosten,
   // Phase 7a: Einstellungen, Bandauswahl, Weiterbauen, Import-/Exportlinien
   einstellungen, TASTEN_STANDARD, GRAFIK_STANDARD, oeffneEinstellungen, schliesseEinstellungen,
+  personUnterMaus, setzePersonAnStation, personZug, entfAbriss, schalteAllesFrei, ENTWICKLUNG,
   waehleBandteil, bandWeiterbauen, bandAuswahl, ioPartner, reisseSegmentAb, kurvenBogen, bandItemPunkt,
 };
 </script>

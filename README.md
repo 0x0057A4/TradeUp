@@ -53,6 +53,9 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Bandstück wählen / ganze Bandgruppe wählen | Einfachklick / Doppelklick auf ein Band |
 | Gewähltes Band weiterbauen | `E`, dann Ziel anklicken |
 | Verknüpfen (Station oder Zwischenlager gewählt) | `V` |
+| Mitarbeiter an eine Station setzen | Mitarbeiter mit gedrückter linker Maustaste auf Werkbank, Montagetisch oder Forschungsstation ziehen (Kuriere werden dabei Arbeiter) |
+| Abreißen ohne Werkzeug | `Entf`: ausgewähltes Gebäude bzw. Band (Einzelstück oder ganze Gruppe), sonst das, worauf die Maus zeigt |
+| Testgeld und alles freischalten | Einstellungen (`O`) → Reiter „Entwicklung“ |
 | Einstellungen (Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
 
 Alle Tastenkürzel außer `Esc`, `Leertaste` und den Pfeiltasten lassen sich im Einstellungsmenü neu belegen (seit Phase 7a). Der Browser merkt sich die Belegung.

@@ -13,10 +13,25 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
   - Designs als **Blaupause** speichern (im Browser, bleibt nach dem Neuladen erhalten), laden, umbenennen, duplizieren, löschen
 - **Phase 4:** Erste Produktion & Kuriere:
   - **Baumenü** (`B`): Hauptlager (seit Phase 7a: 2 × 2, beliebig viele, jedes weitere 1.500 €), Kiste (1 × 1) und Schrank (2 × 1) als Zwischenlager, Werkbank und Montagetisch (je 2 × 1) mit Vorschau, Drehen und Zugangspfeil; Gebäude, die jemanden einsperren würden, lassen sich nicht bauen
-  - **Kuriere** tragen Rohstoffe und Bauteile vom Hauptlager in die Zwischenlager (anfangs 1 Item pro Gang) und Fertiges aus den Ausgabefächern zurück; Kurier-Stufen (Hände, Sackkarre, Hubwagen) sind vorbereitet
+  - **Kuriere** tragen Rohstoffe und Bauteile vom Hauptlager in die Zwischenlager (Grundwert 5 Items pro Gang, Ausrüstung addiert sich: Sackkarre +4, Hubwagen +10) und Fertiges aus den Ausgabefächern zurück; Kurier-Stufen (Hände, Sackkarre, Hubwagen) sind vorbereitet
   - **Arbeiter** holen Material nur aus den verknüpften Zwischenlagern und produzieren: Werkbank = Bauteile aus Metall, Kunststoff, Silizium; Montagetisch = Produkte nach einer Blaupause (überhitzte Blaupausen: 30 % Ausschuss)
   - **Halle bereinigen**: baut alles ab, Maschinen und Items kommen ins Depot; „Aufbau wiederherstellen“ stellt alles zurück
   - Info-Fenster per Klick auf ein Gebäude, Lager-Fenster (`I`), Personal, Spieltempo (`P`, `1`–`3`), automatischer Spielstand im Browser
+
+- **Phase 7b:** Logistik & Lagerlimits:
+  - **Importzone** (3 × 2, an einer Hallenwand, die erste ist kostenlos): Rohstoffe bestellen mit Menge und Rhythmus (einmalig, jede Minute, alle 2 / 5 Minuten, täglich 8:00, jede Minute bis Sollmenge). Der Lieferwagen kommt nach 15 s, bezahlt wird beim Abladen; was nicht passt, wird abgewiesen und nicht berechnet. Der Sofort-Einkauf und „automatisch nachkaufen“ im Kontor entfallen.
+  - **Exportzone** (2 × 2, die erste ist kostenlos): Ware „Für Aufträge“ geht an einen angenommenen Auftrag, sobald die ganze Menge dort liegt; Ware „Verkaufen“ wird verkauft. Der Abholwagen kommt alle 30 s. Der Knopf „Liefern“ im Kontor entfällt.
+  - **Volumen**: Rohstoff und kleines Bauteil 1, 2 × 2-Bauteil 2, 2 × 3-Bauteil 3, Produkt 4. Kiste 10, Schrank 25, Hauptlager 300, Zonen 60. Volle Lager nehmen nichts mehr an, das Band staut sich bis zur Station („Stau – Produktion steht“). Warnung ab 80 % (gelb) und bei 100 % (rot), mit Hinweis im HUD.
+  - **Max per Zahl** im Lager-Fenster (Zahl eintippen, Enter): Bänder, Greifarme, Arbeiter und Kuriere liefern nur bis Max.
+  - **Smart-Verteiler** (liefert nur dorthin, wo das Ziel am Ende der Strecke Platz hat), **Überlauf-Ventil** (geradeaus, bei vollem Ziel zur Seite), **Mülltonne** (vernichtet, pro Ware einstellbar).
+  - Kuriere tragen grundsätzlich 5 Items pro Gang; Ausrüstung und Forschung addieren sich.
+  - **Nachtrag:**
+    - **Verteiler-Puffer**: Splitter, Smart-Verteiler und Überlauf-Ventil haben ein eigenes kleines Lager von 30 Items; das Info-Fenster zeigt „Puffer: n / 30“ mit den Items darin.
+    - **Hauptlager-Regeln** wie beim Schrank: pro Ware ⇣ Annahme, ⇡ Abgabe und Max (Zahl eintippen, ↺ zurück auf Automatik). So lassen sich die 300 Volumen bedarfsgerecht verteilen; abgewiesene Ware geht ins nächste Hauptlager. Nimmt kein Hauptlager eine wartende Ware an, meldet das HUD „kein Lager für …“.
+    - **Lager überall anbindbar**: Bänder dürfen ein Lager von allen Seiten anfahren. Kuriere entnehmen und liefern an der Vorderseite – liegt dort ein Bandteil, ist der Zugang blockiert (Hinweis im Info-Fenster).
+    - **Exportzone an der Wand** mit Gittertor; das Tor fährt hoch, wenn der Abholwagen kommt.
+    - **Zone ohne Wand ist inaktiv** (z. B. nach dem Hallenausbau): keine Lieferungen, keine Abholung, nichts Neues hinein; Kuriere holen den Rest aus der Importzone weiter ab. Mit `M` an eine Wand verschieben macht sie wieder aktiv.
+    - **Weiterbauen** (`E`) öffnet das Baumenü im Reiter „Bänder“ mit dem Fließband als Werkzeug – genau wie Bau → Bänder → Fließband.
 
 ## Spiel starten
 
@@ -85,7 +100,8 @@ Alles, was du ändern darfst, steht in `index.html` in Blöcken mit der Übersch
 - **Abschnitt 1 – 3D & Grafik** (`const GRAFIK`): Farben der Szene, Kamerawinkel, Zoomgrenzen, Licht, Schatten, Fugenbreite.
 - **Abschnitt 2 – Raster & Logik** (`const LEVELS`, `const LOGIK`): Name und Größe der Level, Laufgeschwindigkeit und Pathfinding.
 - **Abschnitt 2c – Layout-Designer** (`const LAYOUT`, `const BAUTEILE`): Größe des Produkt-Rasters und der Bauteil-Katalog mit Form, Stufe, Hitze, Kühlung, Toleranz, Farbe sowie Rezept und Zeit an der Werkbank.
-- **Abschnitt 2d – Produktion & Logistik** (`const PRODUKTION`, `ROHSTOFFE`, `GEBAEUDE_TYPEN`, `KURIER_STUFEN`): Startbestand, Gebäudegrößen und Fassungsvermögen, Montagezeiten, Ausschussquote, Mitarbeiterzahl und die Kurier-Stufen (Traglast, Tempo, Ladezeit).
+- **Abschnitt 2d – Produktion & Logistik** (`const PRODUKTION`, `ROHSTOFFE`, `GEBAEUDE_TYPEN`, `KURIER_STUFEN`): Startbestand, Gebäudegrößen und Fassungsvermögen, Item-Volumen (`volumenProdukt` usw.), Montagezeiten, Ausschussquote, Mitarbeiterzahl, Kurier-Grundwert (`kurierTraglast`) und die Kurier-Stufen (Zusatz-Traglast, Tempo, Ladezeit).
+- **Abschnitt 11i – Import- und Exportzone** (`const ZONEN`): Lieferzeit, Abholintervall, Rhythmen und Startplätze der Zonen.
 
 ## Aufbau der Datei
 

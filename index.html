@@ -99,6 +99,10 @@
     --farbe-gemischt: #8a948c;          /* Lager mit Import und Export (Grau) */
     --kontor-breite: 860px;             /* höchste Breite des Kontor-Fensters */
     --techtree-knoten: 210px;           /* Breite eines Knotens im Techtree */
+
+    /* --- Lager & Verteiler (Phase 7b Nachtrag) --- */
+    --farbe-warnung-flaeche: #ffe6e0;   /* Hintergrund gut sichtbarer Warnhinweise (z. B. Zugang blockiert) */
+    --farbe-puffer: #4a7fc1;            /* Füllbalken des Verteiler-Puffers */
   }
 
   /* Elemente mit dem Attribut "hidden" sind immer unsichtbar */
@@ -1094,6 +1098,26 @@
   .regel-tabelle .zahl { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .regel-tabelle .zahl .leise { color: var(--farbe-text-leise); font-weight: 500; }
   .regel-tabelle .fix-knoepfe { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: middle; }
+  .bestell-tabelle .rhythmus-wahl { font: inherit; font-size: 12px; max-width: 140px; }
+  .regel-tabelle.bestell-tabelle .max-feld { width: 4em; }
+  .export-modus { white-space: nowrap; }
+  .zonen-liste { margin: 4px 0 0; padding-left: 18px; }
+  .fuell-wert.gelb { color: #f0c34a; }
+  .fuell-wert.rot { color: #ff6b57; font-weight: 700; }
+  /* Phase 7b Nachtrag: Zugang blockiert (gut sichtbar), Verteiler-Puffer */
+  .info-warnung.zugang-warnung { padding: 6px 8px; background: var(--farbe-warnung-flaeche); border-left: 3px solid var(--farbe-warnung); border-radius: 6px; }
+  .puffer-balken span { background: var(--farbe-puffer); }
+  .puffer-items { margin-top: 4px; }
+  /* Regel-Tabelle (Schrank, Hauptlager) etwas schmaler, damit die ↺-Spalte ins Info-Fenster passt */
+  .regel-tabelle td { padding: 2px 2px; }
+  .regel-tabelle .pfeil-knopf { min-width: 24px; }
+  .regel-tabelle .fix-knoepfe { margin-left: 2px; }
+  .regel-tabelle .fix-knoepfe .mini-knopf { min-width: 20px; padding: 0 2px; }
+  .regel-tabelle td .max-feld { width: 3em; }
+  .regel-tabelle .max-feld { width: 3.4em; padding: 1px 3px; font: inherit; font-size: 12px; text-align: right;
+    background: var(--farbe-feld, rgba(255,255,255,0.08)); color: inherit; border: 1px solid rgba(255,255,255,0.18); border-radius: 4px; }
+  .regel-tabelle .max-feld::-webkit-inner-spin-button { display: none; }
+  .regel-tabelle .max-feld { -moz-appearance: textfield; }
   .regel-tabelle small.leise { color: var(--farbe-text-leise); }
   .pfeil-knopf {                         /* ⇣ Import / ⇡ Export – aus: grau umrandet, an: farbig gefüllt */
     min-width: 28px; height: 26px; padding: 0 4px;
@@ -1288,6 +1312,9 @@
     cursor: pointer;
   }
   .hud-frei[hidden] { display: none; }
+  .hud-lager.gelb { color: #6b5600; background: #fff8d1; border-color: #e0c341; }
+  .hud-lager.rot { color: #8a1c0e; background: #ffe2dc; border-color: #e0533d; }
+  .hud-lager.rot:hover { background: #ffd2c8; }
   .hud-frei:hover { background: #ffecbd; }
   .hud-frei:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
   .band-kosten { flex: 0 0 auto; align-self: center; padding: 0 8px; font-size: var(--groesse-text); color: var(--farbe-text-leise); line-height: 1.3; }
@@ -1509,6 +1536,8 @@
   </div>
   <!-- Phase 6: freie Arbeiter (Klick öffnet den Personal-Reiter) -->
   <button id="hud-frei" class="hud-frei" type="button" hidden title="Arbeiter ohne Aufgabe – Personal öffnen">👤 0 ohne Aufgabe</button>
+  <!-- Phase 7b: volle Lager und Stau (Klick springt zum nächsten) -->
+  <button id="hud-lager" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
   <!-- Phase 5: Konto, Kalender, Reputation, Forschungspunkte -->
   <div class="wirtschaft-leiste">
     <button id="hud-konto" class="wl-chip" type="button" title="Kontor öffnen (K)">
@@ -1670,7 +1699,7 @@
     </div>
     <p id="lager-hinweis" class="lager-hinweis"></p>
     <footer class="lz-fuss">
-      <button id="lager-einkauf" class="lz-knopf" type="button">Rohstoffe einkaufen <kbd data-taste="kontor">K</kbd></button>
+      <button id="lager-einkauf" class="lz-knopf" type="button">Rohstoffe bestellen (Importzone)</button>
       <button id="lager-wiederherstellen" class="lz-knopf" type="button">Letzten Aufbau wiederherstellen</button>
       <span class="lz-platz"></span>
       <button id="lager-zuruecksetzen" class="lz-knopf bau-gefahr" type="button">Spielstand zurücksetzen</button>
@@ -1927,6 +1956,10 @@ const GRAFIK = {
   farbeBandStreifen:    "#9aa3ab",   // helle Querstreifen, die mit dem Tempo laufen
   farbeBandRahmen:      "#aeb8bf",   // Seitenleisten und Stützen
   farbeSplitter:        "#4a7fc1",   // Splitter (Blau)
+  farbeSmartVerteiler:  "#2f9e8f",   // Phase 7b: Smart-Verteiler (Türkis)
+  farbeVentil:          "#c7862a",   // Phase 7b: Überlauf-Ventil (Orange)
+  farbeMuell:           "#5d6b62",   // Phase 7b: Mülltonne
+  farbeMuellDeckel:     "#3f4a43",
   farbeZusammen:        "#5a9a5e",   // Zusammenführung (Grün)
   farbeArm:             "#f5c542",   // Greifarm (Gelb)
   farbeArmGelenk:       "#3a3f47",   // Gelenke und Greifer
@@ -1943,6 +1976,16 @@ const GRAFIK = {
   farbeExport:          "#d9473a",   // rote Linien: hierhin geht Ware aus dem ausgewählten Gebäude
   linienBogen:          1.4,         // so hoch (Kacheln) wölben sich die Linien über der Halle
   kurvenSegmente:       10,          // so fein werden Kurvenbänder gezeichnet (mehr = runder)
+
+  // --- Phase 7b Nachtrag: Tore der Zonen, Verladen, Puffer der Verteiler ---
+  farbeRolltor:         "#aeb8bf",   // Lamellen des Rolltors der Importzone
+  farbeGittertor:       "#7b868e",   // Metallstäbe und Querstreben des Rollgitters der Exportzone
+  farbeTorRahmen:       "#6f7c86",   // Pfosten und Rollkasten beider Tore
+  farbeEtikett:         "#f4f1e8",   // helles Etikett vorn an der Kiste (zeigt die Vorderseite)
+  torZeit:              0.6,         // Sekunden, die ein Tor zum Hoch- bzw. Herunterfahren braucht
+  rangierAbstand:       1.8,         // so weit (Kacheln) vor der Wand wendet der Wagen, bevor er rückwärts ans Tor setzt
+  verladeTempo:         1.6,         // so viele Pakete pro Sekunde wandern beim Ab-/Aufladen durchs Tor (nur Anzeige)
+  pufferWuerfel:        0.1,         // Kantenlänge der Puffer-Würfel in Splitter, Smart-Verteiler und Ventil
 };
 
 /* ============================================================================
@@ -2046,7 +2089,14 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   5,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 1–4 werden umgewandelt)
+  spielstandVersion:   7,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; ältere werden umgewandelt)
+  kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
+  // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
+  volumenRohstoff:     1,     // Rohstoff
+  volumenBauteilKacheln: 2,   // Bauteil: 1 Volumen je angefangene 2 Kacheln seiner Form (1–2 Kacheln = 1, 3–4 = 2, 5–6 = 3)
+  volumenProdukt:      4,     // fertiges Produkt
+  lagerWarnGelb:       0.8,   // ab 80 % Füllung wird ein Lager gelb ...
+  lagerWarnRot:        1.0,   // ... ab 100 % rot (Hinweis im HUD)
 };
 
 // Rohstoffe: werden eingekauft (Phase 5), kommen ins Hauptlager und werden an der
@@ -2064,7 +2114,7 @@ const ROHSTOFFE = [
 //   art          – Rolle in der Logistik: "hauptlager", "zwischenlager", "werkbank", "montage", "forschung"
 //   breite/tiefe – Größe in Kacheln bei Drehung 0 (breite = nach rechts, tiefe = nach vorn)
 //   zugang       – Kachel vor dem Gebäude [Spalte, Reihe] bei Drehung 0; hier stehen Kuriere und Arbeiter
-//   kapazitaet   – so viele Items passen hinein (bei Stationen: Größe des Ausgabefachs)
+//   kapazitaet   – Lager: Volumen (Phase 7b, siehe PRODUKTION.volumen…); Stationen: so viele Items passen ins Ausgabefach
 //   eingangsfach – (Phase 5b, nur Stationen) so viele Items passen ins Eingangsfach, das Kuriere direkt füllen
 //   maxAnzahl    – höchstens so viele pro Halle (0 = unbegrenzt)
 //   preisWeitere – (nur Hauptlager, Phase 7a) Preis für jedes weitere Hauptlager; das erste ist kostenlos
@@ -2074,11 +2124,19 @@ const GEBAEUDE_TYPEN = [
   { typ: "hauptlager", name: "Hauptlager", symbol: "▤", kategorie: "lager", art: "hauptlager",
     breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 300, maxAnzahl: 0, preis: 0, preisWeitere: 1500, freigeschaltet: true,
     beschreibung: "Zentrales Lager. Kuriere holen hier Material und bringen Fertiges zurück. Mehrere Hauptlager teilen sich den Bestand." },
+  // Phase 7b: Rohstoffe kommen per Lieferwagen in die Importzone (an einer Hallenwand), fertige Ware geht
+  // über die Exportzone hinaus (Aufträge, Verkauf). Je eine steht beim Neustart kostenlos in der Halle.
+  { typ: "importzone", name: "Importzone", symbol: "⇩", kategorie: "lager", art: "importzone",
+    breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 60, maxAnzahl: 0, preis: 0, preisWeitere: 800, freigeschaltet: true, wand: true,
+    beschreibung: "Hier bestellst du Rohstoffe (Menge und Rhythmus). Der Lieferwagen kommt durchs Rolltor – muss an einer Hallenwand stehen." },
+  { typ: "exportzone", name: "Exportzone", symbol: "⇧", kategorie: "lager", art: "exportzone",
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 60, maxAnzahl: 0, preis: 0, preisWeitere: 600, freigeschaltet: true, wand: true,   // Phase 7b Nachtrag: Wandpflicht
+    beschreibung: "Kuriere und Bänder bringen Ware hierher. Der Abholwagen liefert sie an Aufträge oder verkauft sie – muss an einer Hallenwand stehen." },
   { typ: "kiste", name: "Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
-    breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 8, maxAnzahl: 0, preis: 120, freigeschaltet: true,
+    breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 10, maxAnzahl: 0, preis: 120, freigeschaltet: true,
     beschreibung: "Kleines Zwischenlager neben einer Station." },
   { typ: "schrank", name: "Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
-    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 20, maxAnzahl: 0, preis: 350, freigeschaltet: true,
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 25, maxAnzahl: 0, preis: 350, freigeschaltet: true,
     beschreibung: "Großes Zwischenlager, versorgt auch mehrere Stationen." },
   { typ: "werkbank", name: "Werkbank", symbol: "⚒", kategorie: "station", art: "werkbank",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 4, eingangsfach: 6, maxAnzahl: 0, preis: 600, freigeschaltet: true,
@@ -2086,6 +2144,10 @@ const GEBAEUDE_TYPEN = [
   { typ: "montagetisch", name: "Montagetisch", symbol: "⚙", kategorie: "station", art: "montage",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 2, eingangsfach: 16, maxAnzahl: 0, preis: 900, freigeschaltet: true,
     beschreibung: "Baut Produkte nach einer Blaupause aus dem Layout-Designer." },
+  // Phase 7b: vernichtet alles, was hineinkommt (Band, Greifarm, Kurier); pro Ware einstellbar
+  { typ: "muelltonne", name: "Mülltonne", symbol: "🗑", kategorie: "lager", art: "muell",
+    breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 999, maxAnzahl: 0, preis: 80, freigeschaltet: true,
+    beschreibung: "Vernichtet alles, was Band, Greifarm oder Kurier hineinbringen. Pro Ware einstellbar, was angenommen wird." },
   // Phase 5: zerlegt Bauteile oder Produkte in Forschungspunkte (kein Ausgabefach: kapazitaet 0)
   { typ: "forschungsstation", name: "Forschungsstation", symbol: "🔬", kategorie: "station", art: "forschung",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 0, eingangsfach: 4, maxAnzahl: 0, preis: 1500, freigeschaltet: true,
@@ -2094,15 +2156,16 @@ const GEBAEUDE_TYPEN = [
 
 // Kurier-Stufen (Ausrüstung): Die Transport-Logik rechnet NUR mit diesen drei Werten der Stufe,
 // nie mit einer festen Zahl.
-//   traglast    – so viele Items trägt ein Kurier pro Gang
+//   extra       – (Phase 7b) so viele Items trägt ein Kurier ZUSÄTZLICH zum Grundwert
+//                 PRODUKTION.kurierTraglast (5) pro Gang; Upgrades werden immer addiert (traglastVon)
 //   tempoFaktor – Laufgeschwindigkeit im Verhältnis zur Spielfigur (1 = gleich schnell)
 //   ladezeit    – Sekunden zum Aufladen bzw. Abladen
 //   forschung   – (Phase 5) diese Forschung im Techtree schaltet die Stufe frei (null = immer da)
 //   preis       – (Phase 5) so viel kostet die Ausrüstung pro Kurier im Personal-Reiter
 const KURIER_STUFEN = [
-  { stufe: 0, name: "Hände",     traglast: 1,  tempoFaktor: 1.00, ladezeit: 0.6, forschung: null, preis: 0   },
-  { stufe: 1, name: "Sackkarre", traglast: 4,  tempoFaktor: 0.85, ladezeit: 0.9, forschung: "k2", preis: 150 },
-  { stufe: 2, name: "Hubwagen",  traglast: 10, tempoFaktor: 0.75, ladezeit: 1.2, forschung: "k6", preis: 600 },
+  { stufe: 0, name: "Hände",     extra: 0,   tempoFaktor: 1.00, ladezeit: 0.6, forschung: null, preis: 0   },
+  { stufe: 1, name: "Sackkarre", extra: 4,   tempoFaktor: 0.85, ladezeit: 0.9, forschung: "k2", preis: 150 },
+  { stufe: 2, name: "Hubwagen",  extra: 10,  tempoFaktor: 0.75, ladezeit: 1.2, forschung: "k6", preis: 600 },
 ];
 
 // Mitarbeiter-Rollen. "lohn" = Euro pro Spieltag (wird beim Tagesabschluss um 20:00 abgebucht).
@@ -2330,6 +2393,13 @@ const BAND_TEILE = [
   { typ: "splitter", name: "Splitter", symbol: "⑂", preis: 120, spur: false, begehbar: false, tagesKosten: 2,
     ebeneEin: 0, ebeneAus: 0, imMenue: true,
     beschreibung: "Verteilt Items von hinten reihum nach links, vorn und rechts (oder sortiert nach Filter)." },
+  // Phase 7b: Verteiler mit Blick ans Ende der Strecke bzw. mit Vorrang geradeaus
+  { typ: "smartVerteiler", name: "Smart-Verteiler", symbol: "⑂✓", preis: 250, spur: false, begehbar: false, tagesKosten: 3,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Wie ein Splitter, schickt aber nur dorthin, wo das Ziel am Ende der Strecke noch Platz für genau dieses Item hat. Hat keins Platz, hält er an." },
+  { typ: "ventil", name: "Überlauf-Ventil", symbol: "⤳", preis: 180, spur: false, begehbar: false, tagesKosten: 2,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true,
+    beschreibung: "Schickt Items geradeaus weiter. Nur wenn das Ziel vorn voll ist, gehen sie zur Seite (links und rechts reihum)." },
   { typ: "zusammen", name: "Zusammenführung", symbol: "⑃", preis: 120, spur: false, begehbar: false, tagesKosten: 2,
     ebeneEin: 0, ebeneAus: 0, imMenue: true,
     beschreibung: "Führt Bänder von links, hinten und rechts reihum auf ein Band nach vorn zusammen." },
@@ -2351,6 +2421,10 @@ const BAND_TEILE = [
     ebeneEin: 1, ebeneAus: 0, beschreibung: "Bringt Items von der Brücke zurück auf den Boden." },
 ];
 
+// Phase 7b: Splitter, Smart-Verteiler und Überlauf-Ventil teilen sich Aufbau, Seiten und Filter
+const VERTEILER_TYPEN = ["splitter", "smartVerteiler", "ventil"];
+function istVerteiler(t) { return !!t && VERTEILER_TYPEN.includes(t.typ); }
+
 const BAENDER = {
   mindestAbstand:   0.5,   // Abstand zwischen zwei Items auf einem Band (0,5 = 2 Items pro Kachel)
   knotenTempo:      2.5,   // so schnell (Kacheln/s) laufen Items durch Splitter und Zusammenführungen
@@ -2360,7 +2434,10 @@ const BAENDER = {
   ablaufStauSek:    30,    // Zwischenlager mit Ablauf: Kuriere holen Export-Ware erst, wenn das Band so lange voll ist
   minBrueckenLaenge: 3,    // eine Brücke hat mindestens Auffahrt + 1 Hochband + Abfahrt
   laufTempoAufBand: 0.4,   // Personen, die über ein Band steigen, laufen nur so schnell (40 %)
+  verteilerPuffer:  30,    // Phase 7b Nachtrag: so viele Items puffert jeder Verteiler (Splitter, Smart-Verteiler, Ventil)
 };
+// Phase 7b Nachtrag: Größe des Verteiler-Puffers (Items in t.puffer, siehe Abschnitt 11h)
+const PUFFER_GROESSE = BAENDER.verteilerPuffer;
 // Tempostufen eines Segments. "forschung" = diese Forschung schaltet die Stufe frei (null = immer da).
 // tagesKosten = Laufkosten pro Kachel und Tag.
 const BAND_TEMPO = [
@@ -4900,7 +4977,38 @@ function meldeStruktur() {
 function typVon(g) { return gebaeudeTypNach.get(g.typ); }
 function istStation(g) { return typVon(g).kategorie === "station"; }
 function istZwischenlager(g) { return typVon(g).art === "zwischenlager"; }
+function istHauptlager(g) { return typVon(g).art === "hauptlager"; }   // Phase 7b Nachtrag
 function kapazitaetVon(g) { return typVon(g).kapazitaet; }
+/* --- Volumen (Phase 7b) ---
+   Lager (Hauptlager, Zwischenlager, Import-/Exportzone) rechnen in Volumen: ein Produkt braucht mehr Platz
+   als ein Rohstoff. Die Fächer der Stationen zählen weiter Stück. */
+function itemVolumen(item) {
+  if (item.startsWith("p:")) return PRODUKTION.volumenProdukt;
+  const b = bauteilNachTyp.get(item);
+  if (b) return Math.max(1, Math.ceil(b.form.length / PRODUKTION.volumenBauteilKacheln));
+  return PRODUKTION.volumenRohstoff;
+}
+function volumen(items) {
+  let v = 0;
+  for (const [item, n] of Object.entries(items || {})) v += n * itemVolumen(item);
+  return v;
+}
+function istVolumenLager(g) {
+  return ["hauptlager", "zwischenlager", "importzone", "exportzone"].includes(typVon(g).art);
+}
+// Belegter Platz eines Fachs (Lager: Volumen, Stationsfächer: Stück). "items" ersetzt den Inhalt (z. B. Reservierungen).
+function belegt(g, fach = "bestand", items = fachInhalt(g, fach)) {
+  return fach === "bestand" && istVolumenLager(g) ? volumen(items) : summe(items);
+}
+// So viel Platz braucht ein Item in diesem Fach
+function platzBedarf(g, item, fach = "bestand") {
+  return fach === "bestand" && istVolumenLager(g) ? itemVolumen(item) : 1;
+}
+// Füllgrad eines Lagers (0 … 1)
+function fuellgrad(g) {
+  const k = kapazitaetVon(g);
+  return k > 0 ? belegt(g) / k : 0;
+}
 function hauptlager() {
   for (const g of spiel.gebaeude.values()) if (typVon(g).art === "hauptlager") return g;
   return null;
@@ -4922,6 +5030,18 @@ function naechstesHauptlager(kachel, filter = () => true) {
   }
   return bestes;
 }
+// Phase 7b: Woher holen Kuriere Ware zum Liefern? Aus dem nächsten Hauptlager oder der nächsten Importzone, die sie hat.
+function naechsteQuelle(kachel, item, res) {
+  let beste = null, besterAbstand = Infinity;
+  for (const g of spiel.gebaeude.values()) {
+    const art = typVon(g).art;
+    if ((art !== "hauptlager" && art !== "importzone") || verfuegbar(g, item, res) <= 0) continue;
+    if (zugangGesperrt(g) || (art === "hauptlager" && !hlGibtAb(g, item))) continue;   // Phase 7b Nachtrag: Zugang zugebaut, ⇡ Abgabe aus
+    const d = kachel ? abstand(g.zugang, kachel) : 0;
+    if (d < besterAbstand) { beste = g; besterAbstand = d; }
+  }
+  return beste;
+}
 // Gesamtbestand aller Hauptlager (Item → Anzahl)
 function hlBestand() {
   const b = {};
@@ -4931,8 +5051,9 @@ function hlBestand() {
 function hlMenge(item) {
   return hauptlagerListe().reduce((n, hl) => n + (hl.bestand[item] || 0), 0);
 }
+// Phase 7b Nachtrag: nur Hauptlager mit ⇡ Abgabe (für Kontor-Verkauf und Auftragslieferung; die Summen hlBestand/hlMenge bleiben gesamt)
 function hlVerfuegbar(item, res) {
-  return hauptlagerListe().reduce((n, hl) => n + Math.max(0, verfuegbar(hl, item, res)), 0);
+  return hauptlagerListe().reduce((n, hl) => n + (hlGibtAb(hl, item) ? Math.max(0, verfuegbar(hl, item, res)) : 0), 0);
 }
 function hlFreierPlatz(res) {
   return hauptlagerListe().reduce((n, hl) => n + Math.max(0, freierPlatz(hl, res)), 0);
@@ -4941,9 +5062,10 @@ function hlKapazitaet() {
   return hauptlagerListe().reduce((n, hl) => n + kapazitaetVon(hl), 0);
 }
 // Nimmt bis zu n Stück aus den Hauptlagern (das vollste zuerst). Rückgabe: entnommene Anzahl
+// Phase 7b Nachtrag: nur aus Hauptlagern, deren ⇡ Abgabe für dieses Item an ist
 function hlEntnimm(item, n, res = null) {
   let rest = n;
-  const liste = hauptlagerListe().sort((a, b) => (b.bestand[item] || 0) - (a.bestand[item] || 0));
+  const liste = hauptlagerListe().filter((hl) => hlGibtAb(hl, item)).sort((a, b) => (b.bestand[item] || 0) - (a.bestand[item] || 0));
   for (const hl of liste) {
     if (rest <= 0) break;
     const m = Math.min(rest, res ? Math.max(0, verfuegbar(hl, item, res)) : hl.bestand[item] || 0);
@@ -4952,15 +5074,52 @@ function hlEntnimm(item, n, res = null) {
   return n - rest;
 }
 // Legt bis zu n Stück in die Hauptlager (das leerste zuerst). Rückgabe: eingelagerte Anzahl
+// Phase 7b Nachtrag: nur in Hauptlager, die das Item annehmen (⇣ Annahme an, Max nicht erreicht)
 function hlEinlagern(item, n, res = null) {
   let rest = n;
-  const platz = (hl) => Math.max(0, res ? freierPlatz(hl, res) : kapazitaetVon(hl) - summe(hl.bestand));
+  const platz = (hl) => hlAufnahme(hl, item, res);          // Stück (Volumen, Annahme und Max)
   for (const hl of hauptlagerListe().sort((a, b) => platz(b) - platz(a))) {
     if (rest <= 0) break;
     const m = Math.min(rest, platz(hl));
     if (m > 0) { aendereBestand(hl, item, m); rest -= m; }
   }
   return n - rest;
+}
+/* --- Phase 7b Nachtrag: Hauptlager-Regeln und Zugang ---
+   Hauptlager haben wie Schränke pro Item ⇣ Annahme (regeln[item].imp), ⇡ Abgabe (exp) und Max (soll).
+   Standard: alles an, kein Max. Annahme aus oder Max erreicht: Kuriere, Bänder, Greifarme und hlEinlagern
+   bringen das Item nicht hierher (sondern ins nächste Hauptlager, das es annimmt). Abgabe aus: Kuriere,
+   Greifarm-Nehmer, Abläufe und hlEntnimm holen es hier nicht heraus. Arbeiter verknüpfter Stationen
+   dürfen weiter entnehmen (wie bei Schränken: die Pfeile steuern die Logistik, nicht die Verknüpfung).
+   Lager (alles außer Stationen) dürfen ein Bandteil auf ihrem Zugang haben; dann ist das Lager für
+   Kuriere und Arbeiter gesperrt (zugangGesperrt), Bänder und Greifarme arbeiten weiter. */
+function istLagerTyp(t) { return !!t && t.kategorie !== "station"; }
+// Liegt auf dem Zugang dieses Lagers ein Bandteil? Dann kommen Kuriere nicht heran.
+function zugangGesperrt(g) {
+  if (!g || !istLagerTyp(typVon(g))) return false;
+  const k = holeKachel(g.zugang.x, g.zugang.z);
+  return !!(k && k.band);
+}
+// Nimmt dieses Hauptlager das Item an? (⇣ Annahme an und Max – mit "res" inklusive Unterwegs – nicht erreicht)
+function hlNimmtAn(g, item, res = null) {
+  return !!g && istHauptlager(g) && !!regelVon(g, item).imp && !maxErreicht(g, item, res);
+}
+// Gibt dieses Hauptlager das Item ab? (⇡ Abgabe an)
+function hlGibtAb(g, item) {
+  return !!g && istHauptlager(g) && !!regelVon(g, item).exp;
+}
+// Wie viele Stück dieses Items nimmt ein Hauptlager noch an? (Annahme, Max und Volumen; mit "res" abzüglich Unterwegs)
+function hlAufnahme(g, item, res = null) {
+  if (!hlNimmtAn(g, item, res)) return 0;
+  const max = maxVon(g, item);
+  const unterwegs = res ? reserviert(res.rein, fachSchluessel(g.id, "bestand"), item) : 0;
+  const bisMax = max === Infinity ? Infinity : max - (g.bestand[item] || 0) - unterwegs;
+  const platz = res ? platzFuer(g, item, res) : Math.floor(Math.max(0, kapazitaetVon(g) - belegt(g)) / itemVolumen(item));
+  return Math.max(0, Math.min(bisMax, platz));
+}
+// Kuriere: Zugang frei und das Hauptlager nimmt noch mindestens ein Stück an?
+function hlFuerKurier(g, item, res) {
+  return !zugangGesperrt(g) && hlAufnahme(g, item, res) > 0;
 }
 function gebaeudeListe(filter = () => true) {
   return [...spiel.gebaeude.values()].filter(filter);
@@ -4972,7 +5131,7 @@ function anzahlTyp(typ) {
 function gebaeudeName(g) {
   const t = typVon(g);
   // Phase 7a (Nachtrag 3): Solange es nur ein Hauptlager gibt, heißt es ohne Nummer
-  if (t.maxAnzahl === 1 || (t.art === "hauptlager" && anzahlTyp(t.typ) <= 1 && g.nummer === 1)) return t.name;
+  if (t.maxAnzahl === 1 || (["hauptlager", "importzone", "exportzone"].includes(t.art) && anzahlTyp(t.typ) <= 1 && g.nummer === 1)) return t.name;
   return `${t.name} ${g.nummer}`;
 }
 // Kleinste freie Nummer für einen Gebäudetyp (Kiste 1, Kiste 2, ...)
@@ -5020,6 +5179,7 @@ function gebaeudeGeometrie(typ, x, z, drehung) {
   const verschoben = punkte.map(([a, b]) => ({ x: x + a - minX, z: z + b - minZ }));
   const zellen = verschoben.slice(0, form.length);
   return {
+    typ,                                        // Phase 7b Nachtrag: für die Zugangs-Prüfung (Lager dürfen auf ein Band zeigen)
     zellen,
     zugang: verschoben[form.length],
     richtung: { x: richtung[0], z: richtung[1] },
@@ -5051,9 +5211,19 @@ function bleibtAllesErreichbar(geo, eigenes = null) {
   for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
   if (eigenes) for (const c of eigenes.zellen) frei[c.x * T + c.z] = 1;
   for (const c of geo.zellen) frei[c.x * T + c.z] = 0;
+  // Phase 7b Nachtrag: Ein Lager darf mit dem Zugang auf einem Band stehen – dann zählt sein Zugang nicht
+  const zk = holeKachel(geo.zugang.x, geo.zugang.z);
+  const zugangZaehlt = !(geo.typ && istLagerTyp(gebaeudeTypNach.get(geo.typ)) && zk && zk.band);
+  const ziele = gebaeudeListe((g) => g !== eigenes && !zugangGesperrt(g)).map((g) => g.zugang);
+  for (const p of allePersonen()) {
+    const k = personKachel(p);
+    if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
+  }
+  const start = zugangZaehlt ? geo.zugang : ziele.find((k) => frei[k.x * T + k.z]);
+  if (!start) return true;
 
   const erreicht = new Uint8Array(B * T);
-  const stapel = [geo.zugang.x * T + geo.zugang.z];
+  const stapel = [start.x * T + start.z];
   erreicht[stapel[0]] = 1;
   while (stapel.length) {
     const nr = stapel.pop();
@@ -5064,11 +5234,6 @@ function bleibtAllesErreichbar(geo, eigenes = null) {
       const nNr = nx * T + nz;
       if (frei[nNr] && !erreicht[nNr]) { erreicht[nNr] = 1; stapel.push(nNr); }
     }
-  }
-  const ziele = gebaeudeListe((g) => g !== eigenes).map((g) => g.zugang);
-  for (const p of allePersonen()) {
-    const k = personKachel(p);
-    if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
   }
   return ziele.every((k) => erreicht[k.x * T + k.z]);
 }
@@ -5088,9 +5253,13 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
     else if ((k.belegt || !k.begehbar) && !istEigen(c)) gruende.push("Der Platz ist schon belegt.");
     else if (allePersonen().some((p) => personBeruehrtKachel(p, c))) gruende.push("Hier steht gerade jemand.");
   }
-  if (!istBegehbar(geo.zugang.x, geo.zugang.z) && !istEigen(geo.zugang)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
-  else if (holeKachel(geo.zugang.x, geo.zugang.z)?.band) gruende.push("Der Zugang (Pfeil) liegt auf einem Fließband.");   // Phase 6
+  // Phase 7b Nachtrag: Lager (keine Station) dürfen mit dem Zugang auf einem Bandteil stehen – Kuriere kommen dann nicht heran
+  const zugangKachel = holeKachel(geo.zugang.x, geo.zugang.z);
+  if (istLagerTyp(t) && zugangKachel && zugangKachel.band && !zugangKachel.objekt) { /* erlaubt */ }
+  else if (!istBegehbar(geo.zugang.x, geo.zugang.z) && !istEigen(geo.zugang)) gruende.push("Der Zugang (Pfeil) ist versperrt.");
+  else if (zugangKachel?.band) gruende.push("Der Zugang (Pfeil) liegt auf einem Fließband.");   // Phase 6
   if (t.maxAnzahl && anzahlTyp(typ) - (eigenes ? 1 : 0) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
+  if (t.wand && !stehtAnWand(geo)) gruende.push(`${t.name} muss mit der Rückseite an einer Hallenwand stehen (dort ist das Rolltor).`);   // Phase 7b
   if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
   if (gruende.length === 0 && !bleibtAllesErreichbar(geo, eigenes)) {
     gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
@@ -5122,7 +5291,9 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     regeln: extra.regeln ? JSON.parse(JSON.stringify(extra.regeln)) : regelnAusFixierung(extra.modus, extra.fixiert),
     eingang: { ...(extra.eingang || {}) },                                 // Phase 5b: Eingangsfach (nur Stationen)
     rueckgabe: false,                                                      // Phase 5: Überschuss wird zurückgeschickt
+    vernichtet: extra.vernichtet || 0,                                     // Phase 7b: Mülltonne
   };
+  richteZoneEin(g, extra);                                                 // Phase 7b: Bestellungen, Wagen, Export-Modus
   spiel.gebaeude.set(g.id, g);
   for (const c of geo.zellen) setzeBlockade(c.x, c.z, true, g.id);
   meldeEreignis("gebaeudeGebaut", { gebaeude: g });
@@ -5398,8 +5569,13 @@ function verfuegbar(g, item, res, fach = "bestand") {
   return (fachInhalt(g, fach)[item] || 0) - reserviert(res.raus, fachSchluessel(g.id, fach), item);
 }
 // Wie viel Platz ist in einem Fach noch frei (abzüglich der Items, die gerade gebracht werden)?
+// Phase 7b: in Lagern ist das Volumen, in Stationsfächern die Stückzahl (siehe belegt).
 function freierPlatz(g, res, fach = "bestand") {
-  return fachGroesse(g, fach) - summe(fachInhalt(g, fach)) - reserviertSumme(res.rein, fachSchluessel(g.id, fach));
+  return fachGroesse(g, fach) - belegt(g, fach) - belegt(g, fach, res.rein.get(fachSchluessel(g.id, fach)) || {});
+}
+// Wie viele Stück dieses Items passen noch hinein?
+function platzFuer(g, item, res, fach = "bestand") {
+  return Math.max(0, Math.floor(freierPlatz(g, res, fach) / platzBedarf(g, item, fach)));
 }
 
 /* --- Lagerregeln (Phase 5b): Import- und Export-Pfeile pro Ressource ---
@@ -5442,6 +5618,7 @@ function versorgtDurchLager(s) {
 }
 // Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
 function regelAuto(g, item) {
+  if (istHauptlager(g)) return { imp: true, exp: true };   // Phase 7b Nachtrag: Hauptlager nimmt alles an und gibt alles ab
   if (istStation(g)) {
     const r = rezeptVon(g);
     // Material: direkt ins Eingangsfach liefern, wenn kein Lager die Station versorgt
@@ -5466,9 +5643,28 @@ function regelVon(g, item) {
   };
 }
 
+// Phase 7b: "Max" per Zahl (technisch regeln[item].soll). Bänder, Greifarme, Arbeiter und Kuriere liefern
+// nur, solange Bestand + unterwegs < Max. Ohne eingetippte Zahl: Import-Ware bis zum automatischen Soll,
+// alles andere ohne Grenze (Infinity).
+function maxVon(g, item) {
+  const m = g.regeln && g.regeln[item];
+  if (m && m.soll !== undefined) return m.soll;
+  // Ohne eingetippte Zahl gilt bei Import-Ware das automatische Soll als Max (die graue Zahl im Feld):
+  // auch Bänder und Smart-Verteiler füllen dann nur bis dorthin auf
+  if (istZwischenlager(g) && regelVon(g, item).imp) return Math.max(1, sollbestand(g)[item] || 0);
+  return Infinity;
+}
+function maxErreicht(g, item, res = null) {
+  const max = maxVon(g, item);
+  if (max === Infinity) return false;
+  const unterwegs = res ? reserviert(res.rein, fachSchluessel(g.id, "bestand"), item) : 0;
+  return (g.bestand[item] || 0) + unterwegs >= max;
+}
 // Darf ein Kurier dieses Item aus diesem Fach mitnehmen?
 function darfKurierAbholen(g, item, fach = "bestand") {
-  if (typVon(g).art === "hauptlager") return true;
+  if (typVon(g).art === "hauptlager") return hlGibtAb(g, item);           // Phase 7b Nachtrag: ⇡ Abgabe pro Item
+  if (istImportzone(g)) return true;                                      // Phase 7b: Importzone = alles auf Export
+  if (istExportzone(g) || typVon(g).art === "muell") return false;
   const r = regelVon(g, item);
   if (istStation(g)) return fach === "eingang" ? !r.imp : r.exp;   // Eingangsfach: nur Reste
   if (r.exp) return true;
@@ -5477,7 +5673,10 @@ function darfKurierAbholen(g, item, fach = "bestand") {
 }
 // Darf ein Kurier dieses Item in dieses Fach liefern?
 function darfKurierLiefern(g, item, fach = "bestand") {
-  if (typVon(g).art === "hauptlager") return true;
+  if (typVon(g).art === "hauptlager") return hlNimmtAn(g, item);          // Phase 7b Nachtrag: ⇣ Annahme und Max
+  if (istExportzone(g)) return true;
+  if (istImportzone(g)) return false;
+  if (typVon(g).art === "muell") return muellNimmt(g, item, "kurier");
   if (istStation(g)) return fach === "eingang" && regelVon(g, item).imp;
   return regelVon(g, item).imp;
 }
@@ -5493,8 +5692,9 @@ function darfArbeiterEntnehmen(g, item = null) {
 //   ja, wenn es exportiert wird (Ausgang/Gemischt oder ⇡ von Hand) – Kuriere holen es dann ab,
 //   oder wenn eine andere verknüpfte Station es braucht (⇣) und das Soll noch nicht erreicht ist.
 function nimmtErzeugnisAn(g, item) {
-  if (typVon(g).art === "hauptlager") return true;      // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager
+  if (typVon(g).art === "hauptlager") return hlNimmtAn(g, item);   // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager (7b Nachtrag: Annahme/Max)
   if (!istZwischenlager(g)) return false;
+  if (maxErreicht(g, item)) return false;               // Phase 7b: "Max" per Zahl
   const r = regelVon(g, item);
   const handExport = g.regeln[item] && g.regeln[item].exp === true;
   if (r.exp && (lagerModus(g) !== "eingang" || handExport)) return true;
@@ -5504,6 +5704,10 @@ function nimmtErzeugnisAn(g, item) {
 // Mit Import UND Export bleibt das Soll liegen, nur der Überschuss geht.
 function abholbar(g, res) {
   const ergebnis = {};
+  if (istImportzone(g)) {                        // Phase 7b: alles, was nicht schon reserviert ist
+    for (const item of Object.keys(g.bestand)) { const n = verfuegbar(g, item, res); if (n > 0) ergebnis[item] = n; }
+    return ergebnis;
+  }
   if (!istZwischenlager(g)) return ergebnis;
   const soll = sollbestand(g);
   for (const item of Object.keys(g.bestand)) {
@@ -5559,13 +5763,14 @@ function stationAnzeigeModus(s) {
 // wert = null: zurück auf Automatik. Rückgabe: true/false
 function setzeRegel(id, item, feld, wert) {
   const g = spiel.gebaeude.get(id);
-  if (!g || !(istZwischenlager(g) || istStation(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
+  if (!g || !(istZwischenlager(g) || istStation(g) || istHauptlager(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
   const m = { ...(g.regeln[item] || {}) };
   if (wert === null || wert === undefined) delete m[feld];
   else if (feld === "soll") {
     // Station: Material → Import-Pegel (Eingangsfach), Erzeugnis → Export-Pegel (Ausgabefach)
     const r = istStation(g) ? rezeptVon(g) : null;
-    const grenze = r && item in r.eingaben ? fachGroesse(g, "eingang") : kapazitaetVon(g);
+    const grenze = r && item in r.eingaben ? fachGroesse(g, "eingang")
+      : Math.floor(kapazitaetVon(g) / platzBedarf(g, item));   // Phase 7b: Lager rechnen in Volumen
     m.soll = Math.max(istStation(g) ? 1 : 0, Math.min(grenze, Math.round(wert)));
   }
   else m[feld] = !!wert;
@@ -5602,7 +5807,7 @@ function setzeFixierung(id, item, menge) {
   const g = spiel.gebaeude.get(id);
   if (!g || !istZwischenlager(g)) return false;
   if (menge === null || menge === undefined) return setzeRegelZurueck(id, item);
-  g.regeln[item] = { imp: true, exp: false, soll: Math.max(0, Math.min(kapazitaetVon(g), Math.round(menge))) };
+  g.regeln[item] = { imp: true, exp: false, soll: Math.max(0, Math.min(Math.floor(kapazitaetVon(g) / itemVolumen(item)), Math.round(menge))) };
   meldeStruktur();
   return true;
 }
@@ -5649,7 +5854,7 @@ function sollbestand(g) {
   for (const [item, m] of Object.entries(g.regeln)) {
     if (m.imp === true && !(item in soll) && !(item in fest)) { soll[item] = PRODUKTION.standardSoll; durchgang[item] = 1; }
   }
-  const frei = Math.max(0, kapazitaetVon(g) - summe(fest)), gesamt = summe(soll);
+  const frei = Math.max(0, kapazitaetVon(g) - volumen(fest)), gesamt = volumen(soll);   // Phase 7b: Volumen
   if (gesamt > frei) {
     const faktor = frei / gesamt;
     // Nie weniger als ein kompletter Durchgang: sonst wartet der Arbeiter ewig auf das letzte Teil
@@ -5691,10 +5896,11 @@ function bedarf(g, res) {
     if (!darfKurierLiefern(g, item, fach)) continue;
     if (fach === "eingang" && vomBandVersorgt(g, item)) continue;   // Phase 6: das bringt schon ein Band oder Greifarm
     const fehlt = soll - (inhalt[item] || 0) - reserviert(res.rein, fachSchluessel(g.id, fach), item);
-    if (fehlt > 0 && platz > 0) {
-      const n = Math.min(fehlt, platz);
+    const je = platzBedarf(g, item, fach);                  // Phase 7b: Volumen
+    if (fehlt > 0 && platz >= je) {
+      const n = Math.min(fehlt, Math.floor(platz / je));
       ergebnis[item] = n;
-      platz -= n;
+      platz -= n * je;
     }
   }
   return ergebnis;
@@ -5799,6 +6005,10 @@ function schaltePause(id) {
 function kurierStufe(p) {
   return KURIER_STUFEN.find((st) => st.stufe === p.stufe) || KURIER_STUFEN[0];
 }
+// Phase 7b: Grundwert 5 Items pro Gang, Ausrüstung und Forschung werden darauf addiert (5 + 1 = 6 …)
+function traglastVon(p, stufe = kurierStufe(p)) {
+  return PRODUKTION.kurierTraglast + (stufe.extra || 0);
+}
 // Phase 5: Erfahrung macht schneller, Forschung macht Kuriere schneller
 function laufTempoVon(p) {
   const kurier = p.rolle === "kurier" ? kurierStufe(p).tempoFaktor * forschungsWirkung("kurierTempo") : 1;
@@ -5809,7 +6019,7 @@ function ladezeitVon(p) {
 }
 // Wo tauchen neue Mitarbeiter auf? Vor dem Hauptlager, sonst neben der Spielfigur.
 function startKachelFuerPersonen() {
-  const hl = hauptlager();
+  const hl = hauptlagerListe().find((h) => !zugangGesperrt(h)) || hauptlager();   // Phase 7b Nachtrag: nicht auf ein Band
   return hl ? { ...hl.zugang } : figurKachel();
 }
 function naechsterName() {
@@ -6039,7 +6249,15 @@ function beendeAuftrag(p) {
 // distanzGewicht: wie stark ein kurzer Weg zur Quelle zählt ("Disponent" bevorzugt nahe Quellen).
 function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   // Phase 7a (Nachtrag 3): mehrere Hauptlager – zurück ins nächste mit Platz, Ware aus dem nächsten, das sie hat
-  const zielHl = (quelle) => naechstesHauptlager(quelle.zugang, (h) => freierPlatz(h, res) > 0);
+  // Phase 7b: Volumen; eine Mülltonne, die dieses Item von Kurieren annimmt, geht vor
+  // Phase 7b Nachtrag: nur Ziele mit freiem Zugang; Hauptlager nur, wenn es das Item annimmt (⇣, Max)
+  const zielHl = (quelle, item) => naechsteMuelltonne(quelle.zugang, item)
+    || (istExportzone(quelle) ? null : naechsteExportzone(quelle.zugang, item, res))
+    || naechstesHauptlager(quelle.zugang, (h) => hlFuerKurier(h, item, res));
+  // Wie viel nimmt das Ziel noch auf? (Exportzone: nur, was sie braucht; Hauptlager: bis Max)
+  const aufnahme = (z, item) => typVon(z).art === "muell" ? Infinity
+    : istExportzone(z) ? Math.min(platzFuer(z, item, res), exportBedarf(z, res)[item] || 0)
+    : istHauptlager(z) ? hlAufnahme(z, item, res) : platzFuer(z, item, res);
   const k = personKachel(p);
   const kandidaten = [];
   let bester = null, besteWertung = -Infinity;
@@ -6053,7 +6271,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   };
 
   // "abholen": volle Fächer und volle Ausgang-Lager zuerst (sonst steht die Station still)
-  if (hlFreierPlatz(res) > 0) {
+  {                                              // Phase 7b: Ziele sind auch Exportzone und Mülltonne
     for (const s of gebaeudeListe(istStation)) {
       const voll = kapazitaetVon(s) > 0 && summe(s.bestand) >= kapazitaetVon(s);
       // Phase 6: Das Ausgabefach leert ein Band oder Greifarm (Ablauf) – Kuriere lassen es in Ruhe
@@ -6061,23 +6279,24 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
         if (!darfKurierAbholen(s, item)) continue;                         // Export aus: bleibt liegen
         const n = verfuegbar(s, item, res);
         if (n <= 0 || (!voll && s.bestand[item] < exportPegel(s, item))) continue;   // Pegel noch nicht erreicht
-        const hl = zielHl(s);
-        pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio: voll ? 5 : 2 });
+        const hl = zielHl(s, item);
+        if (hl) pruefe({ art: "abholen", quelle: s, ziel: hl, item, max: Math.min(n, aufnahme(hl, item)), prio: voll ? 5 : 2 });
       }
       for (const [item, n] of Object.entries(abholbarEingang(s, res))) {   // Reste im Eingangsfach
-        const hl = zielHl(s);
-        pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio: 1.5 });
+        const hl = zielHl(s, item);
+        if (hl) pruefe({ art: "abholen", quelle: s, quelleFach: "eingang", ziel: hl, item, max: Math.min(n, aufnahme(hl, item)), prio: 1.5 });
       }
     }
-    for (const lager of gebaeudeListe(istZwischenlager)) {
-      // Phase 6: Ein Lager mit Ablauf gibt Export-Ware ans Band; Kuriere helfen erst, wenn das Band lange voll ist
-      if (lager.bandAblauf && spiel.zeit - (lager.ablaufFrei ?? -Infinity) < BAENDER.ablaufStauSek) continue;
-      const voll = summe(lager.bestand) >= kapazitaetVon(lager);
+    for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {   // 7b Nachtrag: Zugang frei
+      // Phase 6: Ein Lager mit Ablauf gibt Export-Ware ans Band. Phase 7b: keine Notabholung mehr –
+      // läuft das Band voll, staut es sich bis zur Station zurück. (Die Importzone räumen Kuriere immer.)
+      if (lager.bandAblauf && !istImportzone(lager)) continue;
+      const voll = fuellgrad(lager) >= 1;
       for (const [item, n] of Object.entries(abholbar(lager, res))) {
         // Reine Export-Ware drängt (sonst läuft das Lager voll), der Überschuss eines Puffers nicht
         const prio = regelVon(lager, item).imp ? 1.5 : voll ? 5 : 2;
-        const hl = zielHl(lager);
-        pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, freierPlatz(hl, res)), prio });
+        const hl = zielHl(lager, item);
+        if (hl) pruefe({ art: "abholen", quelle: lager, ziel: hl, item, max: Math.min(n, aufnahme(hl, item)), prio });
       }
     }
   }
@@ -6086,23 +6305,24 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   // wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank).
   // Je länger ein Ziel nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
   const direkt = forschungAktiv("direktlieferung");
-  const ziele = gebaeudeListe((g) => istZwischenlager(g) || (istStation(g) && fachGroesse(g, "eingang") > 0));
+  const ziele = gebaeudeListe((g) => (istZwischenlager(g) || istExportzone(g) || (istStation(g) && fachGroesse(g, "eingang") > 0)) && !zugangGesperrt(g));
   for (const ziel of ziele) {
     const fach = istStation(ziel) ? "eingang" : "bestand";
-    const offen = bedarf(ziel, res);
+    const export_ = istExportzone(ziel);                     // Phase 7b: Exportzone bekommt, was Aufträge brauchen
+    const offen = export_ ? exportBedarf(ziel, res) : bedarf(ziel, res);
     if (!Object.keys(offen).length) continue;
-    const soll = sollbestand(ziel);
+    const soll = export_ ? null : sollbestand(ziel);
     const vermisst = fehltWartenden(ziel, fach, res);
     const wartezeit = Math.min(1, (spiel.zeit - (ziel.zuletztBeliefert ?? -Infinity)) / PRODUKTION.lieferAlterung);
     for (const [item, fehlt] of Object.entries(offen)) {
-      const fuellung = ((fachInhalt(ziel, fach)[item] || 0) + reserviert(res.rein, fachSchluessel(ziel.id, fach), item)) / soll[item];
+      const fuellung = export_ ? 0.5 : ((fachInhalt(ziel, fach)[item] || 0) + reserviert(res.rein, fachSchluessel(ziel.id, fach), item)) / soll[item];
       const prio = item in vermisst ? 4.5 + Math.min(1, (spiel.zeit - vermisst[item]) / PRODUKTION.lieferAlterung)
                                   : 1 + 2 * (1 - fuellung) + wartezeit;
-      const hl = naechstesHauptlager(ziel.zugang, (h) => verfuegbar(h, item, res) > 0);
-      if (hl) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, verfuegbar(hl, item, res)), prio });
+      const hl = naechsteQuelle(ziel.zugang, item, res);       // Phase 7b: Hauptlager oder Importzone
+      if (hl && hl !== ziel) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, verfuegbar(hl, item, res)), prio });
       if (!direkt) continue;
       // Direktlieferung: aus Ausgabefächern und (abholbaren) Zwischenlagern, ohne Umweg übers Hauptlager
-      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)))) {
+      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)) && !zugangGesperrt(g))) {
         const n = istStation(quelle) ? (darfKurierAbholen(quelle, item) ? verfuegbar(quelle, item, res) : 0)
                                      : (abholbar(quelle, res)[item] || 0);
         if (n > 0) pruefe({ art: "liefern", quelle, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio: prio + 0.5 });
@@ -6111,7 +6331,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   }
   if (!bester) return null;
 
-  const traglast = kurierStufe(p).traglast;
+  const traglast = traglastVon(p);
   const items = { [bester.item]: Math.min(traglast, bester.max) };
   let rest = traglast - items[bester.item];
   // Sammelfahrt (Forschung): weitere Sorten von derselben Quelle zum selben Ziel mitnehmen
@@ -6148,6 +6368,50 @@ function fehltWartenden(g, fach, res) {
   return fehlt;
 }
 
+// Phase 7b Nachtrag: Für welche Items gibt es gerade kein Hauptlager? (HUD-Chip "Lager")
+// Ein Item zählt, wenn es irgendwo darauf wartet, ins Hauptlager gebracht zu werden (Export-Ware in Lagern und
+// Importzonen, Erzeugnisse und Reste in Stationen, Items, die am Band, Verteiler oder Greifarm vor einem
+// Hauptlager stehen), aber kein Hauptlager es annimmt: ⇣ Annahme aus oder Max erreicht – für Kuriere auch, wenn
+// jedes annehmende Hauptlager einen zugebauten Zugang hat. Volle Hauptlager zählen nicht (das zeigt die
+// Füllstands-Warnung); Ware, die eine Mülltonne oder Exportzone haben will, auch nicht.
+// Rückgabe: [Item-Id], alphabetisch (neu berechnet höchstens zweimal pro Spielsekunde)
+let keinLagerCache = { schluessel: "", liste: [] };
+function keinLagerFuer() {
+  const schluessel = `${spiel.strukturVersion}|${spiel.bandVersion}|${Math.floor(spiel.zeit * 2)}`;
+  if (keinLagerCache.schluessel === schluessel) return [...keinLagerCache.liste];
+  const res = reservierungen();
+  const hls = hauptlagerListe();
+  const nimmtIrgendeins = (item, kurier) => hls.some((h) => hlNimmtAn(h, item) && !(kurier && zugangGesperrt(h)));
+  const fehlt = new Set();
+  const pruefeKurier = (item, quelle) => {
+    if (fehlt.has(item) || nimmtIrgendeins(item, true)) return;
+    if (naechsteMuelltonne(quelle.zugang, item) || naechsteExportzone(quelle.zugang, item, res)) return;
+    fehlt.add(item);
+  };
+  for (const s of gebaeudeListe(istStation)) {
+    if (!s.bandAblauf) for (const item of Object.keys(s.bestand)) if (s.bestand[item] > 0 && darfKurierAbholen(s, item)) pruefeKurier(item, s);
+    for (const item of Object.keys(abholbarEingang(s, res))) pruefeKurier(item, s);
+  }
+  for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {
+    if (lager.bandAblauf && !istImportzone(lager)) continue;
+    for (const item of Object.keys(abholbar(lager, res))) pruefeKurier(item, lager);
+  }
+  // Bänder, Verteiler und Greifarm-Geber, die vor einem Hauptlager warten
+  const vorHl = (z, item) => !!z && z.art === "gebaeude" && istHauptlager(z.g) && !nimmtIrgendeins(item, false);
+  for (const t of spiel.baender.values()) {
+    if (istGreifarm(t)) { if (t.haelt && t.wartet > 0 && vorHl(armZiel(t), t.haelt)) fehlt.add(t.haelt); continue; }
+    if (istVerteiler(t)) {
+      const erstes = pufferVon(t)[0];
+      if (erstes && t.stau > 0 && (t.ausgaenge || []).some((a) => vorHl(a.ziel, erstes))) fehlt.add(erstes);
+      continue;
+    }
+    const vorn = t.items && t.items[0];
+    if (vorn && t.stau > 0 && vorHl(t.ziel, vorn.item)) fehlt.add(vorn.item);
+  }
+  keinLagerCache = { schluessel, liste: [...fehlt].sort() };
+  return [...keinLagerCache.liste];
+}
+
 function starteKurierAuftrag(p, auftrag) {
   p.auftrag = auftrag;
   p.phase = "zurQuelle";
@@ -6173,12 +6437,13 @@ function schrittKurier(p, dt) {
   switch (p.phase) {
     case "zurQuelle":
       if (!quelle || !ziel) return beendeAuftrag(p);          // noch nichts getragen: einfach abbrechen
+      if (zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // Phase 7b Nachtrag: Zugang zugebaut
       if (istAngekommen(p, quelle.zugang)) { p.phase = "laedt"; p.timer = ladezeitVon(p); schaueAuf(p, quelle); }
       else if (istFestgefahren(p, quelle.zugang)) beendeAuftrag(p);
       break;
 
     case "laedt": {
-      if (!quelle || !ziel) return beendeAuftrag(p);
+      if (!quelle || !ziel || zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // 7b Nachtrag: auch Zugang zugebaut
       p.timer -= dt;
       if (p.timer > 0) break;
       const geladen = {};
@@ -6197,25 +6462,30 @@ function schrittKurier(p, dt) {
     }
 
     case "zumZiel":
-      if (!ziel) return leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);   // Phase 7b Nachtrag: Zugang zugebaut → anderes Hauptlager
       if (istAngekommen(p, ziel.zugang)) { p.phase = "entlaedt"; p.timer = ladezeitVon(p); schaueAuf(p, ziel); }
       else if (istFestgefahren(p, ziel.zugang)) leiteUm(p);
       break;
 
     case "entlaedt": {
-      if (!ziel) return leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);
       p.timer -= dt;
       if (p.timer > 0) break;
       // Ablegen, soweit Platz ist (und das Item dort noch erwünscht ist); der Rest geht zurück ins Hauptlager
-      let platz = fachGroesse(ziel, a.zielFach) - summe(fachInhalt(ziel, a.zielFach));
+      let platz = fachGroesse(ziel, a.zielFach) - belegt(ziel, a.zielFach);   // Phase 7b: Lager in Volumen
       for (const [item, n] of Object.entries(p.traegt)) {
         if (a.zielFach === "eingang" && !darfKurierLiefern(ziel, item, "eingang")) continue;   // Rezept unterwegs geändert
-        const m = Math.min(n, Math.max(0, platz));
+        const je = platzBedarf(ziel, item, a.zielFach);
+        let m = Math.min(n, Math.max(0, Math.floor(platz / je)));
+        // Phase 7b: auch Kuriere halten sich an Max (z. B. wenn ein Band inzwischen aufgefüllt hat)
+        if (istZwischenlager(ziel) && a.zielFach === "bestand") m = Math.min(m, Math.max(0, maxVon(ziel, item) - (ziel.bestand[item] || 0)));
+        if (istHauptlager(ziel)) m = Math.min(m, hlAufnahme(ziel, item));   // Phase 7b Nachtrag: Annahme ⇣ und Max
         if (m <= 0) continue;
         aendereFach(ziel, a.zielFach, item, m);
         bucheItems(p.traegt, { [item]: m }, -1);
-        platz -= m;
+        platz -= m * je;
       }
+      if (typVon(ziel).art === "muell") vernichteImMuell(ziel);   // Phase 7b: Mülltonne
       if (istZwischenlager(ziel) || a.zielFach === "eingang") ziel.zuletztBeliefert = spiel.zeit;
       if (hatItems(p)) { a.items = { ...p.traegt }; return leiteUm(p); }
       // Phase 5: jeder Gang bringt Forschungspunkte und Erfahrung
@@ -6240,7 +6510,9 @@ function schrittKurier(p, dt) {
 function leiteUm(p) {
   const a = p.auftrag;
   const res = reservierungen();
-  const hl = naechstesHauptlager(personKachel(p), (h) => h.id !== a.zielId && freierPlatz(h, res) >= summe(p.traegt));
+  // Phase 7b Nachtrag: nur ein Hauptlager mit freiem Zugang, das alles Getragene annimmt
+  const hl = naechstesHauptlager(personKachel(p), (h) => h.id !== a.zielId && freierPlatz(h, res) >= volumen(p.traegt)
+    && !zugangGesperrt(h) && Object.entries(p.traegt).every(([item, n]) => hlAufnahme(h, item, res) >= n));
   if (hl) {
     p.auftrag = { art: "zurueck", quelleId: null, zielId: hl.id, items: { ...p.traegt }, abgeholt: true };
     p.phase = "zumZiel";
@@ -6260,7 +6532,7 @@ function leiteUm(p) {
 // bereitliegt (Phase 7a, Nachtrag 2: auch das Hauptlager, wenn es als Import verknüpft ist).
 // Rückgabe: { g, fach, komplett } oder null (keine Quelle)
 function waehleLager(s, r, res) {
-  const quellen = verknuepfteLager(s, "import").filter((g) => darfArbeiterEntnehmen(g))
+  const quellen = verknuepfteLager(s, "import").filter((g) => darfArbeiterEntnehmen(g) && !zugangGesperrt(g))   // 7b Nachtrag
     .sort((a, b) => abstand(a.zugang, s.zugang) - abstand(b.zugang, s.zugang))
     .map((g) => ({ g, fach: "bestand" }));
   const importiert = Object.keys(r.eingaben).some((i) => regelVon(s, i).imp);
@@ -6282,12 +6554,13 @@ function quelleGueltig(s, a) {
   const q = spiel.gebaeude.get(a.quelleId);
   if (!q) return null;
   if (a.quelleFach === "eingang") return q === s ? q : null;
-  return sindVerknuepft(s, q, "import") && darfArbeiterEntnehmen(q) ? q : null;
+  return sindVerknuepft(s, q, "import") && darfArbeiterEntnehmen(q) && !zugangGesperrt(q) ? q : null;   // 7b Nachtrag: Zugang frei
 }
 
 // Wohin mit dem fertigen Erzeugnis? Ein Export-Lager, das es annimmt und Platz hat (sonst null = Ausgabefach).
 function ausgabeLagerFuer(s, item, res) {
-  const lager = verknuepfteLager(s, "export").filter((g) => nimmtErzeugnisAn(g, item) && freierPlatz(g, res) > 0);
+  const lager = verknuepfteLager(s, "export").filter((g) => nimmtErzeugnisAn(g, item) && !maxErreicht(g, item, res) && platzFuer(g, item, res) > 0
+    && !zugangGesperrt(g));   // Phase 7b Nachtrag: Zugang durch ein Band gesperrt
   // Zuerst dorthin, wo eine andere Station es braucht (spart den Umweg übers Hauptlager), dann der kürzeste Weg
   const gebraucht = (g) => istZwischenlager(g) && regelVon(g, item).imp ? 0 : 1;
   lager.sort((a, b) => gebraucht(a) - gebraucht(b)
@@ -6337,7 +6610,7 @@ function schrittArbeiter(p, dt) {
   const a = p.auftrag;
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") {   // Phase 5: Erzeugnis ins Ausgang-Lager
     const z = a && spiel.gebaeude.get(a.zielId);
-    if (!z || !nimmtErzeugnisAn(z, Object.keys(p.traegt)[0])) return legeErzeugnisNotfallsAb(p, s);
+    if (!z || !nimmtErzeugnisAn(z, Object.keys(p.traegt)[0]) || zugangGesperrt(z)) return legeErzeugnisNotfallsAb(p, s);   // 7b Nachtrag
     if (p.phase === "bringtErzeugnis") {
       if (istAngekommen(p, z.zugang)) { p.phase = "legtAb"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, z); }
       else if (istFestgefahren(p, z.zugang)) legeErzeugnisNotfallsAb(p, s);
@@ -6345,7 +6618,7 @@ function schrittArbeiter(p, dt) {
     }
     p.timer -= dt;
     if (p.timer > 0) return;
-    if (kapazitaetVon(z) - summe(z.bestand) < summe(p.traegt)) return legeErzeugnisNotfallsAb(p, s);
+    if (kapazitaetVon(z) - belegt(z) < volumen(p.traegt)) return legeErzeugnisNotfallsAb(p, s);   // Phase 7b: Volumen
     for (const [item, n] of Object.entries(p.traegt)) aendereBestand(z, item, n);
     p.traegt = {};
     beendeAuftrag(p);
@@ -6556,7 +6829,7 @@ function zaehleHalle() {
   let items = 0;
   for (const g of spiel.gebaeude.values()) items += summe(g.bestand) + summe(g.eingang) + summe(g.autoRezept ? g.autoRezept.eingaben : {});
   for (const p of mitarbeiter) items += summe(p.traegt);
-  for (const t of spiel.baender.values()) items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);   // Phase 6
+  for (const t of spiel.baender.values()) items += (t.items ? t.items.length : 0) + pufferVon(t).length + (t.haelt ? 1 : 0);   // Phase 6 (7b Nachtrag: Puffer)
   return { gebaeude: spiel.gebaeude.size, items, baender: spiel.baender.size };
 }
 
@@ -6575,12 +6848,12 @@ function halleBereinigen() {
       exportNach: g.exportNach.map((id) => nummer.get(id)).filter((i) => i !== undefined),
       arbeiter: g.arbeiterId, modus: g.modus, regeln: JSON.parse(JSON.stringify(g.regeln)),
     })),
-    baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], haelt: null })),   // Phase 6
+    baender: [...spiel.baender.values()].map((t) => ({ ...bandteilDaten(t), items: [], puffer: istVerteiler(t) ? [] : undefined, haelt: null })),   // Phase 6
   };
   let items = 0;
   // Phase 6: Bänder und Greifarme zuerst ins Depot (Items darauf ebenfalls)
   for (const t of [...spiel.baender.values()]) {
-    items += (t.items ? t.items.length : 0) + (t.haelt ? 1 : 0);
+    items += (t.items ? t.items.length : 0) + pufferVon(t).length + (t.haelt ? 1 : 0);   // 7b Nachtrag: Puffer
     entferneBandteil(t.id, { insDepot: true });
   }
   // 1. Alle brechen ab; was sie tragen (auch Material in Arbeit) geht ins Depot
@@ -6667,6 +6940,9 @@ function spielstandDaten() {
       bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
       importVon: g.importVon, exportNach: g.exportNach,   // Phase 7a (Nachtrag 2)
       modus: g.modus, regeln: g.regeln,
+      // Phase 7b: Mülltonne, Import-/Exportzone
+      vernichtet: g.vernichtet || undefined, bestellungen: g.bestellungen, lieferwagen: g.lieferwagen,
+      exportModus: g.exportModus, abholTimer: g.abholTimer, letzteAbholung: g.letzteAbholung,
       // Phase 5b: Eingangsfach (Phase 6: plus Material, das eine Automatik-Station gerade verarbeitet)
       eingang: g.autoRezept ? (() => { const e = { ...g.eingang }; bucheItems(e, g.autoRezept.eingaben); return e; })() : g.eingang,
     })),
@@ -6720,7 +6996,7 @@ function leseSpielstand() {
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
-    return daten && [1, 2, 3, 4, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, 4, 5, 6, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -6774,6 +7050,7 @@ function wendeSpielstandAn(d) {
     if (!bandTypNach.has(e.typ) || !pruefeBandteil(e.typ, e.x, e.z, e.richtung, { laden: true }).passt) {
       spiel.depot.baender[e.typ] = (spiel.depot.baender[e.typ] || 0) + 1;
       for (const it of e.items || []) bucheItems(spiel.depot.items, { [it.item]: 1 });
+      for (const item of e.puffer || []) bucheItems(spiel.depot.items, { [item]: 1 });   // Phase 7b Nachtrag
       if (e.haelt) bucheItems(spiel.depot.items, { [e.haelt]: 1 });
       continue;
     }
@@ -6785,6 +7062,33 @@ function wendeSpielstandAn(d) {
       const h = t.typ === "greifarm" && hinterKachel(t);
       if (h && !gebaeudeAufKachel(h)) t.typ = "greifGeber";
     }
+  }
+  // Phase 7b: Ältere Spielstände bekommen eine Import- und eine Exportzone; "automatisch nachkaufen"
+  // wird zur Bestellung "jede Minute bis Sollmenge"
+  if ((d.version || 1) < 6) {
+    const neu = [];
+    for (const [typ, wunsch] of [["importzone", ZONEN.startImport], ["exportzone", ZONEN.startExport]]) {
+      if (anzahlTyp(typ) || spiel.depot.gebaeude[typ]) continue;
+      const z = stelleZoneAuf(typ, wunsch);
+      neu.push(`${gebaeudeTypNach.get(typ).name}${z ? "" : " (im Depot)"}`);
+    }
+    const iz = zonenListe("importzone")[0];
+    for (const [item, n] of Object.entries(spiel.autoKauf || {})) if (iz && n > 0) setzeBestellung(iz.id, item, n, "bisSoll");
+    spiel.autoKauf = {};
+    if (neu.length) setTimeout(() => meldeEreignis("hinweis", { text: `Neu: ${neu.join(" und ")}. Rohstoffe bestellst du jetzt dort, Aufträge gehen über die Exportzone.` }), 900);
+  }
+  // Phase 7b Nachtrag (Version 7): Die Exportzone muss jetzt wie die Importzone an einer Hallenwand stehen
+  if ((d.version || 1) < 7) {
+    const versetzt = [], insDepot = [];
+    for (const g of zonenListe("exportzone")) {
+      const name = gebaeudeName(g);
+      const r = setzeAnWand(g);
+      if (r === "versetzt") versetzt.push(name); else if (r === "depot") insDepot.push(name);
+    }
+    const text = [];
+    if (versetzt.length) text.push(`${versetzt.join(", ")} steht jetzt an der nächsten freien Hallenwand`);
+    if (insDepot.length) text.push(`${insDepot.join(", ")} fand keinen Wandplatz und liegt kostenlos im Depot`);
+    if (text.length) setTimeout(() => meldeEreignis("hinweis", { text: `Exportzonen brauchen jetzt eine Hallenwand (Abholwagen): ${text.join("; ")}.` }), 1000);
   }
   baueBandTopologie();                           // Anschlüsse und Automatik (noch ohne Mitarbeiter)
   for (const m of d.mitarbeiter || []) {
@@ -6807,6 +7111,8 @@ function starteNeuesSpiel() {
   const ergebnis = baueGebaeude("hauptlager", st.x, st.z, st.drehung);
   if (ergebnis.ok) bucheItems(ergebnis.gebaeude.bestand, PRODUKTION.startBestand);
   else bucheItems(spiel.depot.items, PRODUKTION.startBestand);
+  stelleZoneAuf("importzone", ZONEN.startImport);   // Phase 7b: Einkauf und Lieferung laufen über die Zonen
+  stelleZoneAuf("exportzone", ZONEN.startExport);
   nimmDuAuf();                                   // Phase 7a (Nachtrag 2): du selbst, als Kurier
   for (let i = 0; i < PRODUKTION.startKuriere; i++) stelleEin("kurier", { kostenlos: true });
   for (let i = 0; i < PRODUKTION.startArbeiter; i++) stelleEin("arbeiter", { kostenlos: true });
@@ -7009,8 +7315,9 @@ function kaufeRohstoff(id, anzahl) {
   if (!preis) return { ok: false, grund: "Diesen Rohstoff gibt es nicht." };
   if (!hauptlager()) return { ok: false, grund: "Kein Hauptlager: Die Lieferung hätte keinen Platz." };
   const res = reservierungen();
-  const n = Math.min(anzahl, hlFreierPlatz(res));
-  if (n <= 0) return { ok: false, grund: "Die Hauptlager sind voll – ein weiteres Hauptlager schafft Platz." };
+  // Phase 7b Nachtrag: nur so viel, wie die Hauptlager (Annahme ⇣, Max, Volumen) wirklich aufnehmen
+  const n = Math.min(anzahl, hauptlagerListe().reduce((m, hl) => m + hlAufnahme(hl, id, res), 0));
+  if (n <= 0) return { ok: false, grund: "Kein Hauptlager nimmt das gerade an (voll, ⇣ Annahme aus oder Max erreicht)." };   // 7b Nachtrag
   const kosten = n * preis;
   if (!kannBezahlen(kosten)) return { ok: false, grund: geldGrund(kosten) };
   hlEinlagern(id, n, res);                       // Phase 7a (Nachtrag 3): dorthin, wo am meisten Platz ist
@@ -7026,13 +7333,329 @@ function setzeAutoKauf(id, mindestens) {
 let automatikTimer = 0;
 function automatikSchritt() {
   if (!hauptlager()) return;
-  for (const [id, mindestens] of Object.entries(spiel.autoKauf)) {
-    const fehlt = mindestens - hlMenge(id);
-    if (fehlt > 0) kaufeRohstoff(id, Math.ceil(fehlt / WIRTSCHAFT.einkaufSchritt) * WIRTSCHAFT.einkaufSchritt);
-  }
+  // Phase 7b: "automatisch nachkaufen" gibt es nicht mehr – das macht die Importzone ("jede Minute bis Sollmenge")
   for (const item of Object.keys(spiel.autoVerkauf)) {
     if (hlMenge(item) > 0 && !fuerAuftragGebraucht(item)) verkaufe(item, hlMenge(item));
   }
+}
+
+/* ============================================================================
+   ABSCHNITT 11i: Import- und Exportzone (Phase 7b)               [Logik-Agent]
+   Importzone (3 × 2, an einer Hallenwand): Rohstoffe werden hier bestellt – pro Rohstoff eine Menge und
+   ein Rhythmus. Ein Lieferwagen kommt nach ZONEN.lieferzeit Sekunden, bezahlt wird beim Abladen; was
+   nicht in die Zone passt (Volumen) oder nicht bezahlt werden kann, nimmt der Fahrer wieder mit.
+   Alles in der Importzone steht auf Export: Kuriere und Bänder holen es wie aus jedem Lager.
+   Exportzone (2 × 2): Kuriere und Bänder liefern hinein. Ware "Für Aufträge" geht an einen angenommenen
+   Auftrag, sobald dessen ganze Menge in der Zone liegt; Ware "Verkaufen" wird zum Direktverkaufspreis
+   verkauft. Beides nimmt der Abholwagen mit, der alle ZONEN.abholIntervall Sekunden kommt.
+   ============================================================================ */
+const ZONEN = {
+  lieferzeit:      15,    // Sekunden von der Bestellung, bis der Lieferwagen ablädt
+  standzeit:       4,     // so lange steht ein Wagen nach dem Abladen noch am Tor
+  fahrzeit:        2.5,   // Ein- bzw. Ausfahren (nur Anzeige)
+  abholIntervall:  30,    // alle so viele Sekunden kommt der Abholwagen an jede Exportzone
+  rohstoffVerkauf: 0.5,   // Rohstoffe auf "Verkaufen" bringen so viel vom Einkaufspreis
+  rhythmen: [
+    { id: "einmal",   name: "einmalig",                    sek: 0   },
+    { id: "1min",     name: "jede Minute",                 sek: 60  },
+    { id: "2min",     name: "alle 2 Minuten",              sek: 120 },
+    { id: "5min",     name: "alle 5 Minuten",              sek: 300 },
+    { id: "taeglich", name: "täglich 8:00",                sek: 0   },
+    { id: "bisSoll",  name: "jede Minute bis Sollmenge",   sek: 60  },   // ersetzt "automatisch nachkaufen"
+  ],
+  // Beim Neustart: Importzone an der Rückwand, Exportzone daneben (Rückwand = z 0, Vorderseite zeigt nach +z)
+  startImport: { x: 10, z: 0, drehung: 0 },
+  startExport: { x: 13, z: 0, drehung: 0 },
+};
+const rhythmusNach = new Map(ZONEN.rhythmen.map((r) => [r.id, r]));
+function istImportzone(g) { return !!g && typVon(g).art === "importzone"; }
+function istExportzone(g) { return !!g && typVon(g).art === "exportzone"; }
+function zonenListe(art) { return gebaeudeListe((g) => typVon(g).art === art); }
+// Steht ein Gebäude mit der Rückseite an einer Hallenwand? (Importzone: dort ist das Rolltor)
+function stehtAnWand(geo) {
+  return geo.zellen.some((c) => !istImRaster(c.x - geo.richtung.x, c.z - geo.richtung.z));
+}
+// Phase 7b Nachtrag: Richtung von der Zone zur Wand hinter ihr (dort ist das Rolltor, dort hält der Wagen).
+// Gilt für Import- und Exportzone gleich (beide haben Wandpflicht): die Rückseite = −Blickrichtung.
+// Phase 7b Nachtrag 2: Eine Zone ohne Wand (z. B. nach dem Hallenausbau) ist inaktiv: keine Lieferungen,
+// keine Abholung, Kuriere und Bänder bringen nichts Neues hin. Was schon drin liegt, holen Kuriere weiter ab.
+function zoneAktiv(g) { return !typVon(g).wand || stehtAnWand(g); }
+function wandRichtung(g) {
+  return { x: -g.richtung.x, z: -g.richtung.z };
+}
+// Phase 7b Nachtrag: Steht ein Gebäude mit Wandpflicht nicht (mehr) an einer Wand, kommt es an den nächsten
+// freien Wandplatz (Inhalt und Einstellungen bleiben); passt keiner, kommt es ins Depot (Inhalt ins Hauptlager).
+// Rückgabe: "versetzt", "depot" oder null (stand schon richtig)
+function setzeAnWand(g) {
+  if (!g || !typVon(g).wand || stehtAnWand(g)) return null;
+  const plaetze = [];
+  for (let z = 0; z < level.tiefe; z++) for (let x = 0; x < level.breite; x++) for (const d of [0, 90, 180, 270]) {
+    const geo = gebaeudeGeometrie(g.typ, x, z, d);
+    if (stehtAnWand(geo) && geo.zellen.every((c) => istImRaster(c.x, c.z))) plaetze.push({ x, z, d, weg: abstand(geo.mitte, g.mitte) });
+  }
+  plaetze.sort((a, b) => a.weg - b.weg);
+  for (const v of plaetze) if (verschiebeGebaeude(g.id, v.x, v.z, v.d).ok) return "versetzt";
+  reisseAb(g.id);
+  return "depot";
+}
+// Alle Felder einer Zone, die beim Laden/Bauen fehlen könnten
+function richteZoneEin(g, extra = {}) {
+  if (istImportzone(g)) {
+    g.bestellungen = Array.isArray(extra.bestellungen) ? extra.bestellungen.map((b) => ({ ...b })) : [];
+    g.lieferwagen = Array.isArray(extra.lieferwagen) ? extra.lieferwagen.map((w) => ({ ...w, items: { ...w.items } })) : [];
+  }
+  if (istExportzone(g)) {
+    g.exportModus = { ...(extra.exportModus || {}) };
+    g.abholTimer = typeof extra.abholTimer === "number" ? extra.abholTimer : ZONEN.abholIntervall;
+    g.abholwagen = extra.abholwagen || null;
+    g.letzteAbholung = extra.letzteAbholung || null;
+  }
+}
+
+/* --- Importzone: Bestellungen und Lieferwagen --- */
+// Setzt die Bestellung eines Rohstoffs (menge 0 oder rhythmus null: keine Bestellung). Rückgabe: { ok, grund? }
+function setzeBestellung(id, item, menge, rhythmus) {
+  const g = spiel.gebaeude.get(id);
+  if (!istImportzone(g)) return { ok: false, grund: "Das ist keine Importzone." };
+  if (!rohstoffPreis(item)) return { ok: false, grund: "Bestellen kann man nur Rohstoffe." };
+  const alt = g.bestellungen.find((b) => b.item === item);
+  g.bestellungen = g.bestellungen.filter((b) => b.item !== item);
+  const n = Math.max(0, Math.min(9999, Math.round(Number(menge)) || 0));
+  if (rhythmus && !rhythmusNach.has(rhythmus)) return { ok: false, grund: "Diesen Rhythmus gibt es nicht." };
+  // Nur Menge oder nur Rhythmus: bleibt als Entwurf stehen (aktiv erst mit beidem)
+  if (n > 0 || rhythmus) {
+    const warAktiv = alt && bestellungAktiv(alt);
+    // Rhythmus unverändert: der Takt läuft weiter; neu: gleich die erste Lieferung (täglich: um 8:00)
+    const naechste = warAktiv && alt.rhythmus === rhythmus && rhythmus !== "einmal" ? alt.naechste
+      : rhythmus === "taeglich" ? naechsterTagesbeginn() : spiel.zeit;
+    g.bestellungen.push({ item, menge: n, rhythmus: rhythmus || null, naechste });
+  }
+  meldeStruktur();
+  const b = g.bestellungen.find((x) => x.item === item);
+  return { ok: true, aktiv: !!b && bestellungAktiv(b), entwurf: !!b && !bestellungAktiv(b) };
+}
+function bestellungAktiv(b) { return b.menge > 0 && !!b.rhythmus; }
+function naechsterTagesbeginn(zeit = spiel.zeit) {
+  const T = WIRTSCHAFT.tagSekunden;
+  return zeit % T === 0 ? zeit : (Math.floor(zeit / T) + 1) * T;
+}
+// So viele Stück eines Rohstoffs sind schon auf Lieferwagen unterwegs (alle Importzonen)
+function wagenUnterwegs(item) {
+  let n = 0;
+  for (const g of zonenListe("importzone")) for (const w of g.lieferwagen) if (!w.abgeladen) n += w.items[item] || 0;
+  return n;
+}
+function zonenMenge(art, item) {
+  return zonenListe(art).reduce((n, g) => n + (g.bestand[item] || 0), 0);
+}
+// Packt eine Bestellung auf den nächsten Wagen, der noch nicht abgeladen hat (sonst kommt ein neuer)
+function bestelle(g, item, n) {
+  let w = g.lieferwagen.find((x) => !x.abgeladen && x.ankunft - spiel.zeit > ZONEN.fahrzeit);
+  if (!w) { w = { items: {}, ankunft: spiel.zeit + ZONEN.lieferzeit, abgeladen: false }; g.lieferwagen.push(w); }
+  w.items[item] = (w.items[item] || 0) + n;
+  spiel.version++;
+}
+// Der Wagen ist da: abladen, soweit Platz und Geld reichen; bezahlt wird nur, was abgeladen wurde
+function ladeLieferwagenAb(g, w) {
+  w.abgeladen = true;
+  let kosten = 0, angenommen = 0, abgewiesen = 0, keinGeld = false;
+  for (const [item, n] of Object.entries(w.items)) {
+    const preis = rohstoffPreis(item);
+    let m = Math.min(n, Math.floor(Math.max(0, kapazitaetVon(g) - belegt(g)) / itemVolumen(item)));
+    if (preis > 0) {
+      const bezahlbar = spiel.insolvent ? 0 : Math.max(0, Math.floor((spiel.konto - kosten) / preis));
+      if (bezahlbar < m) { m = bezahlbar; keinGeld = true; }
+    }
+    if (m > 0) { aendereBestand(g, item, m); kosten += m * preis; angenommen += m; }
+    abgewiesen += n - m;
+    w.items[item] = m;
+  }
+  if (kosten > 0) bucheGeld(-kosten, "einkauf");
+  w.abgewiesen = abgewiesen;
+  if (kosten > 0) meldeEreignis("schwebeText", { text: `−${euro(kosten)}`, art: "kosten", kachel: g.mitte });
+  if (abgewiesen > 0) {
+    meldeEreignis("hinweis", { text: `${gebaeudeName(g)}: Lieferung teilweise abgewiesen – ${abgewiesen} Stück ${keinGeld ? "konnten nicht bezahlt werden" : "passten nicht mehr hinein"} und wurden nicht berechnet.` });
+  }
+  meldeEreignis("lieferungAngekommen", { zone: g, angenommen, abgewiesen, kosten });
+  spiel.version++;
+}
+function importzonenSchritt() {
+  for (const g of zonenListe("importzone")) {
+    if (!zoneAktiv(g)) {                          // Phase 7b Nachtrag 2: Bestellungen ruhen, Wagen unterwegs drehen um (nichts berechnet)
+      const umgedreht = g.lieferwagen.filter((w) => !w.abgeladen);
+      if (umgedreht.length) meldeEreignis("hinweis", { text: `${gebaeudeName(g)}: ${umgedreht.length} Lieferung(en) abgewiesen – die Zone steht nicht an einer Wand.`, warnung: true });
+      g.lieferwagen = [];
+      continue;
+    }
+    for (const b of [...g.bestellungen]) {
+      if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
+      let n = b.menge;
+      // "bis Sollmenge": nur so viel, dass Hauptlager + Importzonen + Wagen die Menge erreichen
+      if (b.rhythmus === "bisSoll") n = Math.max(0, b.menge - hlMenge(b.item) - zonenMenge("importzone", b.item) - wagenUnterwegs(b.item));
+      if (n > 0) bestelle(g, b.item, n);
+      const r = rhythmusNach.get(b.rhythmus);
+      if (!r || b.rhythmus === "einmal") g.bestellungen.splice(g.bestellungen.indexOf(b), 1);
+      else if (b.rhythmus === "taeglich") b.naechste = naechsterTagesbeginn(spiel.zeit + 1);
+      else b.naechste = Math.max(b.naechste + r.sek, spiel.zeit + 1);
+    }
+    for (const w of g.lieferwagen) if (!w.abgeladen && spiel.zeit >= w.ankunft) ladeLieferwagenAb(g, w);
+    // Weggefahrene Wagen vergessen
+    g.lieferwagen = g.lieferwagen.filter((w) => !w.abgeladen || spiel.zeit < w.ankunft + ZONEN.standzeit + ZONEN.fahrzeit);
+  }
+}
+
+/* --- Exportzone: Für Aufträge oder Verkaufen --- */
+function exportModusVon(g, item) {
+  return (g.exportModus && g.exportModus[item]) || (item.startsWith("p:") ? "auftrag" : "verkaufen");
+}
+function setzeExportModus(id, item, modus) {
+  const g = spiel.gebaeude.get(id);
+  if (!istExportzone(g) || !["auftrag", "verkaufen"].includes(modus)) return false;
+  g.exportModus[item] = modus;
+  meldeStruktur();
+  return true;
+}
+// Ware von Hand aufnehmen (Kuriere bringen sie aus dem Hauptlager, bis Max bzw. Standardmenge) oder wieder entfernen
+function setzeExportWare(id, item, an) {
+  const g = spiel.gebaeude.get(id);
+  if (!istExportzone(g)) return false;
+  if (an) g.regeln[item] = { ...(g.regeln[item] || {}), imp: true };
+  else { delete g.regeln[item]; delete g.exportModus[item]; }
+  meldeStruktur();
+  return true;
+}
+function passtZuAuftrag(item, a) {
+  if (!item.startsWith("p:")) return false;
+  const id = item.slice(2), teile = spiel.produktTeile[id];
+  return !!teile && erfuelltKlasse(teile, spiel.produktUeberhitzt[id], klasseNachId.get(a.klasse));
+}
+// Welche Exportzone sammelt für diesen Auftrag? Die mit den meisten passenden Stücken (sonst die erste)
+function auftragsZone(a) {
+  let beste = null, besteMenge = -1;
+  for (const g of zonenListe("exportzone")) {
+    const n = Object.entries(g.bestand).reduce((s, [item, m]) => s + (passtZuAuftrag(item, a) && exportModusVon(g, item) === "auftrag" ? m : 0), 0);
+    if (n > besteMenge) { beste = g; besteMenge = n; }
+  }
+  return beste;
+}
+// Wie viele passende Stücke liegen für einen Auftrag schon in seiner Zone? (für das Kontor)
+function inExportzone(a) {
+  const g = auftragsZone(a);
+  if (!g) return 0;
+  return Object.entries(g.bestand).reduce((s, [item, m]) => s + (passtZuAuftrag(item, a) && exportModusVon(g, item) === "auftrag" ? m : 0), 0);
+}
+// Was fehlt einer Exportzone? (Item → Anzahl) – für die Kurier-Auftragsbörse
+function exportBedarf(g, res) {
+  const ergebnis = {};
+  let platz = freierPlatz(g, res);
+  const unterwegs = (item) => reserviert(res.rein, fachSchluessel(g.id, "bestand"), item);
+  const dazu = (item, n) => {
+    const je = itemVolumen(item);
+    const m = Math.min(n, Math.floor(platz / je));
+    if (m <= 0) return;
+    ergebnis[item] = (ergebnis[item] || 0) + m;
+    platz -= m * je;
+  };
+  // 1. Angenommene Aufträge (älteste Frist zuerst): passende Fertigware, die noch fehlt
+  for (const a of [...spiel.auftraege].sort((x, y) => x.frist - y.frist)) {
+    if (auftragsZone(a) !== g) continue;
+    const passende = new Set([...Object.keys(hlBestand()), ...Object.keys(g.bestand), ...gebaeudeListe(istStation).flatMap((s) => Object.keys(s.bestand))]
+      .filter((item) => passtZuAuftrag(item, a) && exportModusVon(g, item) === "auftrag" && maxVon(g, item) > (g.bestand[item] || 0)));
+    let fehlt = a.menge - a.geliefert;
+    for (const item of passende) fehlt -= (g.bestand[item] || 0) + unterwegs(item);
+    if (fehlt <= 0) continue;
+    for (const item of passende) dazu(item, fehlt);
+  }
+  // 2. Von Hand aufgenommene Ware: bis Max (ohne Max: Standardmenge)
+  for (const [item, m] of Object.entries(g.regeln)) {
+    if (m.imp !== true) continue;
+    const ziel = m.soll !== undefined ? m.soll : PRODUKTION.standardSoll;
+    const n = ziel - (g.bestand[item] || 0) - unterwegs(item) - (ergebnis[item] || 0);
+    if (n > 0) dazu(item, n);
+  }
+  return ergebnis;
+}
+// Die nächste Exportzone, die dieses Item haben will (für Kuriere, die Ware abholen)
+function naechsteExportzone(kachel, item, res) {
+  let beste = null, besterAbstand = Infinity;
+  for (const g of zonenListe("exportzone")) {
+    if (zugangGesperrt(g) || !zoneAktiv(g) || !((exportBedarf(g, res)[item] || 0) > 0)) continue;   // 7b Nachtrag: Zugang frei, Zone aktiv
+    const d = abstand(g.zugang, kachel);
+    if (d < besterAbstand) { beste = g; besterAbstand = d; }
+  }
+  return beste;
+}
+function zonenVerkaufspreis(item) {
+  return verkaufspreis(item) || Math.round(rohstoffPreis(item) * ZONEN.rohstoffVerkauf);
+}
+// Der Abholwagen ist da: vollständige Aufträge liefern, Ware auf "Verkaufen" verkaufen
+function holeExportAb(g) {
+  const res = reservierungen();
+  let erloes = 0, verkauft = 0, geliefert = 0, auftraege = 0;
+  for (const a of [...spiel.auftraege].sort((x, y) => x.frist - y.frist)) {
+    const rest = a.menge - a.geliefert;
+    const passende = Object.keys(g.bestand).filter((item) => exportModusVon(g, item) === "auftrag" && passtZuAuftrag(item, a));
+    const da = passende.reduce((s, item) => s + Math.max(0, verfuegbar(g, item, res)), 0);
+    if (rest <= 0 || da < rest) continue;        // erst liefern, wenn die ganze Menge in der Zone liegt
+    let m = rest;
+    for (const item of passende) {
+      const k = Math.min(m, Math.max(0, verfuegbar(g, item, res)));
+      if (k > 0) { aendereBestand(g, item, -k); m -= k; }
+      if (m <= 0) break;
+    }
+    a.geliefert = a.menge;
+    geliefert += rest;
+    auftraege++;
+    schliesseAuftragAb(a);
+  }
+  for (const item of Object.keys(g.bestand)) {
+    if (exportModusVon(g, item) !== "verkaufen") continue;
+    const n = Math.max(0, verfuegbar(g, item, res));
+    if (!n || !zonenVerkaufspreis(item)) continue;
+    const klasse = item.startsWith("p:") ? produktKlasse(item.slice(2)) : null;
+    for (let i = 0; i < n; i++) {
+      erloes += zonenVerkaufspreis(item);
+      if (item.startsWith("p:")) senkeNachfrage(klasse ? klasse.id : "sonstige");
+    }
+    aendereBestand(g, item, -n);
+    verkauft += n;
+  }
+  if (erloes > 0) {
+    spiel.statistik.verkauft += verkauft;
+    bucheGeld(erloes, "verkauf");
+    meldeEreignis("schwebeText", { text: `+${euro(erloes)}`, art: "geld", kachel: g.mitte });
+  }
+  if (erloes || geliefert) g.letzteAbholung = { zeit: spiel.zeit, erloes, verkauft, geliefert, auftraege };
+  spiel.version++;
+}
+function exportzonenSchritt(dt) {
+  for (const g of zonenListe("exportzone")) {
+    if (!zoneAktiv(g)) { g.abholwagen = null; continue; }   // Phase 7b Nachtrag 2: inaktiv – kein Abholwagen, Timer ruht
+    g.abholTimer -= dt;
+    if (g.abholTimer <= 0) {
+      g.abholTimer += ZONEN.abholIntervall;
+      g.abholwagen = { ankunft: spiel.zeit };
+      holeExportAb(g);
+    }
+    if (g.abholwagen && spiel.zeit > g.abholwagen.ankunft + ZONEN.standzeit + ZONEN.fahrzeit) g.abholwagen = null;
+  }
+}
+function zonenSchritt(dt) {
+  if (spiel.insolvent) return;
+  importzonenSchritt();
+  exportzonenSchritt(dt);
+}
+// Stellt beim Neustart (oder für alte Spielstände) eine Zone auf: zuerst an den Wunschplatz, sonst an
+// die erste freie Stelle an einer Wand; passt nichts, kommt sie kostenlos ins Depot.
+function stelleZoneAuf(typ, wunsch) {
+  const versuche = [wunsch];
+  for (let z = 0; z < level.tiefe; z++) for (let x = 0; x < level.breite; x++) for (const d of [0, 90, 180, 270]) versuche.push({ x, z, drehung: d });
+  for (const v of versuche) {
+    if (!v) continue;
+    if (passtGebaeude(typ, v.x, v.z, v.drehung).passt) return stelleGebaeudeAuf(typ, v.x, v.z, v.drehung);
+  }
+  spiel.depot.gebaeude[typ] = (spiel.depot.gebaeude[typ] || 0) + 1;
+  return null;
 }
 
 /* --- Gebäude aus dem Depot verkaufen --- */
@@ -7082,6 +7705,7 @@ function wirtschaftsSchritt(dt) {
   pruefeFristen();
   automatikTimer -= dt;
   if (automatikTimer <= 0) { automatikTimer = WIRTSCHAFT.automatikIntervall; automatikSchritt(); }
+  zonenSchritt(dt);                              // Phase 7b: Lieferwagen und Abholwagen
 
   // 7-Tage-Bankrott-Timer: läuft, solange das Konto im Minus ist; im Plus wieder voll
   if (spiel.konto < 0) {
@@ -7443,6 +8067,11 @@ function istZugangsKachel(x, z) {
   for (const g of spiel.gebaeude.values()) if (g.zugang.x === x && g.zugang.z === z) return true;
   return false;
 }
+// Phase 7b Nachtrag: Ist hier der Zugang einer STATION? (Lager-Zugänge dürfen mit Bändern und Greifarmen zugebaut werden)
+function istStationsZugang(x, z) {
+  for (const g of spiel.gebaeude.values()) if (istStation(g) && g.zugang.x === x && g.zugang.z === z) return true;
+  return false;
+}
 
 // Bandteil auf einer Kachel und Ebene (0 = Boden, 1 = Brücke). Rampen gehören zu beiden Ebenen.
 function bandteilAn(x, z, ebene) {
@@ -7462,7 +8091,7 @@ function bandteilAn(x, z, ebene) {
 // Bänder und Zusammenführungen nehmen von hinten und von der Seite, alles andere nur von hinten.
 function nimmtVonSeite(ziel, richtung, ebene) {
   const typ = bandTyp(ziel);
-  if (!typ.spur && ziel.typ !== "splitter" && ziel.typ !== "zusammen") return false;   // Greifarm
+  if (!typ.spur && !istVerteiler(ziel) && ziel.typ !== "zusammen") return false;   // Greifarm
   if (typ.ebeneEin !== ebene) return false;
   const seite = seiteVonFahrt(ziel, richtung);
   if (seite === "vorn") return false;                       // frontal gegeneinander: nein
@@ -7506,12 +8135,13 @@ function baueBandTopologie() {
   for (const t of teile) {
     t.ziel = null; t.vorgaenger = []; t.kette = null; t.kurve = null; t.segment = null; t.ablaufVon = null;
     t.ausgaenge = null; t.stau = t.stau || 0;
-    if (t.items === undefined && (istSpur(t) || t.typ === "splitter" || t.typ === "zusammen")) t.items = [];
+    if (t.items === undefined && (istSpur(t) || istVerteiler(t) || t.typ === "zusammen")) t.items = [];
+    if (istVerteiler(t)) pufferVon(t);             // Phase 7b Nachtrag: Puffer (t.puffer) immer vorhanden
   }
   // 1. Ziele und Vorgänger
   for (const t of teile) {
     if (istGreifarm(t)) continue;
-    if (t.typ === "splitter") {
+    if (istVerteiler(t)) {
       t.ausgaenge = ["links", "vorn", "rechts"].map((seite) => {
         const richtung = absRichtung(t, seite);
         return { seite, richtung, ziel: zielVon(t, richtung) };
@@ -7535,7 +8165,7 @@ function baueBandTopologie() {
       continue;
     }
     if (t.ziel && t.ziel.art === "gebaeude") zulauf(t.ziel.g, t);
-    if (t.typ === "splitter") for (const a of t.ausgaenge) if (a.ziel.art === "gebaeude") zulauf(a.ziel.g, t);
+    if (istVerteiler(t)) for (const a of t.ausgaenge) if (a.ziel.art === "gebaeude") zulauf(a.ziel.g, t);
     // Ablauf: ein Spur-Teil am Boden, das vom Gebäude weg zeigt und hinten keinen Band-Zulauf hat
     if (istSpur(t) && bandTyp(t).ebeneEin === 0 && !t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten")) {
       const g = gebaeudeAufKachel(hinterKachel(t));
@@ -7590,7 +8220,7 @@ function baueBandTopologie() {
     for (const t of seg.teile) { t.tempo = tempo; t.name = name; }
   }
   // 5. Reihenfolge: Teile, die weiter vorn liegen, zuerst (umgekehrte topologische Ordnung)
-  const nachfolger = (t) => t.typ === "splitter" ? t.ausgaenge.filter((a) => a.ziel.art === "band").map((a) => a.ziel.teil)
+  const nachfolger = (t) => istVerteiler(t) ? t.ausgaenge.filter((a) => a.ziel.art === "band").map((a) => a.ziel.teil)
     : t.ziel && t.ziel.art === "band" ? [t.ziel.teil] : [];
   const eingang = new Map(teile.map((t) => [t, 0]));
   for (const t of teile) for (const n of nachfolger(t)) eingang.set(n, eingang.get(n) + 1);
@@ -7616,7 +8246,7 @@ function tempoStufe(id) { return BAND_TEMPO.find((st) => st.id === id) || BAND_T
 function tempoFreigeschaltet(id) { const st = tempoStufe(id); return !st.forschung || istErforscht(st.forschung); }
 // Geschwindigkeit eines Teils in Kacheln pro Sekunde
 function bandTempo(t) {
-  if (t.typ === "splitter" || t.typ === "zusammen") return BAENDER.knotenTempo;
+  if (istVerteiler(t) || t.typ === "zusammen") return BAENDER.knotenTempo;
   return tempoStufe(t.tempo).tempo;
 }
 // Stellt das Tempo eines ganzen Segments ein. Rückgabe: { ok } oder { ok: false, grund }
@@ -7740,6 +8370,10 @@ function seiteLaesstDurch(t, seite, item) {
 }
 // Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung "z" zu fahren (und darf es hinein)?
 function wartetVor(v, z = null) {
+  if (istVerteiler(v.teil)) {                    // Phase 7b Nachtrag: ein Verteiler wartet mit seinem Puffer
+    const erstes = pufferVon(v.teil)[0];
+    return !!erstes && (!z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), erstes));
+  }
   const vorn = v.teil.items && v.teil.items[0];
   if (!vorn || vorn.pos < 1 - 1e-6) return false;
   return !z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), vorn.item);
@@ -7753,6 +8387,7 @@ function zusammenLaesstDurch(z, richtung) {
   return true;
 }
 function nimmAufBand(ziel, item, richtung) {
+  if (istVerteiler(ziel)) return legeInPuffer(ziel, item);   // Phase 7b Nachtrag: in den Puffer (solange < PUFFER_GROESSE)
   if (!hatPlatz(ziel)) return false;
   if (ziel.typ === "zusammen") {
     if (!seiteLaesstDurch(ziel, seiteVonFahrt(ziel, richtung), item)) return false;   // Phase 7a: Seite gesperrt/gefiltert
@@ -7779,8 +8414,135 @@ function splitterGibWeiter(t, it) {
   }
   return false;
 }
+/* --- Phase 7b: Smart-Verteiler und Überlauf-Ventil ---
+   Beide schauen hinter einem Ausgang die Bänder entlang bis zum nächsten Gebäude und zählen, was von
+   dieser Sorte schon unterwegs ist. Liegt dazwischen ein Verteiler oder eine Zusammenführung, gilt:
+   "hat Platz, wenn sein Band frei ist". */
+function streckenEnde(start, item) {
+  let unterwegs = 0, stueck = 0, vol = 0, letztes = null;
+  const gesehen = new Set();
+  let z = start;
+  while (z && z.art === "band") {
+    const t = z.teil;
+    if (gesehen.has(t)) return { art: "ring" };
+    gesehen.add(t);
+    if (istVerteiler(t) || t.typ === "zusammen") return { art: "knoten", teil: t };
+    for (const it of t.items || []) {
+      stueck++;
+      vol += itemVolumen(it.item);
+      if (it.item === item) unterwegs++;
+    }
+    letztes = t;
+    z = t.ziel;
+  }
+  if (!z && letztes) {                           // Band endet vor einem Greifarm-Geber: dessen Ziel zählt
+    const k = nachbarKachel(letztes, letztes.richtung);
+    const arm = bandteilAn(k.x, k.z, 0);
+    if (arm && arm.typ === "greifGeber") z = armZiel(arm);
+  }
+  if (!z) return { art: "offen" };
+  if (z.art === "band") return { art: "knoten", teil: z.teil };
+  return { art: "gebaeude", g: z.g, unterwegs, stueck, vol };
+}
+// Hat das Gebäude noch Platz für ein weiteres Item, wenn alles Unterwegs-Seiende angekommen ist?
+function zielHatPlatz(g, item, unterwegs = 0, stueck = 0, vol = 0) {
+  if (!gebaeudeNimmtAn(g, item)) return false;
+  if (typVon(g).art === "muell") return true;
+  if (istStation(g)) {
+    const r = rezeptVon(g);
+    return summe(g.eingang) + stueck < fachGroesse(g, "eingang") && (g.eingang[item] || 0) + unterwegs < bandSoll(g, item, r);
+  }
+  if (istVolumenLager(g) && belegt(g) + vol + itemVolumen(item) > kapazitaetVon(g)) return false;
+  if ((g.bestand[item] || 0) + unterwegs >= maxVon(g, item)) return false;
+  if (istZwischenlager(g) && !nimmtErzeugnisAn(g, item) && regelVon(g, item).imp) {
+    return (g.bestand[item] || 0) + unterwegs < Math.max(1, sollbestand(g)[item] || 0);
+  }
+  return true;
+}
+function ausgangHatPlatz(a, item) {
+  if (a.ziel.art === "gebaeude") return zielHatPlatz(a.ziel.g, item);
+  const ende = streckenEnde(a.ziel, item);
+  if (ende.art === "knoten") return true;
+  if (ende.art !== "gebaeude") return false;   // offenes Ende oder Ring: kein Ziel
+  return zielHatPlatz(ende.g, item, ende.unterwegs, ende.stueck, ende.vol);
+}
+function legeAufAusgang(a, item) {
+  return a.ziel.art === "band" ? nimmAufBand(a.ziel.teil, item, a.richtung) : gebaeudeNimmtVomBand(a.ziel.g, item);
+}
+function smartGibWeiter(t, it) {
+  const n = t.ausgaenge.length;
+  for (let i = 0; i < n; i++) {
+    const a = t.ausgaenge[(t.naechster + i) % n];
+    if (!splitterFilterPasst(t, a.seite, it.item) || !ausgangHatPlatz(a, it.item)) continue;
+    if (legeAufAusgang(a, it.item)) { t.naechster = (t.naechster + i + 1) % n; t.gehalten = false; return true; }
+  }
+  t.gehalten = true;                            // kein Ziel hat Platz: festhalten
+  return false;
+}
+function ventilGibWeiter(t, it) {
+  const vorn = t.ausgaenge.find((a) => a.seite === "vorn");
+  if (vorn && splitterFilterPasst(t, "vorn", it.item) && ausgangHatPlatz(vorn, it.item) && legeAufAusgang(vorn, it.item)) {
+    t.ueberlauf = false;
+    return true;
+  }
+  const seiten = t.ausgaenge.filter((a) => a.seite !== "vorn");
+  for (let i = 0; i < seiten.length; i++) {
+    const a = seiten[((t.naechster || 0) + i) % seiten.length];
+    if (!splitterFilterPasst(t, a.seite, it.item)) continue;
+    if (legeAufAusgang(a, it.item)) { t.naechster = ((t.naechster || 0) + i + 1) % seiten.length; t.ueberlauf = true; return true; }
+  }
+  return false;
+}
+/* --- Phase 7b Nachtrag: Puffer der Verteiler ---
+   Jeder Verteiler (Splitter, Smart-Verteiler, Überlauf-Ventil) hat einen eigenen Puffer von PUFFER_GROESSE Items:
+   t.puffer = [Item-Id, …] in Ankunftsreihenfolge (das erste geht zuerst hinaus). Ankommende Items wandern in
+   den Puffer, solange er nicht voll ist (ein voller Puffer staut das Band dahinter). Hinaus gehen sie nach den
+   bisherigen Regeln (splitterGibWeiter, smartGibWeiter, ventilGibWeiter), höchstens so schnell, wie früher
+   Items durch den Knoten fuhren (BAENDER.knotenTempo / BAENDER.mindestAbstand pro Sekunde).
+   Splitter und Ventil arbeiten streng der Reihe nach; der Smart-Verteiler darf ein späteres Item vorziehen,
+   wenn das vorderste gerade nirgends hin kann. t.items bleibt bei Verteilern leer. */
+function pufferVon(t) {
+  if (!istVerteiler(t)) return [];
+  if (!Array.isArray(t.puffer)) t.puffer = [];
+  return t.puffer;
+}
+function legeInPuffer(t, item) {
+  const puffer = pufferVon(t);
+  if (puffer.length >= PUFFER_GROESSE) return false;
+  puffer.push(item);
+  return true;
+}
+// Ein Schritt eines Verteilers: Items aus dem Puffer auf die Ausgänge verteilen
+function verteilerSchritt(t, dt) {
+  const puffer = pufferVon(t);
+  const takt = BAENDER.knotenTempo / BAENDER.mindestAbstand;           // Items pro Sekunde
+  t.takt = Math.min(Math.max(1, (t.ausgaenge || []).length), (t.takt || 0) + dt * takt);
+  if (!puffer.length) { t.stau = 0; t.gehalten = false; return; }
+  let raus = 0;
+  while (t.takt >= 1 && puffer.length) {
+    let index = -1;
+    if (t.typ === "smartVerteiler") {
+      // Das erste Item, das irgendwohin kann (jede Sorte nur einmal prüfen)
+      const geprueft = new Set();
+      for (let i = 0; i < puffer.length; i++) {
+        if (geprueft.has(puffer[i])) continue;
+        geprueft.add(puffer[i]);
+        if (smartGibWeiter(t, { item: puffer[i] })) { index = i; break; }
+      }
+    } else if (gibWeiter(t, { item: puffer[0] })) index = 0;
+    if (index < 0) break;
+    puffer.splice(index, 1);
+    t.takt -= 1;
+    raus++;
+  }
+  if (raus) t.stau = 0;
+  else if (t.takt >= 1) t.stau += dt;             // nichts kam hinaus, obwohl der Takt es erlaubt hätte
+  t.gehalten = !raus && t.typ === "smartVerteiler" && t.takt >= 1;
+}
 function gibWeiter(t, it) {
-  if (t.typ === "splitter") return splitterGibWeiter(t, it);
+  if (t.typ === "smartVerteiler") return smartGibWeiter(t, it);
+  if (t.typ === "ventil") return ventilGibWeiter(t, it);
+  if (istVerteiler(t)) return splitterGibWeiter(t, it);
   const z = t.ziel;
   if (!z) return false;
   if (z.art === "band") return nimmAufBand(z.teil, it.item, t.richtung);
@@ -7799,9 +8561,14 @@ function bandSoll(s, item, r) {
 }
 function gebaeudeNimmtAn(g, item) {
   const art = typVon(g).art;
-  if (art === "hauptlager") return summe(g.bestand) < kapazitaetVon(g);
+  // Phase 7b: Lager rechnen in Volumen – passt das Item nicht mehr ganz hinein, staut sich das Band
+  if (istVolumenLager(g) && belegt(g) + itemVolumen(item) > kapazitaetVon(g)) return false;
+  if (art === "hauptlager") return hlNimmtAn(g, item);       // Phase 7b Nachtrag: ⇣ Annahme und Max
+  if (art === "muell") return muellNimmt(g, item, "band");   // Phase 7b
+  if (art === "importzone") return false;                    // Phase 7b: hier liefert nur der Lieferwagen
+  if (art === "exportzone") return zoneAktiv(g) && !maxErreicht(g, item);   // Phase 7b Nachtrag 2: inaktive Zone nimmt nichts an
   if (istZwischenlager(g)) {
-    if (summe(g.bestand) >= kapazitaetVon(g)) return false;
+    if (maxErreicht(g, item)) return false;      // Phase 7b: "Max" per Zahl
     const r = regelVon(g, item);
     if (r.imp && (g.bestand[item] || 0) < Math.max(1, sollbestand(g)[item] || 0)) return true;
     return nimmtErzeugnisAn(g, item);
@@ -7823,7 +8590,42 @@ function gebaeudeNimmtVomBand(g, item) {
   } else {
     aendereBestand(g, item, 1);
     if (istZwischenlager(g)) g.zuletztBeliefert = spiel.zeit;
+    if (typVon(g).art === "muell") vernichteImMuell(g);   // Phase 7b
   }
+  return true;
+}
+/* --- Phase 7b: Mülltonne ---
+   regeln[item].imp: true = auch Kuriere bringen es her, false = nimmt es gar nicht an,
+   nicht gesetzt = nur von Band und Greifarm. */
+function muellNimmt(g, item, von = "band") {
+  const m = g.regeln && g.regeln[item];
+  if (m && m.imp === false) return false;
+  return von === "band" || !!(m && m.imp === true);
+}
+function vernichteImMuell(g) {
+  for (const [item, n] of Object.entries(g.bestand)) {
+    if (n <= 0) continue;
+    aendereBestand(g, item, -n);
+    g.vernichtet = (g.vernichtet || 0) + n;
+    spiel.vernichtet = (spiel.vernichtet || 0) + n;
+  }
+}
+// Die nächste Mülltonne, zu der Kuriere dieses Item bringen sollen (oder null)
+function naechsteMuelltonne(kachel, item) {
+  let beste = null, besterAbstand = Infinity;
+  for (const g of spiel.gebaeude.values()) {
+    if (typVon(g).art !== "muell" || !muellNimmt(g, item, "kurier") || zugangGesperrt(g)) continue;   // 7b Nachtrag: Zugang frei
+    const d = abstand(g.zugang, kachel);
+    if (d < besterAbstand) { beste = g; besterAbstand = d; }
+  }
+  return beste;
+}
+function setzeMuellRegel(id, item, wert) {
+  const g = spiel.gebaeude.get(id);
+  if (!g || typVon(g).art !== "muell") return false;
+  if (wert === null || wert === undefined) delete g.regeln[item];
+  else g.regeln[item] = { imp: !!wert };
+  meldeStruktur();
   return true;
 }
 // Bringt gerade ein Band oder Greifarm dieses Material? (dann liefern Kuriere es nicht)
@@ -7839,14 +8641,15 @@ function gebaeudeGibAb(g, t) {
   let item = null;
   if (istStation(g)) {
     item = Object.keys(g.bestand).find((i) => g.bestand[i] > 0 && (!filter || filter.includes(i))) || null;
-  } else if (istZwischenlager(g)) {
+  } else if (istZwischenlager(g) || istImportzone(g)) {   // Phase 7b: die Importzone gibt alles ab
     const ab = abholbar(g, reservierungen());
     item = Object.keys(ab).find((i) => !filter || filter.includes(i)) || null;
   } else if (art === "hauptlager" && filter) {
     const res = reservierungen();
     for (let i = 0; i < filter.length; i++) {
       const kandidat = filter[((t.ablaufIndex || 0) + i) % filter.length];
-      if (verfuegbar(g, kandidat, res) > 0) { item = kandidat; t.ablaufIndex = ((t.ablaufIndex || 0) + i + 1) % filter.length; break; }
+      if (hlGibtAb(g, kandidat) && verfuegbar(g, kandidat, res) > 0) { item = kandidat;   // 7b Nachtrag: ⇡ Abgabe
+        t.ablaufIndex = ((t.ablaufIndex || 0) + i + 1) % filter.length; break; }
     }
   }
   if (item) aendereBestand(g, item, -1);
@@ -7859,6 +8662,7 @@ function baenderSchritt(dt) {
   if (bandTopologieAlt) baueBandTopologie();
   for (const t of bandReihenfolge) {
     if (istGreifarm(t)) { greifarmSchritt(t, dt); continue; }
+    if (istVerteiler(t)) { verteilerSchritt(t, dt); continue; }   // Phase 7b Nachtrag: Puffer
     const tempo = bandTempo(t);
     if (tempo <= 0) continue;                     // Segment pausiert
     bewegeItems(t, tempo * dt);
@@ -7915,7 +8719,8 @@ function armKandidaten(g) {
     const ab = abholbar(g, res);
     return Object.keys(g.bestand).filter((i) => (ab[i] || 0) > 0 || (darfArbeiterEntnehmen(g, i) && verfuegbar(g, i, res) > 0));
   }
-  if (typVon(g).art === "hauptlager") return Object.keys(g.bestand).filter((i) => verfuegbar(g, i, res) > 0);
+  if (typVon(g).art === "hauptlager") return Object.keys(g.bestand).filter((i) => hlGibtAb(g, i) && verfuegbar(g, i, res) > 0);   // 7b Nachtrag: ⇡ Abgabe
+  if (istImportzone(g)) return Object.keys(g.bestand).filter((i) => verfuegbar(g, i, res) > 0);
   return [];
 }
 // Greift ein passendes Item. Rückgabe: Item oder null
@@ -7982,7 +8787,9 @@ function bleibtErreichbarMit(gesperrt, extraZiele = []) {
   const frei = new Uint8Array(B * T);
   for (let x = 0; x < B; x++) for (let z = 0; z < T; z++) frei[x * T + z] = rasterDaten[x][z].begehbar ? 1 : 0;
   for (const c of gesperrt) frei[c.x * T + c.z] = 0;
-  const ziele = gebaeudeListe().map((g) => g.zugang).filter((k) => istImRaster(k.x, k.z));
+  // Phase 7b Nachtrag: Der Zugang eines Lagers darf zugebaut werden (dann kommen nur noch Bänder und Greifarme heran)
+  const zugebaut = (g) => zugangGesperrt(g) || (istLagerTyp(typVon(g)) && gesperrt.some((c) => c.x === g.zugang.x && c.z === g.zugang.z));
+  const ziele = gebaeudeListe((g) => !zugebaut(g)).map((g) => g.zugang).filter((k) => istImRaster(k.x, k.z));
   for (const p of allePersonen()) {
     const k = personKachel(p);
     if (istBegehbar(k.x, k.z)) ziele.push(k);
@@ -8026,7 +8833,7 @@ function pruefeBandteil(typ, x, z, richtung, { ersetzen = false, laden = false, 
       const umlegbar = ersetzen && ["band", "uebergang"].includes(vorhanden.typ) && vorhanden.typ === typ;
       if (umlegbar) ersetzt = vorhanden; else gruende.push("Hier liegt schon ein Bandteil.");
     }
-    if (!laden && istZugangsKachel(x, z)) gruende.push("Hier stehen Mitarbeiter, um ein Gebäude zu bedienen (Zugang).");
+    if (!laden && istStationsZugang(x, z)) gruende.push("Hier stehen Mitarbeiter, um ein Gebäude zu bedienen (Zugang).");   // 7b Nachtrag: nur Stationen
     if ((typ === "rampeHoch" || typ === "rampeRunter") && k.hochband) gruende.push("Über dieser Kachel verläuft eine Brücke.");
     if (!info.begehbar && !laden) {
       if (allePersonen().some((p) => personBeruehrtKachel(p, { x, z }))) gruende.push("Hier steht gerade jemand.");
@@ -8048,8 +8855,13 @@ function setzeBandteil(typ, x, z, richtung, daten = {}) {
   const t = {
     id: daten.id || "b" + spiel.naechsteBandId++,
     typ, x, z, richtung,
-    items: info.spur || typ === "splitter" || typ === "zusammen"
-      ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung })) : undefined,
+    items: info.spur || typ === "zusammen"
+      ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung }))
+      : VERTEILER_TYPEN.includes(typ) ? [] : undefined,
+    // Phase 7b Nachtrag: Puffer der Verteiler (ältere Spielstände: leer; Items, die auf dem Verteiler lagen, kommen hinein)
+    puffer: VERTEILER_TYPEN.includes(typ)
+      ? [...(Array.isArray(daten.puffer) ? daten.puffer : []), ...(daten.items || []).map((i) => i.item)].filter((i) => typeof i === "string")
+      : undefined,
     tempo: daten.tempo || null,
     name: daten.name || null,
     seiten: seitenAusDaten(daten),             // Phase 7a: Seiten und Filter (ersetzt "modus" und "filter")
@@ -8107,7 +8919,7 @@ function baueBandteil(typ, x, z, richtung, { daten = null, ohnePruefungDerPerson
   const ausDepot = (spiel.depot.baender[typ] || 0) > 0;
   if (ausDepot) { spiel.depot.baender[typ]--; if (!spiel.depot.baender[typ]) delete spiel.depot.baender[typ]; }
   else if (kosten > 0) bucheGeld(-kosten, "baender");
-  const extra = daten ? { ...daten, id: undefined, items: [], haelt: null } : {};
+  const extra = daten ? { ...daten, id: undefined, items: [], puffer: [], haelt: null } : {};   // 7b Nachtrag: Puffer nicht mitkopieren
   const t = setzeBandteil(typ, x, z, richtung, { ...extra, ausDepot });
   planeLaufendeNeu();
   meldeStruktur();
@@ -8186,6 +8998,7 @@ function entferneBandteil(id, { insDepot = false } = {}) {
   else if (k.band === id) { k.band = null; k.begehbar = !k.objekt; k.kosten = 1; }
   const items = {};
   for (const it of t.items || []) bucheItems(items, { [it.item]: 1 });
+  for (const item of pufferVon(t)) bucheItems(items, { [item]: 1 });   // Phase 7b Nachtrag: Verteiler-Puffer
   if (t.haelt) bucheItems(items, { [t.haelt]: 1 });
   bucheInsLager(items, insDepot);
   if (insDepot || t.ausDepot) spiel.depot.baender[t.typ] = (spiel.depot.baender[t.typ] || 0) + 1;
@@ -8237,7 +9050,7 @@ function planeLaufendeNeu() {
 function setzeBandEinstellung(id, feld, wert) {
   const t = spiel.baender.get(id);
   if (!t) return false;
-  const knoten = t.typ === "splitter" || t.typ === "zusammen";
+  const knoten = istVerteiler(t) || t.typ === "zusammen";
   if (feld === "seiteSperren" && knoten && SEITEN_NAMEN[wert]) {          // Phase 7a: Seite sperren / freigeben
     const e = t.seiten[wert] || (t.seiten[wert] = { gesperrt: false, filter: {} });
     e.gesperrt = !e.gesperrt;
@@ -8277,6 +9090,7 @@ function bandteilDaten(t) {
     items: t.items ? t.items.map((i) => ({ item: i.item, pos: Math.round(i.pos * 1000) / 1000, von: i.von })) : undefined,
     tempo: t.tempo, name: t.name, seiten: t.seiten, vorrang: t.vorrang,
     armFilter: t.armFilter, haelt: t.haelt, ablaufFilter: t.ablaufFilter, bruecke: t.bruecke, ausDepot: t.ausDepot,
+    puffer: istVerteiler(t) ? [...pufferVon(t)] : undefined,   // Phase 7b Nachtrag
   };
 }
 
@@ -8510,7 +9324,11 @@ function setzeHallenStufe(stufe) {
   spiel.halleStufe = stufe;
   level.tiefe = Math.min(level.maxTiefe, HALLE_STUFEN[stufe].tiefe);
   level.name = HALLE_STUFEN[stufe].name;
-  if (level.tiefe !== alt) meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+  if (level.tiefe !== alt) {
+    meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+    const inaktiv = gebaeudeListe((g) => typVon(g).wand && !stehtAnWand(g));   // Phase 7b Nachtrag 2
+    if (inaktiv.length) meldeEreignis("hinweis", { text: `${inaktiv.map(gebaeudeName).join(", ")} steht nicht mehr an einer Wand und ist inaktiv. Mit M an eine Wand verschieben.`, warnung: true });
+  }
   meldeEreignis("rasterGeaendert", {});
 }
 // Kauft die nächste Ausbaustufe. Rückgabe: { ok, stufe } oder { ok: false, grund }
@@ -8543,6 +9361,252 @@ function quader(gruppe, breite, hoehe, tiefe, farbe, x, yUnten, z, material = nu
   return mesh;
 }
 
+// Phase 7b: Boden einer Zone (breite × 2 Kacheln) mit farbigem Rand, Paletten und (Import) Rolltor hinten
+function zonenModell(m, breite, farbe, rolltor) {
+  const g = new THREE.Group(), plaetze = [];
+  const B = breite - 0.08, T = 1.92;
+  quader(g, B, 0.02, T, GRAFIK.farbeLagerBoden, 0, 0, 0, m);
+  for (const z of [-T / 2 + 0.05, T / 2 - 0.05]) quader(g, B, 0.025, 0.1, farbe, 0, 0.005, z, m);
+  for (const x of [-B / 2 + 0.05, B / 2 - 0.05]) quader(g, 0.1, 0.025, T, farbe, x, 0.005, 0, m);
+  // Schräge Warnstreifen vorn
+  for (let i = 0; i < breite * 3; i++) {
+    const st = quader(g, 0.22, 0.03, 0.06, "#e8c33a", -B / 2 + 0.2 + i * (B - 0.3) / (breite * 3 - 1), 0.006, T / 2 - 0.2, m);
+    st.rotation.y = 0.7;
+  }
+  const paletten = breite === 3 ? [-0.95, 0, 0.95] : [-0.48, 0.48];
+  for (const px of paletten) {
+    for (const pz of [-0.45, 0.35]) {
+      quader(g, 0.78, 0.1, 0.62, GRAFIK.farbeHolz, px, 0.02, pz, m);
+      for (let ix = 0; ix < 3; ix++) for (let iz = 0; iz < 2; iz++) for (let lage = 0; lage < 2; lage++) {
+        plaetze.push(new THREE.Vector3(px - 0.24 + ix * 0.24, 0.12 + 0.11 + lage * 0.22, pz - 0.13 + iz * 0.26));
+      }
+    }
+  }
+  // Phase 7b Nachtrag: Tor hinten – Importzone: Rolltor aus Lamellen, Exportzone (rolltor = "gitter"): Rollgitter.
+  // Beide sind geschlossen und fahren hoch, solange ein Wagen am Tor steht (aktualisiereTore).
+  const tor = rolltor ? baueZonenTor(g, m, rolltor === "gitter", -T / 2 - 0.02) : null;
+  return { gruppe: g, plaetze, wuerfel: 0.2, tor };
+}
+
+/* --- Phase 7b Nachtrag: Rolltor (Import) und Rollgitter (Export) an der Rückseite der Zonen ---
+   Der Behang läuft beim Öffnen nach oben in den Rollkasten: Lamellen bzw. Querstreben wandern hoch und
+   verschwinden im Kasten, die senkrechten Gitterstäbe werden von unten her kürzer. */
+function baueZonenTor(gruppe, m, gitter, z) {
+  const B = 1.4, oben = 1.4;                       // lichte Breite, Unterkante des Rollkastens
+  for (const x of [-0.75, 0.75]) quader(gruppe, 0.1, oben, 0.14, GRAFIK.farbeTorRahmen, x, 0, z, m);
+  quader(gruppe, 1.62, 0.24, 0.22, GRAFIK.farbeTorRahmen, 0, oben, z - 0.02, m);   // Rollkasten
+  const teile = [], staebe = [];                   // teile: { mesh, y (Unterkante bei geschlossenem Tor), h }
+  const farbe = gitter ? GRAFIK.farbeGittertor : GRAFIK.farbeRolltor;
+  if (gitter) {
+    for (let i = 0; i < 7; i++) {                  // Querstreben
+      const y = 0.2 + i * 0.19;
+      teile.push({ mesh: quader(gruppe, B, 0.035, 0.05, farbe, 0, y, z, m), y, h: 0.035 });
+    }
+    for (let i = 0; i < 14; i++) {                 // senkrechte Metallstäbe (oben im Kasten verankert)
+      staebe.push(quader(gruppe, 0.025, oben, 0.025, farbe, -B / 2 + 0.05 + i * (B - 0.1) / 13, 0, z + 0.01, m));
+    }
+  } else {
+    const n = 10, h = (oben - 0.06) / n;
+    for (let i = 0; i < n; i++) {                  // Lamellen mit schmaler Fuge
+      const y = 0.06 + i * h;
+      teile.push({ mesh: quader(gruppe, B, h - 0.018, 0.04, farbe, 0, y, z, m), y, h: h - 0.018 });
+    }
+  }
+  teile.push({ mesh: quader(gruppe, B, 0.06, 0.07, GRAFIK.farbeTorRahmen, 0, 0, z, m), y: 0, h: 0.06 });   // Bodenleiste
+  const tor = { teile, staebe, oben, offen: 0 };
+  setzeTorOffen(tor, 0);
+  return tor;
+}
+// offen: 0 = geschlossen, 1 = ganz hochgefahren (nur noch die Bodenleiste schaut unter dem Kasten hervor)
+function setzeTorOffen(tor, offen) {
+  tor.offen = offen;
+  const hub = offen * offen * (3 - 2 * offen) * (tor.oben - 0.07);   // weich anfahren und abbremsen
+  for (const t of tor.teile) {
+    const y = t.y + hub;
+    t.mesh.position.y = y + t.h / 2;
+    t.mesh.visible = y < tor.oben - 0.005;         // ganz im Rollkasten: ausblenden
+  }
+  for (const s of tor.staebe) {
+    const laenge = tor.oben - hub;
+    s.visible = laenge > 0.02;
+    s.scale.y = Math.max(0.001, laenge / tor.oben);
+    s.position.y = hub + laenge / 2;
+  }
+}
+
+/* --- Phase 7b: Liefer- und Abholwagen ---
+   Fahren außen an der nächsten Hallenwand vor (seitlich herein, kurz stehen, wieder hinaus).
+   Phase 7b Nachtrag: Der Wagen setzt rückwärts ans Tor der Zone; Tor öffnet sich, solange er dort steht. */
+const wagen3d = new Map();   // Zonen-ID → Gruppe
+function baueWagen(farbe) {
+  const g = new THREE.Group();
+  quader(g, 1.1, 0.95, 1.5, "#f2f2ee", 0, 0.28, -0.25);            // Kasten
+  quader(g, 1.05, 0.7, 0.65, farbe, 0, 0.28, 0.85);                 // Führerhaus
+  quader(g, 0.9, 0.28, 0.04, "#9fc7e6", 0, 0.62, 1.18);             // Scheibe
+  quader(g, 1.12, 0.12, 2.3, "#3a3a3a", 0, 0.16, 0.1);              // Rahmen
+  for (const x of [-0.5, 0.5]) for (const z of [-0.6, 0.85]) {
+    const rad = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.12, 12), figurMaterial("#222222"));
+    rad.rotation.z = Math.PI / 2;
+    rad.position.set(x, 0.17, z);
+    g.add(rad);
+  }
+  return g;
+}
+// Wo steht der Wagen einer Zone? Außen vor der nächsten Wand, Heck zur Zone. Rückgabe: { x, z, winkel, quer }
+function wagenPlatz(g) {
+  const m = g.mitte;
+  const abstaende = [
+    { d: m.z + 0.5, aussen: { x: 0, z: -1 } },                       // Rückwand
+    { d: level.tiefe - 0.5 - m.z, aussen: { x: 0, z: 1 } },
+    { d: m.x + 0.5, aussen: { x: -1, z: 0 } },
+    { d: level.breite - 0.5 - m.x, aussen: { x: 1, z: 0 } },
+  ].sort((a, b) => a.d - b.d);
+  // Phase 7b Nachtrag: Steht die Zone mit der Rückseite an der Wand, hält der Wagen genau hinter ihrem Tor
+  const hinten = abstaende.find((x) => x.aussen.x === -g.richtung.x && x.aussen.z === -g.richtung.z);
+  const wahl = hinten && hinten.d <= typVon(g).tiefe / 2 + 0.01 ? hinten : abstaende[0];
+  const a = wahl.aussen;
+  const welt = kachelZuWelt(m.x, m.z);
+  const weg = wahl.d + 1.6;
+  return { x: welt.x + a.x * weg, z: welt.z + a.z * weg, winkel: gebaeudeWinkel(a), quer: { x: a.z, z: a.x }, aussen: a };
+}
+// Fortschritt eines Wagens: 0 = weit weg, 1 = steht an der Zone (null = nicht da)
+function wagenZustand(g) {
+  if (istImportzone(g)) {
+    const w = g.lieferwagen.find((x) => spiel.zeit >= x.ankunft - ZONEN.fahrzeit && spiel.zeit <= x.ankunft + ZONEN.standzeit + ZONEN.fahrzeit);
+    if (!w) return null;
+    if (spiel.zeit < w.ankunft) return { p: 1 - (w.ankunft - spiel.zeit) / ZONEN.fahrzeit, rein: true };
+    const raus = spiel.zeit - w.ankunft - ZONEN.standzeit;
+    return { p: raus > 0 ? 1 - raus / ZONEN.fahrzeit : 1, rein: raus <= 0 };
+  }
+  if (istExportzone(g)) {
+    if (g.abholwagen) {
+      const raus = spiel.zeit - g.abholwagen.ankunft - ZONEN.standzeit;
+      return { p: raus > 0 ? 1 - raus / ZONEN.fahrzeit : 1, rein: raus <= 0 };
+    }
+    if (g.abholTimer <= ZONEN.fahrzeit) return { p: 1 - g.abholTimer / ZONEN.fahrzeit, rein: true };
+  }
+  return null;
+}
+function aktualisiereWagen() {
+  const zonen = new Set();
+  for (const g of spiel.gebaeude.values()) {
+    if (!istImportzone(g) && !istExportzone(g)) continue;
+    const z = wagenZustand(g);
+    if (!z) continue;
+    zonen.add(g.id);
+    let w = wagen3d.get(g.id);
+    if (!w) { w = baueWagen(istImportzone(g) ? "#3c6fb5" : "#c94b3a"); szene.add(w); wagen3d.set(g.id, w); }
+    // Phase 7b Nachtrag: seitlich vorfahren, wenden und rückwärts ans Tor setzen (wagenPose)
+    const pose = wagenPose(wagenPlatz(g), z);
+    w.position.set(pose.x, rasterHoehe - 0.1, pose.z);
+    w.rotation.y = pose.winkel;                     // am Tor: Führerhaus nach außen, Heck zur Zone
+  }
+  for (const [id, w] of wagen3d) if (!zonen.has(id)) { szene.remove(w); wagen3d.delete(id); }
+}
+// Phase 7b Nachtrag: Wo steht der Wagen und wohin zeigt er? z = wagenZustand (p: 0 = weit weg … 1 = am Tor).
+// Herein: bis p = 0,6 fährt er seitlich bis vor die Zone (GRAFIK.rangierAbstand vor der Wand), danach wendet er
+// und setzt rückwärts ans Tor. Hinaus: vorwärts von der Wand weg und dabei einlenken, dann seitlich davon.
+function wagenPose(platz, z) {
+  if (wenigerAnimation) return { x: platz.x, z: platz.z, winkel: platz.winkel };
+  const a = platz.aussen, q = platz.quer, A = GRAFIK.rangierAbstand, weit = 7;
+  const p = Math.max(0, Math.min(1, z.p));
+  const weich = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  let ab, seit, wenden;   // ab: Abstand vor dem Tor (nach außen), seit: Versatz entlang der Wand, wenden: 0 = Fahrtrichtung, 1 = Heck zum Tor
+  if (z.rein) {
+    if (p < 0.6) { ab = A; seit = (1 - weich(p / 0.6)) * weit; wenden = 0; }
+    else { const u = (p - 0.6) / 0.4; ab = A * (1 - weich(u)); seit = 0; wenden = weich(u / 0.6); }
+  } else {
+    const r = 1 - p;
+    if (r < 0.4) { const u = r / 0.4; ab = A * weich(u); seit = 0; wenden = 1 - weich(u); }
+    else { ab = A; seit = -weich((r - 0.4) / 0.6) * weit; wenden = 0; }
+  }
+  // Drehen auf dem kürzesten Weg zwischen Fahrtrichtung (entlang der Wand) und "Führerhaus nach außen"
+  const w0 = gebaeudeWinkel({ x: -q.x, z: -q.z });
+  let d = platz.winkel - w0;
+  d = Math.atan2(Math.sin(d), Math.cos(d));
+  return { x: platz.x + a.x * ab + q.x * seit, z: platz.z + a.z * ab + q.z * seit, winkel: w0 + d * wenden };
+}
+// Phase 7b Nachtrag: Tor auf, solange der Wagen ans Tor setzt bzw. dort steht; zu, sobald er wegfährt
+function torSollOffen(z) {
+  return !!z && (z.rein ? z.p >= 0.85 : z.p >= 0.95);
+}
+// Jedes Bild: Tore weich öffnen/schließen (GRAFIK.torZeit) und die Ware sichtbar durchs Tor wandern lassen
+function aktualisiereTore(sekunden) {
+  for (const eintrag of gebaeude3d.values()) {
+    const tor = eintrag.tor;
+    if (!tor || eintrag.verschwindet) continue;
+    const g = eintrag.gebaeude;
+    const z = wagenZustand(g);
+    const ziel = torSollOffen(z) ? 1 : 0;
+    if (tor.offen !== ziel) {
+      const schritt = wenigerAnimation ? 1 : sekunden * Math.max(1, spiel.tempo) / GRAFIK.torZeit;
+      setzeTorOffen(tor, ziel > tor.offen ? Math.min(1, tor.offen + schritt) : Math.max(0, tor.offen - schritt));
+    }
+    zeigeVerladen(eintrag, g, z);
+  }
+}
+// Verladen (nur Anzeige): Beim Andocken wird verglichen, was seit der Anfahrt in die Zone gekommen
+// (Import: abgeladen) bzw. aus ihr verschwunden ist (Export: aufgeladen). Davon wandern ein paar Pakete
+// in den Farben der Items zwischen Palette und Ladefläche, solange der Wagen am Tor steht.
+const VERLADE_DAUER = 0.9;   // Sekunden (Spielzeit), die ein Paket für den Weg braucht
+const verladeHilfe = { a: new THREE.Vector3(), b: new THREE.Vector3() };
+function zeigeVerladen(eintrag, g, z) {
+  const steht = !!z && z.rein && z.p >= 1;
+  if (!steht) {
+    eintrag.verladen = null;
+    if (eintrag.pakete) for (const p of eintrag.pakete) p.visible = false;
+    // Bestand vor der Ankunft merken (nur neu kopieren, wenn er sich geändert hat)
+    if (eintrag.torVersion !== g.version) { eintrag.torVersion = g.version; eintrag.torBestand = { ...g.bestand }; }
+    return;
+  }
+  if (!eintrag.verladen) {
+    const vorher = eintrag.torBestand || {}, jetzt = g.bestand, abladen = istImportzone(g);
+    const sorten = [];
+    for (const item of new Set([...Object.keys(vorher), ...Object.keys(jetzt)])) {
+      const n = abladen ? (jetzt[item] || 0) - (vorher[item] || 0) : (vorher[item] || 0) - (jetzt[item] || 0);
+      if (n > 0) sorten.push({ item, n });
+    }
+    // Reihum aus allen Sorten, damit jede Farbe einmal durchs Tor geht
+    const liste = [];
+    for (let runde = 0; liste.length < 12 && sorten.some((s) => s.n > runde); runde++) {
+      for (const s of sorten) if (s.n > runde) liste.push(s.item);
+    }
+    eintrag.verladen = { start: spiel.zeit, liste, abladen };
+  }
+  const v = eintrag.verladen;
+  if (!eintrag.pakete) {
+    eintrag.pakete = [0, 1, 2].map(() => {
+      const p = new THREE.Mesh(wuerfelGeometrie(0.18), figurMaterial("#ffffff"));
+      p.castShadow = true;
+      p.visible = false;
+      eintrag.huelle.add(p);
+      return p;
+    });
+  }
+  for (const p of eintrag.pakete) p.visible = false;
+  if (!v.liste.length || wenigerAnimation) return;
+  const rate = GRAFIK.verladeTempo;
+  const t = spiel.zeit - v.start - 0.5;                       // erst, wenn das Tor oben ist
+  const anzahl = Math.min(v.liste.length, Math.max(1, Math.floor((ZONEN.standzeit - 0.7 - VERLADE_DAUER) * rate) + 1));
+  const platz = wagenPlatz(g);
+  for (let j = Math.max(0, Math.ceil((t - VERLADE_DAUER) * rate)); j <= Math.floor(t * rate) && j < anzahl; j++) {
+    const u = (t - j / rate) / VERLADE_DAUER;
+    if (u < 0 || u > 1) continue;
+    const paket = eintrag.pakete[j % eintrag.pakete.length];
+    paket.material = figurMaterial(itemInfo(v.liste[Math.floor(j * v.liste.length / anzahl)]).farbe);
+    // Palette (in der Zone) und Ladefläche (am Heck des Wagens) in Weltkoordinaten
+    const palette = eintrag.plaetze[(j * 7) % eintrag.plaetze.length];
+    eintrag.modell.localToWorld(verladeHilfe.a.copy(palette));
+    verladeHilfe.b.set(platz.x - platz.aussen.x * 0.9, rasterHoehe + 0.45, platz.z - platz.aussen.z * 0.9);
+    const [von, nach] = v.abladen ? [verladeHilfe.b, verladeHilfe.a] : [verladeHilfe.a, verladeHilfe.b];
+    paket.position.lerpVectors(von, nach, u * u * (3 - 2 * u));
+    paket.position.y += Math.sin(Math.PI * u) * 0.3;
+    eintrag.huelle.worldToLocal(paket.position);
+    paket.rotation.y = u * 1.2;
+    paket.visible = true;
+  }
+}
+
 // Bauplan jedes Gebäudes. Rückgabe: { gruppe, plaetze: [Positionen für Füllstand-Würfel], wuerfel: Kantenlänge }
 // Maße in Kacheln; der Boden liegt bei y = 0, die Mitte der Grundfläche bei x = z = 0.
 const MODELLE = {
@@ -8568,6 +9632,29 @@ const MODELLE = {
     return { gruppe: g, plaetze, wuerfel: 0.28 };
   },
 
+  // Phase 7b: Importzone (3 × 2): markierte Fläche, Rolltor an der Rückwand, Paletten
+  importzone(m) { return zonenModell(m, 3, GRAFIK.farbeImport, true); },
+  // Phase 7b: Exportzone (2 × 2): markierte Fläche mit Paletten (Phase 7b Nachtrag: Rollgitter an der Rückwand)
+  exportzone(m) { return zonenModell(m, 2, GRAFIK.farbeExport, "gitter"); },
+
+  // Phase 7b: Mülltonne (1 × 1): runde Tonne mit Deckel und Warnstreifen
+  muelltonne(m) {
+    const g = new THREE.Group();
+    const tonne = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.62, 18), m || figurMaterial(GRAFIK.farbeMuell));
+    tonne.position.y = 0.31;
+    tonne.castShadow = tonne.receiveShadow = !m;
+    g.add(tonne);
+    const deckel = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.06, 18), m || figurMaterial(GRAFIK.farbeMuellDeckel));
+    deckel.position.set(0, 0.66, -0.04);
+    deckel.rotation.x = -0.25;                     // leicht geöffnet
+    deckel.castShadow = !m;
+    g.add(deckel);
+    const streifen = new THREE.Mesh(new THREE.CylinderGeometry(0.305, 0.29, 0.07, 18), m || figurMaterial(GRAFIK.farbeWarnGelb || "#e8c33a"));
+    streifen.position.y = 0.44;
+    g.add(streifen);
+    return { gruppe: g, plaetze: [], wuerfel: 0.1 };
+  },
+
   // Kiste (1 × 1): offene Holzkiste mit Eckleisten
   kiste(m) {
     const g = new THREE.Group(), plaetze = [];
@@ -8576,6 +9663,10 @@ const MODELLE = {
     for (const x of [-0.375, 0.375]) quader(g, 0.05, 0.46, 0.7, GRAFIK.farbeHolz, x, 0.05, 0, m);
     for (const x of [-0.385, 0.385]) for (const z of [-0.385, 0.385]) quader(g, 0.08, 0.53, 0.08, GRAFIK.farbeHolzDunkel, x, 0.02, z, m);
     for (const z of [-0.39, 0.39]) quader(g, 0.82, 0.06, 0.04, GRAFIK.farbeHolzDunkel, 0, 0.3, z, m);
+    // Phase 7b Nachtrag: Vorderseite erkennbar (der Zugangspfeil fällt weg): Etikett und Metallgriff vorn
+    quader(g, 0.3, 0.13, 0.015, GRAFIK.farbeEtikett, 0, 0.11, 0.405, m);
+    quader(g, 0.28, 0.035, 0.035, GRAFIK.farbeMetallDunkel, 0, 0.43, 0.43, m);
+    for (const x of [-0.12, 0.12]) quader(g, 0.03, 0.035, 0.04, GRAFIK.farbeMetallDunkel, x, 0.43, 0.41, m);
     for (let lage = 0; lage < 2; lage++) {
       for (const x of [-0.16, 0.16]) for (const z of [-0.16, 0.16]) plaetze.push(new THREE.Vector3(x, 0.05 + 0.135 + lage * 0.28, z));
     }
@@ -8719,6 +9810,12 @@ function baueZugangsPfeil(zugang, richtung, material = pfeilMaterial) {
   pfeil.rotation.y = gebaeudeWinkel({ x: -richtung.x, z: -richtung.z });
   return pfeil;
 }
+// Phase 7b Nachtrag: Lager (Kiste, Schrank, Hauptlager, Zonen, Mülltonne) kann man von überall nutzen –
+// den orangen Zugangspfeil gibt es nur noch an Stationen (dort steht der Arbeiter).
+function zeigtZugangsPfeil(typ) {
+  const t = gebaeudeTypNach.get(typ);
+  return !!t && t.kategorie === "station";
+}
 
 /* --- Status-Symbole über den Stationen (kleine runde Schilder, immer zur Kamera gedreht) --- */
 const STATUS_ANZEIGE = {
@@ -8726,7 +9823,7 @@ const STATUS_ANZEIGE = {
   holtMaterial:      { farbe: "#4a7fc1", text: "holt Material",       ampel: "gruen" },
   bringtErzeugnis:   { farbe: "#f08a3c", text: "bringt Erzeugnis ins Lager", ampel: "gruen" },
   wartetAufMaterial: { farbe: "#e3a92b", text: "wartet auf Material", ampel: "gelb"  },
-  ausgabeVoll:       { farbe: "#e0533d", text: "Ausgabe voll",        ampel: "rot"   },
+  ausgabeVoll:       { farbe: "#e0533d", text: "Stau – Produktion steht", ampel: "rot" },
   keinArbeiter:      { farbe: "#8a948c", text: "kein Arbeiter",       ampel: "grau"  },
   keinRezept:        { farbe: "#8a948c", text: "kein Rezept gewählt", ampel: "grau"  },
   rezeptFehlt:       { farbe: "#e0533d", text: "Blaupause fehlt",     ampel: "rot"   },
@@ -8838,12 +9935,13 @@ spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
   bau.gruppe.add(fuellung);
   bau.gruppe.scale.setScalar(0.001);
   szene.add(huelle);
-  const pfeil = baueZugangsPfeil(g.zugang, g.richtung);
-  szene.add(pfeil);
+  const pfeil = zeigtZugangsPfeil(g.typ) ? baueZugangsPfeil(g.zugang, g.richtung) : null;   // Phase 7b Nachtrag: nur Stationen
+  if (pfeil) szene.add(pfeil);
   gebaeude3d.set(g.id, {
     huelle, modell: bau.gruppe, fuellung, plaetze: bau.plaetze, wuerfel: bau.wuerfel, pfeil,
     status: istStation(g) ? baueStatusAnzeige() : null,
     lagerMarke: istZwischenlager(g) ? baueLagerMarke(g, huelle) : null,   // Phase 5: Eingang/Ausgang/Gemischt
+    tor: bau.tor || null,                                                 // Phase 7b Nachtrag: Tor der Import-/Exportzone
     stationsMarke: istStation(g) ? baueStationsMarke(g) : null,          // Phase 5b: Import/Export der Station
     alter: 0, verschwindet: false, version: -1, gebaeude: g, splitterTimer: 0,
   });
@@ -8857,9 +9955,9 @@ spielEreignisse.addEventListener("gebaeudeVerschoben", (e) => {
   const mitte = gebaeudeMitteWelt(g);
   eintrag.huelle.position.set(mitte.x, rasterHoehe, mitte.z);
   eintrag.huelle.rotation.y = gebaeudeWinkel(g.richtung);
-  szene.remove(eintrag.pfeil);
-  eintrag.pfeil = baueZugangsPfeil(g.zugang, g.richtung);
-  szene.add(eintrag.pfeil);
+  if (eintrag.pfeil) szene.remove(eintrag.pfeil);
+  eintrag.pfeil = zeigtZugangsPfeil(g.typ) ? baueZugangsPfeil(g.zugang, g.richtung) : null;   // Phase 7b Nachtrag: nur Stationen
+  if (eintrag.pfeil) szene.add(eintrag.pfeil);
   eintrag.alter = 0;
 });
 
@@ -8915,7 +10013,7 @@ spielEreignisse.addEventListener("gebaeudeEntfernt", (e) => {
   if (!eintrag) return;
   eintrag.verschwindet = true;
   eintrag.alter = 0;
-  szene.remove(eintrag.pfeil);
+  if (eintrag.pfeil) szene.remove(eintrag.pfeil);
   if (eintrag.status) szene.remove(eintrag.status.anzeige);
   if (eintrag.lagerMarke) szene.remove(eintrag.lagerMarke.schild);
   if (eintrag.stationsMarke) szene.remove(eintrag.stationsMarke.schild);
@@ -9173,6 +10271,7 @@ function zeigeBauVorschau(info) {
   const mitte = kachelZuWelt(info.geo.mitte.x, info.geo.mitte.z);
   vorschau.huelle.position.set(mitte.x, rasterHoehe + 0.01, mitte.z);
   vorschau.huelle.rotation.y = gebaeudeWinkel(info.geo.richtung);
+  if (!zeigtZugangsPfeil(info.typ)) return;   // Phase 7b Nachtrag: Lager zeigen keinen Zugangspfeil mehr
   vorschau.pfeil = baueZugangsPfeil(info.geo.zugang, info.geo.richtung, vorschauPfeilMaterial);
   vorschau.pfeil.position.y += 0.005;
   szene.add(vorschau.pfeil);
@@ -9322,7 +10421,7 @@ function bandZiele(start) {
     if (besucht.has(t.id)) continue;
     besucht.add(t.id);
     if (istGreifarm(t)) { const z = gebaeudeAufKachel(vorKachel(t)); if (z) ziele.add(z.id); continue; }
-    const naechste = t.typ === "splitter" ? (t.ausgaenge || []).map((a) => a.ziel) : [t.ziel];
+    const naechste = istVerteiler(t) ? (t.ausgaenge || []).map((a) => a.ziel) : [t.ziel];
     for (const z of naechste) {
       if (!z) continue;
       if (z.art === "gebaeude") ziele.add(z.g.id);
@@ -9552,17 +10651,30 @@ function baueBandModell(t) {
       break;
     }
     case "splitter":
+    case "smartVerteiler":
+    case "ventil":
     case "zusammen": {
-      const farbe = t.typ === "splitter" ? GRAFIK.farbeSplitter : GRAFIK.farbeZusammen;
+      const farbe = t.typ === "smartVerteiler" ? GRAFIK.farbeSmartVerteiler : t.typ === "ventil" ? GRAFIK.farbeVentil
+        : istVerteiler(t) ? GRAFIK.farbeSplitter : GRAFIK.farbeZusammen;
       quader(g, 0.92, H - 0.01, 0.92, farbe, 0, 0, 0);
       bahn(g, BAND_BREITE, BAND_BREITE, bandMaterialien.get("pause"), 0, H + 0.002, 0);
       for (const x of [-0.42, 0.42]) for (const z of [-0.42, 0.42]) quader(g, 0.07, 0.46, 0.07, farbe, x, H, z);
       quader(g, 0.92, 0.06, 0.92, farbe, 0, H + 0.46, 0);
       const dach = H + 0.525;
-      if (t.typ === "splitter") {
+      if (t.typ === "ventil") {          // Phase 7b: dicker Pfeil geradeaus, kleine zur Seite
+        bandPfeil(g, 0, dach, 0.2, 0, 0.6);
+        for (const rel of [3, 1]) {
+          const r = RICHTUNGEN[rel];
+          bandPfeil(g, r.x * 0.3, dach, r.z * 0.3 - 0.12, gebaeudeWinkel(r), 0.26);
+        }
+      } else if (istVerteiler(t)) {
         for (const rel of [3, 0, 1]) {   // links, vorn, rechts (wie die Logik)
           const r = RICHTUNGEN[rel];
           bandPfeil(g, r.x * 0.27, dach, r.z * 0.27, gebaeudeWinkel(r), 0.45);
+        }
+        if (t.typ === "smartVerteiler") {   // Phase 7b: kleine Anzeige vorn am Dach
+          quader(g, 0.34, 0.16, 0.05, GRAFIK.farbeMetallDunkel, 0, H + 0.28, 0.44);
+          quader(g, 0.26, 0.08, 0.02, GRAFIK.farbeImport, 0, H + 0.32, 0.47);
         }
       } else {
         for (const rel of [3, 2, 1]) {   // Eingänge links, hinten, rechts zeigen zur Mitte
@@ -9690,7 +10802,7 @@ function bandItemPunkt(t, it, ziel) {
   const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
   const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
   const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung];
-  const aus = t.typ === "splitter" ? { x: 0, z: 0 } : RICHTUNGEN[t.richtung];
+  const aus = istVerteiler(t) ? { x: 0, z: 0 } : RICHTUNGEN[t.richtung];
   const p = it.pos, q = 1 - p;
   const ex = mx - ein.x * 0.5, ez = mz - ein.z * 0.5;
   const ax = mx + aus.x * 0.5, az = mz + aus.z * 0.5;
@@ -9706,6 +10818,38 @@ function bandItemPunkt(t, it, ziel) {
   }
   ziel.set(q * q * ex + 2 * q * p * mx + p * p * ax, rasterHoehe + y + GRAFIK.bandItemGroesse / 2, q * q * ez + 2 * q * p * mz + p * p * az);
   return ziel;
+}
+// Phase 7b Nachtrag: Puffer von Splitter, Smart-Verteiler und Ventil (t.puffer = Item-Ids, bis 30).
+// Kleine Würfel in den Ecken unter dem Dach – neben den Wegen der durchlaufenden Items. Genutzt werden die drei
+// Ecken, die zur Kamera zeigen (Welt +x/+z), je Ecke 2 × 2 Würfel in bis zu drei Lagen (36 Plätze): Mit der
+// Füllung wachsen die Stapel. Sie gehören zum selben InstancedMesh wie die Band-Items (gleiche Farben).
+const PUFFER_PLAETZE = [];
+for (let lage = 0; lage < 3; lage++) {
+  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1]]) {
+    for (const [ix, iz] of [[1, 1], [0, 1], [1, 0], [0, 0]]) {
+      PUFFER_PLAETZE.push({ x: sx * (0.19 + ix * 0.11), z: sz * (0.19 + iz * 0.11), lage });
+    }
+  }
+}
+const pufferSkala = new THREE.Vector3().setScalar(GRAFIK.pufferWuerfel / GRAFIK.bandItemGroesse);
+function zeichnePufferItems(n) {
+  const max = GRAFIK.maxBandItems, k = GRAFIK.pufferWuerfel;
+  for (const t of spiel.baender.values()) {
+    const puffer = t.puffer;
+    if (!puffer || !puffer.length || !istVerteiler(t)) continue;
+    const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
+    const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
+    const boden = rasterHoehe + bahnHoehe(0) + 0.004 + k / 2;
+    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length && n < max; i++) {
+      const p = PUFFER_PLAETZE[i];
+      bandHilfsVektor.set(mx + p.x, boden + p.lage * (k + 0.004), mz + p.z);
+      hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, pufferSkala);
+      bandItems.setMatrixAt(n, hilfsMatrix);
+      bandItems.setColorAt(n, itemFarbe(puffer[i]));
+      n++;
+    }
+  }
+  return n;
 }
 function zeichneBandItems() {
   let n = 0;
@@ -9733,6 +10877,7 @@ function zeichneBandItems() {
       }
     }
   }
+  n = zeichnePufferItems(n);   // Phase 7b Nachtrag: Puffer der Verteiler
   bandItems.count = n;
   bandItems.instanceMatrix.needsUpdate = true;
   if (bandItems.instanceColor) bandItems.instanceColor.needsUpdate = true;
@@ -10080,7 +11225,7 @@ function personZustandText(p) {
     case "nimmt": return `nimmt Material aus ${name(a && a.quelleId)}`;
     case "wartetMaterial": return `wartet an ${name(a && a.quelleId)} auf Material`;
     case "zurStation": return `trägt Material zu ${gebaeudeName(s)}`;
-    case "arbeitet": return s.status === "ausgabeVoll" ? `wartet: Ausgabefach voll` : `arbeitet an ${gebaeudeName(s)} (${Math.round(s.fortschritt * 100)} %)`;
+    case "arbeitet": return s.status === "ausgabeVoll" ? `Stau: Ausgabefach und Lager voll` : `arbeitet an ${gebaeudeName(s)} (${Math.round(s.fortschritt * 100)} %)`;
     default: return STATUS_ANZEIGE[stationsStatus(s)].text;
   }
 }
@@ -10094,11 +11239,11 @@ function zeichnePersonal() {
     const st = kurierStufe(p);
     const stufe = erfahrungsStufe(p);
     const unter = p.rolle === "kurier"
-      ? `Kurier · ${st.name} (${st.traglast} Item${st.traglast === 1 ? "" : "s"}/Gang)`
+      ? `Kurier · ${st.name} (${traglastVon(p)} Items/Gang)`
       : `Arbeiter · ${station ? htmlSicher(gebaeudeName(station)) : "keine Station"}`;
     // Ausrüstung (Phase 5): gekaufte wählen, freigeschaltete kaufen, gesperrte mit Schloss
     const ausruestung = p.rolle !== "kurier" ? "" : `<div class="personal-ausruestung">` + KURIER_STUFEN.map((k) => {
-      const titel = `${k.name}: ${k.traglast} Item${k.traglast === 1 ? "" : "s"} pro Gang, Tempo ${Math.round(k.tempoFaktor * 100)} %`;
+      const titel = `${k.name}: ${traglastVon(p, k)} Items pro Gang (${PRODUKTION.kurierTraglast} + ${k.extra}), Tempo ${Math.round(k.tempoFaktor * 100)} %`;
       if (k.stufe <= (p.ausruestung || 0)) {
         return `<button type="button" data-aktion="ausruestung" data-stufe="${k.stufe}" aria-pressed="${p.stufe === k.stufe}" title="${titel}">${k.name}</button>`;
       }
@@ -10179,13 +11324,15 @@ function aktualisiereBauTipp() {
   } else if (w && w.art === "abriss") {
     html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Hauptlager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · <kbd>Esc</kbd> abbrechen";
   } else if (bau.reiter === "baender") {
-    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. ${kbd("band")} Fließband`;
+    html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite. ${kbd("band")} Fließband`;   // Phase 7b Nachtrag
   } else if (bau.reiter === "halle") {
     html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
     html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
   } else {
-    html = "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
+    html = bau.reiter === "lager"                    // Phase 7b Nachtrag: Lager überall per Band anbindbar
+      ? "Gebäude auswählen und in der Halle aufstellen. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite."
+      : "Gebäude auswählen und in der Halle aufstellen. Der Pfeil zeigt den Zugang.";
   }
   if (ob.bauTipp.innerHTML !== html) ob.bauTipp.innerHTML = html;
   ob.bauTipp.classList.toggle("warnung", warnung);
@@ -10482,6 +11629,18 @@ function zeichneInfo() {
             .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
         </select></label>
       </div>`;
+  } else if (istHauptlager(g)) {
+    // Phase 7b Nachtrag: Hauptlager mit derselben Regel-Tabelle wie der Schrank (Annahme, Abgabe, Max)
+    html += `<div class="info-block">
+        <p class="modus-text">Lege fest, was hier eingelagert wird und wie viel. Abgewiesene Ware geht ins nächste Hauptlager.<br>
+          ⇣ grün = Annahme (darf hier eingelagert werden) · ⇡ rot = Abgabe (darf hier entnommen werden) · Max leer = keine Grenze.</p>
+        <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
+          <option value="">– Item wählen –</option>
+          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
+            .filter((item) => !hauptlagerRegelIds(g).includes(item))
+            .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
+        </select></label>
+      </div>`;
   }
   if (istStation(g) && g.automatik) {               // Phase 6: läuft ohne Arbeiter
     html += `<p class="info-ok">⚙ Läuft automatisch über Bänder – kein Arbeiter nötig.</p>`;
@@ -10539,21 +11698,31 @@ function regelZeile(z) {
 function regelZeileHtml(z) {
   const info = itemInfo(z.item);
   const id = htmlSicher(z.item);
-  const menge = z.soll === null ? `${z.ist}` : `${z.ist} <span class="leise">/ ${z.soll}</span>`;
+  // Phase 7b: Lager zeigen "Ist / Max" mit Zahlenfeld (leer = kein Max); Stationen ihren Pegel
+  const menge = z.max !== undefined ? `${z.ist}`
+    : z.soll === null ? `${z.ist}` : `${z.ist} <span class="leise">/ ${z.soll}</span>`;
+  const feldWert = z.max !== undefined ? (z.max === null ? "" : z.max) : z.soll ?? "";
+  const platzhalter = z.platzhalter ?? (z.max !== undefined ? (z.soll !== null ? z.soll : "∞") : "");   // Phase 7b Nachtrag: Hauptlager "–"
   const knoepfe = z.sollAenderbar ? `<span class="fix-knoepfe">
       <button class="mini-knopf" type="button" data-aktion="soll-minus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} verringern">−</button>
-      <button class="mini-knopf" type="button" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} erhöhen">+</button></span>` : "";
+      <input class="max-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="max" data-item="${id}"
+        value="${feldWert}" placeholder="${platzhalter}" title="${htmlSicher(z.sollText)} eintippen, Enter übernimmt${z.max !== undefined ? " (leer = kein Max)" : ""}"
+        aria-label="${htmlSicher(z.sollText)}">
+      <button class="mini-knopf" type="button" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} erhöhen">+</button></span>`
+    : z.max !== undefined ? ` <span class="leise">/ ∞</span>` : "";
   return `<tr>
     <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
     <td class="zahl">${menge}${knoepfe}</td>
-    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, "Import (grün): Kuriere bringen bis zum Soll")}</td>
-    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.station ? "Export (rot): Kuriere holen ab, sobald der Pegel erreicht ist" : "Export (rot): Kuriere holen ab, was über dem Soll liegt")}</td>
+    <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, z.hauptlager ? "Annahme: Kuriere, Bänder und Greifarme dürfen es hier einlagern"
+      : "Import (grün): Kuriere bringen bis zum Soll")}</td>
+    <td>${z.exp === null ? "" : pfeilKnopf(z.item, "exp", z.exp, z.hauptlager ? "Abgabe: Kuriere, Arbeiter und Bänder dürfen es hier entnehmen"
+      : z.station ? "Export (rot): Kuriere holen ab, sobald der Pegel erreicht ist" : "Export (rot): Kuriere holen ab, was über dem Soll liegt")}</td>
     <td>${z.manuell ? `<button class="mini-knopf" type="button" data-aktion="auto" data-item="${id}" title="Zurück auf Automatik" aria-label="Zurück auf Automatik">↺</button>` : ""}</td>
   </tr>`;
 }
 // Phase 7a: oben Komponenten, darunter Fertigware, unten Ressourcen; in jeder Gruppe alphabetisch
 // (so springen die Zeilen nicht mehr, wenn sich Mengen ändern)
-function regelTabelle(zeilen) {
+function regelTabelle(zeilen, kopf = "Ist / Soll", pfeilNamen = null) {
   if (!zeilen.length) return `<p class="info-leer">leer</p>`;
   let koerper = "";
   for (const gruppe of ITEM_GRUPPEN) {
@@ -10562,8 +11731,9 @@ function regelTabelle(zeilen) {
     if (!teil.length) continue;
     koerper += `<tr class="regel-gruppe"><th colspan="5">${gruppe.titel}</th></tr>` + teil.map((z) => z.html).join("");
   }
-  return `<table class="regel-tabelle"><thead><tr><th>Ressource</th><th class="zahl">Ist / Soll</th>
-    <th title="Import">⇣</th><th title="Export">⇡</th><th></th></tr></thead><tbody>${koerper}</tbody></table>`;
+  const [imp, exp] = pfeilNamen || ["Import", "Export"];   // Phase 7b Nachtrag: Hauptlager "Annahme" / "Abgabe"
+  return `<table class="regel-tabelle"><thead><tr><th>Ressource</th><th class="zahl">${kopf}</th>
+    <th title="${imp}">⇣</th><th title="${exp}">⇡</th><th></th></tr></thead><tbody>${koerper}</tbody></table>`;
 }
 // Ressourcen-Reiter eines Zwischenlagers
 function lagerZeilen(g) {
@@ -10572,12 +11742,31 @@ function lagerZeilen(g) {
   return regelTabelle(ids.map((item) => {
     const r = regelVon(g, item);
     const fest = g.regeln[item] && g.regeln[item].soll !== undefined;
+    // Phase 7b: Max per Zahl für jede Ware (auch reine Export-Ware: Bänder und Arbeiter liefern nur bis Max)
     return regelZeile({
-      item, ist: g.bestand[item] || 0, soll: r.imp ? soll[item] || 0 : null, sollAenderbar: r.imp, sollText: "Sollmenge",
+      item, ist: g.bestand[item] || 0, soll: r.imp ? soll[item] || 0 : null, max: fest ? g.regeln[item].soll : null,
+      sollAenderbar: true, sollText: "Max",
       imp: r.imp, exp: r.exp, manuell: r.manuell,
-      notiz: !r.imp && !r.exp ? "bleibt liegen" : fest ? "feste Menge" : "",
+      notiz: !r.imp && !r.exp ? "bleibt liegen" : fest ? (maxErreicht(g, item) ? "Max erreicht" : "Max") : "",
     });
-  }));
+  }), "Ist / Max");
+}
+// Phase 7b Nachtrag: Regel-Tabelle des Hauptlagers – was liegt hier oder ist eingestellt?
+// Ohne Einstellung: ⇣ Annahme und ⇡ Abgabe an, kein Max (Feld leer mit "–", kein automatisches Soll).
+function hauptlagerRegelIds(g) {
+  return [...new Set([...Object.keys(g.bestand).filter((item) => g.bestand[item] > 0), ...Object.keys(g.regeln || {})])];
+}
+function hauptlagerZeilen(g) {
+  return regelTabelle(hauptlagerRegelIds(g).map((item) => {
+    const r = regelVon(g, item);
+    const fest = !!(g.regeln && g.regeln[item] && g.regeln[item].soll !== undefined);
+    return regelZeile({
+      item, ist: g.bestand[item] || 0, soll: null, max: fest ? g.regeln[item].soll : null, platzhalter: "–",
+      sollAenderbar: true, sollText: "Max", imp: r.imp, exp: r.exp, manuell: r.manuell, hauptlager: true,
+      notiz: !r.imp && !r.exp ? "gesperrt" : !r.imp ? "keine Annahme" : !r.exp ? "keine Abgabe"
+        : fest ? (maxErreicht(g, item) ? "Max erreicht" : "Max") : "",
+    });
+  }), "Ist / Max", ["Annahme", "Abgabe"]);
 }
 // Ressourcen-Reiter einer Station: Material (Eingangsfach, Import-Pegel) und Erzeugnis (Export-Pegel)
 function stationsZeilen(s, r) {
@@ -10612,13 +11801,82 @@ function aktualisiereInfoZahlen() {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!ziel || !g) return;
   if (performance.now() < infoKlickSperre) return;   // gerade wird geklickt: Knöpfe nicht austauschen
+  // Phase 7b: Während im Max-Feld getippt wird, nichts austauschen
+  if (infoFormularAktiv()) return;
   setzeHtml(ziel, infoZahlenHtml(g));
+}
+// Phase 7b: Importzone – Bestellungen pro Rohstoff (Menge + Rhythmus) und Wagen unterwegs
+function importzoneHtml(g) {
+  const zeilen = ROHSTOFFE.map((r) => {
+    const b = g.bestellungen.find((x) => x.item === r.id);
+    const wann = !b ? "" : !b.rhythmus ? "Rhythmus wählen" : !b.menge ? "Menge eintippen"
+      : spiel.zeit >= b.naechste ? "gleich" : `nächste in ${dauerSek(b.naechste - spiel.zeit)}`;
+    return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span> <small class="leise">${euro(r.preis)}</small>${wann ? `<br><small class="leise">${wann}</small>` : ""}</td>
+      <td><input class="max-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="bestell-menge" data-item="${r.id}"
+        value="${b && b.menge ? b.menge : ""}" placeholder="0" aria-label="Menge ${r.name}" title="Menge eintippen, Enter übernimmt"></td>
+      <td><select class="rhythmus-wahl" data-aktion="bestell-rhythmus" data-item="${r.id}" aria-label="Rhythmus ${r.name}">
+        <option value="">– aus –</option>${ZONEN.rhythmen.map((x) => `<option value="${x.id}" ${b && b.rhythmus === x.id ? "selected" : ""}>${x.name}</option>`).join("")}
+      </select></td></tr>`;
+  }).join("");
+  const wagen = g.lieferwagen.filter((w) => !w.abgeladen).map((w) => `🚚 in ${dauerSek(w.ankunft - spiel.zeit)}: `
+    + Object.entries(w.items).map(([i, n]) => `${n}× ${htmlSicher(itemInfo(i).name)}`).join(", ")).join("<br>");
+  return `<div class="info-block"><h3>Bestellen</h3><p class="modus-text">Menge eintippen und Rhythmus wählen. Der Lieferwagen kommt nach
+      ${ZONEN.lieferzeit} s, bezahlt wird beim Abladen. Was nicht mehr hineinpasst (oder nicht bezahlt werden kann), wird abgewiesen und nicht berechnet.
+      „bis Sollmenge“ füllt Hauptlager + Zone jede Minute bis zur Menge auf.</p>
+    <table class="regel-tabelle bestell-tabelle"><thead><tr><th>Rohstoff</th><th>Menge</th><th>Rhythmus</th></tr></thead><tbody>${zeilen}</tbody></table>
+    ${wagen ? `<p class="info-leer">${wagen}</p>` : ""}</div>`;
+}
+function dauerSek(s) { return `${Math.max(0, Math.ceil(s))} s`; }
+// Phase 7b: Exportzone – Ware mit Modus, Aufträge und Abholwagen
+// Phase 7b Nachtrag 2: Hinweis, wenn die Zone keine Wand (mehr) hat
+function zonenWarnungHtml(g) {
+  if (zoneAktiv(g)) return "";
+  return `<p class="info-warnung zugang-warnung">⚠ Inaktiv: Die Zone steht nicht an einer Wand. ${istImportzone(g) ? "Bestellungen ruhen" : "Verkäufe und Auftragslieferungen ruhen"}, bis du sie mit M an eine Wand verschiebst.${istImportzone(g) ? " Was noch drin liegt, holen die Kuriere ab." : ""}</p>`;
+}
+function exportzoneHtml(g) {
+  const items = [...new Set([...Object.keys(g.bestand), ...Object.keys(g.regeln).filter((i) => g.regeln[i].imp === true)])]
+    .sort((a, b) => itemInfo(a).name.localeCompare(itemInfo(b).name));
+  const zeilen = items.map((item) => {
+    const id = htmlSicher(item);
+    const modus = exportModusVon(g, item);
+    const hand = !!(g.regeln[item] && g.regeln[item].imp === true);
+    return `<tr><td><span class="info-item" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span></td>
+      <td class="zahl">${g.bestand[item] || 0}</td>
+      <td><button class="mini-knopf export-modus" type="button" data-aktion="export-modus" data-item="${id}" data-modus="${modus}"
+        title="Klick wechselt zwischen „Für Aufträge“ und „Verkaufen“">${modus === "auftrag" ? "📋 Für Aufträge" : `💶 Verkaufen · ${euro(zonenVerkaufspreis(item))}`}</button></td>
+      <td>${hand ? `<button class="mini-knopf" type="button" data-aktion="export-weg" data-item="${id}" title="Kuriere bringen diese Ware nicht mehr her" aria-label="Nicht mehr herbringen">✕</button>` : ""}</td></tr>`;
+  }).join("");
+  const auftraege = spiel.auftraege.filter((a) => auftragsZone(a) === g).map((a) => {
+    const k = klasseNachId.get(a.klasse), rest = a.menge - a.geliefert, da = inExportzone(a);
+    return `<li>${k.symbol} ${k.name}: <b>${Math.min(da, rest)} / ${rest}</b>${da >= rest ? " – geht mit dem nächsten Abholwagen" : ""}</li>`;
+  }).join("");
+  const l = g.letzteAbholung;
+  const zuletzt = l ? ` Zuletzt: ${l.auftraege ? `${l.auftraege} Auftrag geliefert, ` : ""}${l.verkauft} verkauft${l.erloes ? ` (+${euro(l.erloes)})` : ""}.` : "";
+  return `<div class="info-block"><h3>Ware</h3>${items.length ? `<table class="regel-tabelle"><thead><tr><th>Ware</th><th class="zahl">Ist</th><th>Geht</th><th></th></tr></thead>
+      <tbody>${zeilen}</tbody></table>` : `<p class="info-leer">leer – Kuriere bringen passende Fertigware für angenommene Aufträge von selbst.</p>`}
+      <label class="info-feld">Ware herbringen <select data-aktion="export-ware">${itemOptionen("", "– auswählen –")}</select></label></div>
+    <div class="info-block"><h3>Aufträge</h3>${auftraege ? `<ul class="zonen-liste">${auftraege}</ul>` : `<p class="info-leer">Kein angenommener Auftrag (Kontor, Taste K).</p>`}</div>
+    <div class="info-block"><h3>🚚 Abholwagen</h3><p>kommt in ${dauerSek(g.abholTimer)}.${zuletzt}</p></div>`;
+}
+// Phase 7b: Füllstand in Volumen mit Warnfarbe (ab 80 % gelb, voll rot)
+function warnStufe(g) {
+  const f = fuellgrad(g);
+  return f >= PRODUKTION.lagerWarnRot ? "rot" : f >= PRODUKTION.lagerWarnGelb ? "gelb" : "";
+}
+function fuellstandHtml(g) {
+  const stufe = warnStufe(g);
+  return `<span class="fuell-wert ${stufe}" title="Volumen: Rohstoff 1, kleines Bauteil 1, 2×2-Bauteil 2, 2×3-Bauteil 3, Produkt 4">${belegt(g)} / ${kapazitaetVon(g)}</span>`
+    + (stufe === "rot" ? ` <span class="fuell-wert rot">voll</span>` : "");
 }
 // Der laufend aktualisierte Teil des Info-Fensters (Status, Ressourcen, Füllstand)
 function infoZahlenHtml(g) {
   const t = typVon(g);
   const lagerName = (v) => istZwischenlager(v) ? `${ANZEIGE_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
+  // Phase 7b Nachtrag: Liegt ein Bandteil auf dem Zugang eines Lagers, kommen Kuriere nicht heran
+  if (!istStation(g) && typeof zugangGesperrt === "function" && zugangGesperrt(g)) {
+    html += `<p class="info-warnung zugang-warnung">⚠ Zugang durch Fließband blockiert – Kuriere können hier nichts entnehmen oder liefern.</p>`;
+  }
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
     const st = STATUS_ANZEIGE[art];
@@ -10660,11 +11918,26 @@ function infoZahlenHtml(g) {
     html += `<div class="info-block"><h3>⇡ Export nach</h3>${vkListe(g, verknuepfteLager(g, "export"), "export", lagerName)
       || `<span class="info-leer">Kein Lager – Erzeugnisse bleiben im Ausgabefach, Kuriere holen sie ab.</span>`}</div>`;
   } else if (istZwischenlager(g)) {
-    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${lagerZeilen(g)}</div>`;
+    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3>${lagerZeilen(g)}</div>`;
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
     html += vkLagerHtml(g, lagerName);
+  } else if (istImportzone(g)) {                     // Phase 7b
+    html += zonenWarnungHtml(g) + `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${itemGruppen(g.bestand)}${importzoneHtml(g)}`;
+  } else if (istExportzone(g)) {
+    html += zonenWarnungHtml(g) + `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3></div>${exportzoneHtml(g)}`;
+  } else if (t.art === "muell") {                    // Phase 7b: Mülltonne
+    html += `<div class="info-block"><h3>Vernichtet</h3><p>${zahlText(g.vernichtet || 0)} Items</p></div>`;
+    html += `<div class="info-block"><h3>Was nimmt sie an?</h3><p class="modus-text">Ohne Haken: alles von Band und Greifarm.
+      ✓ = Kuriere bringen diese Ware auch her (statt ins Hauptlager). ✕ = nimmt sie gar nicht an.</p><div class="filter-liste">${
+      alleItems().map((item) => {
+        const m = g.regeln[item];
+        const zustand = m && m.imp === true ? "nur" : m && m.imp === false ? "nein" : "";
+        return `<button type="button" class="filter-knopf seiten-chip" data-aktion="muell" data-item="${htmlSicher(item)}" data-zustand="${zustand}"
+          title="${zustand === "nur" ? "Kuriere bringen es auch – Klick: sperren" : zustand === "nein" ? "gesperrt – Klick: Standard" : "nur Band/Greifarm – Klick: auch Kuriere"}"
+          style="--item-farbe:${itemInfo(item).farbe}">${zustand === "nur" ? "✓ " : zustand === "nein" ? "✕ " : ""}${htmlSicher(itemInfo(item).name)}</button>`;
+      }).join("")}</div></div>`;
   } else if (t.art === "hauptlager") {
-    html += `<div class="info-block"><h3>Füllstand ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3></div>${itemGruppen(g.bestand)}`;
+    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3>${hauptlagerZeilen(g)}</div>`;   // Phase 7b Nachtrag: Regeln
     if (g.verknuepft.length) html += vkLagerHtml(g, lagerName);
   }
   html += bandAnschlussHtml(g);                     // Phase 6
@@ -10746,7 +12019,16 @@ ob.bauLeiste.addEventListener("pointerdown", (e) => {
 });
 ob.info.addEventListener("pointerdown", (e) => {
   if (e.target.closest("button, select, input")) infoKlickSperre = performance.now() + 400;
+  // Phase 7b: Eine aufgeklappte Auswahlliste bekommt nicht in jedem Browser den Fokus (Safari) –
+  // solange sie offen sein kann, wird das Fenster nicht aufgefrischt (bis zur Auswahl oder 10 s)
+  infoFormSperre = e.target.closest("select") ? performance.now() + 10000 : 0;
 });
+let infoFormSperre = 0;
+function infoFormularAktiv() {
+  const a = document.activeElement;
+  return performance.now() < infoFormSperre
+    || ((a instanceof HTMLInputElement || a instanceof HTMLSelectElement) && ob.info.contains(a));
+}
 
 // Auswahlfelder und Knöpfe im Info-Fenster
 ob.infoInhalt.addEventListener("change", (e) => {
@@ -10757,12 +12039,40 @@ ob.infoInhalt.addEventListener("change", (e) => {
     if (e.target.value) weiseZu(e.target.value, g.id);
     else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
   }
+  if (e.target.dataset.aktion === "bestell-menge" || e.target.dataset.aktion === "bestell-rhythmus") {   // Phase 7b: Importzone
+    const zeile = e.target.closest("tr");
+    const item = e.target.dataset.item;
+    const menge = Number(zeile.querySelector('[data-aktion="bestell-menge"]').value) || 0;
+    const wahl = zeile.querySelector('[data-aktion="bestell-rhythmus"]');
+    const rhythmus = wahl.value || null;
+    const r = setzeBestellung(g.id, item, menge, rhythmus);
+    if (!r.ok) zeigeMeldung(r.grund, true);
+    else if (r.aktiv) zeigeMeldung(`${menge}× ${itemInfo(item).name} ${rhythmusNach.get(rhythmus).name} bestellt – der Lieferwagen kommt ${rhythmus === "taeglich" ? "um 8:00" : `in ${ZONEN.lieferzeit} s`}.`);
+    else if (r.entwurf) zeigeMeldung(rhythmus ? `${itemInfo(item).name}: Jetzt noch die Menge eintippen (Enter).` : `${itemInfo(item).name}: Jetzt noch den Rhythmus wählen.`);
+    else zeigeMeldung(`Keine Bestellung mehr für ${itemInfo(item).name}.`);
+    infoFormSperre = 0;
+  }
+  if (e.target.dataset.aktion === "export-ware" && e.target.value) {   // Phase 7b: Exportzone
+    setzeExportWare(g.id, e.target.value, true);
+    zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(e.target.value).name} (${exportModusVon(g, e.target.value) === "auftrag" ? "für Aufträge" : "zum Verkaufen"}).`);
+  }
+  if (e.target.dataset.aktion === "max") {                             // Phase 7b: Max bzw. Pegel per Zahl
+    const text = e.target.value.trim();
+    const wert = text === "" ? null : Number(text);
+    if (wert === null || Number.isFinite(wert)) {
+      setzeRegel(g.id, e.target.dataset.item, "soll", wert === null ? null : Math.max(0, Math.round(wert)));
+      if (!istStation(g)) zeigeMeldung(wert === null ? `${itemInfo(e.target.dataset.item).name}: kein Max mehr.`
+        : `${gebaeudeName(g)}: höchstens ${Math.max(0, Math.round(wert))}× ${itemInfo(e.target.dataset.item).name}.`);
+    }
+  }
   if (e.target.dataset.aktion === "ressource" && e.target.value) {     // Phase 5b: Ressource aufnehmen (Import an)
     const item = e.target.value;
     setzeRegel(g.id, item, "imp", true);
-    zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
+    if (istHauptlager(g)) zeigeMeldung(`${gebaeudeName(g)}: ${itemInfo(item).name} steht in der Liste – Annahme, Abgabe und Max einstellen.`);   // Phase 7b Nachtrag
+    else zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
   e.target.blur();
+  infoFormSperre = 0;
   if (e.target.dataset.aktion) sofortAktualisieren();
 });
 ob.infoInhalt.addEventListener("click", (e) => {
@@ -10801,11 +12111,20 @@ ob.infoInhalt.addEventListener("click", (e) => {
     case "soll-plus": {                              // Phase 5b: Sollmenge bzw. Pegel ändern
       const aktuell = istStation(g)
         ? (item in (rezeptVon(g)?.eingaben || {}) ? sollEingangsfach(g)[item] || 0 : exportPegel(g, item))
-        : sollbestand(g)[item] || 0;
+        : maxVon(g, item) !== Infinity ? maxVon(g, item)
+        : istHauptlager(g) ? g.bestand[item] || 0                 // Phase 7b Nachtrag: Hauptlager hat kein automatisches Soll
+        : sollbestand(g)[item] ?? (g.bestand[item] || 0);        // Phase 7b: Max startet beim Soll bzw. Bestand
       setzeRegel(g.id, item, "soll", aktuell + (knopf.dataset.aktion === "soll-plus" ? 1 : -1));
       break;
     }
     case "auto": setzeRegelZurueck(g.id, item); break;
+    case "export-modus": setzeExportModus(g.id, item, exportModusVon(g, item) === "auftrag" ? "verkaufen" : "auftrag"); break;
+    case "export-weg": setzeExportWare(g.id, item, false); break;
+    case "muell": {                                  // Phase 7b: Standard → ✓ Kuriere auch → ✕ gesperrt → Standard
+      const m = g.regeln[item];
+      setzeMuellRegel(g.id, item, !m ? true : m.imp === true ? false : null);
+      break;
+    }
     case "rueckgabe": {
       const n = schickeUeberschussZurueck(g.id);
       zeigeMeldung(n ? `Kuriere bringen ${n} Items aus ${gebaeudeName(g)} zurück ins Hauptlager.` : "Hier liegt kein Überschuss.", !n);
@@ -10848,7 +12167,7 @@ function schliesseLager() {
 }
 function zeichneLager() {
   const hl = hauptlager(), anzahl = hauptlagerListe().length, bestand = hlBestand();   // Phase 7a (Nachtrag 3): alle zusammen
-  ob.lagerHaupt.innerHTML = `<h3>${anzahl > 1 ? `${anzahl} Hauptlager` : "Hauptlager"}${hl ? ` · ${summe(bestand)} / ${hlKapazitaet()}` : ""}</h3>` +
+  ob.lagerHaupt.innerHTML = `<h3>${anzahl > 1 ? `${anzahl} Hauptlager` : "Hauptlager"}${hl ? ` · ${volumen(bestand)} / ${hlKapazitaet()} Volumen` : ""}</h3>` +
     (hl ? itemGruppen(bestand, (id) => (fuerAuftragGebraucht(id) ? "für Auftrag" : "")) : `<p class="info-warnung">Kein Hauptlager aufgestellt – Kuriere haben nichts zu tun. Baumenü (B) → Lager.</p>`);
   const maschinen = Object.entries(spiel.depot.gebaeude).filter(([, n]) => n > 0);
   ob.lagerDepot.innerHTML = `<h3>Depot (außerhalb der Halle)</h3>
@@ -11089,7 +12408,8 @@ function kontorAuftraege() {
     const klasse = klasseNachId.get(a.klasse);
     const rest = a.frist - spiel.zeit;
     const frueh = rest > (a.fristTage * WIRTSCHAFT.tagSekunden) / 2;
-    const imLager = lieferbar(a);
+    const inZone = inExportzone(a);                  // Phase 7b: geliefert wird über die Exportzone
+    const rest_ = a.menge - a.geliefert;
     return `<article class="auftrag-karte${rest < WIRTSCHAFT.tagSekunden ? " eng" : ""}">
       <div class="ak-kopf"><span class="ak-symbol" aria-hidden="true">${klasse.symbol}</span>
         <b>${klasse.name} · ${a.geliefert} / ${a.menge}</b><span class="ak-kunde">${htmlSicher(a.kunde)}</span></div>
@@ -11100,14 +12420,14 @@ function kontorAuftraege() {
         <span>Strafe <strong class="minus">−${euro(a.strafe)}</strong></span>
       </div>
       <div class="ak-fuss">
-        <span>${imLager ? `Im Hauptlager lieferbar: <strong>${imLager}</strong>` : `<span class="warn">Keine passende Fertigware im Hauptlager</span>`} · braucht ${klassenTeileText(klasse)}</span>
-        <button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="liefern" data-id="${a.id}" ${imLager ? "" : "disabled"}>Liefern${imLager ? ` (${Math.min(imLager, a.menge - a.geliefert)})` : ""}</button>
+        <span>In der Exportzone: <strong>${Math.min(inZone, rest_)} / ${rest_}</strong>${inZone >= rest_ ? " – geht mit dem nächsten Abholwagen"
+          : lieferbar(a) ? ` · im Hauptlager: ${lieferbar(a)} (Kuriere bringen es)` : ` · <span class="warn">keine passende Fertigware</span>`} · braucht ${klassenTeileText(klasse)}</span>
       </div>
     </article>`;
   }).join("") || `<p class="info-leer">Noch kein Auftrag angenommen.</p>`;
 
   return `<p class="kontor-hinweis">Kunden bestellen eine Produktklasse: Jedes nicht überhitzte Produkt mit diesen Bauteilen zählt.
-      Fertigware wird aus dem Hauptlager geliefert. Reputation „${stufe.name}“: höchstens ${stufe.gleichzeitig} Aufträge gleichzeitig.</p>
+      Geliefert wird über die Exportzone: Kuriere bringen passende Fertigware hin, der Abholwagen liefert, sobald die ganze Menge dort liegt. Reputation „${stufe.name}“: höchstens ${stufe.gleichzeitig} Aufträge gleichzeitig.</p>
     <div class="kontor-spalten">
       <section><h3>Auftragsbrett · ${spiel.angebote.length} / ${AUFTRAEGE.maxAngebote}</h3><div class="auftrag-liste">${angebote}</div></section>
       <section><h3>Angenommen · ${spiel.auftraege.length} / ${stufe.gleichzeitig}</h3><div class="auftrag-liste">${auftraege}</div></section>
@@ -11154,24 +12474,21 @@ function kontorVerkauf() {
     </table></div>`;
 }
 
-// Reiter "Einkauf": Rohstoffe direkt ins Hauptlager, mit automatischem Nachkauf
+// Reiter "Einkauf" (Phase 7b): Preise und Bestellungen – bestellt wird in der Importzone
 function kontorEinkauf() {
-  const hl = hauptlager();
-  const frei = hlFreierPlatz(reservierungen());     // Phase 7a (Nachtrag 3): alle Hauptlager zusammen
+  const zonen = zonenListe("importzone");
   const zeilen = ROHSTOFFE.map((r) => {
-    const schritt = WIRTSCHAFT.einkaufSchritt;
-    const knopf = (n) => `<button class="mini-knopf" type="button" data-aktion="kaufen" data-id="${r.id}" data-n="${n}"
-        ${hl && frei > 0 && kannBezahlen(r.preis * Math.min(n, frei)) ? "" : "disabled"}>+${n} · ${euro(r.preis * n)}</button>`;
+    const bestellt = zonen.flatMap((g) => g.bestellungen.filter((b) => b.item === r.id).map((b) => `${b.menge}× ${rhythmusNach.get(b.rhythmus)?.name || ""}`));
     return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span></td>
-      <td class="zahl">${euro(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td>
-      <td><div class="knoepfe">${knopf(schritt)}${knopf(schritt * 5)}</div></td>
-      <td><label title="Hält diesen Mindestbestand im Hauptlager (0 = aus)">mind.
-        <input type="number" min="0" step="${schritt}" value="${spiel.autoKauf[r.id] || 0}" data-aktion="autoKauf" data-id="${r.id}"></label></td></tr>`;
+      <td class="zahl">${euro(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td><td class="zahl">${zonenMenge("importzone", r.id)}</td>
+      <td class="zahl">${wagenUnterwegs(r.id)}</td><td><small class="leise">${bestellt.join(", ") || "–"}</small></td></tr>`;
   }).join("");
-  return `<p class="kontor-hinweis">${hl ? `Lieferungen landen sofort im Hauptlager (frei: ${frei} Plätze).` : `<span class="info-warnung">Kein Hauptlager – Baumenü (B) → Lager.</span>`}
-      Automatisch nachkaufen hält einen Mindestbestand, solange das Konto im Plus ist.</p>
+  return `<p class="kontor-hinweis">Rohstoffe bestellst du in der <b>Importzone</b> (anklicken): Menge und Rhythmus pro Rohstoff.
+      Der Lieferwagen kommt nach ${ZONEN.lieferzeit} s und wird beim Abladen bezahlt.</p>
+    ${zonen.length ? `<p><button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="zurImportzone">Zur Importzone</button></p>`
+      : `<p class="info-warnung">Keine Importzone – Baumenü (B) → Lager → Importzone (an einer Hallenwand).</p>`}
     <div class="kontor-tabelle-huelle"><table class="kontor-tabelle">
-      <thead><tr><th>Rohstoff</th><th class="zahl">Preis</th><th class="zahl">Im Lager</th><th>Kaufen</th><th>Automatisch</th></tr></thead>
+      <thead><tr><th>Rohstoff</th><th class="zahl">Preis</th><th class="zahl">Hauptlager</th><th class="zahl">Importzone</th><th class="zahl">Unterwegs</th><th>Bestellt</th></tr></thead>
       <tbody>${zeilen}</tbody>
     </table></div>`;
 }
@@ -11224,22 +12541,24 @@ ob.kontorInhalt.addEventListener("click", (e) => {
   if (aktion === "annehmen") {
     const r = nimmAuftragAn(id);
     zeigeMeldung(r.ok ? "Auftrag angenommen – liefere passende Fertigware vor Ablauf der Frist." : r.grund, !r.ok);
-  } else if (aktion === "liefern") {
-    const r = liefereAuftrag(id);
-    if (!r.fertig) zeigeMeldung(r.geliefert ? `${r.geliefert} Stück geliefert.` : "Keine passende Fertigware im Hauptlager.", !r.geliefert);
+  } else if (aktion === "zurImportzone") {         // Phase 7b
+    const g = zonenListe("importzone")[0];
+    if (g) {
+      schliesseKontor();
+      const mitte = gebaeudeMitteWelt(g);
+      kameraFlugZiel = new THREE.Vector3(mitte.x, 0, mitte.z);
+      waehleGebaeude(g.id);
+      return;
+    }
   } else if (aktion === "verkaufen") {
     const r = verkaufe(item, Number(knopf.dataset.n) || 1);
     zeigeMeldung(r.anzahl ? `${r.anzahl} × ${itemInfo(item).name} verkauft: +${euro(r.erloes)}` : "Nichts zu verkaufen.", !r.anzahl);
-  } else if (aktion === "kaufen") {
-    const r = kaufeRohstoff(id, Number(knopf.dataset.n) || WIRTSCHAFT.einkaufSchritt);
-    zeigeMeldung(r.ok ? `${r.anzahl} × ${itemInfo(id).name} gekauft: −${euro(r.kosten)}` : r.grund, !r.ok);
   }
   zeichneKontor(true);
 });
 ob.kontorInhalt.addEventListener("change", (e) => {
   const feld = e.target;
   if (feld.dataset.aktion === "autoVerkauf") setzeAutoVerkauf(feld.dataset.item, feld.checked);
-  if (feld.dataset.aktion === "autoKauf") setzeAutoKauf(feld.dataset.id, Number(feld.value));
   feld.blur();
   zeichneKontor(true);
 });
@@ -11251,7 +12570,14 @@ ob.kontorOverlay.addEventListener("click", (e) => { if (e.target === ob.kontorOv
 ob.hudKontor.addEventListener("click", () => (kontor.offen ? schliesseKontor() : oeffneKontor()));
 ob.hudKonto.addEventListener("click", () => oeffneKontor("kassenbuch"));
 ob.hudReputation.addEventListener("click", () => oeffneKontor("auftraege"));
-ob.lagerEinkauf.addEventListener("click", () => oeffneKontor("einkauf"));
+ob.lagerEinkauf.addEventListener("click", () => {   // Phase 7b: bestellt wird in der Importzone
+  const g = zonenListe("importzone")[0];
+  if (!g) { oeffneKontor("einkauf"); return; }
+  schliesseLager();
+  const mitte = gebaeudeMitteWelt(g);
+  kameraFlugZiel = new THREE.Vector3(mitte.x, 0, mitte.z);
+  waehleGebaeude(g.id);
+});
 
 /* --- Forschungs-Fenster mit Techtree --- */
 let forschungMerker = "";   // zuletzt gezeichneter Zustand (nur bei Änderung neu zeichnen)
@@ -11713,10 +13039,11 @@ function aktualisiereOberflaeche(sekunden) {
     if (auswahlBandId) aktualisiereBandInfoZahlen();
   }
   aktualisiereFreiChip();
+  aktualisiereLagerChip();                       // Phase 7b
   zeichneRezeptStapel();                         // Phase 7a (Nachtrag 2): Zahlen auf den angehefteten Rezepten
   if (rezeptFenster.offen) zeichneRezepte();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
-  if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !(document.activeElement instanceof HTMLSelectElement && ob.info.contains(document.activeElement))) {
+  if (anzeige.infoStrukturFehlt && auswahlGebaeudeId && !infoFormularAktiv()) {   // Phase 7b: auch Zahlenfelder
     zeichneInfo();
   }
   if (auswahlGebaeudeId) aktualisiereInfoZahlen();
@@ -11744,6 +13071,7 @@ function aktualisiereOberflaeche(sekunden) {
 const forschungBaum = { id: "kurier" };   // gewählter Reiter im Techtree
 Object.assign(ob, {
   hudFrei: $("hud-frei"),
+  hudLager: $("hud-lager"),
   forschungReiter: $("forschung-reiter"), forschungTitel: $("forschung-titel"),
 });
 
@@ -12057,29 +13385,46 @@ function kannWeiterbauen(t) {
 // Danach zeigt die Vorschau die Strecke vom Ansatzpunkt bis zur Maus; ein Klick baut sie.
 function bandWeiterbauen() {
   const t = auswahlBandId && spiel.baender.get(auswahlBandId);
-  if (!kannWeiterbauen(t)) { zeigeMeldung("Zuerst ein Fließband anklicken, dann weiterbauen.", true); return false; }
+  if (!t) { zeigeMeldung("Zuerst ein Fließband anklicken, dann weiterbauen.", true); return false; }
+  // Phase 7b Nachtrag: E führt immer zu Bau → Bänder → Fließband – auch wenn hier kein Ansatzpunkt frei ist
+  if (!kannWeiterbauen(t)) {
+    oeffneFliessbandWerkzeug(t.richtung);
+    zeigeMeldung(`An ${bandTyp(t).name} setzt das Weiterbauen nicht an – das Fließband-Werkzeug ist gewählt.`);
+    return false;
+  }
   if (bandTopologieAlt) baueBandTopologie();
   // Bei einer Bandgruppe am Ende der Gruppe ansetzen
   const seg = bandAuswahl.gruppe && segmentVon(t);
   const ende = seg ? seg.teile[seg.teile.length - 1] : t;
   const start = vorKachel(ende);
-  if (!istImRaster(start.x, start.z)) { zeigeMeldung("Hier endet die Halle – an dieser Stelle geht es nicht weiter.", true); return false; }
-  const kachel = holeKachel(start.x, start.z);
-  if (kachel.objekt || kachel.band) { zeigeMeldung("Vor dem Band ist kein Platz frei (dort steht schon etwas).", true); return false; }
-  if (!bau.offen) oeffneBau();
-  if (bau.reiter !== "baender") { bau.reiter = "baender"; zeichneBauInhalt(); }
-  setzeWerkzeug({ art: "band", typ: "band", richtung: ende.richtung, anker: { x: start.x, z: start.z } });
+  const kachel = istImRaster(start.x, start.z) && holeKachel(start.x, start.z);
+  if (!kachel || kachel.objekt || kachel.band) {
+    oeffneFliessbandWerkzeug(ende.richtung);
+    zeigeMeldung(!kachel ? "Hier endet die Halle – das Fließband-Werkzeug ist gewählt, setze die Strecke woanders an."
+      : "Vor dem Band ist kein Platz frei (dort steht schon etwas) – das Fließband-Werkzeug ist gewählt.", true);
+    return false;
+  }
+  oeffneFliessbandWerkzeug(ende.richtung, { x: start.x, z: start.z });
   zeigeMeldung("Weiterbauen: Ziel anklicken – die Strecke beginnt vor dem gewählten Band. Esc beendet.");
-  aktualisiereBauTipp();
   return true;
+}
+// Phase 7b Nachtrag: Baumenü öffnen, Reiter "Bänder", Karte "Fließband" aktiv – genau wie von Hand gewählt.
+// anker (optional) = Ansatzpunkt fürs Weiterbauen vor dem gewählten Band.
+function oeffneFliessbandWerkzeug(richtung, anker = null) {
+  if (bau.reiter !== "baender") { bau.reiter = "baender"; if (bau.offen) zeichneBauInhalt(); }
+  if (!bau.offen) oeffneBau();
+  const w = { art: "band", typ: "band", richtung: richtung ?? bau.letzteDrehung["band:band"] ?? bau.letzteDrehung.bandRichtung ?? 0 };
+  if (anker) w.anker = anker;
+  setzeWerkzeug(w);
+  aktualisiereBauTipp();
 }
 function bandInfoKnopf(aktion, text, extra = "", klasse = "lz-knopf") {
   return `<button class="${klasse}" type="button" data-band-aktion="${aktion}" ${extra}>${text}</button>`;
 }
 // Phase 7a: Seiten und Filter eines Splitters (Ausgänge) bzw. einer Zusammenführung (Eingänge)
 function seitenHtml(t) {
-  const seiten = t.typ === "splitter" ? ["links", "vorn", "rechts"] : ["links", "hinten", "rechts"];
-  const angeschlossen = (seite) => t.typ === "splitter"
+  const seiten = istVerteiler(t) ? ["links", "vorn", "rechts"] : ["links", "hinten", "rechts"];
+  const angeschlossen = (seite) => istVerteiler(t)
     ? t.ausgaenge.some((a) => a.seite === seite)
     : t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === seite);
   const zeilen = seiten.map((seite) => {
@@ -12097,10 +13442,14 @@ function seitenHtml(t) {
         ${e.gesperrt ? "" : `<div class="filter-liste">${chips}</div>`}
       </div>`;
   }).join("");
-  const text = t.typ === "splitter"
+  const text = t.typ === "smartVerteiler"
+    ? "Items gehen reihum an die offenen Ausgänge, aber nur, wenn das Ziel am Ende der Strecke noch Platz (und Max) für genau dieses Item hat. Sonst hält er an. ✓ = nur diese Items, ✕ = nie."
+    : t.typ === "ventil"
+    ? "Items gehen geradeaus. Nur wenn vorn kein Platz ist, gehen sie zur Seite (reihum). ✓ = nur diese Items, ✕ = nie."
+    : istVerteiler(t)
     ? "Items gehen reihum an die offenen Ausgänge. ✓ = nur diese Items; ein Ausgang ohne ✓ nimmt alles andere. ✕ = nie."
     : "Items kommen reihum von den offenen Seiten. ✓ = nur diese Items annehmen, ✕ = diese Items nicht annehmen.";
-  return `<div class="info-block"><h3>${t.typ === "splitter" ? "Ausgänge" : "Eingänge"}</h3><p class="modus-text">${text}</p>${zeilen}</div>`;
+  return `<div class="info-block"><h3>${istVerteiler(t) ? "Ausgänge" : "Eingänge"}</h3><p class="modus-text">${text}</p>${zeilen}</div>`;
 }
 function zeichneBandInfo() {
   const t = spiel.baender.get(auswahlBandId);
@@ -12140,7 +13489,8 @@ function zeichneBandInfo() {
           : `<span class="leise">Noch nichts zum Abgeben.</span>`}</div></div>`;
     }
   }
-  if (t.typ === "splitter") {
+  if (istVerteiler(t)) {
+    html += `<div id="band-puffer">${pufferHtml(t)}</div>`;   // Phase 7b Nachtrag: Puffer oben, live aufgefrischt
     html += seitenHtml(t);                          // Phase 7a: Seiten und Filter
   } else if (t.typ === "zusammen") {
     html += `<label class="info-feld">Vorrang <select data-band-aktion="vorrang">
@@ -12175,6 +13525,8 @@ function zeichneBandInfo() {
   morphe(ob.infoInhalt, html);                      // Phase 7a: ohne Neuaufbau
   const ziel = $("band-zahlen");
   if (ziel) ziel._html = zahlen;
+  const puffer = $("band-puffer");                  // Phase 7b Nachtrag
+  if (puffer) puffer._html = pufferHtml(t);
   anzeige.infoStrukturFehlt = false;
 }
 function aktualisiereBandInfoZahlen() {
@@ -12183,6 +13535,8 @@ function aktualisiereBandInfoZahlen() {
   if (!ziel || !t) return;
   if (performance.now() < infoKlickSperre) return;
   setzeHtml(ziel, bandInfoZahlenHtml(t));
+  const puffer = $("band-puffer");                  // Phase 7b Nachtrag: Verteiler-Puffer live
+  if (puffer) setzeHtml(puffer, pufferHtml(t));
 }
 function bandInfoZahlenHtml(t) {
   const seg = bandAuswahl.gruppe ? segmentVon(t) : null;
@@ -12208,14 +13562,32 @@ function bandInfoZahlenHtml(t) {
       ${q && z && q.art === "gebaeude" && typVon(q.g).art === "hauptlager" && z.art === "band" && !t.armFilter ? `<p class="info-warnung">⚠ Vom Hauptlager auf ein Band nur mit Item-Filter.</p>` : ""}
       ${t.wartet > 3 ? `<p class="info-warnung">⚠ Das Ziel nimmt gerade nichts an.</p>` : ""}</div>`;
   } else {
-    const items = t.items ? t.items.length : 0;
-    const anschluesse = t.typ === "splitter" ? t.ausgaenge.map((a) => SEITEN_NAMEN[a.seite]).join(", ") || "keine" : null;
+    const items = (t.items ? t.items.length : 0) + pufferVon(t).length;   // Phase 7b Nachtrag: Verteiler-Puffer
+    const anschluesse = istVerteiler(t) ? t.ausgaenge.map((a) => SEITEN_NAMEN[a.seite]).join(", ") || "keine" : null;
     html += `<div class="info-block"><dl class="info-zeilen zwei"><dt>Items darin</dt><dd>${items}</dd>
       ${anschluesse !== null ? `<dt>Ausgänge</dt><dd>${anschluesse}</dd>` : ""}
       <dt>Laufkosten</dt><dd>${euro(bandTyp(t).tagesKosten || 0)}/Tag</dd></dl>
-      ${t.stau >= BAENDER.stauWarnung ? `<p class="info-warnung">⚠ Stau: ${t.typ === "splitter" ? "kein Ausgang nimmt gerade etwas an" : "es geht nicht weiter"}.</p>` : ""}</div>`;
+      ${t.stau >= BAENDER.stauWarnung ? `<p class="info-warnung">⚠ Stau: ${t.typ === "smartVerteiler" ? "kein Ziel hat Platz – er hält an" : istVerteiler(t) ? "kein Ausgang nimmt gerade etwas an" : "es geht nicht weiter"}.</p>` : ""}
+      ${t.typ === "ventil" && t.ueberlauf ? `<p class="info-leer">Vorn ist voll – Items gehen gerade zur Seite.</p>` : ""}</div>`;
   }
   return html;
+}
+// Phase 7b Nachtrag: Puffer eines Verteilers (Splitter, Smart-Verteiler, Ventil) – "Puffer: n / 30"
+// mit Aufschlüsselung nach Items. pufferVon(t) liefert die Logik (Array der Item-Ids).
+function verteilerPufferMax() {
+  return BAENDER.verteilerPuffer || BAENDER.pufferGroesse || BAENDER.puffer || 30;   // Konfigwert der Logik, sonst 30
+}
+function pufferHtml(t) {
+  if (typeof pufferVon !== "function") return "";
+  const liste = pufferVon(t) || [];
+  const max = verteilerPufferMax();
+  const zaehler = {};
+  for (const item of liste) zaehler[item] = (zaehler[item] || 0) + 1;
+  const text = Object.entries(zaehler).sort((a, b) => b[1] - a[1])
+    .map(([item, n]) => `${n}× ${htmlSicher(itemInfo(item).name)}`).join(", ");
+  return `<div class="info-block"><h3>Puffer: ${liste.length} / ${max}</h3>
+    <div class="info-balken puffer-balken"><span style="width:${Math.min(100, Math.round(liste.length / max * 100))}%"></span></div>
+    <p class="info-leer puffer-items">${text || "leer"}</p></div>`;
 }
 ob.infoInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-band-aktion]");
@@ -12267,6 +13639,8 @@ ob.infoInhalt.addEventListener("change", (e) => {
   if (feld instanceof HTMLSelectElement) feld.blur();
 });
 ob.infoInhalt.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.target.dataset.aktion === "max" || e.target.dataset.aktion === "bestell-menge")) { e.target.blur(); return; }   // Phase 7b: übernimmt per change
+  if (e.key === "Escape" && e.target.dataset.aktion === "max") { e.target.value = e.target.getAttribute("value") ?? ""; e.target.blur(); return; }
   if (e.key === "Enter" && e.target.dataset.bandAktion === "name") {
     const t = spiel.baender.get(auswahlBandId);
     if (t && benenneSegmentUm(t.id, e.target.value)) zeigeMeldung(`Segment heißt jetzt „${e.target.value.trim().slice(0, 30)}“.`);
@@ -12282,7 +13656,7 @@ function bandAnschlussHtml(g) {
   const zeilen = liste.map((a) => {
     const t = spiel.baender.get(a.id);
     if (!t) return "";
-    const name = istGreifarm(t) ? bandTyp(t).name : t.typ === "splitter" ? "Splitter" : t.name || bandTyp(t).name;
+    const name = istGreifarm(t) || istVerteiler(t) ? bandTyp(t).name : t.name || bandTyp(t).name;
     return `<li>${a.art === "zulauf" ? "⇣ Zulauf" : "⇡ Ablauf"}: ${htmlSicher(name)}</li>`;
   }).join("");
   let zusatz = "";
@@ -12373,6 +13747,47 @@ function aktualisiereFreiChip() {
   ob.hudFrei.hidden = n === 0;
   setzeText(ob.hudFrei, `👤 ${n} ohne Aufgabe`);
 }
+// Phase 7b: Warnung für volle Lager (ab 80 % gelb, voll rot) und Stationen im Stau
+let lagerWarnSprung = -1;
+function lagerWarnListe() {
+  const voll = [], fast = [], stau = [];
+  for (const g of spiel.gebaeude.values()) {
+    if (istVolumenLager(g) && kapazitaetVon(g) > 0) {
+      const stufe = warnStufe(g);
+      if (stufe === "rot") voll.push(g); else if (stufe === "gelb") fast.push(g);
+    } else if (istStation(g) && g.status === "ausgabeVoll") stau.push(g);
+  }
+  return { voll, fast, stau };
+}
+function aktualisiereLagerChip() {
+  const { voll, fast, stau } = lagerWarnListe();
+  const teile = [];
+  if (voll.length) teile.push(`${voll.length} Lager voll`);
+  if (fast.length) teile.push(`${fast.length} fast voll`);
+  if (stau.length) teile.push(`${stau.length} im Stau`);
+  // Phase 7b Nachtrag: Ware wartet, aber kein Hauptlager nimmt sie an ("kein Lager für Metall, Kunststoff +2")
+  const ohneLager = typeof keinLagerFuer === "function" ? [...new Set(keinLagerFuer() || [])] : [];
+  if (ohneLager.length) {
+    const namen = ohneLager.slice(0, 2).map((item) => itemInfo(item).name).join(", ");
+    teile.push(`kein Lager für ${namen}${ohneLager.length > 2 ? ` +${ohneLager.length - 2}` : ""}`);
+  }
+  ob.hudLager.hidden = !teile.length;
+  ob.hudLager.classList.toggle("rot", voll.length + stau.length > 0);
+  ob.hudLager.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
+  setzeText(ob.hudLager, `📦 ${teile.join(" · ")}`);
+}
+ob.hudLager.addEventListener("click", () => {
+  const { voll, fast, stau } = lagerWarnListe();
+  const liste = [...stau, ...voll, ...fast];
+  // Phase 7b Nachtrag: nur "kein Lager für …" – zu den Hauptlagern springen (dort Annahme/Max ändern)
+  if (!liste.length && typeof keinLagerFuer === "function" && (keinLagerFuer() || []).length) liste.push(...hauptlagerListe());
+  if (!liste.length) return;
+  lagerWarnSprung = (lagerWarnSprung + 1) % liste.length;
+  const g = liste[lagerWarnSprung];
+  const mitte = gebaeudeMitteWelt(g);
+  kameraFlugZiel = new THREE.Vector3(mitte.x, 0, mitte.z);
+  waehleGebaeude(g.id);
+});
 ob.hudFrei.addEventListener("click", () => {
   bau.reiter = "personal";
   if (bau.offen) { setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); } else oeffneBau();
@@ -12663,7 +14078,7 @@ function rezeptItemHtml(item, n, knopf) {
   const name = `${n > 1 || knopf ? `${n}× ` : ""}${htmlSicher(info.name)}`;
   if (!knopf) return `<span class="rezept-item" style="--item-farbe:${info.farbe}">${name}</span>`;
   const anzahl = istRohstoff(item) ? null : stationenFuer(item).length;
-  const titel = istRohstoff(item) ? `${info.name}: wird eingekauft (Kontor)`
+  const titel = istRohstoff(item) ? `${info.name}: wird in der Importzone bestellt`
     : anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} ${info.name} gerade her – Klick zeigt sie`
     : `Keine Station stellt ${info.name} gerade her`;
   return `<button type="button" class="rezept-item" data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
@@ -12792,7 +14207,7 @@ document.body.classList.toggle("info-offen", !ob.info.hidden);
 // Kamera zur Station, die das Item gerade herstellt (mehrere: bei jedem Klick die nächste)
 function zeigeHerstellendeStation(item) {
   const info = itemInfo(item);
-  if (istRohstoff(item)) { zeigeMeldung(`${info.name} wird eingekauft (Kontor ${kbd("kontor").replace(/<[^>]+>/g, "")}).`); return null; }
+  if (istRohstoff(item)) { zeigeMeldung(`${info.name} bestellst du in der Importzone.`); return null; }
   const liste = stationenFuer(item);
   if (!liste.length) {
     const ort = item.startsWith("p:") ? "Montagetisch bauen und Entwurf wählen" : "Werkbank bauen und Rezept wählen";
@@ -13099,7 +14514,10 @@ function planeEinfuegen(k, drehung) {
   if (!gruende.length) {
     const gesperrt = [...gebaeude.flatMap((p) => p.geo.zellen),
       ...baender.filter((p) => { const info = bandTypNach.get(p.typ); return !info.begehbar && !info.hoch; }).map((p) => ({ x: p.x, z: p.z }))];
-    if (!bleibtErreichbarMit(gesperrt, gebaeude.map((p) => p.geo.zugang))) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
+    // Phase 7b Nachtrag: ein Lager, dessen Zugang die Kopie selbst zubaut, braucht keinen erreichbaren Zugang
+    const neueZugaenge = gebaeude.filter((p) => !istLagerTyp(gebaeudeTypNach.get(p.typ))
+      || !gesperrt.some((c) => c.x === p.geo.zugang.x && c.z === p.geo.zugang.z)).map((p) => p.geo.zugang);
+    if (!bleibtErreichbarMit(gesperrt, neueZugaenge)) gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
   }
   // Kosten: wie beim normalen Bauen zuerst aus dem Depot, sonst kaufen
   const depotG = { ...spiel.depot.gebaeude }, depotB = { ...spiel.depot.baender }, dazu = {};
@@ -13248,6 +14666,8 @@ function spielschleife() {
   const spielSekunden = sekunden * spiel.tempo;
   simuliere(spielSekunden);
   aktualisiereGebaeude3d(sekunden, zeit);
+  aktualisiereWagen();                           // Phase 7b
+  aktualisiereTore(sekunden);                    // Phase 7b Nachtrag: Rolltor/Rollgitter und Verladen
   aktualisiereBaender3d(spielSekunden, zeit);       // Phase 6: Bänder, Items, Greifarme
   aktualisiereMitarbeiter3d(spielSekunden, zeit);
   aktualisiereSchwebende(sekunden);              // Phase 5: schwebende Zahlen und Splitter
@@ -13315,6 +14735,14 @@ window.tradeUp = {
   hauptlagerListe, hlMenge, hlKapazitaet, setzeMehrfach, mehrfach, mehrfachKlick, teileImRahmen, kopiereAuswahl,
   planeEinfuegen, fuegeEin, einfuegenAktion, reisseMehrfachAb, bildschirmPunkt,
   get zwischenablage() { return zwischenablage; },
+  // Phase 7b: Volumen, Max, Stau, Mülltonne, Smart-Verteiler, Überlauf-Ventil
+  itemVolumen, volumen, belegt, fuellgrad, warnStufe, maxVon, maxErreicht, traglastVon, lagerWarnListe,
+  vernichteImMuell, setzeMuellRegel, muellNimmt, streckenEnde, ausgangHatPlatz, VERTEILER_TYPEN, istVerteiler,
+  ZONEN, setzeBestellung, setzeExportModus, setzeExportWare, exportBedarf, exportModusVon, holeExportAb, inExportzone,
+  zonenListe, stehtAnWand, zoneAktiv, wagenUnterwegs, baukosten, gebaeudeName, stelleZoneAuf,
+  // Phase 7b Nachtrag (Logik): Verteiler-Puffer, Hauptlager-Regeln, Zugang überall, Exportzone an der Wand
+  PUFFER_GROESSE, pufferVon, hlNimmtAn, hlGibtAb, hlAufnahme, keinLagerFuer, zugangGesperrt, istLagerTyp,
+  wandRichtung, setzeAnWand, hlEntnimm, hlEinlagern,
 };
 </script>
 

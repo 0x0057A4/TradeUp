@@ -1649,6 +1649,89 @@
     #lz-palette .lz-gruppe, #lz-palette .lz-linie { display: none; }
     .lz-gehaeuse-karten { grid-template-columns: repeat(5, minmax(84px, 1fr)); overflow-x: auto; }
   }
+
+  /* --- Phase 7d: Forschungsfenster mit drei Bäumen (Komponenten, Mitarbeiter, Bau) --- */
+  #forschung-fenster { width: min(1180px, 100%); height: min(880px, 100%); display: flex; flex-direction: column; overflow: hidden; }
+  #forschung-fenster .techtree-huelle { flex: 1; min-height: 0; overflow: auto; padding: 10px 18px 14px; }
+  .fo-suche { width: min(260px, 40vw); padding: 5px 10px; }
+  .forschung-kopf .fo-projekt {
+    display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 10px;
+    font-size: var(--groesse-klein); background: #eaf1fa; border: 1px solid var(--farbe-forschung); border-radius: 999px;
+  }
+  .forschung-kopf .fo-projekt b { font-size: var(--groesse-klein); color: var(--farbe-text); }
+  .forschung-kopf .fo-projekt .mini-knopf { height: 20px; min-width: 20px; border-radius: 999px; }
+  .fo-gruppen { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 18px 0; }
+  .fo-gruppen:empty { display: none; }
+  .fo-gruppen .lz-kat { min-width: 40px; height: 30px; padding: 0 8px; }
+  .fo-gruppen .lz-kat.text { font-size: var(--groesse-klein); padding: 0 10px; }
+  .fo-gruppen .lz-kat .lz-punkt { box-shadow: 0 0 0 2px var(--lz-fenster); }
+  .fo-inhalt { display: grid; gap: 10px; }
+  .fo-abschnitt { display: grid; gap: 8px; }
+  .fo-abschnitt > h3 {
+    margin: 4px 0 0; display: flex; align-items: center; gap: 8px;
+    font-size: var(--groesse-klein); text-transform: uppercase; letter-spacing: 0.06em; color: var(--farbe-text-leise);
+  }
+  .fo-abschnitt > h3 small { text-transform: none; letter-spacing: 0; font-weight: 600; }
+  .fo-reihe { display: grid; grid-template-columns: 86px repeat(5, minmax(172px, 1fr)); gap: 8px; align-items: stretch; }
+  .fo-reihe-kopf { display: grid; align-content: center; gap: 2px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .fo-reihe-kopf b { color: var(--farbe-text); font-size: var(--groesse-klein); }
+  .tt-knoten.fo-karte {
+    gap: 3px; padding: 7px 9px 8px; border-radius: 12px; min-width: 0;
+    border-left: 5px solid var(--kat-farbe, var(--farbe-rand));
+  }
+  .fo-karte header { gap: 6px; font-size: var(--groesse-klein) !important; line-height: 1.2; }
+  .fo-karte header b { flex: 1; min-width: 0; font-size: 0.82rem; }
+  .fo-symbol {
+    flex: 0 0 auto; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-size: 0.85rem !important;
+    color: #fff; background: var(--kat-farbe, var(--farbe-forschung)); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+  .fo-karte .fo-tier { flex: 0 0 auto; font-size: 0.68rem; font-weight: 700; color: var(--farbe-text-leise); padding: 0 5px; border: 1px solid var(--farbe-rand); border-radius: 999px; }
+  .fo-karte .fo-text { font-size: 0.72rem; }
+  .fo-karte .fo-zustand { font-size: 0.72rem; font-weight: 700; color: var(--farbe-text); }
+  .fo-karte .fo-zustand.ok { color: var(--farbe-frei); }
+  .fo-karte .fo-zustand.zu { color: var(--farbe-text-leise); font-weight: 600; }
+  .fo-balken { height: 6px; background: var(--lz-zelle-farbe); border-radius: 999px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); }
+  .fo-balken > span { display: block; height: 100%; background: var(--farbe-forschung); border-radius: 999px; transition: width 0.25s linear; }
+  .fo-karte.verfuegbar .fo-balken > span { background: var(--farbe-akzent); }
+  .fo-karte.erforscht .fo-balken > span { background: var(--farbe-frei); }
+  .fo-wert { font-size: 0.7rem; color: var(--farbe-text-leise); font-variant-numeric: tabular-nums; }
+  .fo-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+  .fo-knoepfe .lz-knopf { padding: 4px 8px; font-size: 0.74rem; border-radius: 8px; margin: 0 !important; }
+  .fo-stationen { display: grid; gap: 3px; margin-top: 2px; }
+  .fo-stationen .lz-knopf { display: block; width: 100%; text-align: left; font-weight: 600; line-height: 1.25; }
+  .fo-stationen .lz-knopf small { display: block; font-weight: 500; }
+  .tt-knoten.fo-karte.erforscht { background: #eef7f0; border-color: var(--farbe-frei); border-left-color: var(--kat-farbe, var(--farbe-frei)); }
+  .tt-knoten.fo-karte.verfuegbar { background: #fff6ec; border-color: var(--farbe-akzent); border-left-color: var(--kat-farbe, var(--farbe-akzent)); }
+  .tt-knoten.fo-karte.laeuft { background: #eef4fb; border-color: var(--farbe-forschung); border-left-color: var(--kat-farbe, var(--farbe-forschung)); }
+  .tt-knoten.fo-karte.projekt { border-color: color-mix(in srgb, var(--farbe-forschung) 55%, #fff); }
+  .tt-knoten.fo-karte.gesperrt { opacity: 1; background: #f4f2ed; }
+  .tt-knoten.fo-karte.gesperrt > * { opacity: 0.62; }
+  .tt-knoten.fo-karte.spaeter { border-style: dashed; }
+  .tt-knoten.fo-karte.fo-fokus { box-shadow: 0 0 0 3px var(--farbe-akzent); animation: fo-puls 0.9s ease-in-out 3; }
+  @keyframes fo-puls { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--farbe-akzent) 35%, transparent); } }
+  .fo-pfeil { align-self: center; justify-self: center; color: var(--farbe-text-leise); font-size: 0.8rem; }
+  /* Bau: Spalten T1 bis T5, darin nach Kategorie */
+  .fo-bau { display: grid; grid-template-columns: repeat(5, minmax(196px, 1fr)); gap: 10px; align-items: start; }
+  .fo-spalte { display: grid; gap: 6px; align-content: start; padding: 8px; background: rgba(47, 58, 52, 0.035); border-radius: 14px; }
+  .fo-spalte-kopf { display: grid; gap: 2px; padding: 4px 4px 6px; position: sticky; top: -10px; z-index: 1; background: #f4f2eb; border-radius: 10px; }
+  .fo-spalte-kopf b { font-family: var(--schrift-titel); font-size: 1rem; }
+  .fo-spalte-kopf small { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .fo-sperr-hinweis { margin: 0; padding: 6px 8px; font-size: var(--groesse-klein); font-weight: 700; color: #6b3d00; background: #ffeedd; border: 1px dashed var(--farbe-akzent); border-radius: 10px; }
+  .fo-kat-kopf { margin: 4px 2px 0; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--farbe-text-leise); }
+  .fo-treffer { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+  .fo-leer { margin: 8px 0; font-size: var(--groesse-text); color: var(--farbe-text-leise); }
+  /* Baumenü: gesperrte Karten bleiben anklickbar und führen zum Forschungseintrag */
+  .bau-karte.gesperrt { opacity: 0.55; cursor: help; }
+  .bau-karte.gesperrt:hover { opacity: 0.8; border-color: var(--farbe-forschung); }
+  /* Info-Fenster: Maschinen, Projekt der Forschungsstation, Overseer */
+  .info-maschine { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .info-maschine b { color: var(--farbe-text); }
+  .personal-kopf .lz-knopf.mehrere { font-size: var(--groesse-klein); }
+  .tempo-wahl button small { display: block; font-size: 0.66rem; font-weight: 600; opacity: 0.8; }
+  @media (max-width: 900px) {
+    .fo-reihe { grid-template-columns: 70px repeat(5, 160px); }
+    .fo-bau { grid-template-columns: repeat(5, 190px); }
+  }
 </style>
 </head>
 <body>
@@ -1802,6 +1885,7 @@
     <div class="bau-reiter" role="tablist" aria-label="Kategorie">
       <button type="button" role="tab" data-reiter="lager" aria-selected="true">Lager</button>
       <button type="button" role="tab" data-reiter="stationen" aria-selected="false">Stationen</button>
+      <button type="button" role="tab" data-reiter="maschinen" aria-selected="false">Maschinen</button><!-- Phase 7d -->
       <button type="button" role="tab" data-reiter="baender" aria-selected="false">Bänder</button>
       <button type="button" role="tab" data-reiter="personal" aria-selected="false">Personal</button>
       <button type="button" role="tab" data-reiter="halle" aria-selected="false">Halle</button>
@@ -1887,13 +1971,16 @@
 <div id="forschung-overlay" class="modal-schleier" hidden>
   <section id="forschung-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="forschung-titel" tabindex="-1">
     <header class="lz-kopf">
-      <h2 id="forschung-titel">Forschung · Techtree Kuriere</h2>
+      <h2 id="forschung-titel">Forschung</h2>
+      <!-- Phase 7d: Suche über alle drei Bäume -->
+      <input id="forschung-suche" class="lz-suche fo-suche" type="search" placeholder="Forschung suchen …" autocomplete="off" spellcheck="false" aria-label="Forschung durchsuchen">
       <span class="lz-platz" style="flex:1"></span>
       <button id="forschung-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Forschung schließen">✕</button>
     </header>
-    <div id="forschung-reiter" class="bau-reiter forschung-reiter" role="tablist" aria-label="Techtree"></div>
+    <div id="forschung-reiter" class="bau-reiter forschung-reiter" role="tablist" aria-label="Forschungsbäume"></div>
     <div id="forschung-kopf" class="forschung-kopf"></div>
-    <div class="techtree-huelle"><div id="techtree" class="techtree"></div></div>
+    <div id="forschung-gruppen" class="fo-gruppen" role="tablist" aria-label="Gruppen"></div><!-- Phase 7d: Unterreiter -->
+    <div class="techtree-huelle"><div id="techtree" class="fo-inhalt"></div></div>
     <p id="forschung-stationen" class="forschung-stationen"></p>
   </section>
 </div>
@@ -2622,7 +2709,7 @@ const KASSEN_ARTEN = {
   bau: "Gebäude", einkauf: "Einkauf", loehne: "Löhne", miete: "Miete", personal: "Einstellungen",
   forschung: "Forschung", ausruestung: "Ausrüstung", strafen: "Vertragsstrafen",
   // Phase 6
-  baender: "Bänder & Greifarme", laufkosten: "Laufkosten Bänder", abfindung: "Abfindungen", ausbau: "Hallenausbau",
+  baender: "Bänder & Greifarme", laufkosten: "Laufkosten Bänder & Maschinen", abfindung: "Abfindungen", ausbau: "Hallenausbau",   // Phase 7d: + Maschinen
   // Phase 7a
   entwicklung: "Entwicklung (Test)",
 };
@@ -13515,22 +13602,30 @@ function zeichneBauInhalt() {
   if (bau.reiter === "personal") { zeichnePersonal(); return; }
   if (bau.reiter === "baender") { zeichneBaender(); return; }   // Phase 6
   if (bau.reiter === "halle") { zeichneHalle(); return; }       // Phase 6
-  const kategorie = bau.reiter === "lager" ? "lager" : "station";
+  const kategorie = bau.reiter === "lager" ? "lager" : bau.reiter === "maschinen" ? "maschine" : "station";   // Phase 7d: Maschinen
   ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet).map((t) => {
     const imDepot = spiel.depot.gebaeude[t.typ] || 0;
     const voll = t.maxAnzahl && anzahlTyp(t.typ) >= t.maxAnzahl;
     const gewaehlt = bau.werkzeug && bau.werkzeug.art === "bauen" && bau.werkzeug.typ === t.typ;
-    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss, Grund im Tooltip
-    return `<button class="bau-karte" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll || sperre ? "disabled" : ""}
-        title="${htmlSicher(sperre || t.beschreibung)}">
+    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss; Klick zeigt den Forschungseintrag
+    return `<button class="bau-karte${sperre ? " gesperrt" : ""}" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll ? "disabled" : ""}
+        ${sperre ? `data-forschung="${bauForschungVon(t.typ)}"` : ""} title="${htmlSicher(sperre ? `${sperre} Klick zeigt den Eintrag.` : t.beschreibung)}">
         <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.symbol}</span>
         <span><b>${t.name}</b>
-          <small>${t.breite} × ${t.tiefe} Kacheln · ${t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : t.art === "forschung" ? "Teile → FP" : `Fach ${t.kapazitaet}`}</small>
+          <small>${t.breite} × ${t.tiefe} Kacheln · ${bauKartenWerte(t)}</small>
           ${voll ? "<small>steht schon in der Halle</small>"
             : imDepot ? `<small class="bau-depot">im Depot: ${imDepot} · kostenlos</small>`
             : baukosten(t.typ) ? `<small class="${kannBezahlen(baukosten(t.typ)) ? "bau-preis" : "bau-teuer"}">${euro(baukosten(t.typ))}</small>` : "<small>kostenlos</small>"}
         </span></button>`;
   }).join("");
+}
+
+// Phase 7d: zweite Zeile einer Gebäude-Karte (Lager: Volumen, Maschinen: ohne Personal + Laufkosten)
+function bauKartenWerte(t) {
+  if (t.maschine) return `ohne Personal${t.maschine.tempo > 1 ? ` · ×${zahlText(t.maschine.tempo)}` : ""} · ${euro(t.tagesKosten || 0)}/Tag`;
+  if (t.silo) return "∞ · eine Rohstoffart";
+  if (t.smart) return `${t.kapazitaet} Items · bestellt nach`;
+  return t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : t.art === "forschung" ? "Teile → FP" : `Fach ${t.kapazitaet}`;
 }
 
 // Personal-Reiter: einstellen, entlassen, Zustand
@@ -13544,6 +13639,8 @@ function personZustandText(p) {
     return `bringt ${was} ${a.art === "liefern" ? "zu" : "ins"} ${name(a.zielId)}`;
   }
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") return `bringt ${textVon(p.traegt)} zu ${name(a && a.zielId)}`;
+  const aufsicht = !p.stationId && spiel.forschung && spiel.forschung.overseer[p.id] && spiel.baender.get(spiel.forschung.overseer[p.id]);   // Phase 7d: HR-009
+  if (aufsicht) return `Overseer an Band ${aufsicht.name || bandTyp(aufsicht).name}`;
   if (!p.stationId && p.ohneAufgabe) return "ohne Aufgabe · wartet in der Pausenecke";   // Phase 6
   if (!p.stationId) return p.manuellFrei ? "ohne Station" : "sucht eine Station";
   const s = spiel.gebaeude.get(p.stationId);
@@ -13580,9 +13677,10 @@ function zeichnePersonal() {
     // Phase 7a (Nachtrag 2): "Du" – kein Lohn, nicht entlassbar, Schalter "Flexibel"
     const du = p.istDu ? `<button class="mini-knopf" type="button" data-aktion="duFlexibel" aria-pressed="${!!p.flexibel}"
         title="Flexibel: du springst ein, wo Bedarf ist (Station ohne Arbeiter, sonst Kurier)">⇄ Flexibel</button>` : "";
-    const umschulen = p.rolle === "kurier"
+    const umschulen = (p.rolle === "kurier"
       ? `<button class="mini-knopf" type="button" data-aktion="zuArbeiter" title="Wird Arbeiter an einer freien Station (Erfahrung bleibt)">→ Arbeiter</button>`
-      : p.istDu ? `<button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier">→ Kurier</button>` : "";
+      : p.istDu ? `<button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier">→ Kurier</button>` : "")
+      + klonKnopf(p, stufe, anzahl >= max);          // Phase 7d: HR-074
     return `<li data-id="${p.id}" class="${p.istDu ? "ist-du" : ""}">
         <span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)}${p.istDu ? ` <span class="personal-du">(du)</span>` : ""} <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${Math.floor(p.ep || 0)} EP)">${sterneText(stufe)}</span></b>
         ${p.istDu ? "<span></span>" : `<button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>`}
@@ -13597,12 +13695,28 @@ function zeichnePersonal() {
         <b>Mitarbeiter ${anzahl} / ${max} · Löhne ${euro(lohnSumme())}/Tag</b>
         <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="kurier" ${anzahl >= max ? "disabled" : ""}>+ Kurier · ${euro(einstellGebuehr("kurier"))}</button>
         <button class="lz-knopf" type="button" data-aktion="einstellen" data-rolle="arbeiter" ${anzahl >= max ? "disabled" : ""}>+ Arbeiter · ${euro(einstellGebuehr("arbeiter"))}</button>
+        ${mehrereEinstellenHtml(anzahl, max)}
       </div>
       <label class="personal-auto"><input type="checkbox" data-aktion="autoZuweisung" ${spiel.autoZuweisung ? "checked" : ""}>
         Freie Arbeiter gehen selbst an freie Stationen</label>
       ${ohneAufgabeHtml()}
       <ul class="personal-liste">${zeilen || `<li class="info-leer">Noch niemand eingestellt.</li>`}</ul>
     </div>`;
+}
+// Phase 7d: HR-071 – mehrere auf einmal einstellen (so viele, wie die Forschung erlaubt und Platz ist)
+function mehrereEinstellenHtml(anzahl, max) {
+  if (!forschungAktiv("einstellenMehrere")) return "";
+  const n = Math.min(FORSCHUNG_NEU.einstellenMehrere, max - anzahl);
+  if (n < 2) return "";
+  return ["kurier", "arbeiter"].map((rolle) => `<button class="lz-knopf mehrere" type="button" data-aktion="einstellenMehrere" data-rolle="${rolle}" data-anzahl="${n}"
+      title="Stellt ${n} ${rolle === "kurier" ? "Kuriere" : "Arbeiter"} auf einmal ein">+ ${n} ${rolle === "kurier" ? "Kuriere" : "Arbeiter"} · ${euro(einstellGebuehr(rolle) * n)}</button>`).join("");
+}
+// Phase 7d: HR-074 – Klonen (nur erfahrene Mitarbeiter, kostet FORSCHUNG_NEU.klonPreis)
+function klonKnopf(p, stufe, voll) {
+  if (p.istDu || !forschungAktiv("klonen")) return "";
+  const grund = stufe < FORSCHUNG_NEU.klonAbStufe ? `Erst ab Erfahrungsstufe ${FORSCHUNG_NEU.klonAbStufe}` : voll ? "Die Halle ist voll besetzt" : "";
+  return `<button class="mini-knopf" type="button" data-aktion="klonen" ${grund ? "disabled" : ""}
+    title="${grund || `Klont ${htmlSicher(p.name)} mit allen Erfahrungspunkten`}">⧉ Klonen · ${euro(FORSCHUNG_NEU.klonPreis)}</button>`;
 }
 function aktualisierePersonalStatus() {
   for (const el of ob.bauInhalt.querySelectorAll("[data-status-id]")) {
@@ -13656,6 +13770,8 @@ function aktualisiereBauTipp() {
     html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
   } else if (bau.reiter === "personal") {
     html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
+  } else if (bau.reiter === "maschinen") {         // Phase 7d
+    html = "Maschinen arbeiten ohne Personal: Kuriere oder Bänder bringen Material ins Eingangsfach und holen das Erzeugnis ab. Sie kosten Laufkosten pro Tag. 🔒 = noch nicht erforscht (Klick zeigt den Eintrag).";
   } else {
     html = bau.reiter === "lager"                    // Phase 7b Nachtrag: Lager überall per Band anbindbar
       ? "Gebäude auswählen und in der Halle aufstellen. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite."
@@ -13798,6 +13914,8 @@ spielEreignisse.addEventListener("rechtsKlick", () => { if (bau.offen && bau.wer
 ob.bauLeiste.addEventListener("click", (e) => {
   const reiter = e.target.closest("[data-reiter]");
   if (reiter) { bau.reiter = reiter.dataset.reiter; setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); return; }
+  const gesperrt = e.target.closest(".bau-karte.gesperrt[data-forschung]");     // Phase 7d: Schloss → Forschungseintrag
+  if (gesperrt) { zeigeForschungsEintrag(gesperrt.dataset.forschung); return; }
   const karte = e.target.closest("[data-typ]");
   if (karte) { waehleBauTyp(karte.dataset.typ); aktualisiereBauTipp(); return; }
   const bandKarte = e.target.closest("[data-bandtyp]");                         // Phase 6
@@ -13894,6 +14012,36 @@ function zerlegOptionen(gewaehlt) {
   return `<optgroup label="Bauteile">${BAUTEILE.map((b) => zeile(b.typ)).join("")}</optgroup>` +
     (produkte.length ? `<optgroup label="Produkte">${produkte.map(zeile).join("")}</optgroup>` : "");
 }
+// Phase 7d: Zeitprojekte für das Auswahlfeld der Forschungsstation (nicht erforscht, nicht "später"),
+// gruppiert nach Baum und Gruppe; was schon an einer anderen Station läuft, ist nicht wählbar
+function projektOptionen(g) {
+  const aktuell = projektVon(g.id);
+  const gruppen = new Map();
+  for (const e of FORSCHUNG) {
+    if (e.bedingung.art !== "zeit" || e.spaeter || (istErforscht(e.id) && e.id !== aktuell)) continue;
+    const name = forschungGruppenName(e);
+    if (!gruppen.has(name)) gruppen.set(name, []);
+    const anderswo = projektStation(e.id);
+    const ist = spiel.forschung.fortschritt[e.id] || 0;
+    gruppen.get(name).push(`<option value="${e.id}" ${aktuell === e.id ? "selected" : ""} ${anderswo && anderswo !== g.id ? "disabled" : ""}>`
+      + `${htmlSicher(e.name)} · ${e.tier} (${e.bedingung.sek} s${ist ? `, ${Math.floor(ist)} s geschafft` : ""})${anderswo && anderswo !== g.id ? ` – läuft an ${htmlSicher(gebaeudeName(spiel.gebaeude.get(anderswo)))}` : ""}</option>`);
+  }
+  return [...gruppen].map(([name, optionen]) => `<optgroup label="${htmlSicher(name)}">${optionen.join("")}</optgroup>`).join("");
+}
+// Phase 7d: Fortschritt des Projekts im Info-Fenster der Forschungsstation (laufend aufgefrischt)
+function projektInfoHtml(g) {
+  const lage = projektLage(g.id);
+  if (!lage) {
+    return `<div class="info-block"><h3>Modus: Zerlegen</h3><p class="modus-text">Die Station zerlegt Teile in Forschungspunkte (FP).
+      Wähle oben ein Projekt (⏱), dann forscht ${g.arbeiterId ? "der Forscher" : "ein Forscher"} stattdessen daran.</p>
+      ${forscherErlaubt() ? "" : `<p class="info-warnung">⚠ ${htmlSicher(forschungsSperre("HR-003"))}</p>`}</div>`;
+  }
+  return `<div class="info-block"><h3>Projekt: ${htmlSicher(lage.e.name)}</h3>
+      <div class="info-balken"><span style="width:${Math.round(Math.min(1, lage.ist / lage.ziel) * 100)}%"></span></div>
+      <p class="info-leer">⏱ ${Math.floor(lage.ist)} / ${lage.ziel} s · ${htmlSicher(lage.lage)} · solange ruht das Zerlegen</p>
+      <div class="info-knoepfe"><button class="lz-knopf" type="button" data-aktion="fo-abbrechen">Projekt abbrechen</button>
+      <button class="lz-knopf" type="button" data-aktion="fo-zeigen">In der Forschung zeigen ${kbd("forschung")}</button></div></div>`;
+}
 // Was bringt das Zerlegen eines Items? Rückgabe: { zeit, fp } oder null (z. B. Rohstoffe)
 function zerlegWerte(item) {
   if (!item) return null;
@@ -13921,6 +14069,7 @@ function zeichneInfo() {
   ob.infoTitel.textContent = gebaeudeName(g);
   ob.infoUnter.textContent = t.beschreibung;
   let html = "";
+  if (laeuftOhnePersonal(g)) html += maschinenInfoHtml(g);   // Phase 7d: Maschine bzw. Gigafactory-Werkbank
   if (t.art === "werkbank") {
     html += werkbankRezeptHtml(g);   // Phase 7c (UI): Suche + Kategorie, Gehäuse oben, nur freigeschaltete
   } else if (t.art === "montage") {
@@ -13937,14 +14086,18 @@ function zeichneInfo() {
       </select></label>
       ${liste.length ? "" : `<p class="info-leer">Noch keine Blaupause gespeichert – öffne den Layout-Designer (${kbd("designer")}).</p>`}`;
   } else if (t.art === "forschung") {
-    html += `<label class="info-feld">Zerlegen <select data-aktion="rezept">
+    // Phase 7d: Modus – Zeitprojekt (Forschungszeit) oder Zerlegen (Forschungspunkte)
+    const projekt = projektVon(g.id);
+    html += `<label class="info-feld">Forschungsprojekt <select data-aktion="fo-projekt">
+        <option value="">– kein Projekt: Zerlegen –</option>${projektOptionen(g)}
+      </select></label>`;
+    if (!projekt) html += `<label class="info-feld">Zerlegen <select data-aktion="rezept">
         <option value="">– nichts zerlegen –</option>
         ${zerlegOptionen(g.rezept)}
       </select></label>`;
-    const projekt = projektVon(g.id);              // Phase 7d: Zeitprojekt statt Zerlegen
-    if (projekt) html += `<p class="info-leer">Projekt: ${htmlSicher(forschungNachId.get(projekt).name)} – solange ruht das Zerlegen (Forschung, Taste T).</p>`;
   } else if (istZwischenlager(g)) {
     // Phase 7a: keine Schnellwahl mehr – jedes Lager ist "Gemischt", gesteuert wird mit den Pfeilen pro Ressource
+    html += lagerZusatzHtml(g);                      // Phase 7d: Endlos-Silo (Rohstoffart), Smarter Schrank (Nachkauf)
     html += `<div class="info-block">
         <p class="modus-text">⇣ grün = Import (Kuriere bringen bis zum Soll) · ⇡ rot = Export (Kuriere holen ab, was darüber liegt).</p>
         <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
@@ -13967,7 +14120,8 @@ function zeichneInfo() {
         </select></label>
       </div>`;
   }
-  if (istStation(g) && g.automatik) {               // Phase 6: läuft ohne Arbeiter
+  if (istStation(g) && laeuftOhnePersonal(g)) {     // Phase 7d: Maschinen haben keinen Arbeiter-Platz
+  } else if (istStation(g) && g.automatik) {        // Phase 6: läuft ohne Arbeiter
     html += `<p class="info-ok">⚙ Läuft automatisch über Bänder – kein Arbeiter nötig.</p>`;
   } else if (istStation(g)) {
     html += `<label class="info-feld">Arbeiter <select data-aktion="arbeiter">
@@ -14002,6 +14156,52 @@ function zeichneInfo() {
   anzeige.infoStrukturFehlt = false;
 }
 
+// Phase 7d: Einstellungen der neuen Lager im Info-Fenster
+function lagerZusatzHtml(g) {
+  const t = typVon(g);
+  if (t.silo) {
+    return `<label class="info-feld">Rohstoffart <select data-aktion="silo-ware">
+        <option value="">– frei: die erste Lieferung entscheidet –</option>
+        ${ROHSTOFFE.map((r) => `<option value="${r.id}" ${g.siloWare === r.id ? "selected" : ""}>${htmlSicher(r.name)}</option>`).join("")}
+      </select></label>`;
+  }
+  if (t.smart) {
+    return `<label class="personal-auto"><input type="checkbox" data-aktion="smart-nachkauf" ${g.nachkauf !== false ? "checked" : ""}>
+        Nachkauf: Rohstoffe auf ⇣ Import über die Importzone bestellen, bis Max erreicht ist</label>`;
+  }
+  return "";
+}
+// Laufend: welche Ware das Silo nimmt bzw. was der Smarte Schrank gerade nachbestellt
+function lagerZusatzZahlenHtml(g) {
+  const t = typVon(g);
+  if (t.silo) {
+    const ware = siloWareVon(g);
+    return `<p class="modus-text">◎ ${ware ? `Nimmt nur <b>${htmlSicher(itemInfo(ware).name)}</b>${g.siloWare ? "" : " (liegt schon drin)"}` : "Noch frei – die erste Lieferung entscheidet"} · Platz ohne Grenze, nur Rohstoffe.</p>`;
+  }
+  if (!t.smart) return "";
+  if (g.nachkauf === false) return `<p class="modus-text">⟳ Nachkauf ist aus.</p>`;
+  if (!naechsteImportzone(g.zugang)) return `<p class="info-warnung">⚠ Keine aktive Importzone – der Schrank kann nichts nachbestellen.</p>`;
+  const bedarf = Object.entries(smartNachkaufBedarf(g));
+  return `<p class="modus-text">⟳ ${bedarf.length ? `Bestellt gerade nach: ${bedarf.map(([item, n]) => `${n}× ${htmlSicher(itemInfo(item).name)}`).join(", ")}`
+    : "Kein Bedarf – Rohstoffe auf ⇣ Import mit Max (Zahl) werden nachbestellt, sobald etwas fehlt."}</p>`;
+}
+// Phase 7d: Kopf einer Maschine (bzw. einer Werkbank mit Gigafactory): was sie kann, Tempo, Laufkosten, kein Arbeiter
+function maschinenInfoHtml(g) {
+  const t = typVon(g);
+  if (!t.maschine) {
+    return `<p class="info-ok">🏭 Gigafactory: Diese Werkbank läuft ohne Arbeiter · Laufkosten ${euro(GIGAFACTORY.tagesKosten)}/Tag.</p>`;
+  }
+  const r = t.maschine.rezepte || {};
+  const kann = r.art === "produkt" ? "Produkte nach Blaupause"
+    : r.art === "gehaeuse" ? (r.nur ? r.nur.map((id) => herstellbarNachTyp.get(id)?.name || id).join(" und ") : "alle Gehäuse")
+    : r.art === "bauteil" ? `${r.tier ? r.tier + "-" : ""}Komponenten` : "–";
+  return `<div class="info-block"><h3>⚙ Maschine</h3><p class="info-maschine">
+      <span>Stellt her: <b>${htmlSicher(kann)}</b></span>
+      <span>Tempo <b>×${zahlText(maschinenTempo(g))}</b></span>
+      <span>Laufkosten <b>${euro(t.tagesKosten || 0)}/Tag</b></span>
+      <span>kein Arbeiter nötig – Kuriere oder Bänder bringen Material und holen ab</span></p></div>`;
+}
+
 /* --- Phase 7c: Rezeptwahl der Werkbank – Suche und Kategorie statt einer langen Liste ---
    Gehäuse stehen oben als eigene Gruppe, darunter die 12 Kategorien. Wählbar ist nur, was freigeschaltet ist;
    das eingestellte Rezept bleibt immer in der Liste, auch wenn der Filter es ausblendet. */
@@ -14014,10 +14214,11 @@ function werkbankRezeptHtml(g) {
   const suche = suchText(werkbankWahl.suche.trim());
   const option = (b) => `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${htmlSicher(b.name)}${b.tier ? ` · ${b.tier}` : ""} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`;
   let optionen = "", treffer = 0, frei = 0, gesperrt = 0, drin = false;
+  const typ = typVon(g);                             // Phase 7d: Maschinen können nur ihre Rezepte (maschineKann)
   for (const gruppe of werkbankGruppen()) {
-    const liste = gruppe.eintraege.filter((b) => b.rezept && b.freigeschaltet);
+    const liste = gruppe.eintraege.filter((b) => b.rezept && b.freigeschaltet && maschineKann(typ, b.typ));
     frei += liste.length;
-    gesperrt += gruppe.eintraege.filter((b) => b.rezept && !b.freigeschaltet).length;
+    gesperrt += gruppe.eintraege.filter((b) => b.rezept && !b.freigeschaltet && maschineKann(typ, b.typ)).length;
     if (werkbankWahl.kategorie && gruppe.id !== werkbankWahl.kategorie) continue;
     const passend = liste.filter((b) => !suche || suchText(b.name).includes(suche));
     if (!passend.length) continue;
@@ -14033,7 +14234,8 @@ function werkbankRezeptHtml(g) {
         autocomplete="off" spellcheck="false" aria-label="Werkbank-Rezepte durchsuchen">
       <select data-aktion="rezept-kategorie" aria-label="Kategorie der Rezepte">
         <option value="" ${werkbankWahl.kategorie ? "" : "selected"}>Alle Kategorien</option>
-        ${werkbankGruppen().map((gr) => `<option value="${gr.id}" ${werkbankWahl.kategorie === gr.id ? "selected" : ""}>${gr.symbol} ${htmlSicher(gr.name)}</option>`).join("")}
+        ${werkbankGruppen().filter((gr) => gr.eintraege.some((b) => b.rezept && maschineKann(typ, b.typ)))   /* Phase 7d: nur passende Gruppen */
+          .map((gr) => `<option value="${gr.id}" ${werkbankWahl.kategorie === gr.id ? "selected" : ""}>${gr.symbol} ${htmlSicher(gr.name)}</option>`).join("")}
       </select>
       <small>${filter ? `${treffer} Treffer · ` : ""}${frei} frei${gesperrt ? ` · ${gesperrt} gesperrt (Designer)` : ""}</small>
     </div>
@@ -14268,8 +14470,11 @@ function infoZahlenHtml(g) {
   }
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
-    const st = STATUS_ANZEIGE[art];
-    const r = rezeptVon(g);
+    // Phase 7d: Maschinen (und Gigafactory-Werkbänke) "arbeiten" statt "läuft automatisch"
+    const st = art === "automatik" && laeuftOhnePersonal(g) ? STATUS_ANZEIGE.arbeitet : STATUS_ANZEIGE[art];
+    const projekt = istForschungsstation(g) && projektVon(g.id);   // Phase 7d: Zeitprojekt statt Zerlegen
+    const r = projekt ? null : rezeptVon(g);
+    if (istForschungsstation(g)) html += projektInfoHtml(g);
     html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
     if (art === "arbeitet" || art === "automatik") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
     // Worauf wartet der Arbeiter genau? (und ob das Hauptlager überhaupt etwas davon hat)
@@ -14307,7 +14512,8 @@ function infoZahlenHtml(g) {
     html += `<div class="info-block"><h3>⇡ Export nach</h3>${vkListe(g, verknuepfteLager(g, "export"), "export", lagerName)
       || `<span class="info-leer">Kein Lager – Erzeugnisse bleiben im Ausgabefach, Kuriere holen sie ab.</span>`}</div>`;
   } else if (istZwischenlager(g)) {
-    html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3>${lagerZeilen(g)}</div>`;
+    html += lagerZusatzZahlenHtml(g);               // Phase 7d: Silo-Ware, Nachkauf-Bedarf
+    html += `<div class="info-block"><h3>Füllstand ${typVon(g).silo ? `<span class="fuell-wert">${belegt(g)} / ∞</span>` : fuellstandHtml(g)}</h3>${lagerZeilen(g)}</div>`;
     if (g.rueckgabe) html += `<p class="info-leer">Kuriere holen den Überschuss ab …</p>`;
     html += vkLagerHtml(g, lagerName);
   } else if (istImportzone(g)) {                     // Phase 7b
@@ -14424,6 +14630,19 @@ ob.infoInhalt.addEventListener("change", (e) => {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!g) return;
   if (e.target.dataset.aktion === "rezept") setzeRezept(g.id, e.target.value || null);
+  if (e.target.dataset.aktion === "fo-projekt") {                    // Phase 7d: Zeitprojekt an dieser Station
+    if (e.target.value) starteProjektMitMeldung(g.id, e.target.value);
+    else if (projektVon(g.id)) { const name = forschungNachId.get(projektVon(g.id)).name; brichForschungsprojektAb(g.id); zeigeMeldung(`Projekt „${name}“ angehalten – die Station zerlegt wieder.`); }
+    anzeige.infoStrukturFehlt = true;
+  }
+  if (e.target.dataset.aktion === "silo-ware") {                     // Phase 7d: Endlos-Silo
+    const r = setzeSiloWare(g.id, e.target.value || null);
+    zeigeMeldung(!r.ok ? r.grund : e.target.value ? `${gebaeudeName(g)} nimmt nur noch ${itemInfo(e.target.value).name}.` : `${gebaeudeName(g)}: die erste Lieferung entscheidet die Rohstoffart.`, !r.ok);
+  }
+  if (e.target.dataset.aktion === "smart-nachkauf") {                // Phase 7d: Smarter Schrank
+    setzeSmartNachkauf(g.id, e.target.checked);
+    zeigeMeldung(e.target.checked ? `${gebaeudeName(g)} bestellt Rohstoffe auf ⇣ Import über die Importzone nach (bis Max).` : `${gebaeudeName(g)} bestellt nichts mehr nach.`);
+  }
   if (e.target.dataset.aktion === "rezept-kategorie") {             // Phase 7c (UI): Werkbank-Rezepte filtern
     werkbankWahl.kategorie = e.target.value;
     e.target.blur();
@@ -14496,6 +14715,13 @@ ob.infoInhalt.addEventListener("click", (e) => {
       break;
     }
     case "pause": schaltePause(g.id); break;
+    case "fo-abbrechen": {                           // Phase 7d: Projekt der Forschungsstation
+      const name = forschungNachId.get(projektVon(g.id))?.name;
+      if (brichForschungsprojektAb(g.id).ok) zeigeMeldung(`Projekt „${name}“ angehalten – der Fortschritt bleibt, die Station zerlegt wieder.`);
+      anzeige.infoStrukturFehlt = true;
+      break;
+    }
+    case "fo-zeigen": { const id = projektVon(g.id); if (id) zeigeForschungsEintrag(id); return; }
     case "lager": oeffneLager(); break;
     case "verschieben": starteVerschieben(g.id); break;
     case "pfeil": {                                  // Phase 5b: Import/Export umschalten
@@ -14915,7 +15141,9 @@ function kontorKassenbuch() {
   const zeilen = arten.map((art) => `<tr><td>${KASSEN_ARTEN[art]}</td>${tage.map((t) => zelle(t, art)).join("")}</tr>`).join("");
   const bilanz = tage.map((t) => { const b = tagesBilanz(t); return `<td class="zahl ${b > 0 ? "plus" : b < 0 ? "minus" : ""}">${vorzeichenEuro(b)}</td>`; }).join("");
   const rest = WIRTSCHAFT.tagSekunden - (spiel.zeit % WIRTSCHAFT.tagSekunden);
-  return `<p class="kontor-hinweis">Tagesabschluss um ${WIRTSCHAFT.tagEnde}:00 Uhr (in ${dauerText(rest)}): Löhne ${euro(lohnSumme())}, Miete ${euro(aktuelleMiete())}${bandLaufkosten() ? ` und Laufkosten der Bänder ${euro(bandLaufkosten())}` : ""}.
+  // Phase 7d: Laufkosten der Bänder und der Maschinen (inkl. Gigafactory-Werkbänke)
+  const laufkosten = [bandLaufkosten() ? `Bänder ${euro(bandLaufkosten())}` : "", maschinenLaufkosten() ? `Maschinen ${euro(maschinenLaufkosten())}` : ""].filter(Boolean).join(", ");
+  return `<p class="kontor-hinweis">Tagesabschluss um ${WIRTSCHAFT.tagEnde}:00 Uhr (in ${dauerText(rest)}): Löhne ${euro(lohnSumme())}, Miete ${euro(aktuelleMiete())}${laufkosten ? ` und Laufkosten (${laufkosten})` : ""}.
       Ist das Konto im Minus, bleiben ${WIRTSCHAFT.bankrottTage} Tage bis zur Insolvenz; Bauen, Einkauf und Forschung sind dann gesperrt.</p>
     ${tage.length ? `<div class="kontor-tabelle-huelle"><table class="kontor-tabelle">
       <thead><tr><th>Buchung</th>${kopf}</tr></thead>
@@ -14976,7 +15204,219 @@ ob.lagerEinkauf.addEventListener("click", () => {   // Phase 7b: bestellt wird i
 });
 
 /* --- Forschungs-Fenster mit Techtree --- */
-let forschungMerker = "";   // zuletzt gezeichneter Zustand (nur bei Änderung neu zeichnen)
+/* --- Phase 7d: Forschungsfenster mit drei Bäumen ---
+   Reiter "Komponenten" (12 Kategorien als Unterreiter, Gehäuse als eigene Linie oben, darunter 5 Linien × 5 Stufen),
+   "Mitarbeiter" (4 Gruppen mit ihren Ketten) und "Bau" (Spalten T1 bis T5, nach Kategorie). Jede Karte zeigt Name,
+   Tier, Wirkung, Zustand und Fortschritt und den Knopf, den forschungStatus(id).aktion verlangt. Die Suche geht über
+   alle Einträge. Alle Zahlen kommen aus der Logik (Abschnitt 11g); aufgefrischt wird ohne Flackern (setzeHtml/morphe). */
+Object.assign(ob, { forschungGruppen: $("forschung-gruppen"), forschungSuche: $("forschung-suche") });
+const forschungAnsicht = {
+  gruppe: { komponenten: KATEGORIEN[0].id, mitarbeiter: MITARBEITER_FORSCHUNG[0].id },   // gewählter Unterreiter
+  suche: "",
+  fokus: null, fokusBis: 0, fokusGescrollt: true,   // hervorgehobener Eintrag (aus dem Baumenü, HUD oder Info-Fenster)
+  stationWahl: null,                                // Eintrag, für den gerade die Stationsauswahl offen ist
+  klickSperre: 0,                                   // zwischen Drücken und Loslassen nicht austauschen
+};
+// Farben der Mitarbeiter-Gruppen und Bau-Kategorien (Komponenten haben ihre Kategorie-Farbe aus KATEGORIEN)
+const FORSCHUNG_FARBEN = {
+  gehaeuse: "#a08c6c", rollen: "#4a7fc1", koerper: "#f08a3c", psychologie: "#b07ac9", umwelt: "#5a9a5e",
+  lager: "#8a6d4b", logistik: "#f08a3c", produktion: "#5a9a5e", automatisierung: "#4a7fc1", spezial: "#7b68c9",
+  management: "#c9a227", endgame: "#d9473a",
+};
+function forschungFarbe(e) {
+  if (e.baum === "komponenten" && e.gruppe !== "gehaeuse") return kategorieNachId.get(e.gruppe)?.farbe || "#999";
+  return FORSCHUNG_FARBEN[e.gruppe] || "#8a948c";
+}
+function forschungGruppenName(e) {
+  const baum = FORSCHUNG_BAEUME.find((b) => b.id === e.baum);
+  const gruppe = baum && baum.gruppen.find((g) => g.id === e.gruppe);
+  return `${baum ? baum.name : e.baum}${gruppe ? ` · ${gruppe.name}` : ""}`;
+}
+// Sekunden Forschungszeit als kurzer Text ("45 s", "3:20 min")
+function forschungSekText(s) {
+  const n = Math.max(0, Math.ceil(s));
+  return n >= 90 ? `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")} min` : `${n} s`;
+}
+// Restzeit eines laufenden Projekts (mit dem Tempo des Forschers) und was gerade passiert
+function projektLage(stationId) {
+  const s = spiel.gebaeude.get(stationId);
+  const id = s && projektVon(s.id);
+  if (!id) return null;
+  const e = forschungNachId.get(id);
+  const ist = spiel.forschung.fortschritt[id] || 0, ziel = e.bedingung.sek;
+  const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
+  const tempo = p ? forscherTempo(p) : 1;
+  const rest = (ziel - ist) / Math.max(0.01, tempo);
+  const lage = s.pausiert ? "pausiert" : !p ? "wartet auf einen Forscher" : p.phase === "arbeitet" ? `noch ${forschungSekText(rest)}` : `${p.name} ist unterwegs`;
+  return { s, e, ist, ziel, rest, p, lage, laeuft: !!p && p.phase === "arbeitet" && !s.pausiert };
+}
+// Bereit zum Freischalten/Erforschen (für Unterreiter-Punkte und den HUD-Chip; höchstens 2× pro Sekunde neu)
+let forschungBereitCache = { zeit: -1, liste: [] };
+function forschungBereitListe() {
+  const jetzt = Math.floor(performance.now() / 500);
+  if (forschungBereitCache.zeit !== jetzt) {
+    forschungBereitCache = { zeit: jetzt, liste: FORSCHUNG.filter((e) => !e.spaeter && forschungStatus(e.id).kann) };
+  }
+  return forschungBereitCache.liste;
+}
+// Zustand einer Karte (CSS-Klasse): erforscht, verfuegbar, laeuft, projekt, zuTeuer, gesperrt (+ spaeter)
+function forschungKartenZustand(e, st) {
+  if (st.erforscht) return "erforscht";
+  if (st.spaeter) return "gesperrt spaeter";
+  if (!st.sichtbar) return "gesperrt";
+  if (st.kann) return "verfuegbar";
+  if (st.aktion === "projekt") return st.stationId ? "laeuft" : "projekt";
+  if (e.bedingung.art === "xp" && !istErforscht(e.bedingung.vorgaenger)) return "gesperrt";
+  return "zuTeuer";
+}
+// Fortschritt als Text: Zeit, Herstellung, XP oder FP
+function forschungWertText(e, st) {
+  const b = e.bedingung, f = st.fortschritt;
+  if (b.art === "zeit") return `⏱ ${Math.floor(f.ist)} / ${f.ziel} s`;
+  if (b.art === "herstellung") return `⚒ ${zahlText(f.ist)} / ${f.ziel}× ${htmlSicher(itemInfo(b.item).name)}`;
+  if (b.art === "xp") return `✦ ${zahlText(f.ist)} / ${f.ziel} XP`;
+  if (b.art === "fp") return `🔬 ${zahlText(f.ist)} / ${f.ziel} FP${b.euro ? ` + ${euro(b.euro)}` : ""}`;
+  return "";
+}
+// Eine Karte. stationen = Forschungsstationen in der Halle; ort = Baum/Gruppe anzeigen (Suche)
+function forschungKarte(e, st, stationen, ort = false) {
+  const zustand = forschungKartenZustand(e, st);
+  const fokus = forschungAnsicht.fokus === e.id && performance.now() < forschungAnsicht.fokusBis ? " fo-fokus" : "";
+  let zeile = "", knoepfe = "";
+  if (st.erforscht) zeile = `<p class="fo-zustand ok">✓ erforscht</p>`;
+  else if (st.spaeter) zeile = `<p class="fo-zustand zu">🔒 kommt in einer späteren Phase</p>`;
+  else if (!st.sichtbar) zeile = `<p class="fo-zustand zu">🔒 gesperrt – zuerst ${vorigesTier(e.tier)} erforschen</p>`;   // Grund steht über der Spalte
+  else if (zustand === "gesperrt") zeile = `<p class="fo-zustand zu">🔒 ${htmlSicher(st.grund)}</p>`;
+  else if (st.stationId) {
+    const lage = projektLage(st.stationId);
+    zeile = `<p class="fo-zustand">🔬 ${htmlSicher(gebaeudeName(lage.s))} · ${htmlSicher(lage.lage)}</p>`;
+  } else if (!st.kann && st.aktion !== "projekt" && !(st.fortschritt.ziel > 0 && st.fortschritt.ist < st.fortschritt.ziel)) {
+    zeile = `<p class="fo-zustand zu">${htmlSicher(st.grund)}</p>`;   // sonst sagt der Balken genug (Grund im Tooltip)
+  }
+  const balken = !st.erforscht && !st.spaeter && st.sichtbar && st.fortschritt.ziel > 0
+    ? `<div class="fo-balken" title="${htmlSicher(st.grund)}"><span style="width:${Math.round(Math.min(1, st.fortschritt.ist / st.fortschritt.ziel) * 100)}%"></span></div>
+       <small class="fo-wert">${forschungWertText(e, st)}</small>` : "";
+  if (!st.erforscht && !st.spaeter && st.sichtbar && zustand !== "gesperrt") {
+    if (st.aktion === "projekt") {
+      if (st.stationId) {
+        knoepfe = `<button class="lz-knopf" type="button" data-aktion="abbrechen" data-station="${st.stationId}" title="Projekt anhalten – der Fortschritt bleibt erhalten">Abbrechen</button>`;
+      } else if (!stationen.length) {
+        knoepfe = `<button class="lz-knopf" type="button" disabled title="Zuerst eine Forschungsstation bauen (Baumenü → Stationen)">Projekt starten</button>`;
+      } else if (stationen.length > 1 && forschungAnsicht.stationWahl === e.id) {
+        // Mehrere Stationen: wählen, wo geforscht wird (eine Station mit Projekt wechselt das Projekt)
+        knoepfe = `<div class="fo-stationen">${stationen.map((s) => {
+          const lauf = projektVon(s.id);
+          const forscher = s.arbeiterId ? "mit Forscher" : "ohne Forscher";
+          return `<button class="lz-knopf" type="button" data-aktion="projektAn" data-id="${e.id}" data-station="${s.id}"
+            title="${lauf ? `Ersetzt „${htmlSicher(forschungNachId.get(lauf).name)}“ (dessen Fortschritt bleibt)` : "Diese Station forscht daran"}">🔬 ${htmlSicher(gebaeudeName(s))}
+            <small class="leise">${lauf ? `· ${htmlSicher(forschungNachId.get(lauf).name)}` : "· frei"} · ${forscher}</small></button>`;
+        }).join("")}<button class="lz-knopf" type="button" data-aktion="stationWahlZu">Zurück</button></div>`;
+      } else {
+        knoepfe = `<button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="${stationen.length > 1 ? "stationWahl" : "projekt"}" data-id="${e.id}"
+          title="${htmlSicher(st.grund)}">Projekt starten${stationen.length > 1 ? " ▾" : ""}</button>`;
+      }
+    } else if (st.aktion === "freischalten") {
+      knoepfe = `<button class="lz-knopf ${st.kann ? "lz-knopf-haupt" : ""}" type="button" data-aktion="erforschen" data-id="${e.id}" ${st.kann ? "" : "disabled"}
+        title="${htmlSicher(st.grund)}">Freischalten</button>`;
+    } else if (st.aktion === "erforschen") {
+      knoepfe = `<button class="lz-knopf ${st.kann ? "lz-knopf-haupt" : ""}" type="button" data-aktion="erforschen" data-id="${e.id}" ${st.kann ? "" : "disabled"}
+        title="${htmlSicher(st.grund)}">Erforschen (${st.kosten.fp} FP${st.kosten.euro ? ` + ${euro(st.kosten.euro)}` : ""})</button>`;
+    }
+  }
+  return `<div class="tt-knoten fo-karte ${zustand}${fokus}" data-id="${e.id}" style="--kat-farbe:${forschungFarbe(e)}" title="${htmlSicher(st.grund)}">
+      <header><span class="fo-symbol" aria-hidden="true">${e.symbol}</span><b>${htmlSicher(e.name)}</b><span class="fo-tier">${e.tier}</span></header>
+      <p class="fo-text">${ort ? `<b>${htmlSicher(forschungGruppenName(e))}</b> · ` : ""}${e.baum === "komponenten" ? "" : `${e.id} · `}${htmlSicher(e.beschreibung)}</p>
+      ${zeile}${balken}${knoepfe ? `<div class="fo-knoepfe">${knoepfe}</div>` : ""}
+    </div>`;
+}
+// Eine Reihe mit Beschriftung links und bis zu 5 Karten
+function forschungReihe(kopf, liste, stationen) {
+  return `<div class="fo-reihe"><div class="fo-reihe-kopf">${kopf}</div>${liste.map((e) => forschungKarte(e, forschungStatus(e.id), stationen)).join("")}</div>`;
+}
+function forschungKomponentenHtml(stationen) {
+  const kat = kategorieNachId.get(forschungAnsicht.gruppe.komponenten) || KATEGORIEN[0];
+  const eintraege = forschungsEintraege("komponenten");
+  const gehaeuse = eintraege.filter((e) => e.gruppe === "gehaeuse");
+  let html = `<section class="fo-abschnitt"><h3>▢ Gehäuse <small>· eigene Linie, Freischaltung durch Herstellung</small></h3>
+    ${forschungReihe(`<b>Gehäuse</b><span>Holz → Carbon</span>`, gehaeuse, stationen)}</section>`;
+  html += `<section class="fo-abschnitt"><h3><span class="fo-symbol" style="--kat-farbe:${kat.farbe}">${kat.symbol}</span> ${htmlSicher(kat.name)}
+    <small>· Stufe 1 ab Start, Stufe 2 Projekt an der Forschungsstation, Stufe 3–5 durch Herstellung der Vorstufe</small></h3>`;
+  kat.linien.forEach((linie, i) => {
+    const liste = eintraege.filter((e) => e.gruppe === kat.id && herstellbarNachTyp.get(e.id)?.linie === i + 1)
+      .sort((a, b) => herstellbarNachTyp.get(a.id).stufeInLinie - herstellbarNachTyp.get(b.id).stufeInLinie);
+    html += forschungReihe(`<b>Linie ${i + 1}</b><span>⏱ ${linie.sek} s</span>`, liste, stationen);
+  });
+  return html + `</section>`;
+}
+function forschungMitarbeiterHtml(stationen) {
+  const gruppe = MITARBEITER_FORSCHUNG.find((g) => g.id === forschungAnsicht.gruppe.mitarbeiter) || MITARBEITER_FORSCHUNG[0];
+  const liste = forschungsEintraege("mitarbeiter").filter((e) => e.gruppe === gruppe.id);
+  const ketten = [...new Set(liste.map((e) => e.zeile))].sort((a, b) => a - b);
+  let html = `<section class="fo-abschnitt"><h3>${htmlSicher(gruppe.name)} <small>· Stufe 1–2 Projekt an der Forschungsstation, danach Erfahrung aller Mitarbeiter (Firmen-XP)</small></h3>`;
+  ketten.forEach((k, i) => {
+    const kette = liste.filter((e) => e.zeile === k).sort((a, b) => a.spalte - b.spalte);
+    html += forschungReihe(`<b>Kette ${i + 1}</b><span>${kette.filter((e) => istErforscht(e.id)).length} / ${kette.length}</span>`, kette, stationen);
+  });
+  return html + `</section>`;
+}
+function forschungBauHtml(stationen) {
+  const liste = forschungsEintraege("bau");
+  const spalten = Object.keys(FORSCHUNG_NEU.bauKosten).map((tier) => {
+    const k = FORSCHUNG_NEU.bauKosten[tier];
+    const imTier = liste.filter((e) => e.tier === tier);
+    const sichtbar = bauTierSichtbar(tier);
+    const vor = vorigesTier(tier);
+    const fehlt = Math.max(0, (k.sichtbarAb || 0) - anzahlErforschtImTier(vor));
+    let html = `<div class="fo-spalte"><div class="fo-spalte-kopf"><b>${tier}</b>
+      <small>${k.fp} FP${k.euro ? ` + ${euro(k.euro)}` : ""} · ${imTier.filter((e) => istErforscht(e.id)).length} / ${imTier.length} erforscht</small>
+      ${sichtbar ? "" : `<p class="fo-sperr-hinweis">🔒 Noch ${fehlt} ${fehlt === 1 ? "Eintrag" : "Einträge"} aus ${vor} erforschen</p>`}</div>`;
+    for (const kat of BAU_KATEGORIEN) {
+      const teil = imTier.filter((e) => e.gruppe === kat.id);
+      if (!teil.length) continue;
+      html += `<p class="fo-kat-kopf">${kat.symbol} ${htmlSicher(kat.name)}</p>` + teil.map((e) => forschungKarte(e, forschungStatus(e.id), stationen)).join("");
+    }
+    return html + `</div>`;
+  }).join("");
+  return `<div class="fo-bau">${spalten}</div>`;
+}
+function forschungSucheHtml(stationen) {
+  const suche = suchText(forschungAnsicht.suche.trim());
+  const treffer = forschungsEintraege().filter((e) => suchText(e.name).includes(suche) || suchText(e.id).includes(suche) || suchText(e.beschreibung).includes(suche));
+  if (!treffer.length) return `<p class="fo-leer">Keine Forschung zu „${htmlSicher(forschungAnsicht.suche.trim())}“.</p>`;
+  const max = 90;
+  return `<p class="fo-leer">${treffer.length} Treffer${treffer.length > max ? ` – die ersten ${max}` : ""}</p>
+    <div class="fo-treffer">${treffer.slice(0, max).map((e) => forschungKarte(e, forschungStatus(e.id), stationen, true)).join("")}</div>`;
+}
+// Unterreiter: Komponenten-Kategorien (Farbe + Symbol) bzw. Mitarbeiter-Gruppen; Punkt = dort ist etwas bereit
+function forschungGruppenHtml() {
+  if (forschungAnsicht.suche.trim()) return "";
+  const bereit = new Set(forschungBereitListe().filter((e) => e.baum === forschungBaum.id).map((e) => e.gruppe));
+  const punkt = (id) => bereit.has(id) ? `<span class="lz-punkt" aria-label="bereit"></span>` : "";
+  if (forschungBaum.id === "komponenten") {
+    return KATEGORIEN.map((k) => `<button type="button" role="tab" class="lz-kat" data-gruppe="${k.id}" style="--kat-farbe:${k.farbe}"
+      aria-selected="${forschungAnsicht.gruppe.komponenten === k.id}" title="${htmlSicher(k.name)}">${k.symbol}${punkt(k.id)}</button>`).join("")
+      + (bereit.has("gehaeuse") ? `<span class="leise" style="align-self:center;font-size:var(--groesse-klein)">· Gehäuse bereit (oben)</span>` : "");
+  }
+  if (forschungBaum.id === "mitarbeiter") {
+    return MITARBEITER_FORSCHUNG.map((g) => `<button type="button" role="tab" class="lz-kat text" data-gruppe="${g.id}" style="--kat-farbe:${FORSCHUNG_FARBEN[g.id] || "#999"}"
+      aria-selected="${forschungAnsicht.gruppe.mitarbeiter === g.id}">${htmlSicher(g.name)}${punkt(g.id)}</button>`).join("");
+  }
+  return "";
+}
+// Kopfzeile: FP, Firmen-XP, Fortschritt und laufende Projekte (mit Restzeit und Abbrechen)
+function forschungKopfHtml() {
+  const zaehlbar = FORSCHUNG.filter((e) => !e.spaeter);
+  const projekte = forschungsProjekte().map((pr) => {
+    const lage = projektLage(pr.stationId);
+    return `<span class="fo-projekt" title="${htmlSicher(gebaeudeName(lage.s))}">🔬 <b>${htmlSicher(pr.name)}</b> ${Math.floor(lage.ist)} / ${lage.ziel} s · ${htmlSicher(lage.lage)}
+      <button class="mini-knopf" type="button" data-aktion="abbrechen" data-station="${pr.stationId}" aria-label="Projekt ${htmlSicher(pr.name)} abbrechen" title="Abbrechen (Fortschritt bleibt)">✕</button></span>`;
+  }).join("");
+  return `<span>Forschungspunkte <b>${zahlText(spiel.fp)} FP</b></span>
+    <span>Firmen-Erfahrung <b>${zahlText(firmenErfahrung())} XP</b></span>
+    <span>Erforscht ${zaehlbar.filter((e) => istErforscht(e.id)).length} / ${zaehlbar.length}</span>
+    ${projekte || `<span class="leise">Kein Projekt läuft – Projekte (⏱) startest du hier oder im Fenster der Forschungsstation.</span>`}`;
+}
+let forschungMerker = "";   // (Phase 5) bleibt für ältere Aufrufe
 function oeffneForschung() {
   if (designer.offen || dialogOffen || insolvenzOffen) return;
   if (forschungOffen) return;
@@ -14984,8 +15424,8 @@ function oeffneForschung() {
   forschungOffen = true;
   ob.forschungOverlay.hidden = false;
   aktualisiereSperre();
-  forschungMerker = "";
-  zeichneForschung();
+  forschungAnsicht.stationWahl = null;
+  zeichneForschung(true);
   ob.forschungFenster.focus({ preventScroll: true });
 }
 function schliesseForschung(fokusZurueck = true) {
@@ -14995,107 +15435,104 @@ function schliesseForschung(fokusZurueck = true) {
   aktualisiereSperre();
   if (fokusZurueck) ob.hudForschung.focus({ preventScroll: true });
 }
-// Phase 7d: zeigt die neue Forschung (drei Reiter, Raster aus spalte/zeile). Das schöne Fenster baut die UI-Rolle;
-// hier nur so viel, dass alles bedienbar ist: Projekt starten/abbrechen, Erforschen, Freischalten, Schloss "später".
-function bedingungText(e, st) {
-  const b = e.bedingung, f = st.fortschritt;
-  if (b.art === "start") return "ab Start";
-  if (b.art === "zeit") return `⏱ ${b.sek} s Forschung${f.ist && !st.erforscht ? ` · ${Math.floor(f.ist)} / ${b.sek} s` : ""}`;
-  if (b.art === "herstellung") return `⚒ ${f.ziel}× ${itemInfo(b.item).name}${st.erforscht ? "" : ` · ${f.ist} / ${f.ziel}`}`;
-  if (b.art === "xp") return `✦ ${b.xp} XP durch „${forschungNachId.get(b.vorgaenger)?.name || b.vorgaenger}“${st.erforscht ? "" : ` · ${zahlText(f.ist)} / ${b.xp}`}`;
-  return `${b.fp} FP${b.euro ? ` · ${euro(b.euro)}` : ""}`;
-}
-function zeichneForschung() {
+// Baut das Fenster (nur Geändertes wird ausgetauscht). Ohne "erzwingen" nicht, während gerade geklickt wird.
+function zeichneForschung(erzwingen = false) {
   if (!forschungOffen) return;
-  const stationen = gebaeudeListe((g) => typVon(g).art === "forschung");
+  if (!erzwingen && performance.now() < forschungAnsicht.klickSperre) return;
+  const stationen = gebaeudeListe(istForschungsstation);
   const besetzt = stationen.filter((g) => g.arbeiterId).length;
-  const projekte = forschungsProjekte();
-  const zaehlbar = FORSCHUNG.filter((e) => e.baum !== "komponenten" && !e.spaeter);
-  ob.forschungKopf.innerHTML = `<span>Forschungspunkte <b>${zahlText(spiel.fp)} FP</b></span>
-    <span>Firmen-Erfahrung <b>${zahlText(firmenErfahrung())} XP</b></span>
-    <span>Erforscht ${zaehlbar.filter((e) => istErforscht(e.id)).length} / ${zaehlbar.length}</span>
-    <span class="leise">FP gibt es für jede Arbeit und vor allem fürs Zerlegen an der Forschungsstation; dort laufen auch Zeitprojekte (⏱).</span>`;
+  for (const k of ob.forschungReiter.querySelectorAll("[data-baum]")) k.setAttribute("aria-selected", String(k.dataset.baum === forschungBaum.id && !forschungAnsicht.suche.trim()));
+  setzeText(ob.forschungTitel, forschungAnsicht.suche.trim() ? "Forschung · Suche" : `Forschung · ${FORSCHUNG_BAEUME.find((b) => b.id === forschungBaum.id)?.name || ""}`);
+  setzeHtml(ob.forschungKopf, forschungKopfHtml());
+  setzeHtml(ob.forschungGruppen, forschungGruppenHtml());
+  const inhalt = forschungAnsicht.suche.trim() ? forschungSucheHtml(stationen)
+    : forschungBaum.id === "komponenten" ? forschungKomponentenHtml(stationen)
+    : forschungBaum.id === "bau" ? forschungBauHtml(stationen) : forschungMitarbeiterHtml(stationen);
+  setzeHtml(ob.techtree, inhalt);
   setzeText(ob.forschungStationen, stationen.length
-    ? `Forschungsstationen: ${stationen.length} (${besetzt} besetzt) · ${projekte.length ? "Projekte: " + projekte.map((p) => `${p.name} ${Math.floor(p.ist)}/${p.ziel} s`).join(", ") : "kein Projekt – die Stationen zerlegen"} · bisher ${spiel.statistik.zerlegt} Teile zerlegt.`
-    : "Noch keine Forschungsstation: Baumenü (B) → Stationen. Sie zerlegt Teile in Forschungspunkte und arbeitet Zeitprojekte ab.");
-
-  const eintraege = forschungsEintraege(forschungBaum.id);
-  const status = eintraege.map((e) => forschungStatus(e.id));
-  const merker = forschungBaum.id + "|" + status.map((st) => `${st.erforscht ? 1 : 0}${st.kann ? 1 : 0}${st.sichtbar ? 1 : 0}${Math.floor(st.fortschritt.ist)}${st.stationId || ""}`).join()
-    + "|" + spiel.fp + "|" + (spiel.konto < 0) + "|" + stationen.length;
-  if (merker === forschungMerker) return;
-  forschungMerker = merker;
-  setzeText(ob.forschungTitel, `Forschung · ${FORSCHUNG_BAEUME.find((b) => b.id === forschungBaum.id)?.name || ""}`);
-  ob.techtree.style.gridTemplateColumns = "repeat(5, var(--techtree-knoten))";
-  const knoten = eintraege.map((e, i) => {
-    const st = status[i];
-    const zustand = forschungsZustand(e);
-    let knopf = "";
-    if (st.spaeter) knopf = `<p>🔒 kommt in einer späteren Phase</p>`;
-    else if (!st.erforscht && st.aktion === "projekt") {
-      knopf = st.stationId
-        ? `<button class="lz-knopf" type="button" data-aktion="abbrechen" data-station="${st.stationId}">Projekt anhalten</button>`
-        : `<button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="projekt" data-id="${e.id}" ${stationen.length ? "" : "disabled"}>Projekt starten</button>`;
-    } else if (!st.erforscht && st.aktion) {
-      knopf = `<button class="lz-knopf ${st.kann ? "lz-knopf-haupt" : ""}" type="button" data-aktion="erforschen" data-id="${e.id}" ${st.kann ? "" : "disabled"}>${st.aktion === "erforschen" ? "Erforschen" : "Freischalten"}</button>`;
-    }
-    return `<div class="tt-knoten ${zustand}" data-id="${e.id}" style="grid-column:${e.spalte + 1};grid-row:${e.zeile + 1}" title="${htmlSicher(st.grund)}">
-      <header><span aria-hidden="true">${e.symbol}</span><b>${htmlSicher(e.name)}</b></header>
-      <p>${e.id.startsWith("k") || e.id.startsWith("geh_") ? "" : `${e.id} · ${e.tier} · `}${htmlSicher(e.beschreibung)}</p>
-      ${st.erforscht ? `<p class="tt-kosten" style="color:var(--farbe-frei)">✓ erforscht</p>` : `<p class="tt-kosten">${bedingungText(e, st)}</p>`}
-      ${st.erforscht ? "" : `<p>${htmlSicher(st.grund)}</p>`}
-      ${knopf}
-    </div>`;
-  }).join("");
-  ob.techtree.innerHTML = knoten + `<svg aria-hidden="true"></svg>`;
-  zeichneTechtreeLinien();
-}
-// Verbindungslinien: von der Voraussetzung (rechts) zum Eintrag (links), nach dem Messen der Knoten
-function zeichneTechtreeLinien() {
-  const svg = ob.techtree.querySelector("svg");
-  if (!svg) return;
-  const basis = ob.techtree.getBoundingClientRect();
-  const rechteck = (id) => ob.techtree.querySelector(`[data-id="${id}"]`)?.getBoundingClientRect();
-  let linien = "";
-  for (const e of FORSCHUNG.filter((x) => x.baum === forschungBaum.id)) {
-    const ziel = rechteck(e.id);
-    for (const b of e.braucht) {
-      const von = rechteck(b);
-      if (!von || !ziel) continue;
-      const x1 = von.right - basis.left, y1 = von.top + von.height / 2 - basis.top;
-      const x2 = ziel.left - basis.left, y2 = ziel.top + ziel.height / 2 - basis.top;
-      linien += `<line class="${istErforscht(b) ? "aktiv" : ""}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
-    }
+    ? `Forschungsstationen: ${stationen.length} (${besetzt} mit Forscher) · Ohne Projekt zerlegen sie Teile in Forschungspunkte · bisher ${spiel.statistik.zerlegt} Teile zerlegt.`
+    : "Noch keine Forschungsstation: Baumenü (B) → Stationen. Sie zerlegt Teile in Forschungspunkte und arbeitet Zeitprojekte (⏱) ab.");
+  // Hervorgehobenen Eintrag einmal in die Mitte holen
+  if (!forschungAnsicht.fokusGescrollt) {
+    forschungAnsicht.fokusGescrollt = true;
+    const karte = ob.techtree.querySelector(`[data-id="${forschungAnsicht.fokus}"]`);
+    if (karte) karte.scrollIntoView({ block: "center", inline: "nearest" });
   }
-  svg.innerHTML = linien;
 }
-ob.techtree.addEventListener("click", (e) => {
+// Öffnet das Fenster beim passenden Reiter und hebt den Eintrag hervor (Baumenü-Schloss, HUD-Chip, Info-Fenster)
+function zeigeForschungsEintrag(id) {
+  const e = forschungNachId.get(id);
+  if (e) {
+    forschungBaum.id = e.baum;
+    if (e.baum === "komponenten" && e.gruppe !== "gehaeuse") forschungAnsicht.gruppe.komponenten = e.gruppe;
+    if (e.baum === "mitarbeiter") forschungAnsicht.gruppe.mitarbeiter = e.gruppe;
+    forschungAnsicht.fokus = id;
+    forschungAnsicht.fokusBis = performance.now() + 3000;
+    forschungAnsicht.fokusGescrollt = false;
+  }
+  forschungAnsicht.suche = "";
+  ob.forschungSuche.value = "";
+  if (forschungOffen) zeichneForschung(true); else oeffneForschung();
+}
+// Startet ein Projekt (stationId null = eine freie Station) und meldet das Ergebnis
+function starteProjektMitMeldung(stationId, id) {
+  const r = starteForschungsprojekt(stationId, id);
+  if (!r.ok) { zeigeMeldung(r.grund, true); return r; }
+  const s = spiel.gebaeude.get(r.stationId);
+  zeigeMeldung(`Projekt „${forschungNachId.get(id).name}“ gestartet an ${gebaeudeName(s)}${r.ersetzt ? ` (statt „${forschungNachId.get(r.ersetzt).name}“ – dessen Fortschritt bleibt)` : ""}`
+    + `${s.arbeiterId ? "." : " – die Station braucht noch einen Forscher."}`, !s.arbeiterId);
+  return r;
+}
+ob.forschungFenster.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button, input, select")) forschungAnsicht.klickSperre = performance.now() + 400;
+});
+ob.forschungFenster.addEventListener("click", (e) => {
+  const reiter = e.target.closest("[data-gruppe]");
+  if (reiter) {                                     // Unterreiter: Kategorie bzw. Gruppe
+    forschungAnsicht.gruppe[forschungBaum.id] = reiter.dataset.gruppe;
+    forschungAnsicht.stationWahl = null;
+    zeichneForschung(true);
+    ob.techtree.parentElement.scrollTop = 0;
+    return;
+  }
   const knopf = e.target.closest("button[data-aktion]");
-  if (!knopf || knopf.disabled) return;
-  if (knopf.dataset.aktion === "erforschen") {
-    const r = erforsche(knopf.dataset.id);
+  if (!knopf || knopf.disabled || !ob.forschungFenster.contains(knopf)) return;
+  const { aktion, id, station } = knopf.dataset;
+  if (aktion === "erforschen") {                    // Bau: FP (+ €), Herstellung/XP: Freischalten
+    const r = erforscheEintrag(id);
     if (!r.ok) zeigeMeldung(r.grund, true);
-    zeichneForschung();
-  } else if (knopf.dataset.aktion === "projekt") {          // Phase 7d: Zeitprojekt an einer freien Station
-    const r = starteForschungsprojekt(null, knopf.dataset.id);
+  } else if (aktion === "projekt") {
+    starteProjektMitMeldung(null, id);
+  } else if (aktion === "stationWahl") {
+    forschungAnsicht.stationWahl = id;
+  } else if (aktion === "stationWahlZu") {
+    forschungAnsicht.stationWahl = null;
+  } else if (aktion === "projektAn") {
+    forschungAnsicht.stationWahl = null;
+    starteProjektMitMeldung(station, id);
+  } else if (aktion === "abbrechen") {
+    const name = forschungNachId.get(projektVon(station))?.name;
+    const r = brichForschungsprojektAb(station);
     if (!r.ok) zeigeMeldung(r.grund, true);
-    else zeigeMeldung(`Projekt gestartet an ${gebaeudeName(spiel.gebaeude.get(r.stationId))}.`);
-    zeichneForschung();
-  } else if (knopf.dataset.aktion === "abbrechen") {        // Phase 7d
-    const r = brichForschungsprojektAb(knopf.dataset.station);
-    if (!r.ok) zeigeMeldung(r.grund, true);
-    zeichneForschung();
-  } else if (knopf.dataset.aktion === "personal") {
-    schliesseForschung(false);
-    bau.reiter = "personal";
-    if (bau.offen) zeichneBauInhalt(); else oeffneBau();
-  }
+    else zeigeMeldung(`Projekt „${name}“ angehalten – der Fortschritt bleibt, die Station zerlegt wieder.`);
+  } else return;
+  forschungAnsicht.klickSperre = 0;
+  zeichneForschung(true);
+});
+// Suche über alle Einträge (Tippen filtert sofort; Esc leert das Feld, nochmal Esc schließt das Fenster)
+ob.forschungSuche.addEventListener("input", (e) => { forschungAnsicht.suche = e.target.value; forschungAnsicht.stationWahl = null; zeichneForschung(true); });
+ob.forschungSuche.addEventListener("keydown", (e) => {
+  e.stopPropagation();                              // Buchstaben steuern nicht die Kamera
+  if (e.key !== "Escape") return;
+  e.preventDefault();
+  if (e.target.value) { e.target.value = ""; forschungAnsicht.suche = ""; zeichneForschung(true); } else ob.forschungFenster.focus({ preventScroll: true });
 });
 $("forschung-schliessen").addEventListener("click", () => schliesseForschung());
 ob.forschungOverlay.addEventListener("click", (e) => { if (e.target === ob.forschungOverlay) schliesseForschung(); });
 ob.hudForschung.addEventListener("click", () => (forschungOffen ? schliesseForschung() : oeffneForschung()));
 ob.hudFp.addEventListener("click", oeffneForschung);
-window.addEventListener("resize", () => { if (forschungOffen) zeichneTechtreeLinien(); });
+// Neue Forschung: offenes Fenster sofort auffrischen
+spielEreignisse.addEventListener("forschungGeaendert", () => { if (forschungOffen) zeichneForschung(); });
 
 /* --- Insolvenz: Spielende mit Bilanz und "Neues Spiel" --- */
 function zeigeInsolvenz() {
@@ -15121,7 +15558,7 @@ ob.insolvenzNeu.addEventListener("click", setzeSpielstandZurueck);
 spielEreignisse.addEventListener("tagesabschluss", (e) => {
   const { tag, eintrag } = e.detail;
   const bilanz = tagesBilanz(eintrag);
-  zeigeMeldung(`Feierabend Tag ${tag}: Löhne ${euro(eintrag.aus.loehne || 0)}, Miete ${euro(eintrag.aus.miete || 0)} · Tagesbilanz ${vorzeichenEuro(bilanz)}`, bilanz < 0);
+  zeigeMeldung(`Feierabend Tag ${tag}: Löhne ${euro(eintrag.aus.loehne || 0)}, Miete ${euro(eintrag.aus.miete || 0)}${eintrag.aus.laufkosten ? `, Laufkosten ${euro(eintrag.aus.laufkosten)}` : ""} · Tagesbilanz ${vorzeichenEuro(bilanz)}`, bilanz < 0);   // Phase 7d: + Laufkosten
 });
 spielEreignisse.addEventListener("bankrottStart", () =>
   zeigeMeldung(`Konto im Minus! In ${WIRTSCHAFT.bankrottTage} Tagen droht die Insolvenz.`, true));
@@ -15153,6 +15590,28 @@ spielEreignisse.addEventListener("erfahrungAufstieg", (e) =>
   zeigeMeldung(`${e.detail.person.name} erreicht Erfahrungsstufe ${e.detail.stufe}: arbeitet schneller, Lohn steigt leicht.`));
 spielEreignisse.addEventListener("klasseEntdeckt", (e) =>
   zeigeMeldung(`Neue Produktklasse zerlegt: ${e.detail.klasse.symbol} ${e.detail.klasse.name} · +${e.detail.bonus} FP Entdeckungsbonus`));
+// Phase 7d: I/O-Gates und Smarter Schrank melden sich gesammelt (nicht bei jedem Item):
+// die erste Meldung nach kurzer Zeit, danach höchstens alle "abstand" Sekunden eine Zusammenfassung
+const sammelMeldungen = {
+  io:    { abstand: 30, letzte: -Infinity, timer: null, anzahl: 0, geld: 0, items: {} },
+  smart: { abstand: 90, letzte: -Infinity, timer: null, anzahl: 0, geld: 0, items: {} },
+};
+function sammleMeldung(art, item, n, geld, text) {
+  const m = sammelMeldungen[art];
+  m.anzahl += n; m.geld += geld; m.items[item] = (m.items[item] || 0) + n;
+  if (m.timer) return;
+  const warten = Math.max(2, m.abstand - (performance.now() / 1000 - m.letzte));
+  m.timer = setTimeout(() => {
+    const was = Object.entries(m.items).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([i, k]) => `${k}× ${itemInfo(i).name}`).join(", ");
+    zeigeMeldung(text(m, was));
+    m.letzte = performance.now() / 1000;
+    m.timer = null; m.anzahl = 0; m.geld = 0; m.items = {};
+  }, warten * 1000);
+}
+spielEreignisse.addEventListener("ioGateVerkauf", (e) => sammleMeldung("io", e.detail.item, 1, e.detail.preis || 0,
+  (m, was) => `I/O-Gates: ${m.anzahl} Items Überschuss verkauft statt zu stauen (${was}${m.anzahl > 3 ? " …" : ""}) · +${euro(m.geld)}`));
+spielEreignisse.addEventListener("smartNachkauf", (e) => sammleMeldung("smart", e.detail.item, e.detail.anzahl || 0, 0,
+  (m, was) => `Smarter Schrank bestellt über die Importzone nach: ${was}.`));
 
 /* ============================================================================
    ABSCHNITT 13d: Einstellungen – Tastenkürzel & Grafik (Phase 7a)      [UI/UX-Agent]
@@ -15492,7 +15951,7 @@ function aktualisiereOberflaeche(sekunden) {
    Baumenü-Reiter "Bänder" und "Halle", das Band-Werkzeug (Ziehen in L-Form, Brücken,
    Abriss durch Ziehen), das Info-Fenster für Bandteile und die Knöpfe für freie Arbeiter.
    ============================================================================ */
-const forschungBaum = { id: "mitarbeiter" };   // gewählter Reiter im Techtree (Phase 7d: Komponenten, Mitarbeiter, Bau)
+const forschungBaum = { id: "bau" };   // gewählter Reiter im Techtree (Phase 7d: Komponenten, Mitarbeiter, Bau – Start: Bau)
 Object.assign(ob, {
   hudFrei: $("hud-frei"),
   hudLagerWarnung: $("hud-lagerwarnung"),   // Phase 7c: eigene ID (vorher doppelt mit dem Lager-Knopf)
@@ -15511,23 +15970,32 @@ const RICHTUNGS_PFEIL = ["↓", "←", "↑", "→"];   // so sieht die Richtung
 
 /* --- Baumenü: Reiter "Bänder" --- */
 function zeichneBaender() {
-  const karten = BAND_TEILE.filter((t) => t.imMenue).map((t) => {
+  // Phase 7d: Untergrund-Eingang und -Ausgang baut ein gemeinsames Werkzeug "Untergrund-Band" (Karte untergrundEin)
+  const karten = BAND_TEILE.filter((t) => t.imMenue && t.typ !== "untergrundAus").map((t) => {
     const gewaehlt = bau.werkzeug && bau.werkzeug.art === "band" && bau.werkzeug.typ === t.typ;
     const imDepot = spiel.depot.baender[t.typ] || 0;
     let preis;
     if (t.typ === "bruecke") {
       const p = ["rampeHoch", "hochband", "rampeRunter"].map((x) => bandTypNach.get(x).preis);
       preis = `<small class="bau-preis">${euro(p[0] + p[2])} + ${euro(p[1])}/Kachel</small>`;
+    } else if (t.typ === "untergrundEin") {        // Phase 7d: Eingang + Ausgang
+      const p = bandteilPreis("untergrundEin") + bandteilPreis("untergrundAus");
+      preis = `<small class="${kannBezahlen(p) ? "bau-preis" : "bau-teuer"}">${p ? euro(p) : "aus dem Depot"} · Paar</small>`;
     } else {
       preis = imDepot ? `<small class="bau-depot">im Depot: ${imDepot} · kostenlos</small>`
         : `<small class="${kannBezahlen(t.preis) ? "bau-preis" : "bau-teuer"}">${euro(t.preis)}${t.typ === "band" ? " pro Kachel" : ""}</small>`;
     }
     const unter = t.typ === "band" ? "ziehen · Kurven automatisch" : t.typ === "bruecke" ? "gerade ziehen · mind. 3 Kacheln"
+      : t.typ === "untergrundEin" ? `Eingang → Ausgang · bis ${BAENDER.untergrundReichweite} Kacheln`   // Phase 7d
+      : t.typ === "omniMerger" ? "1 × 1 · 4 Seiten rein, vorn raus"
       : istGreifarm(t) ? `1 × 1 · ${bandTypNach.get("greifarm").tagesKosten} €/Tag` : t.begehbar ? "1 × 1 · begehbar" : "1 × 1 · nicht begehbar";
-    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss, Grund im Tooltip
-    return `<button class="bau-karte" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}" ${sperre ? "disabled" : ""} title="${htmlSicher(sperre || t.beschreibung)}">
+    const name = t.typ === "untergrundEin" ? "Untergrund-Band" : t.name;
+    const beschreibung = t.typ === "untergrundEin" ? `Fördert Items unter dem Boden hindurch: vom Eingang zum Ausgang ziehen (gerade, bis zu ${BAENDER.untergrundReichweite} Kacheln dazwischen – dort darf alles stehen).` : t.beschreibung;
+    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss; Klick zeigt den Forschungseintrag
+    return `<button class="bau-karte${sperre ? " gesperrt" : ""}" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}"
+        ${sperre ? `data-forschung="${bauForschungVon(t.typ)}"` : ""} title="${htmlSicher(sperre ? `${sperre} Klick zeigt den Eintrag.` : beschreibung)}">
         <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.symbol}</span>
-        <span><b>${t.name}</b><small>${unter}</small>${preis}</span></button>`;
+        <span><b>${name}</b><small>${unter}</small>${preis}</span></button>`;
   }).join("");
   const kosten = bandLaufkosten();
   ob.bauInhalt.innerHTML = karten + `<div class="band-kosten"><b>${spiel.baender.size}</b> Bandteile<br>
@@ -15561,7 +16029,9 @@ function zeichneHalle() {
 /* --- Band-Werkzeug --- */
 function waehleBandTyp(typ) {
   if (bau.werkzeug && bau.werkzeug.art === "band" && bau.werkzeug.typ === typ) { setzeWerkzeug(null); return; }
-  setzeWerkzeug({ art: "band", typ, richtung: bau.letzteDrehung["band:" + typ] ?? bau.letzteDrehung.bandRichtung ?? 0 });
+  const w = { art: "band", typ, richtung: bau.letzteDrehung["band:" + typ] ?? bau.letzteDrehung.bandRichtung ?? 0 };
+  if (typ === "untergrundEin") { w.untergrund = true; w.eingang = null; }   // Phase 7d: Eingang + Ausgang in einem Zug
+  setzeWerkzeug(w);
 }
 // Taste F: Baumenü auf "Bänder" und Fließband in die Hand (nochmal F: weglegen)
 function schalteBandWerkzeug() {
@@ -15576,7 +16046,7 @@ function ziehWerkzeugAktiv() {
   if (!w) return false;
   if (w.art === "abriss") return true;
   if (w.anker) return false;   // Phase 7a: beim Weiterbauen genügt ein Klick aufs Ziel
-  return w.art === "band" && !!bandTypNach.get(w.typ).ziehen;
+  return w.art === "band" && (!!bandTypNach.get(w.typ).ziehen || !!w.untergrund);   // Phase 7d: Untergrund wie die Brücke ziehen
 }
 // Phase 7a: Strecke vom Ansatzpunkt (Weiterbauen, Taste E) bis zur Kachel k.
 // Zuerst geht es geradeaus in der bisherigen Bandrichtung, dann um die Ecke (Shift: umgekehrt).
@@ -15636,6 +16106,7 @@ function planeZug() {
     if (!teile.length) for (const k of kachelnImRechteck(zug.start, ende)) liste.push({ x: k.x, z: k.z, abriss: true });
     return { liste, passt: teile.length > 0, gruende: teile.length ? [] : ["Hier liegen keine Bänder."], anzahl: teile.length };
   }
+  if (w.untergrund) return planeUntergrundZug(zug.start, ende, w);   // Phase 7d
   if (w.typ === "bruecke") {
     const plan = planeBruecke(zug.start, ende);
     return { liste: plan.teile.map((t, i) => ({ ...t, passt: !plan.fehler.includes(i) && plan.passt })), passt: plan.passt, gruende: plan.gruende, kosten: plan.kosten, anzahl: plan.teile.length };
@@ -15678,6 +16149,8 @@ function ziehen(phase, k, shift) {
       meldeStruktur();
       zeigeMeldung(`${teile.length} Bandteile abgerissen${geld ? ` (+${euro(geld)} erstattet)` : ""}.`);
     }
+  } else if (w.untergrund) {                       // Phase 7d: Untergrund-Band von start nach ende
+    baueUntergrundMitMeldung(w, start, ende, shift);
   } else if (w.typ === "bruecke") {
     const r = baueBruecke(start, ende);
     if (!r.ok) zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true);
@@ -15715,6 +16188,12 @@ function aktualisiereBandVorschau() {
     return;
   }
   if (w.typ === "bruecke") { zeigeBandVorschau([{ x: k.x, z: k.z, typ: "rampeHoch", richtung: null, passt: true }]); return; }
+  if (w.untergrund) {                               // Phase 7d: Eingang gewählt → Strecke bis zur Maus
+    const plan = planeUntergrundZug(w.eingang || k, k, w);
+    bandVorschauGrund = plan.anzahl === 1 ? plan.fehlt || "" : plan.passt ? "" : plan.gruende[0] || "";
+    zeigeBandVorschau(plan.liste);
+    return;
+  }
   if (w.anker) {                                   // Phase 7a: Weiterbauen zeigt die ganze Strecke ab dem Ansatzpunkt
     const strecke = ankerStrecke(w, k, gedrueckteTasten.has("shift"));
     const p = pruefeBandStrecke(strecke, w.typ);
@@ -15732,7 +16211,9 @@ function bandTipp(w) {
   if (zug.start && zug.plan) {
     const p = zug.plan;
     if (w.art === "abriss") return p.anzahl ? { html: `Loslassen reißt ${p.anzahl} Bandteile ab.` } : { html: "Hier liegen keine Bänder.", warnung: true };
+    if (w.untergrund && p.anzahl === 1 && !p.fehlt) return { html: "Untergrund-Band: bis zum Ausgang ziehen (gerade Linie) und loslassen." };   // Phase 7d
     if (!p.passt) return { html: `Hier geht das nicht: ${htmlSicher(p.gruende[0] || "")}`, warnung: true };
+    if (w.untergrund) return { html: `Untergrund-Band · ${p.kosten ? euro(p.kosten) : "kostenlos"} · Loslassen zum Bauen` };   // Phase 7d
     return { html: `${p.anzahl} Kacheln · ${p.kosten ? euro(p.kosten) : "kostenlos"} · Loslassen zum Bauen${w.typ === "bruecke" ? "" : " · <kbd>Shift</kbd> Ecke tauschen"}` };
   }
   const t = bandTypNach.get(w.typ);
@@ -15740,6 +16221,12 @@ function bandTipp(w) {
   if (w.anker) return { html: `Weiterbauen (${euro(t.preis)}/Kachel): Ziel anklicken – die Strecke beginnt vor dem gewählten Band · <kbd>Shift</kbd> Ecke tauschen · <kbd>Esc</kbd> fertig` };
   if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): ziehen legt eine Strecke, Klick ein Stück · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · <kbd>Esc</kbd> fertig` };
   if (w.typ === "bruecke") return { html: "Brücke: gerade von der Auffahrt zur Abfahrt ziehen (mind. 3 Kacheln). Darunter bleibt Platz für Bänder und Wege." };
+  if (w.untergrund) {                               // Phase 7d
+    const kosten = bandteilPreis("untergrundEin") + bandteilPreis("untergrundAus");
+    return w.eingang
+      ? { html: `Untergrund-Band: jetzt den Ausgang anklicken (gerade Linie, bis ${BAENDER.untergrundReichweite} Kacheln dazwischen) · <kbd>Esc</kbd> abbrechen` }
+      : { html: `Untergrund-Band (${kosten ? euro(kosten) : "aus dem Depot"}): vom Eingang zum Ausgang ziehen oder beide nacheinander anklicken – dazwischen darf alles stehen (bis ${BAENDER.untergrundReichweite} Kacheln) · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} · <kbd>Esc</kbd> fertig` };
+  }
   const kosten = bandteilPreis(w.typ);
   return { html: `${t.name} (${kosten ? euro(kosten) : "aus dem Depot"}): Klicken zum Aufstellen · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · <kbd>Esc</kbd> fertig` };
 }
@@ -15747,6 +16234,17 @@ function bandTipp(w) {
 // Ein einzelnes Teil legen (Klick mit dem Band-Werkzeug)
 function bandKlick(w, k, shift) {
   if (w.typ === "bruecke") { zeigeMeldung("Eine Brücke ziehst du mit gedrückter Maustaste (mindestens 3 Kacheln).", true); return; }
+  if (w.untergrund) {                               // Phase 7d: erster Klick = Eingang, zweiter Klick = Ausgang
+    if (!w.eingang || (w.eingang.x === k.x && w.eingang.z === k.z)) {
+      const p = pruefeBandteil("untergrundEin", k.x, k.z, w.richtung);
+      if (!p.passt) { zeigeMeldung(`Hier geht das nicht: ${p.gruende[0]}`, true); return; }
+      w.eingang = w.eingang ? null : { x: k.x, z: k.z };
+      if (w.eingang) zeigeMeldung("Eingang gewählt – jetzt den Ausgang anklicken (gerade Linie).");
+    } else baueUntergrundMitMeldung(w, w.eingang, k, shift);
+    aktualisiereBandVorschau();
+    aktualisiereBauTipp();
+    return;
+  }
   if (w.anker) { ankerKlick(w, k, shift); return; }
   const r = baueBandteil(w.typ, k.x, k.z, w.richtung);
   if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
@@ -15770,6 +16268,26 @@ function ankerKlick(w, k, shift) {
   zeigeMeldung(`${r.gebaut} × ${bandTypNach.get(w.typ).name} gelegt${r.kosten ? ` (−${euro(r.kosten)})` : ""}.${frei ? " Weiter anklicken oder Esc." : ""}`);
   aktualisiereBandVorschau();
   aktualisiereBauTipp();
+}
+// Phase 7d: Planung für das Untergrund-Band (Vorschau + Tipp). Auf derselben Kachel nur der Eingang (fehlt = Hinweis)
+function planeUntergrundZug(start, ende, w) {
+  if (start.x === ende.x && start.z === ende.z) {
+    const p = pruefeBandteil("untergrundEin", start.x, start.z, w.richtung);
+    return { liste: [{ x: start.x, z: start.z, typ: "untergrundEin", richtung: w.richtung, passt: p.passt }], passt: false,
+      gruende: p.passt ? ["Bis zum Ausgang ziehen (gerade Linie)."] : p.gruende, fehlt: p.passt ? "" : p.gruende[0], kosten: 0, anzahl: 1 };
+  }
+  const plan = planeUntergrund(start, ende);
+  return { liste: plan.teile.map((t, i) => ({ ...t, passt: plan.passt && !plan.fehler.includes(i) })), passt: plan.passt, gruende: plan.gruende, kosten: plan.kosten, anzahl: 2 };
+}
+function baueUntergrundMitMeldung(w, start, ende, shift) {
+  const r = baueUntergrund(start, ende);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${(r.gruende && r.gruende[0]) || "Eingang und Ausgang passen nicht."}`, true); return false; }
+  w.eingang = null;
+  w.richtung = r.teile[0].richtung;
+  bau.letzteDrehung["band:untergrundEin"] = w.richtung;
+  zeigeMeldung(`Untergrund-Band gebaut: ${Math.abs(ende.x - start.x) + Math.abs(ende.z - start.z) - 1} Kacheln unter dem Boden${r.kosten ? ` (−${euro(r.kosten)})` : ""}.`);
+  if (!shift) setzeWerkzeug(null);
+  return true;
 }
 // Ein Bandteil abreißen (Klick mit dem Abriss-Werkzeug)
 function bandAbrissKlick(k) {
@@ -15894,9 +16412,12 @@ function zeichneBandInfo() {
     const anfang = seg.teile[0];
     html += `<div class="info-block"><h3>Tempo des Segments</h3><div class="tempo-wahl" role="group" aria-label="Tempo">` +
       BAND_TEMPO.map((st) => {
+        // Phase 7d: Fließband Mk.1–Mk.4 mit Items pro Minute; gesperrte Stufen mit Schloss und Forschungsgrund
         const frei = tempoFreigeschaltet(st.id);
+        const name = st.mk || st.name;
+        const wert = st.proMinute ? `${st.proMinute} Items/min` : "steht";
         return `<button type="button" data-band-aktion="tempo" data-tempo-id="${st.id}" aria-pressed="${t.tempo === st.id}" ${frei ? "" : "disabled"}
-          title="${frei ? `${st.tempo} Kacheln/s · ${st.tagesKosten} € pro Kachel und Tag` : "Noch nicht erforscht (Techtree → Automatisierung)"}">${frei ? "" : "🔒 "}${st.name}</button>`;
+          title="${frei ? `${st.mk ? `${st.mk} (${st.name})` : st.name}: ${wert} · ${zahlText(st.tempo)} Kacheln/s · ${st.tagesKosten} € pro Kachel und Tag` : htmlSicher(forschungsSperre(st.forschung) || "Noch nicht erforscht (Forschung, Taste T).")}">${frei ? "" : "🔒 "}${name}${st.proMinute ? `<small>${st.proMinute}/min</small>` : ""}</button>`;
       }).join("") + `</div></div>`;
     html += `<label class="info-feld">Name <span class="band-name"><input type="text" maxlength="30" value="${htmlSicher(t.name)}" data-band-aktion="name">
       ${bandInfoKnopf("umbenennen", "OK", "", "mini-knopf")}</span></label>`;
@@ -15914,6 +16435,7 @@ function zeichneBandInfo() {
           : `<span class="leise">Noch nichts zum Abgeben.</span>`}</div></div>`;
     }
   }
+  if (segAlle && istErforscht("HR-009")) html += overseerHtml(t);   // Phase 7d: Fließband-Overseer (HR-009)
   if (istVerteiler(t)) {
     html += `<div id="band-puffer">${pufferHtml(t)}</div>`;   // Phase 7b Nachtrag: Puffer oben, live aufgefrischt
     html += seitenHtml(t);                          // Phase 7a: Seiten und Filter
@@ -15971,6 +16493,7 @@ function bandInfoZahlenHtml(t) {
     html += `<div class="info-block"><h3>Segment</h3><dl class="info-zeilen zwei">
       <dt>Länge</dt><dd>${info.laenge} Kacheln</dd>
       <dt>Items darauf</dt><dd>${info.items}</dd>
+      <dt>Durchsatz</dt><dd>${Number.isFinite(segmentDurchsatz(seg)) ? `bis ${segmentDurchsatz(seg)} Items/min` : "unbegrenzt"}</dd>
       <dt>Von</dt><dd>${htmlSicher(info.von)}</dd>
       <dt>Nach</dt><dd>${htmlSicher(info.nach)}</dd>
       <dt>Laufkosten</dt><dd>${euro(info.kostenTag)}/Tag</dd></dl>
@@ -15996,6 +16519,22 @@ function bandInfoZahlenHtml(t) {
       ${t.typ === "ventil" && t.ueberlauf ? `<p class="info-leer">Vorn ist voll – Items gehen gerade zur Seite.</p>` : ""}</div>`;
   }
   return html;
+}
+// Phase 7d: Overseer (HR-009) – ein freier Arbeiter steht am Segment, das Band läuft schneller
+function overseerHtml(t) {
+  const p = overseerVon(t.id);
+  const bonus = Math.round((forschungsWirkung("overseer") - 1) * 100);
+  if (p) {
+    return `<div class="info-block"><h3>Overseer</h3><div class="vk-liste"><span class="vk-chip"><span>👷 ${htmlSicher(p.name)}${bonus ? ` · +${bonus} % Tempo` : ""}</span>
+      <button type="button" data-band-aktion="overseerWeg" data-person="${p.id}" title="Overseer abziehen (wird wieder freier Arbeiter)" aria-label="Overseer ${htmlSicher(p.name)} abziehen">✕</button></span></div></div>`;
+  }
+  const frei = mitarbeiter.filter((m) => m.rolle === "arbeiter" && !m.stationId);
+  const woanders = (m) => { const tid = spiel.forschung.overseer[m.id]; const b = tid && spiel.baender.get(tid); return b ? ` (jetzt Overseer an ${htmlSicher(b.name || bandTyp(b).name)})` : ""; };
+  return `<div class="info-block"><h3>Overseer</h3>
+    ${frei.length ? `<label class="info-feld">Freien Arbeiter hinstellen <select data-band-aktion="overseer">
+        <option value="">– niemand –</option>${frei.map((m) => `<option value="${m.id}">${htmlSicher(m.name)}${woanders(m)}</option>`).join("")}
+      </select></label>` : `<p class="info-leer">Kein freier Arbeiter – stelle einen ein oder nimm einen von seiner Station (Personal).</p>`}
+    <p class="modus-text">Ein Overseer pro Segment: das Band läuft ${bonus ? `${bonus} % ` : ""}schneller, solange er daneben steht.</p></div>`;
 }
 // Phase 7b Nachtrag: Puffer eines Verteilers (Splitter, Smart-Verteiler, Ventil) – "Puffer: n / 30"
 // mit Aufschlüsselung nach Items. pufferVon(t) liefert die Logik (Array der Item-Ids).
@@ -16046,6 +16585,11 @@ ob.infoInhalt.addEventListener("click", (e) => {
       else zeigeMeldung("Dieses Segment lässt sich nicht umkehren.", true);
       break;
     case "drehen": setzeBandEinstellung(t.id, "drehen"); break;
+    case "overseerWeg": {                            // Phase 7d
+      const p = mitarbeiter.find((m) => m.id === knopf.dataset.person);
+      if (p && setzeOverseer(p.id, null).ok) zeigeMeldung(`${p.name} ist kein Overseer mehr.`);
+      break;
+    }
     case "abreissen": {
       reisseBandAb(t);
       waehleGebaeude(null);
@@ -16061,6 +16605,15 @@ ob.infoInhalt.addEventListener("change", (e) => {
   if (!t || !feld.dataset.bandAktion) return;
   if (feld.dataset.bandAktion === "vorrang") setzeBandEinstellung(t.id, "vorrang", feld.value);
   else if (feld.dataset.bandAktion === "armFilter") setzeBandEinstellung(t.id, "armFilter", feld.value);
+  else if (feld.dataset.bandAktion === "overseer" && feld.value) {   // Phase 7d: Overseer zuweisen
+    const p = mitarbeiter.find((m) => m.id === feld.value);
+    const r = setzeOverseer(feld.value, t.id);
+    zeigeMeldung(r.ok ? `${p.name} ist jetzt Overseer an ${t.name || bandTyp(t).name}.` : r.grund, !r.ok);
+    feld.blur();
+    infoFormSperre = 0;
+    if (spiel.baender.has(auswahlBandId)) zeichneBandInfo();
+    return;
+  }
   if (feld instanceof HTMLSelectElement) feld.blur();
 });
 ob.infoInhalt.addEventListener("keydown", (e) => {
@@ -16146,6 +16699,19 @@ function personalAktion(knopf) {
         zeigeMeldung(p.flexibel ? "Flexibel: Du springst ein, wo gerade jemand fehlt." : "Du bleibst bei deiner jetzigen Aufgabe.");
       }
       return true;
+    case "einstellenMehrere": {                       // Phase 7d: HR-071
+      const rolle = knopf.dataset.rolle;
+      const neu = stelleEinMehrere(rolle, Number(knopf.dataset.anzahl) || 1);
+      if (neu.length) zeigeMeldung(`${neu.length} neue ${rolle === "kurier" ? "Kuriere" : "Arbeiter"}: ${neu.map((m) => m.name).join(", ")} (−${euro(einstellGebuehr(rolle) * neu.length)}).`);
+      else zeigeMeldung(angestellte().length >= maxMitarbeiter() ? "Die Halle ist voll besetzt – ein Hallenausbau schafft Platz für mehr." : geldGrund(einstellGebuehr(rolle)), true);
+      return true;
+    }
+    case "klonen": {                                  // Phase 7d: HR-074
+      if (!p) return true;
+      const r = kloneMitarbeiter(p.id);
+      zeigeMeldung(r.ok ? `${p.name} wurde geklont: ${r.person.name} fängt mit derselben Erfahrung an (−${euro(FORSCHUNG_NEU.klonPreis)}).` : r.grund, !r.ok);
+      return true;
+    }
     case "entlassen-frei": {
       if (!knopf.classList.contains("bestaetigen")) {
         knopf.classList.add("bestaetigen");
@@ -16225,13 +16791,22 @@ Object.assign(ob, { hudFreischaltbar: $("hud-freischaltbar") });
 function freischaltbarListe() {
   return [...herstellbarNachTyp.values()].filter((e) => !e.freigeschaltet && e.freischaltung.art === "herstellung" && kannFreischalten(e.typ));
 }
+// Phase 7d: zählt alles, was sich per Klick freischalten bzw. erforschen lässt (anzahlFreischaltbar: Herstellung,
+// Firmen-XP, Bauforschung mit genug FP). Nur Komponenten mit Herstellungsziel → Designer, sonst das Forschungsfenster.
+function nurImDesigner(e) { return e.baum === "komponenten" && e.bedingung.art === "herstellung"; }
 function aktualisiereFreischaltChip() {
-  const liste = freischaltbarListe();
-  ob.hudFreischaltbar.hidden = !liste.length;
-  if (!liste.length) return;
-  setzeText(ob.hudFreischaltbar, `🔓 ${liste.length} freischaltbar · Im Designer freischalten`);
-  const titel = `Herstellungsziel erreicht: ${liste.slice(0, 4).map((e) => e.name).join(", ")}${liste.length > 4 ? " …" : ""} – Klick öffnet den Designer`;
+  const anzahl = anzahlFreischaltbar();
+  ob.hudFreischaltbar.hidden = !anzahl;
+  if (!anzahl) return;
+  const liste = forschungBereitListe();
+  const designer = liste.length > 0 && liste.every(nurImDesigner);
+  setzeText(ob.hudFreischaltbar, `🔓 ${anzahl} freischaltbar · ${designer ? "Im Designer freischalten" : `Forschung (${tasteFuer("forschung").toUpperCase()})`}`);
+  const titel = `Bereit: ${liste.slice(0, 4).map((e) => e.name).join(", ")}${liste.length > 4 ? " …" : ""} – Klick öffnet ${designer ? "den Designer" : "die Forschung"}`;
   if (ob.hudFreischaltbar.title !== titel) ob.hudFreischaltbar.title = titel;
+}
+function zeigeFreischaltbare() {
+  const ziel = forschungBereitListe().find((e) => !nurImDesigner(e));
+  if (ziel) zeigeForschungsEintrag(ziel.id); else zeigeFreischaltbareImDesigner();
 }
 function zeigeFreischaltbareImDesigner() {
   oeffneDesigner();
@@ -16240,10 +16815,11 @@ function zeigeFreischaltbareImDesigner() {
   zeichnePalette();
   lz.palette.scrollTop = 0;
 }
-ob.hudFreischaltbar.addEventListener("click", zeigeFreischaltbareImDesigner);
+ob.hudFreischaltbar.addEventListener("click", zeigeFreischaltbare);   // Phase 7d: Designer oder Forschung
 spielEreignisse.addEventListener("freischaltbar", (e) => {
   // Nach dem Hinweis der Logik anzeigen (gleicher Takt), damit der Verweis auf den Designer sichtbar bleibt
-  setTimeout(() => zeigeMeldung(`🔓 Freischaltbar: ${e.detail.name} – Im Designer freischalten (${tasteFuer("designer").toUpperCase()} oder „🔓 freischaltbar“ links oben).`), 0);
+  // Phase 7d: Mitarbeiter-Einträge (Firmen-XP) meldet die Logik selbst mit Verweis auf die Forschung
+  if (herstellbarNachTyp.has(e.detail.id)) setTimeout(() => zeigeMeldung(`🔓 Freischaltbar: ${e.detail.name} – Im Designer freischalten (${tasteFuer("designer").toUpperCase()} oder „🔓 freischaltbar“ links oben).`), 0);
   aktualisiereFreischaltChip();
   if (designer.offen) { zeichnePalette(); zeichneGehaeuseAuswahl(); }   // Knopf "Freischalten" gleich zeigen
 });
@@ -16264,16 +16840,18 @@ spielEreignisse.addEventListener("baenderGeaendert", () => {
   if (auswahlBandId && !spiel.baender.has(auswahlBandId)) waehleGebaeude(null);
 });
 
-// Techtree-Reiter (Kuriere / Automatisierung)
+// Forschungs-Reiter (Phase 7d: Komponenten, Mitarbeiter, Bau)
 ob.forschungReiter.innerHTML = FORSCHUNG_BAEUME.map((b) =>
   `<button type="button" role="tab" data-baum="${b.id}" aria-selected="${b.id === forschungBaum.id}">${b.name}</button>`).join("");
 ob.forschungReiter.addEventListener("click", (e) => {
   const knopf = e.target.closest("[data-baum]");
   if (!knopf) return;
   forschungBaum.id = knopf.dataset.baum;
-  for (const k of ob.forschungReiter.querySelectorAll("[data-baum]")) k.setAttribute("aria-selected", String(k.dataset.baum === forschungBaum.id));
-  forschungMerker = "";
-  zeichneForschung();
+  forschungAnsicht.suche = "";                      // Phase 7d: ein Reiter-Klick beendet die Suche
+  forschungAnsicht.stationWahl = null;
+  ob.forschungSuche.value = "";
+  zeichneForschung(true);
+  ob.techtree.parentElement.scrollTop = 0;
 });
 
 /* ============================================================================

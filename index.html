@@ -2447,7 +2447,8 @@ const ROHSTOFFE = [
 // Gebäude im Baumenü. Jedes Gebäude hat:
 //   typ          – interner Name (nicht ändern, sonst passen gespeicherte Spielstände nicht mehr)
 //   name, symbol, beschreibung – Anzeige im Baumenü und im Info-Fenster
-//   kategorie    – Reiter im Baumenü: "lager" oder "station"
+//   kategorie    – Reiter im Baumenü: "lager" oder "station" (Phase 7d: oder "maschine" – Station ohne Arbeiter)
+//   forschung    – (Phase 7d) Bauforschung, die den Bautyp freischaltet (fehlt = Grundausstattung)
 //   art          – Rolle in der Logistik: "hauptlager", "zwischenlager", "werkbank", "montage", "forschung"
 //   breite/tiefe – Größe in Kacheln bei Drehung 0 (breite = nach rechts, tiefe = nach vorn)
 //   zugang       – Kachel vor dem Gebäude [Spalte, Reihe] bei Drehung 0; hier stehen Kuriere und Arbeiter
@@ -2489,7 +2490,56 @@ const GEBAEUDE_TYPEN = [
   { typ: "forschungsstation", name: "Forschungsstation", symbol: "🔬", kategorie: "station", art: "forschung",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 0, eingangsfach: 4, maxAnzahl: 0, preis: 1500, freigeschaltet: true,
     beschreibung: "Zerlegt Bauteile oder Produkte und gewinnt daraus Forschungspunkte." },
+  // Phase 7d: neue Lager aus der Bauforschung (Abschnitt 6.4). "forschung" = diese Bauforschung schaltet den
+  // Bautyp frei (die Sperre im Baumenü macht das Forschungssystem). Kapazität = Volumen wie bei Kiste und Schrank.
+  { typ: "metallKiste", name: "Metall-Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
+    breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 50, maxAnzahl: 0, preis: 450, freigeschaltet: true, forschung: "PROD-019",
+    beschreibung: "Robustes Zwischenlager (50 Volumen) auf einer Kachel." },
+  { typ: "metallSchrank", name: "Metall-Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 100, maxAnzahl: 0, preis: 900, freigeschaltet: true, forschung: "PROD-023",
+    beschreibung: "Fortgeschrittener Schrank für Zwischenprodukte (100 Volumen)." },
+  { typ: "industrieSchrank", name: "Industrie-Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 250, maxAnzahl: 0, preis: 2000, freigeschaltet: true, forschung: "PROD-033",
+    beschreibung: "Massives Zwischenlager (250 Volumen) auf zwei Kacheln." },
+  // smart: bestellt Rohstoffe mit ⇣ Import über die Importzone nach, bis "Max" erreicht ist (Abschnitt 11j)
+  { typ: "smartSchrank", name: "Smarter Industrie-Schrank", symbol: "▥⟳", kategorie: "lager", art: "zwischenlager",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 250, maxAnzahl: 0, preis: 3500, freigeschaltet: true, forschung: "PROD-054", smart: true,
+    beschreibung: "Wie der Industrie-Schrank (250 Volumen). Rohstoffe auf ⇣ Import bestellt er über die Importzone selbst nach, bis Max erreicht ist." },
+  // silo: nimmt genau EINE Rohstoffart an (die erste, die ankommt, oder die eingestellte), dafür quasi ohne Limit
+  { typ: "endlosSilo", name: "Endlos-Silo", symbol: "◎", kategorie: "lager", art: "zwischenlager",
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 1000000, maxAnzahl: 0, preis: 6000, freigeschaltet: true, forschung: "PROD-063", silo: true,
+    beschreibung: "Lager mit quasi unendlichem Platz – aber nur für eine Rohstoffart." },
+  // Phase 7d: Maschinen (Baumenü-Reiter "Maschinen", Konzept 4.4). Sie sind Stationen ohne Arbeiter, die immer
+  // automatisch laufen: Kuriere oder Bänder bringen Material ins Eingangsfach, Kuriere oder Bänder holen ab.
+  //   art        – "werkbank" (Bauteile/Gehäuse) bzw. "montage" (Produkte nach Blaupause) wie die Stationen
+  //   maschine   – { tempo: Faktor auf die Arbeitszeit, rezepte: { art: "gehaeuse" | "bauteil" | "produkt", nur?, tier? } }
+  //   tagesKosten – Laufkosten pro Tag (statt Lohn), werden beim Tagesabschluss abgebucht
+  { typ: "gehaeuseStanzer", name: "Gehäuse-Stanzer", symbol: "⬓", kategorie: "maschine", art: "werkbank",
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 12, maxAnzahl: 0, preis: 4000, freigeschaltet: true,
+    forschung: "PROD-025", tagesKosten: 30, maschine: { tempo: 1, rezepte: { art: "gehaeuse", nur: ["geh_holz", "geh_eisen"] } },
+    beschreibung: "Stanzt Holz- und Eisengehäuse – ganz ohne Mitarbeiter." },
+  { typ: "cncFraese", name: "CNC-Fräse", symbol: "⚙⬓", kategorie: "maschine", art: "werkbank",
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 16, maxAnzahl: 0, preis: 9000, freigeschaltet: true,
+    forschung: "PROD-039", tagesKosten: 60, maschine: { tempo: 2, rezepte: { art: "gehaeuse" } },
+    beschreibung: "Fräst alle Gehäuse doppelt so schnell wie eine Werkbank, ohne Mitarbeiter." },
+  { typ: "roboterArm", name: "Roboter-Montage-Arm", symbol: "🤖", kategorie: "maschine", art: "werkbank",
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 6, eingangsfach: 10, maxAnzahl: 0, preis: 12000, freigeschaltet: true,
+    forschung: "PROD-050", tagesKosten: 50, maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T1" } },
+    beschreibung: "Stellt einfache T1-Komponenten vollautomatisch her." },
+  { typ: "t2Presse", name: "Vollautomatische T2-Presse", symbol: "⬒", kategorie: "maschine", art: "werkbank",
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 16, maxAnzahl: 0, preis: 18000, freigeschaltet: true,
+    forschung: "PROD-056", tagesKosten: 80, maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T2" } },
+    beschreibung: "Presst mittlere (T2-)Komponenten komplett ohne Personal." },
+  { typ: "assembler", name: "Autarker 16-Kachel-Assembler", symbol: "⚙⚙", kategorie: "maschine", art: "montage",
+    breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 4, eingangsfach: 24, maxAnzahl: 0, preis: 40000, freigeschaltet: true,
+    forschung: "PROD-062", tagesKosten: 150, maschine: { tempo: 1, rezepte: { art: "produkt" } },
+    beschreibung: "Baut Produkte nach einer Blaupause wie der Montagetisch – ohne Mitarbeiter." },
 ];
+// Phase 7d: PROD-072 "Gigafactory-Werkstatt" – ist sie erforscht, laufen alle Werkbänke wie Maschinen ohne Arbeiter
+const GIGAFACTORY = {
+  forschung:   "PROD-072",
+  tagesKosten: 20,      // Laufkosten pro Werkbank und Tag, solange sie ohne Arbeiter läuft
+};
 
 // Kurier-Stufen (Ausrüstung): Die Transport-Logik rechnet NUR mit diesen drei Werten der Stufe,
 // nie mit einer festen Zahl.
@@ -2763,6 +2813,20 @@ const BAND_TEILE = [
     ebeneEin: 1, ebeneAus: 1, hoch: true, beschreibung: "Band auf der Brücke. Darunter ist Platz." },
   { typ: "rampeRunter", name: "Abfahrt", symbol: "⟍", preis: 40, spur: true, begehbar: true, laufKosten: 8,
     ebeneEin: 1, ebeneAus: 0, beschreibung: "Bringt Items von der Brücke zurück auf den Boden." },
+  // Phase 7d: Bauforschung (Abschnitt 6.4). "forschung" = diese Bauforschung schaltet das Teil frei.
+  // Untergrund-Fließband: Eingang und Ausgang mit gleicher Richtung, dazwischen bis zu BAENDER.untergrundReichweite
+  // Kacheln, auf denen alles liegen darf. Personen laufen über Eingang und Ausgang hinweg.
+  { typ: "untergrundEin", name: "Untergrund-Eingang", symbol: "⤓", preis: 150, spur: true, begehbar: true, laufKosten: 1,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true, forschung: "PROD-038",
+    beschreibung: "Schickt Items unter dem Boden zum nächsten Untergrund-Ausgang in Fahrtrichtung (bis zu 3 Kacheln dazwischen)." },
+  { typ: "untergrundAus", name: "Untergrund-Ausgang", symbol: "⤒", preis: 150, spur: true, begehbar: true, laufKosten: 1,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true, forschung: "PROD-038",
+    beschreibung: "Hier kommen die Items aus dem Untergrund wieder hoch und fahren nach vorn weiter." },
+  // Omni-Merger: nimmt von allen vier Seiten an (ein Band, das in ihn hineinzeigt), puffert wie ein Verteiler
+  // (staufrei: kein Warten reihum) und gibt nach vorn ab.
+  { typ: "omniMerger", name: "Omni-Merger", symbol: "✣", preis: 400, spur: false, begehbar: false, tagesKosten: 4,
+    ebeneEin: 0, ebeneAus: 0, imMenue: true, forschung: "PROD-055",
+    beschreibung: "Führt Bänder von allen Seiten staufrei zusammen (mit Puffer) und gibt sie nach vorn ab." },
 ];
 
 // Phase 7b: Splitter, Smart-Verteiler und Überlauf-Ventil teilen sich Aufbau, Seiten und Filter
@@ -2779,17 +2843,27 @@ const BAENDER = {
   minBrueckenLaenge: 3,    // eine Brücke hat mindestens Auffahrt + 1 Hochband + Abfahrt
   laufTempoAufBand: 0.4,   // Personen, die über ein Band steigen, laufen nur so schnell (40 %)
   verteilerPuffer:  30,    // Phase 7b Nachtrag: so viele Items puffert jeder Verteiler (Splitter, Smart-Verteiler, Ventil)
+  // Phase 7d: Bauforschung
+  durchsatzBegrenzt: true, // Fließband Mk.1–Mk.4: ein Segment nimmt höchstens "proMinute" Items pro Minute auf (BAND_TEMPO)
+  untergrundReichweite: 3, // Untergrund-Fließband: so viele Kacheln dürfen zwischen Eingang und Ausgang liegen
+  omniPuffer:       30,    // so viele Items puffert ein Omni-Merger
+  ioGateSek:        3,     // PROD-068: so lange darf ein Item vor einem Lager warten, dann wird es verkauft
+  ioGateFaktor:     0.8,   // ... zu so viel vom Direktverkaufspreis (Rohstoffe: ZONEN.rohstoffVerkauf × Einkaufspreis)
 };
 // Phase 7b Nachtrag: Größe des Verteiler-Puffers (Items in t.puffer, siehe Abschnitt 11h)
 const PUFFER_GROESSE = BAENDER.verteilerPuffer;
 // Tempostufen eines Segments. "forschung" = diese Forschung schaltet die Stufe frei (null = immer da).
 // tagesKosten = Laufkosten pro Kachel und Tag.
+// Phase 7d: Die Stufen sind die Fließbänder Mk.1–Mk.4 der Bauforschung (die IDs bleiben, damit alte Spielstände
+// passen): mk = Anzeige, proMinute = so viele Items pro Minute nimmt das Segment höchstens auf (BAENDER.durchsatzBegrenzt),
+// forschungAlt = alte Forschung, die weiter gilt (Umzug a1/a2 → PROD-031/047). Mk.1 hängt am Band selbst (PROD-016).
 const BAND_TEMPO = [
-  { id: "pause",   name: "Pause",   symbol: "⏸", tempo: 0,   tagesKosten: 0, forschung: null },
-  { id: "langsam", name: "Langsam", symbol: "",  tempo: 0.5, tagesKosten: 1, forschung: null },
-  { id: "normal",  name: "Normal",  symbol: "",  tempo: 1.0, tagesKosten: 2, forschung: null },
-  { id: "schnell", name: "Schnell", symbol: "",  tempo: 1.6, tagesKosten: 4, forschung: "a1" },
-  { id: "express", name: "Express", symbol: "",  tempo: 2.4, tagesKosten: 7, forschung: "a2" },
+  { id: "pause",   name: "Pause",   symbol: "⏸", tempo: 0,   tagesKosten: 0, forschung: null, proMinute: 0 },
+  { id: "langsam", name: "Langsam", symbol: "",  tempo: 0.5, tagesKosten: 1, forschung: null, proMinute: 15 },
+  { id: "normal",  name: "Normal",  symbol: "",  tempo: 1.0, tagesKosten: 2, forschung: null, mk: "Mk.1", proMinute: 30 },
+  { id: "schnell", name: "Schnell", symbol: "",  tempo: 1.6, tagesKosten: 4, forschung: "PROD-031", forschungAlt: "a1", mk: "Mk.2", proMinute: 60 },
+  { id: "express", name: "Express", symbol: "",  tempo: 2.4, tagesKosten: 7, forschung: "PROD-047", forschungAlt: "a2", mk: "Mk.3", proMinute: 120 },
+  { id: "maglev",  name: "Mag-Lev", symbol: "",  tempo: 3.2, tagesKosten: 12, forschung: "PROD-061", mk: "Mk.4", proMinute: 240 },
 ];
 const STANDARD_BAND_TEMPO = "normal";
 
@@ -5782,10 +5856,80 @@ function meldeStruktur() {
 
 /* --- Abfragen --- */
 function typVon(g) { return gebaeudeTypNach.get(g.typ); }
-function istStation(g) { return typVon(g).kategorie === "station"; }
+function istStation(g) { return typVon(g).kategorie === "station" || typVon(g).kategorie === "maschine"; }   // Phase 7d: Maschinen sind Stationen
 function istZwischenlager(g) { return typVon(g).art === "zwischenlager"; }
 function istHauptlager(g) { return typVon(g).art === "hauptlager"; }   // Phase 7b Nachtrag
 function kapazitaetVon(g) { return typVon(g).kapazitaet; }
+/* --- Phase 7d: Maschinen (Konzept 4.4) ---
+   Eine Maschine ist eine Station ohne Arbeiter, die immer automatisch läuft (s.automatik, Abschnitt 11i):
+   Material kommt per Kurier oder Band ins Eingangsfach, das Erzeugnis liegt im Ausgabefach (s.bestand),
+   bis ein Kurier, ein Band oder ein Greifarm es holt. Mit PROD-072 (Gigafactory) laufen auch alle Werkbänke so. */
+function istMaschine(g) { return !!g && !!typVon(g).maschine; }
+// Läuft diese Station ohne Arbeiter? (Maschine oder Werkbank mit Gigafactory-Forschung)
+function laeuftOhnePersonal(s) {
+  if (!s || !istStation(s)) return false;
+  if (istMaschine(s)) return true;
+  return typVon(s).art === "werkbank" && istErforscht(GIGAFACTORY.forschung);
+}
+// Tempo-Faktor auf die Arbeitszeit (Maschinen; sonst 1)
+function maschinenTempo(s) {
+  const m = typVon(s).maschine;
+  return m && m.tempo > 0 ? m.tempo : 1;
+}
+// Darf dieser Gebäudetyp dieses Rezept herstellen? (Bauteil-/Gehäuse-Typ bzw. Blaupausen-ID; Stationen: ja)
+function maschineKann(typ, rezept) {
+  const m = typ && typ.maschine;
+  if (!m) return true;
+  const r = m.rezepte || {};
+  if (r.art === "produkt") return typ.art === "montage";
+  const b = herstellbarNachTyp.get(rezept);
+  if (!b || !b.rezept) return false;
+  if (r.art === "gehaeuse") return b.art === "gehaeuse" && (!r.nur || r.nur.includes(b.typ));
+  if (r.art === "bauteil") return b.art !== "gehaeuse" && (!r.tier || b.tier === r.tier);
+  return false;
+}
+// Die Rezepte, die eine Station bzw. Maschine gerade wählen kann (nur freigeschaltete), als Liste von IDs.
+// "wer" = Gebäude, Gebäude-ID oder Typ-Name. Montage: Blaupausen-IDs (ohne veraltete).
+function maschinenRezepte(wer) {
+  const g = typeof wer === "string" ? spiel.gebaeude.get(wer) : wer;
+  const typ = g && g.typ ? typVon(g) : gebaeudeTypNach.get(wer);
+  if (!typ) return [];
+  if (typ.art === "montage") return [...blaupausenNachId.values()].filter((bp) => !bp.veraltet).map((bp) => bp.id);
+  if (typ.art !== "werkbank") return [];
+  return [...herstellbarNachTyp.values()].filter((b) => b.rezept && b.freigeschaltet && maschineKann(typ, b.typ)).map((b) => b.typ);
+}
+// Laufkosten aller Maschinen (und Gigafactory-Werkbänke) pro Tag
+function maschinenLaufkosten() {
+  let kosten = 0;
+  for (const g of spiel.gebaeude.values()) {
+    if (istMaschine(g)) kosten += typVon(g).tagesKosten || 0;
+    else if (laeuftOhnePersonal(g)) kosten += GIGAFACTORY.tagesKosten;
+  }
+  return Math.round(kosten);
+}
+/* --- Phase 7d: Endlos-Silo (nur eine Rohstoffart) --- */
+// Nimmt dieses Lager diese Ware grundsätzlich an? (nur das Silo schränkt ein)
+function lagerNimmtWare(g, item) {
+  if (!g || !typVon(g).silo) return true;
+  if (!ROHSTOFFE.some((r) => r.id === item)) return false;
+  if (g.siloWare) return g.siloWare === item;
+  return Object.entries(g.bestand).every(([i, n]) => i === item || n <= 0);
+}
+// Welche Rohstoffart nimmt das Silo? (eingestellt oder die, die schon drin liegt; null = noch frei)
+function siloWareVon(g) {
+  if (!g || !typVon(g).silo) return null;
+  return g.siloWare || Object.keys(g.bestand).find((i) => g.bestand[i] > 0) || null;
+}
+// Stellt die Rohstoffart eines Silos ein (null = frei, die erste Lieferung entscheidet). Rückgabe: { ok, grund? }
+function setzeSiloWare(id, item) {
+  const g = spiel.gebaeude.get(id);
+  if (!g || !typVon(g).silo) return { ok: false, grund: "Das ist kein Silo." };
+  if (item && !ROHSTOFFE.some((r) => r.id === item)) return { ok: false, grund: "Ins Silo passen nur Rohstoffe." };
+  if (item && Object.entries(g.bestand).some(([i, n]) => i !== item && n > 0)) return { ok: false, grund: "Im Silo liegt noch eine andere Ware." };
+  g.siloWare = item || null;
+  meldeStruktur();
+  return { ok: true };
+}
 /* --- Volumen (Phase 7b) ---
    Lager (Hauptlager, Zwischenlager, Import-/Exportzone) rechnen in Volumen: ein Produkt braucht mehr Platz
    als ein Rohstoff. Die Fächer der Stationen zählen weiter Stück. */
@@ -5901,7 +6045,7 @@ function hlEinlagern(item, n, res = null) {
    dürfen weiter entnehmen (wie bei Schränken: die Pfeile steuern die Logistik, nicht die Verknüpfung).
    Lager (alles außer Stationen) dürfen ein Bandteil auf ihrem Zugang haben; dann ist das Lager für
    Kuriere und Arbeiter gesperrt (zugangGesperrt), Bänder und Greifarme arbeiten weiter. */
-function istLagerTyp(t) { return !!t && t.kategorie !== "station"; }
+function istLagerTyp(t) { return !!t && t.kategorie !== "station" && t.kategorie !== "maschine"; }   // Phase 7d: Maschinen sind keine Lager
 // Liegt auf dem Zugang dieses Lagers ein Bandteil? Dann kommen Kuriere nicht heran.
 function zugangGesperrt(g) {
   if (!g || !istLagerTyp(typVon(g))) return false;
@@ -6100,6 +6244,8 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     eingang: { ...(extra.eingang || {}) },                                 // Phase 5b: Eingangsfach (nur Stationen)
     rueckgabe: false,                                                      // Phase 5: Überschuss wird zurückgeschickt
     vernichtet: extra.vernichtet || 0,                                     // Phase 7b: Mülltonne
+    siloWare: typeof extra.siloWare === "string" ? extra.siloWare : null,  // Phase 7d: Endlos-Silo (null = erste Lieferung entscheidet)
+    nachkauf: extra.nachkauf !== false,                                    // Phase 7d: Smart-Schrank bestellt nach
   };
   richteZoneEin(g, extra);                                                 // Phase 7b: Bestellungen, Wagen, Export-Modus
   spiel.gebaeude.set(g.id, g);
@@ -6264,6 +6410,7 @@ function schalteVerknuepfung(idA, idB, richtung = null) {
   const s = istStation(a) ? a : istStation(b) ? b : null;
   const lager = s === a ? b : a;
   if (!s || !istVerknuepfZiel(lager)) return null;
+  if (laeuftOhnePersonal(s)) return null;        // Phase 7d: Maschinen haben keinen Arbeiter, der Lager nutzt
   const felder = richtung ? [VERKNUEPF_FELD[richtung]] : Object.values(VERKNUEPF_FELD);
   const alle = felder.every((f) => s[f].includes(lager.id));
   for (const f of felder) {
@@ -6281,7 +6428,7 @@ function schalteVerknuepfung(idA, idB, richtung = null) {
 function verknuepfeAutomatisch(g) {
   const radius = PRODUKTION.verknuepfRadius;
   const neu = [];
-  if (istStation(g)) {
+  if (istStation(g) && !laeuftOhnePersonal(g)) {   // Phase 7d: Maschinen werden nicht verknüpft
     let bestes = null, besterWeg = Infinity;
     for (const lager of gebaeudeListe(istZwischenlager)) {
       if (abstand(lager.zugang, g.zugang) > radius * 2) continue;   // grob vorsortieren, spart A*
@@ -6292,6 +6439,7 @@ function verknuepfeAutomatisch(g) {
   } else if (istZwischenlager(g)) {
     for (const station of gebaeudeListe(istStation)) {
       if (station.verknuepft.length > 0 || abstand(station.zugang, g.zugang) > radius * 2) continue;
+      if (laeuftOhnePersonal(station)) continue;   // Phase 7d
       if (wegLaenge(g.zugang, station.zugang) <= radius) { schalteVerknuepfung(g.id, station.id); neu.push(station); }
     }
   }
@@ -6427,6 +6575,7 @@ function erzeugteItems(lager) {
 }
 // Hat die Station ein Import-Lager, aus dem ihr Arbeiter Material nehmen darf?
 function versorgtDurchLager(s) {
+  if (laeuftOhnePersonal(s)) return false;       // Phase 7d: ohne Arbeiter nimmt niemand aus dem Lager – Kuriere liefern direkt
   return verknuepfteLager(s, "import").some((g) => darfArbeiterEntnehmen(g));
 }
 // Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
@@ -6491,6 +6640,7 @@ function darfKurierLiefern(g, item, fach = "bestand") {
   if (istImportzone(g)) return false;
   if (typVon(g).art === "muell") return muellNimmt(g, item, "kurier");
   if (istStation(g)) return fach === "eingang" && regelVon(g, item).imp;
+  if (!lagerNimmtWare(g, item)) return false;    // Phase 7d: Endlos-Silo nur für eine Rohstoffart
   return regelVon(g, item).imp;
 }
 // Darf ein Arbeiter hier Material für seine Station entnehmen? (ohne Item: grundsätzlich)
@@ -6507,6 +6657,7 @@ function darfArbeiterEntnehmen(g, item = null) {
 function nimmtErzeugnisAn(g, item) {
   if (typVon(g).art === "hauptlager") return hlNimmtAn(g, item);   // Phase 7a (Nachtrag 2): Export direkt ins Hauptlager (7b Nachtrag: Annahme/Max)
   if (!istZwischenlager(g)) return false;
+  if (!lagerNimmtWare(g, item)) return false;           // Phase 7d: Endlos-Silo
   if (maxErreicht(g, item)) return false;               // Phase 7b: "Max" per Zahl
   const r = regelVon(g, item);
   const handExport = g.regeln[item] && g.regeln[item].exp === true;
@@ -6767,10 +6918,11 @@ spielEreignisse.addEventListener("blaupausenGeaendert", () => { erneuereBlaupaus
 function rezeptVon(s) {
   if (!s.rezept) return null;
   const art = typVon(s).art;
+  if (!maschineKann(typVon(s), s.rezept)) return null;   // Phase 7d: Maschinen können nur ihre Rezepte
   if (art === "werkbank") {
     const b = herstellbarNachTyp.get(s.rezept);       // Phase 7c: Bauteile und Gehäuse
     if (!b || !b.rezept) return null;
-    return { schluessel: "b:" + b.typ, name: b.name, eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit, ausschuss: 0 };
+    return { schluessel: "b:" + b.typ, name: b.name, eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit / maschinenTempo(s), ausschuss: 0 };   // Phase 7d: Maschinen-Tempo
   }
   if (art === "montage") {
     const bp = blaupausenNachId.get(s.rezept);
@@ -6782,7 +6934,7 @@ function rezeptVon(s) {
     if (gehaeuseNachId.has(bp.gehaeuse)) eingaben[bp.gehaeuse] = 1;   // Phase 7c: genau ein Gehäuse pro Produkt
     return {
       schluessel: "p:" + bp.id, name: bp.name, eingaben, ausgabe: "p:" + bp.id,
-      zeit: PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile,
+      zeit: (PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile) / maschinenTempo(s),   // Phase 7d: Maschinen-Tempo
       ausschuss: bp.werte && bp.werte.ueberhitzt ? PRODUKTION.ausschussUeberhitzt : 0,
     };
   }
@@ -6806,6 +6958,7 @@ function setzeRezept(id, rezept) {
     const b = herstellbarNachTyp.get(rezept);
     if (!b || !b.rezept || !b.freigeschaltet) return false;
   }
+  if (rezept && !maschineKann(typVon(s), rezept)) return false;   // Phase 7d: Maschine kann das nicht herstellen
   s.rezept = rezept || null;
   s.fortschritt = 0;
   if (rezept && typVon(s).art === "montage" && blaupausenNachId.has(rezept)) merkeProdukt(blaupausenNachId.get(rezept));
@@ -6987,7 +7140,7 @@ function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === personId);
   if (!p || p.rolle !== "arbeiter") return false;
   const neu = stationId ? spiel.gebaeude.get(stationId) : null;
-  if (stationId && (!neu || !istStation(neu) || neu.automatik)) return false;   // Phase 6: Automatik braucht niemanden
+  if (stationId && (!neu || !istStation(neu) || neu.automatik || laeuftOhnePersonal(neu))) return false;   // Phase 6: Automatik braucht niemanden (7d: Maschinen)
   if (p.istDu && !vonSelbst) p.flexibel = false;   // Phase 7a (Nachtrag 2)
   p.ohneAufgabe = false;
   const alt = p.stationId && spiel.gebaeude.get(p.stationId);
@@ -7575,6 +7728,7 @@ function stationsStatus(s) {
   if (s.automatik) {                              // Phase 6: läuft ohne Arbeiter
     const voll = !!r.ausgabe && summe(s.bestand) >= kapazitaetVon(s);
     if (s.autoRezept) return voll ? "ausgabeVoll" : "automatik";
+    if (!voll && laeuftOhnePersonal(s) && !s.bandZulauf) return "wartetAufMaterial";   // Phase 7d: Maschine wartet auf Kuriere
     return voll ? "ausgabeVoll" : "wartetAufBand";
   }
   const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
@@ -7597,6 +7751,7 @@ function simSchritt(dt) {
   wirtschaftsSchritt(dt);                       // Phase 5: Kalender, Aufträge, Konkurrenz, Bankrott
   if (spiel.insolvent) return;
   if (bandTopologieAlt) baueBandTopologie();    // Phase 6: Bänder, Anschlüsse und Automatik aktuell halten
+  aktualisiereAutomatik();                      // Phase 7d: neue Maschinen und Gigafactory-Forschung sofort automatisch
   weiseArbeiterAutomatischZu();
   setzeDuEin(dt);                               // Phase 7a (Nachtrag 2): "Du" springt ein, wo Bedarf ist
   auftragsTimer -= dt;
@@ -7763,6 +7918,7 @@ function spielstandDaten() {
       modus: g.modus, regeln: g.regeln,
       // Phase 7b: Mülltonne, Import-/Exportzone
       vernichtet: g.vernichtet || undefined, bestellungen: g.bestellungen, lieferwagen: g.lieferwagen,
+      siloWare: g.siloWare || undefined, nachkauf: g.nachkauf === false ? false : undefined,   // Phase 7d (optional)
       exportModus: g.exportModus, abholTimer: g.abholTimer, letzteAbholung: g.letzteAbholung,
       // Phase 5b: Eingangsfach (Phase 6: plus Material, das eine Automatik-Station gerade verarbeitet)
       eingang: g.autoRezept ? (() => { const e = { ...g.eingang }; bucheItems(e, g.autoRezept.eingaben); return e; })() : g.eingang,
@@ -8346,6 +8502,58 @@ function importzonenSchritt() {
   }
 }
 
+/* --- Phase 7d: Smarter Industrie-Schrank (PROD-054) ---
+   Ein Lager mit "smart" bestellt Rohstoffe, die auf ⇣ Import stehen und ein Max haben (eingetippt oder das
+   automatische Soll), selbst über die nächste aktive Importzone nach. Bestellt wird nur, was nach Bestand,
+   Kurieren unterwegs, freiem Hauptlager-Vorrat, Importzonen-Vorrat und Lieferwagen noch bis Max fehlt
+   ("wenn die Ressource leerläuft"). Bezahlt wird wie immer beim
+   Abladen; Kuriere bringen die Ware dann wie gewohnt in den Schrank. Abschalten: g.nachkauf = false. */
+function naechsteImportzone(kachel) {
+  let beste = null, besterAbstand = Infinity;
+  for (const g of zonenListe("importzone")) {
+    if (!zoneAktiv(g)) continue;
+    const d = abstand(g.zugang, kachel);
+    if (d < besterAbstand) { beste = g; besterAbstand = d; }
+  }
+  return beste;
+}
+// Was bestellt der Schrank gerade nach? (Item → Anzahl, ohne zu bestellen)
+function smartNachkaufBedarf(g, res = reservierungen()) {
+  const ergebnis = {};
+  if (!g || !typVon(g).smart || g.nachkauf === false) return ergebnis;
+  const items = new Set([...Object.keys(sollbestand(g)), ...Object.keys(g.regeln || {})]);
+  for (const item of items) {
+    if (!rohstoffPreis(item) || !regelVon(g, item).imp) continue;
+    const max = maxVon(g, item);
+    if (!Number.isFinite(max)) continue;
+    const unterwegs = reserviert(res.rein, fachSchluessel(g.id, "bestand"), item);
+    const fehlt = max - (g.bestand[item] || 0) - unterwegs - hlVerfuegbar(item, res) - zonenMenge("importzone", item) - wagenUnterwegs(item);
+    if (fehlt > 0) ergebnis[item] = Math.ceil(fehlt);
+  }
+  return ergebnis;
+}
+function smartNachkaufSchritt() {
+  const schraenke = gebaeudeListe((g) => typVon(g).smart && g.nachkauf !== false);
+  if (!schraenke.length || spiel.insolvent) return;
+  const res = reservierungen();
+  for (const g of schraenke) {
+    const iz = naechsteImportzone(g.zugang);
+    if (!iz) continue;
+    for (const [item, n] of Object.entries(smartNachkaufBedarf(g, res))) {
+      bestelle(iz, item, n);
+      g.letzterNachkauf = spiel.zeit;
+      meldeEreignis("smartNachkauf", { lager: g, zone: iz, item, anzahl: n });
+    }
+  }
+}
+function setzeSmartNachkauf(id, an) {
+  const g = spiel.gebaeude.get(id);
+  if (!g || !typVon(g).smart) return false;
+  g.nachkauf = !!an;
+  meldeStruktur();
+  return true;
+}
+
 /* --- Exportzone: Für Aufträge oder Verkaufen --- */
 function exportModusVon(g, item) {
   return (g.exportModus && g.exportModus[item]) || (item.startsWith("p:") ? "auftrag" : "verkaufen");
@@ -8520,7 +8728,7 @@ function lohnSumme() {
 function tagesabschluss(tag) {
   bucheGeld(-lohnSumme(), "loehne", tag);
   bucheGeld(-aktuelleMiete(), "miete", tag);       // Phase 6: Miete wächst mit der Halle
-  const laufkosten = bandLaufkosten();               // Phase 6: Bänder und Greifarme
+  const laufkosten = bandLaufkosten() + maschinenLaufkosten();   // Phase 6: Bänder und Greifarme (7d: + Maschinen)
   if (laufkosten > 0) bucheGeld(-laufkosten, "laufkosten", tag);
   for (const id of [...PRODUKTKLASSEN.map((k) => k.id), "sonstige"]) {
     let f = spiel.nachfrage[id] ?? 1;
@@ -8546,7 +8754,7 @@ function wirtschaftsSchritt(dt) {
   if (ueber(T / AUFTRAEGE.neueProTag)) erzeugeAngebot();
   pruefeFristen();
   automatikTimer -= dt;
-  if (automatikTimer <= 0) { automatikTimer = WIRTSCHAFT.automatikIntervall; automatikSchritt(); }
+  if (automatikTimer <= 0) { automatikTimer = WIRTSCHAFT.automatikIntervall; automatikSchritt(); smartNachkaufSchritt(); }   // 7d: Smart-Schrank
   zonenSchritt(dt);                              // Phase 7b: Lieferwagen und Abholwagen
 
   // 7-Tage-Bankrott-Timer: läuft, solange das Konto im Minus ist; im Plus wieder voll
@@ -9066,6 +9274,8 @@ function bandteilAn(x, z, ebene) {
 // Bänder und Zusammenführungen nehmen von hinten und von der Seite, alles andere nur von hinten.
 function nimmtVonSeite(ziel, richtung, ebene) {
   const typ = bandTyp(ziel);
+  if (ziel.typ === "omniMerger") return typ.ebeneEin === ebene;   // Phase 7d: nimmt von allen vier Seiten
+  if (ziel.typ === "untergrundAus") return false;                // Phase 7d: nur vom Untergrund-Eingang (untergrundZiel)
   if (!typ.spur && !istVerteiler(ziel) && ziel.typ !== "zusammen") return false;   // Greifarm
   if (typ.ebeneEin !== ebene) return false;
   const seite = seiteVonFahrt(ziel, richtung);
@@ -9075,6 +9285,7 @@ function nimmtVonSeite(ziel, richtung, ebene) {
 }
 // Wohin gibt ein Teil (in eine Richtung) ab? { art: "band", teil } | { art: "gebaeude", g } | null
 function zielVon(t, richtung = t.richtung) {
+  if (t.typ === "untergrundEin") return untergrundZiel(t);   // Phase 7d: unter dem Boden zum Ausgang
   const k = nachbarKachel(t, richtung);
   const ebene = bandTyp(t).ebeneAus;
   const b = bandteilAn(k.x, k.z, ebene);
@@ -9086,6 +9297,21 @@ function zielVon(t, richtung = t.richtung) {
   return null;
 }
 
+// Phase 7d: Untergrund-Fließband – der nächste Untergrund-Ausgang mit gleicher Richtung in Fahrtrichtung,
+// höchstens BAENDER.untergrundReichweite Kacheln dazwischen (dazwischen darf alles liegen). Sonst null (offenes Ende).
+function untergrundPartner(t) {
+  for (let d = 1; d <= BAENDER.untergrundReichweite + 1; d++) {
+    const r = RICHTUNGEN[t.richtung];
+    const b = bandteilAn(t.x + r.x * d, t.z + r.z * d, 0);
+    if (b && b.typ === "untergrundAus" && b.richtung === t.richtung) return b;
+    if (b && b.typ === "untergrundEin" && b.richtung === t.richtung) return null;   // ein anderer Eingang davor: dessen Strecke
+  }
+  return null;
+}
+function untergrundZiel(t) {
+  const aus = untergrundPartner(t);
+  return aus ? { art: "band", teil: aus } : null;
+}
 let bandTopologieAlt = true;     // muss die Topologie neu berechnet werden?
 let bandReihenfolge = [];        // alle Teile, die "vorderen" zuerst (so rückt ein Stau sauber nach)
 let bandAblaeufe = [];           // Spur-Teile, auf die ein Gebäude Items legt
@@ -9111,7 +9337,7 @@ function baueBandTopologie() {
     t.ziel = null; t.vorgaenger = []; t.kette = null; t.kurve = null; t.segment = null; t.ablaufVon = null;
     t.ausgaenge = null; t.stau = t.stau || 0;
     if (t.items === undefined && (istSpur(t) || istVerteiler(t) || t.typ === "zusammen")) t.items = [];
-    if (istVerteiler(t)) pufferVon(t);             // Phase 7b Nachtrag: Puffer (t.puffer) immer vorhanden
+    if (hatPuffer(t)) pufferVon(t);                // Phase 7b Nachtrag: Puffer (t.puffer) immer vorhanden (7d: auch Omni-Merger)
   }
   // 1. Ziele und Vorgänger
   for (const t of teile) {
@@ -9142,7 +9368,7 @@ function baueBandTopologie() {
     if (t.ziel && t.ziel.art === "gebaeude") zulauf(t.ziel.g, t);
     if (istVerteiler(t)) for (const a of t.ausgaenge) if (a.ziel.art === "gebaeude") zulauf(a.ziel.g, t);
     // Ablauf: ein Spur-Teil am Boden, das vom Gebäude weg zeigt und hinten keinen Band-Zulauf hat
-    if (istSpur(t) && bandTyp(t).ebeneEin === 0 && !t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten")) {
+    if (istSpur(t) && t.typ !== "untergrundAus" && bandTyp(t).ebeneEin === 0 && !t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten")) {   // 7d: Untergrund-Ausgang nie
       const g = gebaeudeAufKachel(hinterKachel(t));
       if (g) { t.ablaufVon = g.id; ablauf(g, t); bandAblaeufe.push(t); }
     }
@@ -9218,7 +9444,7 @@ function segmentVon(t) {
   return t && t.segment ? t.segment : null;
 }
 function tempoStufe(id) { return BAND_TEMPO.find((st) => st.id === id) || BAND_TEMPO.find((st) => st.id === STANDARD_BAND_TEMPO); }
-function tempoFreigeschaltet(id) { const st = tempoStufe(id); return !st.forschung || istErforscht(st.forschung); }
+function tempoFreigeschaltet(id) { const st = tempoStufe(id); return !st.forschung || istErforscht(st.forschung) || (!!st.forschungAlt && istErforscht(st.forschungAlt)); }   // 7d: + alte Forschung
 // Geschwindigkeit eines Teils in Kacheln pro Sekunde
 function bandTempo(t) {
   if (istVerteiler(t) || t.typ === "zusammen") return BAENDER.knotenTempo;
@@ -9345,7 +9571,7 @@ function seiteLaesstDurch(t, seite, item) {
 }
 // Wartet an einem Vorgänger ein Item darauf, in die Zusammenführung "z" zu fahren (und darf es hinein)?
 function wartetVor(v, z = null) {
-  if (istVerteiler(v.teil)) {                    // Phase 7b Nachtrag: ein Verteiler wartet mit seinem Puffer
+  if (hatPuffer(v.teil)) {                       // Phase 7b Nachtrag: ein Verteiler wartet mit seinem Puffer (7d: auch Omni-Merger)
     const erstes = pufferVon(v.teil)[0];
     return !!erstes && (!z || seiteLaesstDurch(z, seiteVonFahrt(z, v.richtung), erstes));
   }
@@ -9361,16 +9587,46 @@ function zusammenLaesstDurch(z, richtung) {
   if (z.letzteSeite === seite && andereWarten && seite !== z.vorrang) return false;
   return true;
 }
-function nimmAufBand(ziel, item, richtung) {
-  if (istVerteiler(ziel)) return legeInPuffer(ziel, item);   // Phase 7b Nachtrag: in den Puffer (solange < PUFFER_GROESSE)
+// Phase 7d: "quelle" = das abgebende Teil. Kommt das Item von außerhalb des Segments, zählt der Durchsatz (Mk.1–Mk.4).
+function nimmAufBand(ziel, item, richtung, quelle = null) {
+  if (hatPuffer(ziel)) return legeInPuffer(ziel, item);      // Phase 7b Nachtrag: in den Puffer (solange < PUFFER_GROESSE)
   if (!hatPlatz(ziel)) return false;
+  const vonAussen = !quelle || !ziel.segment || quelle.segment !== ziel.segment;
+  if (vonAussen && !taktFrei(ziel)) return false;          // Phase 7d: Segment hat seinen Durchsatz erreicht
   if (ziel.typ === "zusammen") {
     if (!seiteLaesstDurch(ziel, seiteVonFahrt(ziel, richtung), item)) return false;   // Phase 7a: Seite gesperrt/gefiltert
     if (!zusammenLaesstDurch(ziel, richtung)) return false;
     ziel.letzteSeite = seiteVonFahrt(ziel, richtung);
   }
   legeAufBand(ziel, item, 0, richtung);
+  if (vonAussen) verbraucheTakt(ziel);                     // Phase 7d
   return true;
+}
+/* --- Phase 7d: Durchsatz der Fließbänder Mk.1–Mk.4 ---
+   Jedes Segment hat einen Takt (seg.takt, 0 … 1), der mit "proMinute" der Tempostufe nachläuft. Ein Item darf nur
+   von außen (Ablauf eines Gebäudes, Greifarm, Verteiler, anderes Segment) auf das Segment, wenn der Takt voll ist;
+   das verbraucht ihn. Innerhalb des Segments fährt es frei weiter. Die Laufgeschwindigkeit bleibt "tempo". */
+function taktFrei(t) {
+  if (!BAENDER.durchsatzBegrenzt || !t || !t.segment) return true;
+  return (t.segment.takt ?? 1) >= 1 - 1e-9;
+}
+function verbraucheTakt(t) {
+  if (!BAENDER.durchsatzBegrenzt || !t || !t.segment) return;
+  t.segment.takt = (t.segment.takt ?? 1) - 1;
+}
+function fuelleTakte(dt) {
+  if (!BAENDER.durchsatzBegrenzt) return;
+  for (const seg of bandSegmente) {
+    const st = tempoStufe(seg.teile[0].tempo);
+    const proSek = st.proMinute === undefined ? Infinity : st.proMinute / 60;
+    seg.takt = Math.min(1, (seg.takt ?? 1) + dt * proSek);
+  }
+}
+// Durchsatz eines Segments in Items pro Minute (für die Anzeige; Infinity = unbegrenzt)
+function segmentDurchsatz(seg) {
+  const st = seg && tempoStufe(seg.teile[0].tempo);
+  if (!st || !BAENDER.durchsatzBegrenzt || st.proMinute === undefined) return Infinity;
+  return st.proMinute;
 }
 // Splitter: reihum an den nächsten freien Ausgang, der das Item durchlässt.
 // Ein Ausgang ohne Haken nimmt "alles andere" – aber nicht, was ein anderer Ausgang ausdrücklich haben will.
@@ -9401,7 +9657,7 @@ function streckenEnde(start, item) {
     const t = z.teil;
     if (gesehen.has(t)) return { art: "ring" };
     gesehen.add(t);
-    if (istVerteiler(t) || t.typ === "zusammen") return { art: "knoten", teil: t };
+    if (istVerteiler(t) || t.typ === "zusammen" || t.typ === "omniMerger") return { art: "knoten", teil: t };   // 7d: Omni-Merger
     for (const it of t.items || []) {
       stueck++;
       vol += itemVolumen(it.item);
@@ -9476,14 +9732,16 @@ function ventilGibWeiter(t, it) {
    Items durch den Knoten fuhren (BAENDER.knotenTempo / BAENDER.mindestAbstand pro Sekunde).
    Splitter und Ventil arbeiten streng der Reihe nach; der Smart-Verteiler darf ein späteres Item vorziehen,
    wenn das vorderste gerade nirgends hin kann. t.items bleibt bei Verteilern leer. */
+// Phase 7d: Auch der Omni-Merger hat einen Puffer
+function hatPuffer(t) { return !!t && (istVerteiler(t) || t.typ === "omniMerger"); }
 function pufferVon(t) {
-  if (!istVerteiler(t)) return [];
+  if (!hatPuffer(t)) return [];
   if (!Array.isArray(t.puffer)) t.puffer = [];
   return t.puffer;
 }
 function legeInPuffer(t, item) {
   const puffer = pufferVon(t);
-  if (puffer.length >= PUFFER_GROESSE) return false;
+  if (puffer.length >= (t.typ === "omniMerger" ? BAENDER.omniPuffer : PUFFER_GROESSE)) return false;   // 7d: Omni-Merger
   puffer.push(item);
   return true;
 }
@@ -9520,7 +9778,7 @@ function gibWeiter(t, it) {
   if (istVerteiler(t)) return splitterGibWeiter(t, it);
   const z = t.ziel;
   if (!z) return false;
-  if (z.art === "band") return nimmAufBand(z.teil, it.item, t.richtung);
+  if (z.art === "band") return nimmAufBand(z.teil, it.item, t.richtung, t);   // 7d: Quelle für den Durchsatz
   return gebaeudeNimmtVomBand(z.g, it.item);
 }
 
@@ -9543,6 +9801,7 @@ function gebaeudeNimmtAn(g, item) {
   if (art === "importzone") return false;                    // Phase 7b: hier liefert nur der Lieferwagen
   if (art === "exportzone") return zoneAktiv(g) && !maxErreicht(g, item);   // Phase 7b Nachtrag 2: inaktive Zone nimmt nichts an
   if (istZwischenlager(g)) {
+    if (!lagerNimmtWare(g, item)) return false;  // Phase 7d: Endlos-Silo
     if (maxErreicht(g, item)) return false;      // Phase 7b: "Max" per Zahl
     const r = regelVon(g, item);
     if (r.imp && (g.bestand[item] || 0) < Math.max(1, sollbestand(g)[item] || 0)) return true;
@@ -9633,20 +9892,29 @@ function gebaeudeGibAb(g, t) {
 
 // Ein Schritt für alle Bänder (wird mit jedem Bild in kleinen Schritten aufgerufen).
 function baenderSchritt(dt) {
+  for (const g of spiel.gebaeude.values()) g.warnung = false;   // Phase 7d: Warnleuchten werden jeden Schritt neu gesetzt
   if (!spiel.baender.size) return;
   if (bandTopologieAlt) baueBandTopologie();
+  fuelleTakte(dt);                                // Phase 7d: Durchsatz Mk.1–Mk.4
+  const warnen = warnleuchtenAktiv();
   for (const t of bandReihenfolge) {
     if (istGreifarm(t)) { greifarmSchritt(t, dt); continue; }
-    if (istVerteiler(t)) { verteilerSchritt(t, dt); continue; }   // Phase 7b Nachtrag: Puffer
+    if (istVerteiler(t)) { verteilerSchritt(t, dt); if (warnen) pruefeWarnungVerteiler(t); continue; }   // Phase 7b Nachtrag: Puffer
+    if (t.typ === "omniMerger") { omniSchritt(t, dt); continue; }   // Phase 7d
     const tempo = bandTempo(t);
     if (tempo <= 0) continue;                     // Segment pausiert
     bewegeItems(t, tempo * dt);
     const vorn = t.items[0];
     if (vorn && vorn.pos >= 1 - 1e-6) {
-      if (gibWeiter(t, vorn)) { t.items.shift(); t.stau = 0; }
-      else t.stau += dt;
+      if (gibWeiter(t, vorn)) { t.items.shift(); t.stau = 0; t.warnung = false; }
+      else {
+        t.stau += dt;
+        if (warnen) pruefeWarnung(t, vorn.item);  // Phase 7d: falsch geroutete Ware?
+        if (ioGateVerkauft(t, vorn.item)) { t.items.shift(); t.stau = 0; t.warnung = false; }   // Phase 7d: PROD-068
+      }
     } else {
       t.stau = 0;
+      t.warnung = false;
     }
   }
   // Abläufe: Gebäude legen Items auf den Anfang "ihres" Bands, sobald dort Platz ist
@@ -9654,10 +9922,86 @@ function baenderSchritt(dt) {
     const g = spiel.gebaeude.get(t.ablaufVon);
     if (!g || bandTempo(t) <= 0) continue;
     if (!hatPlatz(t)) continue;
+    if (!taktFrei(t)) continue;                   // Phase 7d: Durchsatz des Segments erreicht
     g.ablaufFrei = spiel.zeit;                    // das Band nimmt ab (Kuriere müssen nicht helfen)
     const item = gebaeudeGibAb(g, t);
-    if (item) legeAufBand(t, item, 0, t.richtung);
+    if (item) { legeAufBand(t, item, 0, t.richtung); verbraucheTakt(t); }
   }
+}
+
+/* --- Phase 7d: Omni-Merger (PROD-055) ---
+   Nimmt Items von allen vier Seiten in seinen Puffer (BAENDER.omniPuffer), solange Platz ist – ohne Warten reihum –
+   und gibt sie in Ankunftsreihenfolge nach vorn ab (so schnell wie ein Verteiler). Steht vorn selbst ein
+   zulaufendes Band, hat er keinen Ausgang. */
+function omniSchritt(t, dt) {
+  const puffer = pufferVon(t);
+  const takt = BAENDER.knotenTempo / BAENDER.mindestAbstand;
+  t.takt = Math.min(1, (t.takt || 0) + dt * takt);
+  if (!puffer.length) { t.stau = 0; return; }
+  if (t.takt < 1) return;
+  const z = t.ziel;
+  const ok = !!z && (z.art === "band" ? nimmAufBand(z.teil, puffer[0], t.richtung, t) : gebaeudeNimmtVomBand(z.g, puffer[0]));
+  if (ok) { puffer.shift(); t.takt -= 1; t.stau = 0; t.warnung = false; return; }
+  t.stau += dt;
+  if (warnleuchtenAktiv() && z && z.art === "gebaeude" && wareFalschGeroutet(z.g, puffer[0])) { t.warnung = true; z.g.warnung = true; }
+}
+
+/* --- Phase 7d: Warnleuchten-Netzwerk (PROD-059) ---
+   Logik-Kennzeichen für die 3D-Ansicht: t.warnung (Bandteil) und g.warnung (Gebäude) sind true, solange vorn an
+   einem Band (bzw. im Puffer eines Verteilers) ein Item wartet, das das Ziel GRUNDSÄTZLICH nicht annimmt –
+   "falsch geroutet", nicht bloß "voll". Ohne die Forschung bleiben beide false. */
+function warnleuchtenAktiv() { return istErforscht("PROD-059"); }
+// Nimmt das Gebäude diese Ware grundsätzlich nicht an (egal wie voll es ist)?
+function wareFalschGeroutet(g, item) {
+  const art = typVon(g).art;
+  if (istStation(g)) { const r = rezeptVon(g); return !r || g.pausiert || !(item in r.eingaben); }
+  if (art === "importzone") return true;
+  if (art === "muell") return !muellNimmt(g, item, "band");
+  if (art === "exportzone") return !zoneAktiv(g);
+  if (art === "hauptlager") return !regelVon(g, item).imp;
+  if (istZwischenlager(g)) { const r = regelVon(g, item); return !lagerNimmtWare(g, item) || (!r.imp && !r.exp); }
+  return false;
+}
+function pruefeWarnung(t, item) {
+  const z = t.ziel;
+  t.warnung = !!z && z.art === "gebaeude" && wareFalschGeroutet(z.g, item);
+  if (t.warnung) z.g.warnung = true;
+}
+// Verteiler: das vorderste Item im Puffer kann über keinen Ausgang (Filter) oder nur in Gebäude, die es nie annehmen
+function pruefeWarnungVerteiler(t) {
+  const erstes = pufferVon(t)[0];
+  if (!erstes || !t.stau) { t.warnung = false; return; }
+  const passend = (t.ausgaenge || []).filter((a) => splitterFilterPasst(t, a.seite, erstes));
+  t.warnung = !passend.length || passend.every((a) => a.ziel.art === "gebaeude" && wareFalschGeroutet(a.ziel.g, erstes));
+  if (t.warnung) for (const a of passend) if (a.ziel.art === "gebaeude") a.ziel.g.warnung = true;
+}
+
+/* --- Phase 7d: Perfektionierte I/O-Gates (PROD-068) ---
+   Eingegrenzt auf Lager: Wartet vorn an einem Band ein Item länger als BAENDER.ioGateSek vor einem Lager
+   (Zwischenlager, Hauptlager, Exportzone), das es gerade nicht aufnimmt (voll, Max erreicht, ⇣ aus), wird es
+   automatisch verkauft (Direktverkaufspreis × BAENDER.ioGateFaktor; Rohstoffe: Einkaufspreis × ZONEN.rohstoffVerkauf
+   × Faktor) – das Band staut nicht. Stationen, Mülltonne, Importzone und offene Band-Enden sind ausgenommen,
+   ebenso Ware ohne Preis. */
+function ioGatesAktiv() { return istErforscht("PROD-068"); }
+function istIoGateLager(g) {
+  return !!g && ["zwischenlager", "hauptlager", "exportzone"].includes(typVon(g).art);
+}
+function ueberschussPreis(item) {
+  const preis = rohstoffPreis(item) ? rohstoffPreis(item) * ZONEN.rohstoffVerkauf : verkaufspreis(item);
+  return preis > 0 ? Math.max(1, Math.round(preis * BAENDER.ioGateFaktor)) : 0;   // ganze Euro (wie bucheGeld), mindestens 1
+}
+function ioGateVerkauft(t, item) {
+  if (!ioGatesAktiv() || t.stau < BAENDER.ioGateSek || spiel.insolvent) return false;
+  const z = t.ziel;
+  if (!z || z.art !== "gebaeude" || !istIoGateLager(z.g)) return false;
+  const preis = ueberschussPreis(item);
+  if (!(preis > 0)) return false;
+  bucheGeld(preis, "verkauf");
+  spiel.statistik.verkauft = (spiel.statistik.verkauft || 0) + 1;
+  spiel.ioGateVerkauft = (spiel.ioGateVerkauft || 0) + 1;
+  z.g.ioGateErloes = (z.g.ioGateErloes || 0) + preis;
+  meldeEreignis("ioGateVerkauf", { gebaeude: z.g, item, preis });
+  return true;
 }
 
 /* --- Greifarm --- */
@@ -9683,7 +10027,7 @@ function armQuelle(a) {
 }
 function armZielNimmt(ziel, item) {
   if (!ziel) return false;
-  if (ziel.art === "band") return hatPlatz(ziel.teil, 0.5);
+  if (ziel.art === "band") return hatPlatz(ziel.teil, 0.5) && taktFrei(ziel.teil);   // 7d: Durchsatz
   return gebaeudeNimmtAn(ziel.g, item);
 }
 // Welche Items darf der Arm aus einem Gebäude nehmen? (wie Kuriere bzw. Arbeiter)
@@ -9725,8 +10069,9 @@ function armLegeAb(a, item) {
   const ziel = armZiel(a);
   if (!ziel) return false;
   if (ziel.art === "band") {
-    if (!hatPlatz(ziel.teil, 0.5)) return false;
+    if (!hatPlatz(ziel.teil, 0.5) || !taktFrei(ziel.teil)) return false;   // 7d: Durchsatz
     legeAufBand(ziel.teil, item, 0.5, ziel.teil.richtung);
+    verbraucheTakt(ziel.teil);
     return true;
   }
   return gebaeudeNimmtVomBand(ziel.g, item);
@@ -9834,7 +10179,7 @@ function setzeBandteil(typ, x, z, richtung, daten = {}) {
       ? (daten.items || []).map((i) => ({ item: i.item, pos: Math.max(0, Math.min(1, i.pos || 0)), von: i.von ?? richtung }))
       : VERTEILER_TYPEN.includes(typ) ? [] : undefined,
     // Phase 7b Nachtrag: Puffer der Verteiler (ältere Spielstände: leer; Items, die auf dem Verteiler lagen, kommen hinein)
-    puffer: VERTEILER_TYPEN.includes(typ)
+    puffer: VERTEILER_TYPEN.includes(typ) || typ === "omniMerger"   // 7d: auch der Omni-Merger
       ? [...(Array.isArray(daten.puffer) ? daten.puffer : []), ...(daten.items || []).map((i) => i.item)].filter((i) => typeof i === "string")
       : undefined,
     tempo: daten.tempo || null,
@@ -9962,6 +10307,38 @@ function baueBruecke(start, ende) {
   return { ok: true, kosten: plan.kosten, laenge: plan.teile.length };
 }
 
+// Phase 7d: Untergrund-Fließband in einem Zug: Eingang auf "start", Ausgang auf "ende" (gerade Linie, höchstens
+// BAENDER.untergrundReichweite Kacheln dazwischen; die Kacheln dazwischen bleiben unberührt).
+// Rückgabe der Planung: { teile: [{ typ, x, z, richtung }], passt, gruende, fehler, kosten }
+function planeUntergrund(start, ende) {
+  const dx = ende.x - start.x, dz = ende.z - start.z;
+  const gruende = [], fehler = [];
+  if ((dx !== 0 && dz !== 0) || (dx === 0 && dz === 0)) gruende.push("Eingang und Ausgang müssen in einer geraden Linie liegen.");
+  const abstandK = Math.abs(dx) + Math.abs(dz);
+  if (abstandK - 1 > BAENDER.untergrundReichweite) gruende.push(`Höchstens ${BAENDER.untergrundReichweite} Kacheln zwischen Eingang und Ausgang.`);
+  const richtung = richtungVonVektor(Math.sign(dx), Math.sign(dz));
+  const teile = [
+    { typ: "untergrundEin", x: start.x, z: start.z, richtung: Math.max(0, richtung) },
+    { typ: "untergrundAus", x: ende.x, z: ende.z, richtung: Math.max(0, richtung) },
+  ];
+  let kosten = 0;
+  if (!gruende.length) {
+    teile.forEach((t, i) => {
+      const p = pruefeBandteil(t.typ, t.x, t.z, t.richtung);
+      if (!p.passt) { fehler.push(i); gruende.push(...p.gruende); }
+      kosten += bandteilPreis(t.typ);
+    });
+    if (!gruende.length && kosten > 0 && !kannBezahlen(kosten)) gruende.push(geldGrund(kosten));
+  }
+  return { teile, passt: !gruende.length, gruende: [...new Set(gruende)], fehler, kosten };
+}
+function baueUntergrund(start, ende) {
+  const plan = planeUntergrund(start, ende);
+  if (!plan.passt) return { ok: false, ...plan };
+  const teile = plan.teile.map((t) => baueBandteil(t.typ, t.x, t.z, t.richtung)).filter((r) => r.ok).map((r) => r.teil);
+  return { ok: teile.length === 2, teile, kosten: plan.kosten };
+}
+
 // Entfernt ein Bandteil. Items darauf gehen ins Hauptlager (bzw. Depot). Der Preis wird erstattet
 // (außer das Teil kam aus dem Depot – dann geht es dorthin zurück). insDepot: "Halle bereinigen".
 function entferneBandteil(id, { insDepot = false } = {}) {
@@ -10065,7 +10442,7 @@ function bandteilDaten(t) {
     items: t.items ? t.items.map((i) => ({ item: i.item, pos: Math.round(i.pos * 1000) / 1000, von: i.von })) : undefined,
     tempo: t.tempo, name: t.name, seiten: t.seiten, vorrang: t.vorrang,
     armFilter: t.armFilter, haelt: t.haelt, ablaufFilter: t.ablaufFilter, bruecke: t.bruecke, ausDepot: t.ausDepot,
-    puffer: istVerteiler(t) ? [...pufferVon(t)] : undefined,   // Phase 7b Nachtrag
+    puffer: hatPuffer(t) ? [...pufferVon(t)] : undefined,   // Phase 7b Nachtrag (7d: auch Omni-Merger)
   };
 }
 
@@ -10078,11 +10455,15 @@ function bandteilDaten(t) {
    ============================================================================ */
 function aktualisiereAutomatik() {
   for (const s of gebaeudeListe(istStation)) {
-    const an = !!s.bandZulauf && (typVon(s).art === "forschung" || !!s.bandAblauf);
+    // Phase 7d: Maschinen (und mit PROD-072 alle Werkbänke) laufen immer automatisch
+    const ohnePersonal = laeuftOhnePersonal(s);
+    const an = ohnePersonal || (!!s.bandZulauf && (typVon(s).art === "forschung" || !!s.bandAblauf));
     if (an === !!s.automatik) continue;
     s.automatik = an;
     if (an) {
       if (s.arbeiterId) gibArbeiterFrei(s);
+      // Phase 7d: Ohne Arbeiter nützen Import-/Export-Verknüpfungen nichts mehr (Kuriere liefern direkt ins Eingangsfach)
+      if (ohnePersonal && (s.importVon.length || s.exportNach.length)) { s.importVon = []; s.exportNach = []; aktualisiereVerknuepft(); }
     } else {
       // Material, das die Maschine gerade verarbeitet, zurück ins Eingangsfach
       if (s.autoRezept) { bucheItems(s.eingang, s.autoRezept.eingaben); s.autoRezept = null; s.fortschritt = 0; s.version++; }
@@ -10756,7 +11137,39 @@ const MODELLE = {
       quader(g, 0.07, 0.04, 0.05, farben[i % farben.length], x, H + 0.012, z, m));
     return { gruppe: g, plaetze: [], wuerfel: 0.18 };
   },
+
+  // Phase 7d: PLATZHALTER aus Grundformen, bis die 3D-Rolle eigene Modelle baut (damit nichts abstürzt)
+  metallKiste(m) { return MODELLE.kiste(m); },
+  metallSchrank(m) { return MODELLE.schrank(m); },
+  industrieSchrank(m) { return MODELLE.schrank(m); },
+  smartSchrank(m) { return MODELLE.schrank(m); },
+  endlosSilo(m) {
+    const g = new THREE.Group(), plaetze = [];
+    quader(g, 1.9, 0.05, 1.9, GRAFIK.farbeLagerBoden, 0, 0, 0, m);
+    const silo = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 1.9, 20), m || figurMaterial(GRAFIK.farbeMetall));
+    silo.position.y = 1.0;
+    silo.castShadow = silo.receiveShadow = !m;
+    g.add(silo);
+    for (let i = 0; i < 4; i++) plaetze.push(new THREE.Vector3(-0.36 + i * 0.24, 0.2, 0.86));
+    return { gruppe: g, plaetze, wuerfel: 0.2 };
+  },
+  gehaeuseStanzer(m) { return maschinenPlatzhalter(m, 2, 2, GRAFIK.farbeMetallDunkel); },
+  cncFraese(m) { return maschinenPlatzhalter(m, 2, 2, GRAFIK.farbeSmartVerteiler); },
+  roboterArm(m) { return maschinenPlatzhalter(m, 2, 1, GRAFIK.farbeArm); },
+  t2Presse(m) { return maschinenPlatzhalter(m, 2, 2, GRAFIK.farbeVentil); },
+  assembler(m) { return maschinenPlatzhalter(m, 3, 2, GRAFIK.farbeSplitter); },
 };
+// Phase 7d: Platzhalter-Maschine: Sockel, Gehäuseblock, Ausgabefach vorn links (Plätze für den Inhalt)
+function maschinenPlatzhalter(m, breite, tiefe, farbe) {
+  const g = new THREE.Group(), plaetze = [];
+  const B = breite - 0.1, T = tiefe - 0.1;
+  quader(g, B, 0.08, T, GRAFIK.farbeMetallDunkel, 0, 0, 0, m);
+  quader(g, B - 0.2, 0.9, T - 0.5, farbe || GRAFIK.farbeMetall, 0, 0.08, -0.2, m);
+  quader(g, B - 0.4, 0.05, 0.3, GRAFIK.farbeMetall, 0, 0.98, -0.2, m);
+  quader(g, 0.6, 0.04, 0.36, GRAFIK.farbeMetallDunkel, -B / 2 + 0.4, 0.5, T / 2 - 0.22, m);
+  for (const x of [-0.12, 0.12]) plaetze.push(new THREE.Vector3(-B / 2 + 0.4 + x, 0.62, T / 2 - 0.22));
+  return { gruppe: g, plaetze, wuerfel: 0.18 };
+}
 
 // Mitte eines Gebäudes in der 3D-Welt (die Formel aus kachelZuWelt gilt auch für halbe Kacheln)
 function gebaeudeMitteWelt(g) {
@@ -10790,7 +11203,7 @@ function baueZugangsPfeil(zugang, richtung, material = pfeilMaterial) {
 // den orangen Zugangspfeil gibt es nur noch an Stationen (dort steht der Arbeiter).
 function zeigtZugangsPfeil(typ) {
   const t = gebaeudeTypNach.get(typ);
-  return !!t && t.kategorie === "station";
+  return !!t && (t.kategorie === "station" || t.kategorie === "maschine");   // Phase 7d: auch Maschinen
 }
 
 /* --- Status-Symbole über den Stationen (kleine runde Schilder, immer zur Kamera gedreht) --- */
@@ -11726,6 +12139,7 @@ function baueBandModell(t) {
     case "splitter":
     case "smartVerteiler":
     case "ventil":
+    case "omniMerger":   // Phase 7d: Platzhalter wie die Zusammenführung
     case "zusammen": {
       const farbe = t.typ === "smartVerteiler" ? GRAFIK.farbeSmartVerteiler : t.typ === "ventil" ? GRAFIK.farbeVentil
         : istVerteiler(t) ? GRAFIK.farbeSplitter : GRAFIK.farbeZusammen;
@@ -11756,6 +12170,12 @@ function baueBandModell(t) {
         }
         bandPfeil(g, 0, dach, 0.12, 0, 0.5);
       }
+      break;
+    }
+    case "untergrundEin":   // Phase 7d: Platzhalter – Band mit dunklem Tunnelportal
+    case "untergrundAus": {
+      geradesBand(g, material);
+      quader(g, 0.9, 0.42, 0.18, GRAFIK.farbeMetallDunkel, 0, H, t.typ === "untergrundEin" ? 0.4 : -0.4);
       break;
     }
     case "greifarm":
@@ -11931,7 +12351,7 @@ function zeichnePufferItems() {
   const k = GRAFIK.pufferWuerfel;
   for (const t of spiel.baender.values()) {
     const puffer = t.puffer;
-    if (!puffer || !puffer.length || !istVerteiler(t)) continue;
+    if (!puffer || !puffer.length || !hatPuffer(t)) continue;   // 7d: auch Omni-Merger
     const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
     const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
     pufferOben.fill(rasterHoehe + bahnHoehe(0) + 0.004);
@@ -15991,6 +16411,13 @@ window.tradeUp = {
   fehlendeKategorien, erfuelltKlasse, besteKlasse, klassenGrundwert, marktwertAusTeilen, teileZaehlen,
   herstellZiel, istFreigeschaltet, freischaltStatus, kannFreischalten, schalteFrei, schalteAlleKomponentenFrei,
   zaehleHergestellt, fachGroesse, stelleAlteBauteileUm, wandleAlteBlaupauseUm, findeFreienPlatz,
+  // Phase 7d (Maschinen & Bauforschungs-Teile): Maschinen, Gigafactory, neue Lager, Untergrund, Omni-Merger,
+  // Fließband Mk.1–Mk.4, Warnleuchten, I/O-Gates
+  GIGAFACTORY, istMaschine, laeuftOhnePersonal, maschinenTempo, maschineKann, maschinenRezepte, maschinenLaufkosten,
+  aktualisiereAutomatik, lagerNimmtWare, siloWareVon, setzeSiloWare, smartNachkaufBedarf, smartNachkaufSchritt,
+  setzeSmartNachkauf, naechsteImportzone, hatPuffer, untergrundPartner, planeUntergrund, baueUntergrund,
+  taktFrei, segmentDurchsatz, tempoStufe, tempoFreigeschaltet, warnleuchtenAktiv, wareFalschGeroutet,
+  ioGatesAktiv, ueberschussPreis, istErforscht,
 };
 </script>
 

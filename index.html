@@ -2215,7 +2215,7 @@ const KOMPONENTEN = {
   toleranz:     { 1: 4, 2: 8, 3: 15 },   // so viel Hitze verträgt ein Teil dieses Tiers (Platzhalter)
   rezeptFaktor: { 1: 1, 2: 2, 3: 4 },    // Rezept = Grundrezept der Kategorie × Faktor (T2 doppelt, T3 vierfach)
   herstellZielFaktor: 1.0,               // verkürzt oder verlängert ALLE Herstellungsziele (0,1 → aus 250 werden 25)
-  forschungGrund: "Forschung kommt mit Teilschritt 7d",   // Zeit-Forschung (Stufe 2) gibt es in 7c noch nicht
+  forschungGrund: "Als Projekt an einer Forschungsstation erforschen (Forschung, Taste T)",   // Phase 7d: Zeit-Forschung (Stufe 2)
 };
 
 // Phase 7c: Die 12 Kategorien. Farbe und Symbol gelten für alle ihre Komponenten (Designer, Bänder, Lager).
@@ -2424,7 +2424,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   8,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; 7c: 8 Komponenten-Katalog + Gehäuse; ältere werden umgewandelt)
+  spielstandVersion:   9,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; 7c: 8 Komponenten-Katalog + Gehäuse; 7d: 9 neue Forschung; ältere werden umgewandelt)
   kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
   // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
   volumenRohstoff:     1,     // Rohstoff
@@ -2549,10 +2549,14 @@ const GIGAFACTORY = {
 //   ladezeit    – Sekunden zum Aufladen bzw. Abladen
 //   forschung   – (Phase 5) diese Forschung im Techtree schaltet die Stufe frei (null = immer da)
 //   preis       – (Phase 5) so viel kostet die Ausrüstung pro Kurier im Personal-Reiter
+//   modell      – (Phase 7d) welches 3D-Modell der Kurier schiebt ("sackkarre", "hubwagen"; Handkarre vorerst wie Sackkarre)
+// Phase 7d: Handkarre (PROD-005) neu als Stufe 1, Sackkarre (PROD-011) und Hubwagen (PROD-024) rücken eins weiter
+// (alte Spielstände werden umgestellt). Tabelle: 3 / 5 / 10 Items – hier wie in 7b als Zuschlag auf den Grundwert.
 const KURIER_STUFEN = [
-  { stufe: 0, name: "Hände",     extra: 0,   tempoFaktor: 1.00, ladezeit: 0.6, forschung: null, preis: 0   },
-  { stufe: 1, name: "Sackkarre", extra: 4,   tempoFaktor: 0.85, ladezeit: 0.9, forschung: "k2", preis: 150 },
-  { stufe: 2, name: "Hubwagen",  extra: 10,  tempoFaktor: 0.75, ladezeit: 1.2, forschung: "k6", preis: 600 },
+  { stufe: 0, name: "Hände",     extra: 0,   tempoFaktor: 1.00, ladezeit: 0.6,  forschung: null,       preis: 0,   modell: null },
+  { stufe: 1, name: "Handkarre", extra: 2,   tempoFaktor: 0.95, ladezeit: 0.75, forschung: "PROD-005", preis: 60,  modell: "handkarre" },
+  { stufe: 2, name: "Sackkarre", extra: 4,   tempoFaktor: 0.85, ladezeit: 0.9,  forschung: "PROD-011", preis: 150, modell: "sackkarre" },
+  { stufe: 3, name: "Hubwagen",  extra: 10,  tempoFaktor: 0.75, ladezeit: 1.2,  forschung: "PROD-024", preis: 600, modell: "hubwagen" },
 ];
 
 // Mitarbeiter-Rollen. "lohn" = Euro pro Spieltag (wird beim Tagesabschluss um 20:00 abgebucht).
@@ -2713,55 +2717,349 @@ const FORSCHUNG_WERTE = {
   lohnProStufe:          0.05,  // ... und +5 % Lohn
 };
 
-// Der Techtree. Jeder Eintrag:
-//   id, baum ("kurier"; später z. B. "bauteile", "gebaeude"), name, beschreibung
-//   kosten: { fp, geld }, braucht: [ids, die vorher erforscht sein müssen]
-//   wirkung: { art, faktor? } – die Logik fragt Wirkungen nur über forschungsWirkung(art)
-//            bzw. forschungAktiv(art) ab (Abschnitt 11g)
-//   spalte, zeile – Platz im Techtree-Fenster
-const FORSCHUNG = [
-  { id: "k1", baum: "kurier", name: "Laufschuhe", symbol: "👟", kosten: { fp: 25, geld: 0 }, braucht: [],
-    wirkung: { art: "kurierTempo", faktor: 1.15 }, spalte: 0, zeile: 0,
-    beschreibung: "Kuriere laufen 15 % schneller." },
-  { id: "k2", baum: "kurier", name: "Sackkarre", symbol: "🛒", kosten: { fp: 40, geld: 300 }, braucht: [],
-    wirkung: { art: "ausruestung", stufe: 1 }, spalte: 0, zeile: 1,
-    beschreibung: "Schaltet die Sackkarre frei (4 Items pro Gang). Kaufen im Personal-Reiter." },
-  { id: "k3", baum: "kurier", name: "Feste Griffe", symbol: "✊", kosten: { fp: 60, geld: 0 }, braucht: ["k1"],
-    wirkung: { art: "kurierLadezeit", faktor: 0.7 }, spalte: 1, zeile: 0,
-    beschreibung: "Lade- und Abladezeit der Kuriere −30 %." },
-  { id: "k4", baum: "kurier", name: "Sammelfahrt", symbol: "📦", kosten: { fp: 80, geld: 0 }, braucht: ["k2"],
-    wirkung: { art: "sammelfahrt" }, spalte: 1, zeile: 1,
-    beschreibung: "Ein Kurier lädt mehrere Sorten für dasselbe Ziel in einem Gang." },
-  { id: "k5", baum: "kurier", name: "Direktlieferung", symbol: "↪", kosten: { fp: 100, geld: 0 }, braucht: ["k2"],
-    wirkung: { art: "direktlieferung" }, spalte: 1, zeile: 2,
-    beschreibung: "Kuriere bringen Erzeugnisse aus Ausgang-Lagern direkt in Eingang-Lager anderer Stationen." },
-  { id: "k6", baum: "kurier", name: "Hubwagen", symbol: "🚜", kosten: { fp: 200, geld: 1500 }, braucht: ["k4"],
-    wirkung: { art: "ausruestung", stufe: 2 }, spalte: 2, zeile: 1,
-    beschreibung: "Schaltet den Hubwagen frei (10 Items pro Gang). Kaufen im Personal-Reiter." },
-  { id: "k7", baum: "kurier", name: "Disponent", symbol: "📋", kosten: { fp: 150, geld: 0 }, braucht: ["k3", "k5"],
-    wirkung: { art: "disponent" }, spalte: 2, zeile: 0,
-    beschreibung: "Ein Kurier übernimmt am Ziel sofort den nächsten Auftrag von dort aus (weniger Leerwege)." },
-  // Phase 6: Zweig "Automatisierung" (Fließbänder und Greifarme sind ohne Forschung baubar)
-  { id: "a1", baum: "automatisierung", name: "Schnellband", symbol: "⏩", kosten: { fp: 60, geld: 0 }, braucht: [],
-    wirkung: { art: "bandStufe", stufe: "schnell" }, spalte: 0, zeile: 0,
-    beschreibung: "Schaltet die Tempostufe „Schnell“ für Bandsegmente frei (1,6 Kacheln/s)." },
-  { id: "a2", baum: "automatisierung", name: "Expressband", symbol: "🚀", kosten: { fp: 150, geld: 1000 }, braucht: ["a1"],
-    wirkung: { art: "bandStufe", stufe: "express" }, spalte: 1, zeile: 0,
-    beschreibung: "Schaltet die Tempostufe „Express“ frei (2,4 Kacheln/s)." },
-  { id: "a3", baum: "automatisierung", name: "Wartungsarm", symbol: "🔧", kosten: { fp: 80, geld: 0 }, braucht: ["a1"],
-    wirkung: { art: "bandKosten", faktor: 0.6 }, spalte: 1, zeile: 1,
-    beschreibung: "Laufkosten aller Bänder und Greifarme −40 %." },
-  { id: "a4", baum: "automatisierung", name: "Präzisionsmaschinen", symbol: "⚙", kosten: { fp: 200, geld: 0 }, braucht: ["a2"],
-    wirkung: { art: "automatikTempo", faktor: 1.2 }, spalte: 2, zeile: 0,
-    beschreibung: "Automatisch laufende Stationen arbeiten 20 % schneller." },
-  { id: "a5", baum: "automatisierung", name: "Schnellgreifer", symbol: "🦾", kosten: { fp: 100, geld: 0 }, braucht: ["a1"],
-    wirkung: { art: "greifZeit", faktor: 0.6 }, spalte: 1, zeile: 2,
-    beschreibung: "Greifarme schwenken 40 % schneller." },
+// Phase 7d: Die neue Forschung – drei Bäume wie in Tims Tabelle (Komponenten, Mitarbeiter, Bau).
+// Hier stehen die Schalter (Entscheidungen E2, E4, E6, E9) und Platzhalter-Werte; die Einträge selbst stehen
+// darunter (MITARBEITER_FORSCHUNG, BAU_FORSCHUNG), der Komponentenbaum entsteht aus BAUTEILE und GEHAEUSE (2c).
+// Die Logik steht in Abschnitt 11g; von außen fragt man nur istErforscht(id) bzw. forschungStatus(id).
+const FORSCHUNG_NEU = {
+  spaeterSichtbar:   true,   // E2: Einträge ohne Spielsystem sichtbar mit Schloss „kommt in einer späteren Phase“ (false = ausblenden)
+  baenderErforschen: true,   // E4: neue Spiele: Bänder, Splitter, Greifarme usw. (alles außer der Grundausstattung) erst nach Bauforschung
+  grundausstattung:  ["PROD-001", "PROD-004", "PROD-006"],   // ab Start erforscht: Holz-Kiste, Einfache Werkbank, Forschungs-Tisch (6.3)
+  startErforscht:    ["HR-002"],   // 1.3: "Rolle: Kurier" ist ab Start erforscht (Kuriere gibt es schon)
+  // 1.3 / Entscheidung Tim: Tragekapazität aufsteigend +1 → +3 → +5 (true). Die Einträge ziehen auf die Plätze
+  // (Tier + Bedingung) dieser Einträge: HR-029 (+1) auf den T1-Platz von HR-032, HR-030 (+3) auf den T2-Platz von
+  // HR-029, HR-032 (+5) auf den T3-Platz von HR-030. Die Stufen ersetzen einander (die höchste zählt, "^" unten).
+  // Wörtlicher Tausch nur von HR-030 und HR-032 wäre: { "HR-030": "HR-032", "HR-032": "HR-030" }.
+  tragkraftTausch:   true,
+  tragkraftPlaetze:  { "HR-029": "HR-032", "HR-030": "HR-029", "HR-032": "HR-030" },
+  // Mitarbeiter: Stufe in der Kette → Tier und Bedingung (zeit = Sekunden an einer Forschungsstation,
+  // xp = Erfahrung aller Mitarbeiter ab Erforschung der vorigen Stufe, E6)
+  mitarbeiterMuster: [
+    { tier: "T1", zeit: 180 }, { tier: "T1", zeit: 360 },
+    { tier: "T2", xp: 500 }, { tier: "T2", xp: 1500 }, { tier: "T3", xp: 5000 },
+  ],
+  // E9: Kosten der Bauforschung pro Tier und ab wann das Tier sichtbar ist (so viele Einträge des vorigen Tiers erforscht)
+  bauKosten: {
+    T1: { fp: 20,   euro: 0,     sichtbarAb: 0 },
+    T2: { fp: 80,   euro: 500,   sichtbarAb: 3 },
+    T3: { fp: 250,  euro: 2000,  sichtbarAb: 3 },
+    T4: { fp: 600,  euro: 6000,  sichtbarAb: 3 },
+    T5: { fp: 1500, euro: 20000, sichtbarAb: 3 },
+  },
+  sichtbarZaehltGrundausstattung: false,   // zählen die geschenkten Start-Einträge für die Sichtbarkeit mit? (false: nur selbst Erforschtes)
+  // 6.5: Was früher Forschung war und jetzt immer gilt (k4 Sammelfahrt, k5 Direktlieferung, k7 Disponent,
+  // a3 Wartungsarm = Laufkosten −40 %, a4 Präzisionsmaschinen = Automatik +20 %)
+  standard: { sammelfahrt: true, direktlieferung: true, disponent: true, bandKosten: 0.6, automatikTempo: 1.2 },
+  // Platzhalter für einzelne Wirkungen
+  einstellenMehrere: 5,      // HR-071: so viele Leute auf einmal einstellen
+  klonPreis:         8000,   // HR-074: Euro pro Klon ...
+  klonAbStufe:       5,      // ... nur von Mitarbeitern ab dieser Erfahrungsstufe
+  entlassRuf:        0.1,    // HR-065: jede Entlassung kostet 10 % der Reputation
+  ohneGehaltRuf:     5,      // HR-070: Reputation weniger pro Mitarbeiter und Tagesabschluss
+  overseerAbstand:   1.5,    // HR-009: so nah (Kacheln) muss der Overseer am Band stehen, damit es schneller läuft
+  schwerAbVolumen:   2,      // HR-011: "schwere Items" = Volumen ab 2 (Gehäuse, große Bauteile, Produkte)
+  metallGehaeuse:    ["geh_eisen", "geh_alu"],   // HR-097
+};
+// Phase 7d (E4): Welche Bauforschung schaltet welchen Bautyp frei? Bautypen ohne Eintrag (Hauptlager, Import-/
+// Exportzone, Montagetisch) sind immer frei. Neue Bautypen (Rolle B) tragen stattdessen ein Feld forschung: "PROD-0xx".
+const BAUTYP_FORSCHUNG = {
+  kiste: "PROD-001", werkbank: "PROD-004", forschungsstation: "PROD-006", muelltonne: "PROD-007", schrank: "PROD-008",
+  metallKiste: "PROD-019", metallSchrank: "PROD-023", industrieSchrank: "PROD-033",
+  band: "PROD-016", bruecke: "PROD-016", rampeHoch: "PROD-016", hochband: "PROD-016", rampeRunter: "PROD-016",
+  splitter: "PROD-017", zusammen: "PROD-018", greifarm: "PROD-020", greifGeber: "PROD-020", uebergang: "PROD-021",
+  smartVerteiler: "PROD-032", ventil: "PROD-048",
+};
+// Phase 7d (6.5): die alte Forschung (k1–k7, a1–a5) → neue Einträge; true = jetzt Standardverhalten (immer an)
+const ALT_FORSCHUNG = {
+  k1: "HR-026", k2: "PROD-011", k3: "HR-031", k4: true, k5: true, k6: "PROD-024", k7: true,
+  a1: "PROD-031", a2: "PROD-047", a3: true, a4: true, a5: "PROD-037",
+};
+// Phase 7d: Mitarbeiterforschung aus Tims Tabelle (100 Einträge): 4 Gruppen × 5 Ketten × 5 Stufen.
+// Jede Zeile: [ID, Name, Effekt aus der Tabelle, Wirkung]. Tier und Bedingung ergeben sich aus der Stufe in der
+// Kette (FORSCHUNG_NEU.mitarbeiterMuster): 180 s, 360 s, 500 XP / 1500 XP / 5000 XP durch die vorige Stufe.
+// Wirkung: "art*faktor" (multipliziert), "art+wert" (addiert), "art^wert" (Kette: höchste zählt), "art" (Schalter),
+// mehrere mit Leerzeichen; "" = Spielsystem fehlt noch (Schloss „kommt in einer späteren Phase“).
+const MITARBEITER_FORSCHUNG = [
+  { id: "rollen", name: "Rollen & Spezialisierung", eintraege: [
+    ["HR-001", "HR-Onboarding-Prozess", "Einstellungskosten neuer Mitarbeiter -10%", "einstellKosten*0.9"],
+    ["HR-002", "Rolle: Kurier", "Schaltet beim Start frei", "rolleKurier"],
+    ["HR-003", "Rolle: Forscher", "Erlaubt das Zuweisen von Arbeitern an die Forschungsstation", "rolleForscher"],
+    ["HR-004", "Rolle: Wartungstechniker", "Erlaubt Reparatur von Fließbändern bei Hitze/Verschleiß", ""],
+    ["HR-005", "Rolle: QA-Tester", "Schaltet Arbeiter für die QA-Teststrecke frei (verhindert Rückrufe)", ""],
+    ["HR-006", "Job-Rotation (Basis)", "Cooldown beim Wechseln von Arbeitsstationen -20%", ""],
+    ["HR-007", "Rolle: Scout", "Obsolete Arbeiter können auf Außenwelt-Expeditionen gehen", ""],
+    ["HR-008", "Cross-Training", "Mitarbeiter behalten 50% ihrer Level-XP bei Rollenwechsel", ""],
+    ["HR-009", "Rolle: Fließband-Overseer", "Ein Overseer pro Segment bufft die Bandgeschwindigkeit um 15%", "overseer*1.15"],
+    ["HR-010", "Rolle: KI-Systemadministrator", "Erlaubt direkte Markt-Manipulation der KI-Konkurrenten", ""],
+    ["HR-011", "Gabelstapler-Einweisung", "Kuriere bewegen sich mit schweren Items 10% schneller", "kurierTempoSchwer*1.1"],
+    ["HR-012", "Stapler-Führerschein", "Schaltet den Gabelstapler als Fahrzeug frei", ""],
+    ["HR-013", "Rolle: Schwerlast-Fahrer", "Stapler-Kapazität wird verdoppelt", ""],
+    ["HR-014", "Drohnen-Pilot-Lizenz", "Erlaubt den Einsatz von Industrie-Drohnen für Luft-Logistik", ""],
+    ["HR-015", "Rolle: Drohnen-Koordinator", "Zentrale Steuerung für 50+ Drohnen ohne Kollisionen", ""],
+    ["HR-016", "Grundlagen Qualitätskontrolle", "Basis-Fehlerquote an manuellen Werkbänken -5%", ""],
+    ["HR-017", "Erweiterte QA-Protokolle", "QA-Tester an der Teststrecke arbeiten 15% schneller", ""],
+    ["HR-018", "Fehler-Diagnose-Zertifikat", "Defekte Fließbänder werden auf der UI-Minimap sofort markiert", ""],
+    ["HR-019", "Rolle: Reverse-Engineer", "Erlaubt das Zerlegen und Kopieren von KI-Konkurrenz-Produkten", ""],
+    ["HR-020", "Industrie-Spionage-Lizenz", "Offenbart die genauen Baupläne aller kommenden Weltaufträge", ""],
+    ["HR-021", "Sicherheitsbeauftragter", "Allgemeine Arbeitsunfall-Wahrscheinlichkeit -10%", ""],
+    ["HR-022", "Rolle: Ersthelfer", "Heilt verletzte Arbeiter in einem Radius von 5 Kacheln", ""],
+    ["HR-023", "Rolle: Betriebssanitäter", "Krankheitsausfälle im gesamten Werk -50%", ""],
+    ["HR-024", "Notfall-Krisenmanager", "Verhindert Reputations-Verlust wenn der Bankrott-Timer startet", ""],
+    ["HR-025", "Werks-Feuerwehr", "Automatische Löschung von brennenden T3-Maschinen/Bändern", ""],
+  ] },
+  { id: "koerper", name: "Körperliche Effizienz & Logistik", eintraege: [
+    ["HR-026", "Sicherheitsschuhe", "Laufgeschwindigkeit aller Mitarbeiter +5%", "laufTempo*1.05"],
+    ["HR-027", "Ergonomische Einlagen", "Laufgeschwindigkeit aller Mitarbeiter +10%", "laufTempo*1.1"],
+    ["HR-028", "Laufwege-Optimierung", "Kuriere finden 15% schneller Wege um platzierte Maschinen", "kurierTempo*1.15"],
+    ["HR-029", "Tragekapazität +1", "Kuriere tragen standardmäßig 1 Item mehr pro Weg", "tragkraftKette^1"],
+    ["HR-030", "Tragekapazität +3", "Kuriere tragen standardmäßig 3 Items mehr pro Weg", "tragkraftKette^3"],
+    ["HR-031", "Hebetechnik-Seminar", "Animation für das Aufheben/Ablegen an Kisten 20% schneller", "ladezeit*0.8"],
+    ["HR-032", "Tragekapazität +5", "Kuriere tragen standardmäßig 5 Items mehr pro Weg", "tragkraftKette^5"],
+    ["HR-033", "Exoskelett-Zertifikat (Arme)", "Erlaubt Kurieren das Tragen schwerer T3-Carbongehäuse", "carbonTragen"],
+    ["HR-034", "Exoskelett-Nutzung (Beine)", "Laufgeschwindigkeit von Kurieren +25%", "kurierTempo*1.25"],
+    ["HR-035", "Ganzkörper-Exoskelett", "Tragekapazität +10 und Laufgeschwindigkeit +40%", "tragkraft+10 kurierTempo*1.4"],
+    ["HR-036", "Pausen-Optimierung", "Dauer der Mitarbeiter-Pausen -10%", ""],
+    ["HR-037", "Kaffee-Flatrate", "Dauer der Mitarbeiter-Pausen -20%", ""],
+    ["HR-038", "Vertrauensarbeitszeit", "Gehaltskosten für alle organischen Mitarbeiter -5%", "lohn*0.95"],
+    ["HR-039", "Schicht-System (2-Schicht)", "Manuelle Stationen laufen nachts mit 50% Effizienz weiter", ""],
+    ["HR-040", "Schicht-System (3-Schicht)", "Fabrik läuft 24/7 auf 100% (erfordert dreifaches Personal)", ""],
+    ["HR-041", "Fitness-Gutschein", "Basis-Arbeitsgeschwindigkeit +5%", "arbeitTempo*1.05"],
+    ["HR-042", "Betriebssport", "Gesamte Belegschaft +10% Arbeitsgeschwindigkeit", "arbeitTempo*1.1"],
+    ["HR-043", "Ernährungs-Berater", "Häufigkeit der nötigen Pausen -15%", ""],
+    ["HR-044", "Kantine-Zugang", "Globaler +15% Speed-Buff für alle gefütterten Mitarbeiter", ""],
+    ["HR-045", "Kryo-Schlaf-Pausen", "Mitarbeiter brauchen faktisch keine Pausen mehr", ""],
+    ["HR-046", "Koffein-Pillen", "Temporärer Speed-Boost bei leicht erhöhter Fehlerquote", ""],
+    ["HR-047", "Energie-Drinks-Spender", "Stationäre Arbeiter produzieren 10% schneller", "arbeitTempo*1.1"],
+    ["HR-048", "Fokus-Medikation", "Fehlerquote bei der Montage von T2-Produkten -10%", ""],
+    ["HR-049", "Neural-Stimulanzien", "Produktions-Geschwindigkeit +25% (Moral sinkt schneller)", "arbeitTempo*1.25"],
+    ["HR-050", "Anti-Schlaf-Kybernetik", "Arbeiter arbeiten 24/7 ohne Pause (Gehalt steigt um 200%)", ""],
+  ] },
+  { id: "psychologie", name: "Psychologie & Firmenbindung", eintraege: [
+    ["HR-051", "Obstkorb-Initiative", "Allgemeine Mitarbeiter-Zufriedenheit (Moral) +5%", ""],
+    ["HR-052", "Tischkicker", "Allgemeine Mitarbeiter-Zufriedenheit (Moral) +10%", ""],
+    ["HR-053", "Firmen-Events", "Unternehmens-Reputation sinkt bei Massenentlassungen weniger", ""],
+    ["HR-054", "Mitarbeiter-Beteiligung", "Gehaltsforderungen bei Level-Ups steigen 20% langsamer", "lohnStufe*0.8"],
+    ["HR-055", "Loyalitäts-Prämien", "Verhindert sofortige Kündigung bei negativem Kontostand", ""],
+    ["HR-056", "Stress-Management", "Arbeiter tolerieren 1 Kachel Hitze/Lärm mehr ohne Malus", ""],
+    ["HR-057", "Konfliktlösungs-Training", "Moral-Drop bei Entlassung von direkten Kollegen -20%", ""],
+    ["HR-058", "Burnout-Prävention", "Wahrscheinlichkeit für plötzliche Arbeitsausfälle -30%", ""],
+    ["HR-059", "Psychologische Beratung", "Setzt negative Moral-Mali (z.B. durch Lärm) schrittweise zurück", ""],
+    ["HR-060", "Emotions-Unterdrückung", "Mitarbeiter haben immer 100% Moral (unabhängig von Fabrik-Zustand)", ""],
+    ["HR-061", "Boni-Verhandlung", "Basisgehalt aller neuen T1-Arbeiter -5%", "lohn*0.95"],
+    ["HR-062", "Gewerkschafts-Verhandlung", "Verhindert Streiks wenn der Bankrott-Timer aktiv ist", ""],
+    ["HR-063", "Betriebsrat-Kooperation", "Permanenter Reputations-Bonus von +5% bei Kunden", "reputation*1.05"],
+    ["HR-064", "Abfindungs-Fonds", "Kosten für die Entlassung von obsoleten Mitarbeitern halbiert", "abfindung*0.5"],
+    ["HR-065", "Kündigungs-Schutz-Aufhebung", "Entlassungen kosten 0$ (Reputation sinkt um -10% pro Fall)", "abfindung*0 entlassRuf"],
+    ["HR-066", "Feedback-Kultur", "Mitarbeiter generieren 10% mehr XP (Leveln schneller)", "erfahrung*1.1"],
+    ["HR-067", "Mentoring-Programm", "Neue Mitarbeiter starten direkt auf Level 2 statt Level 1", "startLevel2"],
+    ["HR-068", "Führungskräfte-Entwicklung", "Erlaubt die Zuweisung von Managern zu bestimmten Hallen", ""],
+    ["HR-069", "Unternehmens-Kult", "Mitarbeiter akzeptieren dauerhaft 20% weniger Gehalt", "lohn*0.8"],
+    ["HR-070", "Gehirnwäsche-Seminar", "Mitarbeiter arbeiten ohne Gehalt (massive Reputationsstrafe)", "lohn*0 ohneGehalt"],
+    ["HR-071", "Personal-Büro-Erweiterung", "Erlaubt das gleichzeitige Einstellen von bis zu 5 Arbeitern", "einstellenMehrere"],
+    ["HR-072", "Headhunter-Netzwerk", "Zeigt im Einstellungsmenü Arbeiter mit seltenen Spezial-Buffs", ""],
+    ["HR-073", "Automatisierte Bewerbungs-KI", "Stellt bei Kündigungen automatisch gleichwertiges Personal ein", ""],
+    ["HR-074", "Klon-Anlagen-Verwaltung", "Klont hochstufige Mitarbeiter (Level 5+) für sehr viel Geld", "klonen"],
+    ["HR-075", "Bewusstseins-Upload", "Mitarbeiter werden zu fehlerfreien KI-Entitäten auf dem Fließband", ""],
+  ] },
+  { id: "umwelt", name: "Umwelt-Resilienz (Werkstatt)", eintraege: [
+    ["HR-076", "Lärmschutz-Kopfhörer", "Arbeiter tolerieren Lärm von T1-Maschinen ohne Moral-Verlust", ""],
+    ["HR-077", "Lärm-Toleranz (Basis)", "Toleriert Lärm auf 1 Kachel Abstand zu lauten Maschinen", ""],
+    ["HR-078", "Lärm-Toleranz (Industrie)", "Arbeiter tolerieren Lärm von schweren T2-Maschinen", ""],
+    ["HR-079", "Lärm-Toleranz (Schwerindustrie)", "Arbeiter tolerieren massiven Lärm von T3-Fließbändern", ""],
+    ["HR-080", "Gehörlosigkeit-Implantat", "Komplette Immunität gegen Lärm-Mali", ""],
+    ["HR-081", "Schutzkleidung (Basis)", "Arbeiter tolerieren leichte Hitze (+5 im Layout) in ihrer Nähe", ""],
+    ["HR-082", "Hitzeschutz-Kleidung", "Arbeiter tolerieren starke Hitze (+10) in ihrer Nähe", ""],
+    ["HR-083", "Hitze-Toleranz (Basis)", "Arbeiter können direkt neben wärmeerzeugenden T2-Maschinen stehen", ""],
+    ["HR-084", "Hitze-Toleranz (Schmelzofen)", "Arbeiter können im Hitze-Radius von T3-Maschinen/Prozessoren arbeiten", ""],
+    ["HR-085", "Thermo-Regulierungs-Implantat", "Komplette Immunität gegen Hitze-Mali und Brände", ""],
+    ["HR-086", "Staub-Masken", "Produktions-Geschwindigkeit bei Rohstoff-Verarbeitung (Holz) +5%", "holzTempo*1.05"],
+    ["HR-087", "Staub-Resistenz", "Immunität gegen Moral-Verlust durch Holz/Plastik-Partikel", ""],
+    ["HR-088", "Gefahrstoff-Umgang", "Erlaubt das manuelle Tragen von Lithium und Chemikalien", ""],
+    ["HR-089", "ABC-Schutzanzug-Training", "Erlaubt das Arbeiten im Strahlungs-Radius von Micro-Reaktoren", ""],
+    ["HR-090", "Toxizitäts-Immunisierung", "Komplette Immunität gegen austretende Umweltgifte", ""],
+    ["HR-091", "Platzangst-Therapie", "Kein Moral-Verlust wenn Arbeiter von Fließbändern eingebaut sind", ""],
+    ["HR-092", "Ergonomie-Schulung", "Stationäre Arbeiter an Werkbänken +5% Speed", "werkbankTempo*1.05"],
+    ["HR-093", "Steh-Arbeitsplätze", "Stationäre Arbeiter an Werkbänken +10% Speed", "werkbankTempo*1.1"],
+    ["HR-094", "Fließband-Hypnose (Fokus)", "Arbeiter an Fließbändern ignorieren Ablenkungen (+15% Speed)", "bandArbeitTempo*1.15"],
+    ["HR-095", "Monotonie-Resistenz", "Arbeiter kündigen nie aufgrund repetitiver Aufgaben", ""],
+    ["HR-096", "Schutzbrillen", "Unfallrate bei Glas- und Laser-Verarbeitung -10%", ""],
+    ["HR-097", "Schweißmasken", "Erlaubt manuellen Bau von Metallgehäusen 20% schneller", "metallGehaeuseTempo*1.2"],
+    ["HR-098", "Strahlungs-Schulung", "Toleriert schwache Strahlung von defekten T3-Komponenten", ""],
+    ["HR-099", "Strahlenschutz-Anzüge", "Volle Toleranz bei Quanten- und Isotopen-Verarbeitung", ""],
+    ["HR-100", "Nanobot-Zell-Reparatur", "Heilt alle Umweltschäden der Arbeiter in Echtzeit", ""],
+  ] },
 ];
-// Reiter im Techtree-Fenster (Phase 6): ein Reiter pro Baum
+// Phase 7d: Bauforschung aus Tims Tabelle (75 Einträge, je 15 pro Tier T1 … T5 in dieser Reihenfolge).
+// Jede Zeile: [ID, Name, Kategorie, Effekt aus der Tabelle, Wirkung]. Kosten und Sichtbarkeit: FORSCHUNG_NEU.bauKosten.
+// Wirkung "bau" = schaltet einen Bautyp frei (BAUTYP_FORSCHUNG), "@B" = Maschinen/Teile der Rolle B (lesen istErforscht).
+const BAU_FORSCHUNG = [
+  ["PROD-001", "Holz-Kiste", "lager", "Schaltet das erste Zwischenlager (10 Slots) frei", "bau"],
+  ["PROD-002", "Kurier-Tasche", "logistik", "Kuriere tragen standardmäßig +1 Item pro Weg", "tragkraft+1"],
+  ["PROD-003", "I/O-Fixierung (Basis)", "logistik", "Erlaubt Zuweisung von Kisten als reiner Input/Output", "ioFixierung"],
+  ["PROD-004", "Einfache Werkbank", "produktion", "Manuelle Station für die Herstellung von T1-Komponenten", "bau"],
+  ["PROD-005", "Handkarre", "logistik", "Kuriere können 3 Items gleichzeitig transportieren", "ausruestung"],
+  ["PROD-006", "Forschungs-Tisch", "spezial", "Schaltet Station zur Generierung von Technologiepunkten frei", "bau"],
+  ["PROD-007", "Mülltonne", "logistik", "Erlaubt das manuelle Löschen überproduzierter Basis-Ressourcen", "bau"],
+  ["PROD-008", "Holz-Schrank", "lager", "Größeres Zwischenlager (25 Slots), blockiert weniger Kacheln", "bau"],
+  ["PROD-009", "Lager-Etiketten", "logistik", "Kuriere finden Ressourcen im Lager 10% schneller", "kurierLadezeit*0.9"],
+  ["PROD-010", "Basis-Werkzeugset", "produktion", "Manuelle Produktion an Werkbänken wird 5% schneller", "werkbankTempo*1.05"],
+  ["PROD-011", "Sackkarre", "logistik", "Kuriere können 5 Items gleichzeitig transportieren", "ausruestung"],
+  ["PROD-012", "Schichtplan-Tafel", "management", "Menü zur flexiblen Zuweisung von Mitarbeitern", "autoZuweisung"],
+  ["PROD-013", "Pappkarton-Presse", "logistik", "Verpackung für Weltaufträge geht 10% schneller", ""],
+  ["PROD-014", "Lärmschutz-Matte", "umwelt", "Reduziert Lärm-Zonen von manuellen Werkbänken", ""],
+  ["PROD-015", "Erweiterte Kisten-Logistik", "lager", "Zeigt Warnungen an, bevor harte Volumen-Limits zu Staus führen", "lagerWarnung"],
+  ["PROD-016", "Fließband Mk.1", "automatisierung", "Standard-Fließband mit Durchsatz von 30 Items/Min", "bau"],
+  ["PROD-017", "Band-Splitter", "automatisierung", "Teilt den Rohstoffstrom eines Fließbands in zwei Wege", "bau"],
+  ["PROD-018", "Band-Merger", "automatisierung", "Führt zwei Fließbänder auf eine Strecke zusammen", "bau"],
+  ["PROD-019", "Metall-Kiste", "lager", "Robustes Zwischenlager mit 50 Slots", "bau"],
+  ["PROD-020", "Automatischer Greifarm", "automatisierung", "Legt Items vollautomatisch von Kisten auf Fließbänder", "bau"],
+  ["PROD-021", "Fließband-Brücke", "logistik", "Kuriere können über Fließbänder laufen, ohne stecken zu bleiben", "bau"],
+  ["PROD-022", "Segment-Steuerung Mk.1", "automatisierung", "Erlaubt manuelles Drosseln/Beschleunigen von Fließband-Segmenten", "segmentSteuerung"],
+  ["PROD-023", "Metall-Schrank", "lager", "Fortgeschrittener Schrank für Zwischenprodukte (100 Slots)", "bau"],
+  ["PROD-024", "Hubwagen", "logistik", "Kuriere transportieren bis zu 10 Items bei reduzierter Geschwindigkeit", "ausruestung"],
+  ["PROD-025", "Gehäuse-Stanzer", "produktion", "Halbautomatische Maschine für Holz- und Eisengehäuse", "@B"],
+  ["PROD-026", "Hitze-Abluftrohr", "umwelt", "Reduziert physische Hitze-Zonen im 3D-Raster um Maschinen", ""],
+  ["PROD-027", "Qualitäts-Lupe", "produktion", "Senkt allgemeine Fehlerquote von T2-Produkten bei manueller Montage", ""],
+  ["PROD-028", "Wartungstechniker-Spind", "spezial", "Schult Mitarbeiter um, damit sie Fließband-Verschleiß reparieren", ""],
+  ["PROD-029", "Akustik-Wand", "umwelt", "Blockiert Lärm-Zonen physisch, um die Mitarbeitermoral zu schützen", ""],
+  ["PROD-030", "Expeditions-Außenposten", "spezial", "Schickt obsolete Mitarbeiter als Scouts in die Außenwelt", ""],
+  ["PROD-031", "Fließband Mk.2", "automatisierung", "Schnelles Fließband mit Durchsatz von 60 Items/Min", "@B"],
+  ["PROD-032", "Intelligenter Splitter", "automatisierung", "Filtert Fließbänder gezielt nach spezifischen Ressourcen", "bau"],
+  ["PROD-033", "Industrie-Schrank", "lager", "Massives Zwischenlager (250 Slots, belegt 2 Rasterkacheln)", "bau"],
+  ["PROD-034", "QA-Teststrecke", "automatisierung", "Filtert defekte Produkte, um teure Rückrufaktionen zu verhindern", ""],
+  ["PROD-035", "Ausschuss-Weiche", "automatisierung", "Schiebt defekte Items von der QA-Strecke automatisch in den Müll", ""],
+  ["PROD-036", "Gabelstapler-Station", "logistik", "Fahrzeug für massiven Warentransport auf breiten Hauptwegen", ""],
+  ["PROD-037", "Hochgeschwindigkeits-Greifarm", "automatisierung", "Bewegt 3 Items gleichzeitig zwischen Maschine und Band", "greifZeit*0.333"],
+  ["PROD-038", "Untergrund-Fließband", "automatisierung", "Überbrückt bis zu 3 Kacheln unsichtbar für komplexe Kreuzungen", "@B"],
+  ["PROD-039", "CNC-Fräse", "produktion", "Produziert hitzeresistente Gehäuse doppelt so schnell", "@B"],
+  ["PROD-040", "Kühlwasser-Pumpe", "umwelt", "Negiert Maschinenhitze auf Kosten der Fließbandgeschwindigkeit", ""],
+  ["PROD-041", "Segment-Steuerung Mk.2", "automatisierung", "Fließband-Übertaktung bis 150% (erhöht dynamischen Verschleiß)", ""],
+  ["PROD-042", "Verschleiß-Sensor", "automatisierung", "Informiert Wartungstechniker kurz bevor ein Fließband-Segment ausfällt", ""],
+  ["PROD-043", "Reverse-Engineering Station", "spezial", "Erlaubt das Zerlegen und Kopieren von KI-Konkurrenz-Produkten", ""],
+  ["PROD-044", "Hochregal-Lager", "lager", "500 Slots (kann nur von Gabelstaplern be- und entladen werden)", ""],
+  ["PROD-045", "Automatisierte Verpackung", "automatisierung", "Weltaufträge werden sofort nach Band-Ende versandfertig gemacht", ""],
+  ["PROD-046", "Hitzebeständiges Fließband", "automatisierung", "Überhitzt nicht mehr bei schlecht gekühlten T3-Endprodukten", ""],
+  ["PROD-047", "Fließband Mk.3", "automatisierung", "High-End Band mit 120 Items/Min", "@B"],
+  ["PROD-048", "Überlauf-Ventil", "automatisierung", "Leitet Items um, sobald das Volumen-Limit des Ziel-Lagers erreicht ist", "bau"],
+  ["PROD-049", "Industrie-Drohnen-Hub", "logistik", "Fliegende Logistik, die Bodenstaus komplett umgeht", ""],
+  ["PROD-050", "Roboter-Montage-Arm", "automatisierung", "Vollautomatische Herstellung einfacher T1-Komponenten ohne Personal", "@B"],
+  ["PROD-051", "Reinraum-Schleuse", "umwelt", "Senkt QA-Fehlerquote bei extrem empfindlichen Chips fast auf null", ""],
+  ["PROD-052", "Kryo-Kühlsystem", "umwelt", "Riesige Industrie-Kühlung negiert alle Hitze-Mali im Umkreis von 5 Kacheln", ""],
+  ["PROD-053", "Lärm-Absorber-Kacheln", "umwelt", "Bodenkacheln, die den Lärm von schweren Maschinen schlucken", ""],
+  ["PROD-054", "Smarter Industrie-Schrank", "lager", "Sendet automatische Nachkauf-Befehle, wenn I/O-Ressourcen leerlaufen", "@B"],
+  ["PROD-055", "Omni-Merger", "automatisierung", "Führt bis zu 4 Fließbänder von allen Seiten staufrei zusammen", "@B"],
+  ["PROD-056", "Vollautomatische T2-Presse", "automatisierung", "Produziert mittlere Komponenten komplett ohne Personal", "@B"],
+  ["PROD-057", "Fließband-Schmiersystem", "automatisierung", "Halbiert den dynamischen Verschleiß übertakteter Segmente", ""],
+  ["PROD-058", "Bürger-Krisen-Scanner", "management", "Zeigt interaktive Krisen-Events mit Spezialanforderungen früher an", ""],
+  ["PROD-059", "Warnleuchten-Netzwerk", "automatisierung", "Blinkt rot bei falsch gerouteten I/O-Fixierungen, bevor Staus entstehen", "@B"],
+  ["PROD-060", "Logistik-Weiche (Drohnen)", "logistik", "Verteilt Luftfracht-Ressourcen automatisch auf die leersten Schränke", ""],
+  ["PROD-061", "Mag-Lev Fließband Mk.4", "automatisierung", "Magnet-Schwebeband für 240 Items/Min", "@B"],
+  ["PROD-062", "Autarker 16-Kachel-Assembler", "automatisierung", "Baut komplexe High-End-Layouts komplett ohne Mitarbeiter", "@B"],
+  ["PROD-063", "Endlos-Silo", "lager", "Außenlager mit quasi unendlichem Platz für eine spezifische Rohstoffart", "@B"],
+  ["PROD-064", "Quanten-Logistik-Verteiler", "logistik", "Teleportiert Ressourcen in einem Radius von 3 Kacheln", ""],
+  ["PROD-065", "Wartungs-Drohnen", "automatisierung", "Fliegende Einheiten beheben Band-Verschleiß automatisch", ""],
+  ["PROD-066", "KI-Markt-Schnittstelle", "management", "Bietet automatisch auf Events, um KI-Konkurrenten zuvorzukommen", ""],
+  ["PROD-067", "Schrott-Recycler", "automatisierung", "Wandelt Ausschuss der QA-Teststrecke zu 100% in Rohstoffe zurück", ""],
+  ["PROD-068", "Perfektionierte I/O-Gates", "lager", "Kisten blockieren Bänder nie mehr (Überschuss wird automatisch verkauft)", "@B"],
+  ["PROD-069", "Zentrales Kühlnetzwerk", "umwelt", "Eliminiert Hitze-Auswirkungen auf Fließbänder im gesamten Raster", ""],
+  ["PROD-070", "Holographische Vorlagen", "produktion", "Autarke Maschinen wechseln Produktions-Baupläne ohne manuelle Umbauten", ""],
+  ["PROD-071", "Expeditions-Kommandozentrale", "spezial", "Scouts bauen seltene Ressourcen nun vollautomatisch und dauerhaft ab", ""],
+  ["PROD-072", "Gigafactory-Werkstatt", "automatisierung", "Rüstet verbliebene T1-Werkbänke zu autonomen Maschinen um", "@B"],
+  ["PROD-073", "Mega-Container-Terminal", "logistik", "Direkte Fließband-Anbindung an den Weltmarkt für Sofort-Versand", ""],
+  ["PROD-074", "KI-Spionage-Zentrum", "management", "Fraktionen bieten Weltaufträge immer zuerst dir statt der KI an", ""],
+  ["PROD-075", "TradeUp-Monopol-Rechner", "endgame", "Schaltet unbegrenzte Skalierung und Endlos-Aufträge frei", ""],
+];
+// Phase 7d: Namen der Bau-Kategorien (Spalten im Bau-Reiter) und ihre Symbole
+const BAU_KATEGORIEN = [
+  { id: "lager", name: "Lager", symbol: "▣" }, { id: "logistik", name: "Logistik", symbol: "🛒" },
+  { id: "produktion", name: "Produktion", symbol: "⚒" }, { id: "automatisierung", name: "Automatisierung", symbol: "➜" },
+  { id: "umwelt", name: "Umwelt", symbol: "🌿" }, { id: "spezial", name: "Spezial", symbol: "🔬" },
+  { id: "management", name: "Management", symbol: "📋" }, { id: "endgame", name: "Endgame", symbol: "🏆" },
+];
+
+// Phase 7d: Der gesamte Forschungsbaum als EINE Liste (aus den Tabellen oben erzeugt – hier nichts von Hand eintragen).
+// Jeder Eintrag:
+//   id        – "k001"…"k300" und "geh_holz"… (Komponenten), "HR-001"… (Mitarbeiter), "PROD-001"… (Bau)
+//   name, baum ("komponenten" | "mitarbeiter" | "bau"), gruppe (Kategorie bzw. Gruppe), tier ("T1"…"T5"), beschreibung, symbol
+//   bedingung – { art: "start" } | { art: "zeit", sek } (Projekt an einer Forschungsstation) |
+//               { art: "herstellung", item, anzahl } (Produktionsforschung, 7c) |
+//               { art: "xp", xp, vorgaenger } (E6) | { art: "fp", fp, euro } (E9)
+//   wirkung   – Schlüssel der ersten Wirkung ("laufTempo", "bau", "komponente" …) oder null
+//   wirkungen – alle Wirkungen [{ art, op: "*" | "+" | "^" | "an", wert }] (Abschnitt 11g fasst sie zusammen)
+//   spaeter   – true: das Spielsystem fehlt noch, nicht erforschbar (E2)
+//   kosten { fp, geld }, braucht [ids], spalte, zeile – für das Techtree-Fenster (Abschnitt 13b)
+function leseWirkungen(text) {
+  return (text || "").split(" ").filter(Boolean).map((teil) => {
+    const m = /^([A-Za-z0-9@]+)([*+^])(-?[0-9.]+)$/.exec(teil);
+    return m ? { art: m[1], op: m[2], wert: Number(m[3]) } : { art: teil === "@B" ? "rolleB" : teil, op: "an", wert: 1 };
+  });
+}
+const FORSCHUNG = [];
+// Komponenten: Gehäuse als eigene Linie oben (Zeile 0), darunter je Kategorie 5 Linien mit 5 Stufen
+const KOMPONENTEN_TIERS = KOMPONENTEN.muster.map((m) => "T" + m.tier);
+function komponentenBedingung(f) {
+  return f.art === "start" ? { art: "start" } : f.art === "forschung" ? { art: "zeit", sek: f.sek }
+    : { art: "herstellung", item: f.item, anzahl: f.anzahl };
+}
+GEHAEUSE.forEach((g, i) => FORSCHUNG.push({
+  id: g.id, name: g.name, baum: "komponenten", gruppe: "gehaeuse", tier: KOMPONENTEN_TIERS[i], symbol: g.symbol,
+  beschreibung: `Gehäuse mit ${g.form.join("").split("#").length - 1} Zellen, Wärmeabfuhr ${g.waermeabfuhr}.`,
+  bedingung: komponentenBedingung(g.freischaltung), wirkung: "komponente", wirkungen: [{ art: "komponente", op: "an", wert: 1 }],
+  spaeter: false, kosten: { fp: 0, geld: 0 }, braucht: i ? [GEHAEUSE[i - 1].id] : [], spalte: i, zeile: 0,
+}));
+for (const b of BAUTEILE) {
+  const f = b.freischaltung;
+  const ersteStufe = komponentenTyp(Number(b.nr.slice(5)) - b.stufeInLinie + 1);
+  FORSCHUNG.push({
+    id: b.typ, name: b.name, baum: "komponenten", gruppe: b.kategorie, tier: b.tier, symbol: b.symbol,
+    beschreibung: `${b.nr} · ${b.raster.replace("x", " × ")} · Hitze ${b.hitze ? "+" + b.hitze : b.kuehlung ? "−" + b.kuehlung : 0}`,
+    bedingung: komponentenBedingung(f), wirkung: "komponente", wirkungen: [{ art: "komponente", op: "an", wert: 1 }],
+    spaeter: false, kosten: { fp: 0, geld: 0 },
+    braucht: f.art === "herstellung" ? [f.item] : f.art === "forschung" ? [ersteStufe] : [],
+    spalte: b.stufeInLinie - 1, zeile: KATEGORIEN.findIndex((k) => k.id === b.kategorie) * 5 + b.linie,
+  });
+}
+// Mitarbeiter: Plätze in den Ketten (mit dem Tragekapazitäts-Tausch, siehe FORSCHUNG_NEU.tragkraftPlaetze)
+{
+  const plaetze = [];
+  MITARBEITER_FORSCHUNG.forEach((gruppe, gi) => gruppe.eintraege.forEach((zeile, i) =>
+    plaetze.push({ gruppe: gruppe.id, kette: gi * 5 + Math.floor(i / 5), stufe: i % 5, platzId: zeile[0], zeile })));
+  const nachPlatz = new Map(plaetze.map((p) => [p.platzId, p]));
+  const zeileVon = new Map(plaetze.map((p) => [p.platzId, p.zeile]));
+  if (FORSCHUNG_NEU.tragkraftTausch) {
+    for (const [id, platzId] of Object.entries(FORSCHUNG_NEU.tragkraftPlaetze)) nachPlatz.get(platzId).zeile = zeileVon.get(id);
+  }
+  for (const p of plaetze) {
+    const [id, name, effekt, wirkung] = p.zeile;
+    const muster = FORSCHUNG_NEU.mitarbeiterMuster[p.stufe];
+    const vor = p.stufe > 0 ? plaetze[plaetze.indexOf(p) - 1].zeile[0] : null;
+    const wirkungen = leseWirkungen(wirkung);
+    FORSCHUNG.push({
+      id, name, baum: "mitarbeiter", gruppe: p.gruppe, tier: muster.tier, symbol: "👤", beschreibung: effekt,
+      bedingung: muster.zeit ? { art: "zeit", sek: muster.zeit } : { art: "xp", xp: muster.xp, vorgaenger: vor },
+      wirkung: wirkungen.length ? wirkungen[0].art : null, wirkungen, spaeter: !wirkungen.length,
+      kosten: { fp: 0, geld: 0 }, braucht: muster.xp ? [vor] : [], spalte: p.stufe, zeile: p.kette,
+    });
+  }
+}
+// Bau: je 15 Einträge pro Tier
+BAU_FORSCHUNG.forEach(([id, name, kategorie, effekt, wirkung], i) => {
+  const tier = "T" + (Math.floor(i / 15) + 1);
+  const k = FORSCHUNG_NEU.bauKosten[tier];
+  const wirkungen = leseWirkungen(wirkung);
+  FORSCHUNG.push({
+    id, name, baum: "bau", gruppe: kategorie, tier, symbol: BAU_KATEGORIEN.find((b) => b.id === kategorie).symbol,
+    beschreibung: effekt, bedingung: { art: "fp", fp: k.fp, euro: k.euro },
+    wirkung: wirkungen.length ? wirkungen[0].art : null, wirkungen, spaeter: !wirkungen.length,
+    kosten: { fp: k.fp, geld: k.euro }, braucht: [], spalte: Math.floor(i / 15), zeile: i % 15,
+  });
+});
+// Reiter im Forschungsfenster: die drei Bäume mit ihren Gruppen
 const FORSCHUNG_BAEUME = [
-  { id: "kurier", name: "Kuriere" },
-  { id: "automatisierung", name: "Automatisierung" },
+  { id: "komponenten", name: "Komponenten",
+    gruppen: [{ id: "gehaeuse", name: "Gehäuse" }, ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name }))] },
+  { id: "mitarbeiter", name: "Mitarbeiter", gruppen: MITARBEITER_FORSCHUNG.map((g) => ({ id: g.id, name: g.name })) },
+  { id: "bau", name: "Bau", gruppen: BAU_KATEGORIEN.map((k) => ({ id: k.id, name: k.name })) },
 ];
 
 /* ============================================================================
@@ -6213,6 +6511,8 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
   if (t.maxAnzahl && anzahlTyp(typ) - (eigenes ? 1 : 0) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
   if (t.wand && !stehtAnWand(geo)) gruende.push(`${t.name} muss mit der Rückseite an einer Hallenwand stehen (dort ist das Rolltor).`);   // Phase 7b
   if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
+  const sperre = !ignoriereId && bauSperre(typ);       // Phase 7d: Bauforschung (nicht beim Verschieben)
+  if (sperre) gruende.push(sperre);
   if (gruende.length === 0 && !bleibtAllesErreichbar(geo, eigenes)) {
     gruende.push("Das würde jemanden einsperren oder einen Zugang abschneiden.");
   }
@@ -6728,6 +7028,7 @@ function stationAnzeigeModus(s) {
 function setzeRegel(id, item, feld, wert) {
   const g = spiel.gebaeude.get(id);
   if (!g || !(istZwischenlager(g) || istStation(g) || istHauptlager(g)) || !["imp", "exp", "soll"].includes(feld)) return false;
+  if (feld !== "soll" && istZwischenlager(g) && forschungsSperre("PROD-003")) return false;   // Phase 7d: I/O-Fixierung (Basis)
   const m = { ...(g.regeln[item] || {}) };
   if (wert === null || wert === undefined) delete m[feld];
   else if (feld === "soll") {
@@ -6979,16 +7280,18 @@ function kurierStufe(p) {
   return KURIER_STUFEN.find((st) => st.stufe === p.stufe) || KURIER_STUFEN[0];
 }
 // Phase 7b: Grundwert 5 Items pro Gang, Ausrüstung und Forschung werden darauf addiert (5 + 1 = 6 …)
+// Phase 7d: + Kurier-Tasche (PROD-002) und Exoskelett (HR-035) addiert, Tragekapazität +1/+3/+5 als Kette (höchste zählt)
 function traglastVon(p, stufe = kurierStufe(p)) {
-  return PRODUKTION.kurierTraglast + (stufe.extra || 0);
+  return PRODUKTION.kurierTraglast + (stufe.extra || 0) + forschungsSumme("tragkraft") + forschungsHoechstwert("tragkraftKette");
 }
 // Phase 5: Erfahrung macht schneller, Forschung macht Kuriere schneller
 function laufTempoVon(p) {
-  const kurier = p.rolle === "kurier" ? kurierStufe(p).tempoFaktor * forschungsWirkung("kurierTempo") : 1;
-  return LOGIK.laufTempo * kurier * erfahrungsFaktor(p);
+  const kurier = p.rolle === "kurier" ? kurierStufe(p).tempoFaktor * forschungsWirkung("kurierTempo")
+    * (traegtSchweres(p) ? forschungsWirkung("kurierTempoSchwer") : 1) : 1;      // Phase 7d: HR-011, HR-028/034/035
+  return LOGIK.laufTempo * kurier * erfahrungsFaktor(p) * forschungsWirkung("laufTempo");   // Phase 7d: HR-026/027 alle Mitarbeiter
 }
 function ladezeitVon(p) {
-  return kurierStufe(p).ladezeit * forschungsWirkung("kurierLadezeit");
+  return kurierStufe(p).ladezeit * forschungsWirkung("kurierLadezeit") * forschungsWirkung("ladezeit");   // Phase 7d: PROD-009, HR-031
 }
 // Wo tauchen neue Mitarbeiter auf? Vor dem Hauptlager, sonst neben der Spielfigur.
 function startKachelFuerPersonen() {
@@ -7002,7 +7305,7 @@ function naechsterName() {
 
 // Einstellgebühr (Phase 5): einmalig so viele Tageslöhne
 function einstellGebuehr(rolle) {
-  return MITARBEITER_ROLLEN[rolle].lohn * WIRTSCHAFT.einstellGebuehrTage;
+  return Math.round(MITARBEITER_ROLLEN[rolle].lohn * WIRTSCHAFT.einstellGebuehrTage * forschungsWirkung("einstellKosten"));   // Phase 7d: HR-001
 }
 // Stellt einen Kurier oder Arbeiter ein. Rückgabe: die neue Person oder null
 // (Höchstzahl erreicht oder nicht genug Geld). daten.kostenlos: ohne Gebühr (Spielstart, Laden).
@@ -7030,7 +7333,7 @@ function personFelder(rolle, daten = {}) {
     rolle,
     stufe: daten.stufe || 0,     // Kurier-Stufe, die gerade benutzt wird (0 = Hände)
     ausruestung: Math.max(daten.ausruestung || 0, daten.stufe || 0), // höchste gekaufte Stufe (Phase 5)
-    ep: daten.ep || 0,           // Erfahrungspunkte (Phase 5)
+    ep: daten.ep !== undefined ? daten.ep || 0 : startErfahrung(),   // Erfahrungspunkte (Phase 5; Phase 7d: HR-067 Mentoring)
     stationId: null,             // Arbeiter: zugeordnete Station
     ohneAufgabe: !!daten.ohneAufgabe,   // Phase 6: Station läuft automatisch – wartet in der Pausenecke auf eine neue Aufgabe
     traegt: {},                  // Items in den Händen
@@ -7118,13 +7421,14 @@ function setzePersonZurueck(p) {
 
 // Phase 6: Entlassen kostet eine Abfindung (PERSONAL.abfindungTage Tageslöhne).
 function abfindungVon(p) {
-  return Math.round(lohnVon(p) * PERSONAL.abfindungTage);
+  return Math.round(lohnVon(p) * PERSONAL.abfindungTage * forschungsWirkung("abfindung"));   // Phase 7d: HR-064/065
 }
 function entlasse(id, { ohneAbfindung = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === id);
   if (!p || p.istDu) return false;                 // Phase 7a (Nachtrag 2): dich selbst kann man nicht entlassen
   const abfindung = ohneAbfindung ? 0 : abfindungVon(p);
   if (abfindung > 0) bucheGeld(-abfindung, "abfindung");
+  if (!ohneAbfindung && forschungAktiv("entlassRuf")) aendereReputation(-Math.round(spiel.reputation * FORSCHUNG_NEU.entlassRuf));   // Phase 7d: HR-065
   setzePersonZurueck(p);
   const s = p.stationId && spiel.gebaeude.get(p.stationId);
   if (s) s.arbeiterId = null;
@@ -7141,6 +7445,8 @@ function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
   if (!p || p.rolle !== "arbeiter") return false;
   const neu = stationId ? spiel.gebaeude.get(stationId) : null;
   if (stationId && (!neu || !istStation(neu) || neu.automatik || laeuftOhnePersonal(neu))) return false;   // Phase 6: Automatik braucht niemanden (7d: Maschinen)
+  if (neu && istForschungsstation(neu) && !forscherErlaubt()) return false;      // Phase 7d: HR-003 "Rolle: Forscher"
+  if (neu) delete spiel.forschung.overseer[p.id];  // Phase 7d: kein Overseer mehr
   if (p.istDu && !vonSelbst) p.flexibel = false;   // Phase 7a (Nachtrag 2)
   p.ohneAufgabe = false;
   const alt = p.stationId && spiel.gebaeude.get(p.stationId);
@@ -7159,7 +7465,8 @@ function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
 
 // Freie Arbeiter (nicht bewusst freigestellt) bekommen die nächstgelegene Station ohne Arbeiter.
 function weiseArbeiterAutomatischZu() {
-  const offen = gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik);   // Phase 6: Automatik-Stationen brauchen niemanden
+  const offen = gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik   // Phase 6: Automatik-Stationen brauchen niemanden
+    && (forscherErlaubt() || !istForschungsstation(g)));                                 // Phase 7d: HR-003
   if (!offen.length) return;
   for (const p of mitarbeiter) {
     // Phase 6: Wer durch Automatik frei wurde, wird nur mit dem Schalter "automatisch zuweisen" neu verteilt
@@ -7177,7 +7484,7 @@ function weiseArbeiterAutomatischZu() {
   }
 }
 
-// Setzt die Kurier-Stufe (0 = Hände, 1 = Sackkarre, 2 = Hubwagen). Nur zum Testen in der
+// Setzt die Kurier-Stufe (0 = Hände, 1 = Handkarre, 2 = Sackkarre, 3 = Hubwagen – Phase 7d). Nur zum Testen in der
 // Konsole: ohne Forschung und kostenlos. Im Spiel: kaufeAusruestung / waehleAusruestung.
 function setzeKurierStufe(id, stufe) {
   const p = mitarbeiter.find((m) => m.id === id);
@@ -7305,7 +7612,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   if (!bester) return null;
 
   const traglast = traglastVon(p);
-  const items = { [bester.item]: Math.min(traglast, bester.max) };
+  const items = { [bester.item]: Math.min(traglastFuerItem(bester.item, traglast), bester.max) };   // Phase 7d: HR-033
   let rest = traglast - items[bester.item];
   // Sammelfahrt (Forschung): weitere Sorten von derselben Quelle zum selben Ziel mitnehmen
   if (rest > 0 && forschungAktiv("sammelfahrt")) {
@@ -7313,7 +7620,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       if (rest <= 0) break;
       if (kd.quelle !== bester.quelle || kd.ziel !== bester.ziel || items[kd.item]) continue;
       if (kd.quelleFach !== bester.quelleFach || kd.zielFach !== bester.zielFach) continue;
-      const n = Math.min(rest, kd.max);
+      const n = Math.min(traglastFuerItem(kd.item, rest), kd.max);   // Phase 7d: HR-033
       items[kd.item] = n;
       rest -= n;
     }
@@ -7579,13 +7886,15 @@ function belohneArbeit(p, s, r) {
 
 // Ein Schritt im Ablauf eines Arbeiters.
 function schrittArbeiter(p, dt) {
+  const ovTeil = !p.stationId && spiel.forschung.overseer[p.id];   // Phase 7d: HR-009 Overseer an einem Band
+  if (ovTeil) return schrittOverseer(p, ovTeil, dt);
   const s = p.stationId ? spiel.gebaeude.get(p.stationId) : null;
   const a = p.auftrag;
   if (p.phase === "bringtErzeugnis" || p.phase === "legtAb") {   // Phase 5: Erzeugnis ins Ausgang-Lager
     const z = a && spiel.gebaeude.get(a.zielId);
     if (!z || !nimmtErzeugnisAn(z, Object.keys(p.traegt)[0]) || zugangGesperrt(z)) return legeErzeugnisNotfallsAb(p, s);   // 7b Nachtrag
     if (p.phase === "bringtErzeugnis") {
-      if (istAngekommen(p, z.zugang)) { p.phase = "legtAb"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, z); }
+      if (istAngekommen(p, z.zugang)) { p.phase = "legtAb"; p.timer = PRODUKTION.greifZeit * forschungsWirkung("ladezeit"); schaueAuf(p, z); }   // Phase 7d: HR-031
       else if (istFestgefahren(p, z.zugang)) legeErzeugnisNotfallsAb(p, s);
       return;
     }
@@ -7604,6 +7913,8 @@ function schrittArbeiter(p, dt) {
     return;
   }
   if (s.automatik) { gibArbeiterFrei(s, p); return; }   // Phase 6: die Station läuft jetzt ohne ihn
+  const projekt = istForschungsstation(s) ? projektVon(s.id) : null;   // Phase 7d: Projekt statt Zerlegen
+  if (projekt) return schrittForscher(p, s, projekt, dt);
 
   switch (p.phase) {
     case "frei": {
@@ -7627,7 +7938,7 @@ function schrittArbeiter(p, dt) {
     case "zumLager": {
       const q = quelleGueltig(s, a);
       if (!q) return beendeAuftrag(p);
-      if (istAngekommen(p, q.zugang)) { p.phase = "nimmt"; p.timer = PRODUKTION.greifZeit; schaueAuf(p, q); }
+      if (istAngekommen(p, q.zugang)) { p.phase = "nimmt"; p.timer = PRODUKTION.greifZeit * forschungsWirkung("ladezeit"); schaueAuf(p, q); }   // Phase 7d: HR-031
       else if (istFestgefahren(p, q.zugang)) beendeAuftrag(p);
       break;
     }
@@ -7683,7 +7994,7 @@ function schrittArbeiter(p, dt) {
     case "arbeitet": {
       const res = reservierungen();
       if (!ausgabeMoeglich(s, a.rezept, res)) break;  // Ausgabefach voll und kein Ausgang-Lager frei: warten
-      s.fortschritt += dt / a.rezept.zeit * erfahrungsFaktor(p);
+      s.fortschritt += dt / a.rezept.zeit * arbeitsTempoVon(p, s, a.rezept);   // Phase 7d: Arbeits-Forschung
       if (s.fortschritt < 1) break;
       s.fortschritt = 0;
       p.traegt = {};
@@ -7721,6 +8032,12 @@ function schrittArbeiter(p, dt) {
 //   arbeitet, holtMaterial, bringtErzeugnis, wartetAufMaterial, ausgabeVoll, keinArbeiter,
 //   keinRezept, rezeptFehlt, keinLager, pausiert
 function stationsStatus(s) {
+  const projekt = istForschungsstation(s) ? projektVon(s.id) : null;   // Phase 7d: Forschungsprojekt
+  if (projekt) {
+    if (s.pausiert) return "pausiert";
+    const f = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
+    return !f ? "keinArbeiter" : f.phase === "arbeitet" ? "arbeitet" : "holtMaterial";
+  }
   if (!s.rezept) return "keinRezept";
   const r = rezeptVon(s);
   if (!r) return "rezeptFehlt";
@@ -7939,6 +8256,7 @@ function spielstandDaten() {
     naechstePersonId: spiel.naechstePersonId,
     rezeptPins: spiel.rezeptPins,                  // Phase 7a (Nachtrag 2)
     komponenten: { hergestellt: spiel.hergestellt, freigeschaltet: spiel.freigeschaltet },   // Phase 7c
+    forschung: forschungSpeicherDaten(),           // Phase 7d: Projekte, Firmen-XP, Overseer
     produktNamen: spiel.produktNamen,
     statistik: spiel.statistik,
     schnappschuss: spiel.schnappschuss,
@@ -7976,7 +8294,8 @@ function leseSpielstand() {
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
     // Phase 7c: version 7 (Phase 7b) wird gelesen und in wendeSpielstandAn auf die neuen Komponenten umgestellt
-    return daten && [1, 2, 3, 4, 5, 6, 7, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    // Phase 7d: version 8 (Phase 7c) wird gelesen und in wendeSpielstandAn auf die neue Forschung umgestellt
+    return daten && [1, 2, 3, 4, 5, 6, 7, 8, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -7988,6 +8307,7 @@ function wendeSpielstandAn(d) {
   // Phase 7c: Spielstände bis Version 7 kennen die 8 alten Bauteile – überall auf die Nachfolger umstellen
   const alteVersion = (d.version || 1) < 8;
   if (alteVersion) d = stelleAlteBauteileUm(d);
+  if ((d.version || 1) < 9) d = stelleAlteForschungUm(d);   // Phase 7d: alte Forschung umziehen, Gebautes gilt als erforscht
   ladeKomponenten(d.komponenten || null);
   spiel.naechsteId = d.naechsteId || 1;
   spiel.naechstePersonId = d.naechstePersonId || 1;
@@ -7995,6 +8315,7 @@ function wendeSpielstandAn(d) {
   spiel.produktNamen = { ...(d.produktNamen || {}), ...spiel.produktNamen };
   spiel.statistik = { ...spiel.statistik, ...(d.statistik || {}) };
   ladeWirtschaft(d.wirtschaft || null);          // Phase 5 (fehlt bei version 1: Neustart der Wirtschaft)
+  ladeForschung(d.forschung || null);            // Phase 7d
   spiel.depot = { gebaeude: { ...(d.depot?.gebaeude || {}) }, items: { ...(d.depot?.items || {}) }, baender: { ...(d.depot?.baender || {}) } };
   spiel.schnappschuss = d.schnappschuss || null;
   setzeHallenStufe(d.halle?.stufe || 0);         // Phase 6: zuerst die Hallengröße, dann das Gebaute
@@ -8102,6 +8423,7 @@ function starteNeuesSpiel() {
   for (let i = 0; i < PRODUKTION.startKuriere; i++) stelleEin("kurier", { kostenlos: true });
   for (let i = 0; i < PRODUKTION.startArbeiter; i++) stelleEin("arbeiter", { kostenlos: true });
   ladeWirtschaft(null);                          // Phase 5: Startkapital, Konkurrenz, erste Aufträge
+  ladeForschung(null);                           // Phase 7d: Grundausstattung und "Rolle: Kurier" sind erforscht
 }
 
 // Wird einmal beim Laden der Seite aufgerufen (Abschnitt 10).
@@ -8791,6 +9113,7 @@ function naechsteReputationsStufe() {
   return REPUTATION_STUFEN.find((st) => st.ab > spiel.reputation) || null;
 }
 function aendereReputation(delta) {
+  if (delta > 0) delta *= forschungsWirkung("reputation");   // Phase 7d: HR-063
   const alt = reputationsStufe().level;
   spiel.reputation = Math.max(0, Math.round(spiel.reputation + delta));
   const neu = reputationsStufe().level;
@@ -8937,39 +9260,506 @@ function rangliste() {
    ABSCHNITT 11g: Forschung, Techtree, Erfahrung & Ausrüstung (Phase 5) [Logik-Agent]
    Ereignisse: erforscht, erfahrungAufstieg, klasseEntdeckt
    ============================================================================ */
-function istErforscht(id) { return spiel.erforscht.includes(id); }
-// Gesamtfaktor aller erforschten Wirkungen einer Art (1 = keine Wirkung)
+/* --- Phase 7d: Neue Forschung – drei Bäume, Bedingungen, Wirkungen, Sperren ---
+   Daten: FORSCHUNG (alle Einträge, Abschnitt 2g). Zustand:
+     spiel.erforscht – IDs der erforschten Mitarbeiter- und Bau-Einträge (Komponenten: spiel.freigeschaltet, 7c)
+     spiel.forschung – { projekte: { Stations-ID → Eintrag-ID }, fortschritt: { Eintrag-ID → Sekunden },
+                         firmenXp, xpMarke: { Eintrag-ID → firmenXp, als der Vorgänger erforscht wurde },
+                         overseer: { Personen-ID → Bandteil-ID } }
+   Ereignisse: forschungGeaendert { ids }, freischaltbar { id, name }, erforscht { eintrag } (wie Phase 5)
+   Test/Entwicklung: "?sperrenAus" in der Adresse schaltet alle Forschungs-Sperren ab (wie FORSCHUNG_NEU.baenderErforschen
+   = false); die Wirkungen (Tempo, Tragkraft …) gibt es weiterhin nur durch Forschung. */
+const forschungNachId = new Map(FORSCHUNG.map((e) => [e.id, e]));
+const forschungSperrenAus = (() => { try { return new URLSearchParams(window.location.search).has("sperrenAus"); } catch (e) { return false; } })();
+function sperrenAktiv() { return FORSCHUNG_NEU.baenderErforschen && !forschungSperrenAus; }
+function neueForschungsDaten() { return { projekte: {}, fortschritt: {}, firmenXp: 0, xpMarke: {}, overseer: {} }; }
+spiel.forschung = neueForschungsDaten();
+
+// Erforschte IDs als Menge (wird neu gebaut, sobald sich spiel.erforscht ändert)
+let erforschtCache = { liste: null, laenge: -1, menge: new Set() };
+function erforschtMenge() {
+  const l = spiel.erforscht;
+  if (erforschtCache.liste !== l || erforschtCache.laenge !== l.length) erforschtCache = { liste: l, laenge: l.length, menge: new Set(l) };
+  return erforschtCache.menge;
+}
+// Ist ein Eintrag erforscht? Neue IDs ("HR-032", "PROD-016"), Komponenten ("k002", "geh_eisen") und alte IDs (k1 … a5)
+function istErforscht(id) {
+  if (Object.prototype.hasOwnProperty.call(ALT_FORSCHUNG, id)) { const neu = ALT_FORSCHUNG[id]; return neu === true || istErforscht(neu); }
+  if (herstellbarNachTyp.has(id)) return istFreigeschaltet(id);
+  return erforschtMenge().has(id);
+}
+// Einträge eines Baums (E2: "später"-Einträge nur, wenn FORSCHUNG_NEU.spaeterSichtbar)
+function forschungsEintraege(baum = null) {
+  return FORSCHUNG.filter((e) => (!baum || e.baum === baum) && (FORSCHUNG_NEU.spaeterSichtbar || !e.spaeter));
+}
+
+/* Wirkungen: jede Art wird über alle erforschten Einträge zusammengefasst */
+const wirkungNachArt = new Map();
+for (const e of FORSCHUNG) for (const w of e.wirkungen) {
+  if (!wirkungNachArt.has(w.art)) wirkungNachArt.set(w.art, []);
+  wirkungNachArt.get(w.art).push({ id: e.id, op: w.op, wert: w.wert });
+}
+// Gesamtfaktor einer Art (1 = keine Wirkung); FORSCHUNG_NEU.standard gilt immer (6.5)
 function forschungsWirkung(art) {
-  let faktor = 1;
-  for (const e of FORSCHUNG) if (e.wirkung.art === art && e.wirkung.faktor && istErforscht(e.id)) faktor *= e.wirkung.faktor;
+  let faktor = typeof FORSCHUNG_NEU.standard[art] === "number" ? FORSCHUNG_NEU.standard[art] : 1;
+  for (const w of wirkungNachArt.get(art) || []) if (w.op === "*" && istErforscht(w.id)) faktor *= w.wert;
   return faktor;
 }
-// Ist eine Fähigkeit (z. B. "sammelfahrt") erforscht?
+// Summe aller "+"-Wirkungen einer Art (z. B. Tragkraft)
+function forschungsSumme(art) {
+  let n = 0;
+  for (const w of wirkungNachArt.get(art) || []) if (w.op === "+" && istErforscht(w.id)) n += w.wert;
+  return n;
+}
+// Kette: der höchste erforschte Wert zählt (Tragekapazität +1 / +3 / +5 ersetzen einander)
+function forschungsHoechstwert(art) {
+  let n = 0;
+  for (const w of wirkungNachArt.get(art) || []) if (w.op === "^" && istErforscht(w.id)) n = Math.max(n, w.wert);
+  return n;
+}
+// Ist eine Fähigkeit (z. B. "sammelfahrt", "carbonTragen") erforscht bzw. Standard?
 function forschungAktiv(art) {
-  return FORSCHUNG.some((e) => e.wirkung.art === art && istErforscht(e.id));
+  if (FORSCHUNG_NEU.standard[art] === true) return true;
+  return (wirkungNachArt.get(art) || []).some((w) => istErforscht(w.id));
 }
-// "erforscht", "gesperrt" (Voraussetzung fehlt), "zuTeuer" oder "verfuegbar"
-function forschungsZustand(e) {
-  if (istErforscht(e.id)) return "erforscht";
-  if (!e.braucht.every(istErforscht)) return "gesperrt";
-  if (spiel.fp < e.kosten.fp || (e.kosten.geld > 0 && !kannBezahlen(e.kosten.geld))) return "zuTeuer";
-  return "verfuegbar";
+// Sperre durch fehlende Forschung: Grund (Text) oder null
+function forschungsSperre(id) {
+  if (!id || !sperrenAktiv() || istErforscht(id)) return null;
+  const e = forschungNachId.get(id);
+  return `Noch nicht erforscht: ${e ? e.name : id} (${id}) – Forschung, Taste T.`;
 }
-// Erforscht einen Eintrag sofort (FP und Geld werden abgezogen). Rückgabe: { ok } oder { ok: false, grund }
-function erforsche(id) {
-  const e = FORSCHUNG.find((x) => x.id === id);
+// Welche Bauforschung schaltet diesen Gebäude- bzw. Bandtyp frei? (null = immer frei)
+function bauForschungVon(typ) {
+  const t = gebaeudeTypNach.get(typ) || bandTypNach.get(typ);
+  return (t && t.forschung) || BAUTYP_FORSCHUNG[typ] || null;
+}
+function bauSperre(typ) { return forschungsSperre(bauForschungVon(typ)); }
+function forscherErlaubt() { return !forschungsSperre("HR-003"); }   // HR-003: Arbeiter an die Forschungsstation
+
+/* Firmen-Erfahrung (E6): ab Erforschung des Vorgängers zählt die Erfahrung ALLER Mitarbeiter für den Eintrag */
+const xpNachfolger = new Map();
+for (const e of FORSCHUNG) if (e.bedingung.art === "xp") {
+  if (!xpNachfolger.has(e.bedingung.vorgaenger)) xpNachfolger.set(e.bedingung.vorgaenger, []);
+  xpNachfolger.get(e.bedingung.vorgaenger).push(e);
+}
+function firmenErfahrung() { return spiel.forschung.firmenXp; }
+function xpFortschritt(e) {
+  const marke = spiel.forschung.xpMarke[e.id];
+  return marke === undefined ? 0 : Math.max(0, Math.round((spiel.forschung.firmenXp - marke) * 10) / 10);
+}
+function setzeXpMarken() {
+  for (const [vor, liste] of xpNachfolger) {
+    if (!istErforscht(vor)) continue;
+    for (const e of liste) if (spiel.forschung.xpMarke[e.id] === undefined) spiel.forschung.xpMarke[e.id] = spiel.forschung.firmenXp;
+  }
+}
+let offeneXpCache = { menge: null, liste: [] };
+function zaehleFirmenErfahrung(ep) {
+  const f = spiel.forschung;
+  f.firmenXp = Math.round((f.firmenXp + ep) * 10) / 10;
+  if (offeneXpCache.menge !== erforschtMenge()) {
+    offeneXpCache = { menge: erforschtMenge(), liste: FORSCHUNG.filter((e) => e.bedingung.art === "xp" && !e.spaeter && !istErforscht(e.id)) };
+  }
+  for (const e of offeneXpCache.liste) {
+    if (f.xpMarke[e.id] === undefined) continue;
+    const ist = f.firmenXp - f.xpMarke[e.id];
+    if (ist >= e.bedingung.xp && ist - ep < e.bedingung.xp) {
+      meldeEreignis("freischaltbar", { id: e.id, name: e.name });
+      meldeEreignis("hinweis", { text: `Freischaltbar: ${e.name} (${e.bedingung.xp} XP gesammelt) – Forschung, Taste T.` });
+    }
+  }
+}
+
+/* Bauforschung (E9): Kosten pro Tier, Tier sichtbar ab 3 erforschten Einträgen des vorigen Tiers */
+let tierCache = { menge: null, anzahl: {} };
+function anzahlErforschtImTier(tier) {
+  if (tierCache.menge !== erforschtMenge()) {
+    const anzahl = {};
+    for (const e of FORSCHUNG) {
+      if (e.baum !== "bau" || !istErforscht(e.id)) continue;
+      if (!FORSCHUNG_NEU.sichtbarZaehltGrundausstattung && FORSCHUNG_NEU.grundausstattung.includes(e.id)) continue;
+      anzahl[e.tier] = (anzahl[e.tier] || 0) + 1;
+    }
+    tierCache = { menge: erforschtMenge(), anzahl };
+  }
+  return tierCache.anzahl[tier] || 0;
+}
+function vorigesTier(tier) { return "T" + (Number(tier.slice(1)) - 1); }
+function bauTierSichtbar(tier) {
+  const k = FORSCHUNG_NEU.bauKosten[tier];
+  return !k || !k.sichtbarAb || anzahlErforschtImTier(vorigesTier(tier)) >= k.sichtbarAb;
+}
+
+/* Zeitprojekte an Forschungsstationen: Station hat entweder ein Projekt (der Forscher arbeitet es ab) oder
+   zerlegt wie in Phase 5. Der Fortschritt gehört zum Eintrag – ein abgebrochenes Projekt läuft später weiter. */
+function istForschungsstation(g) { return !!g && typVon(g).art === "forschung"; }
+function projektVon(stationId) {
+  const id = spiel.forschung.projekte[stationId];
+  return id && spiel.gebaeude.has(stationId) && forschungNachId.has(id) ? id : null;
+}
+function projektStation(eintragId) {
+  for (const [sid, id] of Object.entries(spiel.forschung.projekte)) if (id === eintragId && spiel.gebaeude.has(sid)) return sid;
+  return null;
+}
+function projektFortschritt(eintragId) { return spiel.forschung.fortschritt[eintragId] || 0; }
+// Alle laufenden Projekte: [{ stationId, id, name, ist, ziel, forscher }]
+function forschungsProjekte() {
+  const liste = [];
+  for (const s of gebaeudeListe(istForschungsstation)) {
+    const id = projektVon(s.id);
+    if (!id) continue;
+    const e = forschungNachId.get(id);
+    liste.push({ stationId: s.id, id, name: e.name, ist: projektFortschritt(id), ziel: e.bedingung.sek, forscher: s.arbeiterId || null });
+  }
+  return liste;
+}
+// Freie Station für ein neues Projekt: ohne Projekt, mit Forscher zuerst
+function waehleProjektStation() {
+  const frei = gebaeudeListe((g) => istForschungsstation(g) && !projektVon(g.id));
+  return frei.find((g) => g.arbeiterId) || frei[0] || null;
+}
+// Startet ein Zeitprojekt (Bedingung "zeit") an einer Forschungsstation (stationId null = eine freie wählen).
+// Rückgabe: { ok, stationId } oder { ok: false, grund }
+function starteForschungsprojekt(stationId, eintragId) {
+  const e = forschungNachId.get(eintragId);
   if (!e) return { ok: false, grund: "Unbekannte Forschung." };
-  if (istErforscht(id)) return { ok: false, grund: `${e.name} ist schon erforscht.` };
-  const fehlt = e.braucht.filter((b) => !istErforscht(b)).map((b) => FORSCHUNG.find((x) => x.id === b).name);
-  if (fehlt.length) return { ok: false, grund: `Zuerst erforschen: ${fehlt.join(", ")}.` };
-  if (spiel.fp < e.kosten.fp) return { ok: false, grund: `Nicht genug Forschungspunkte (${e.kosten.fp} FP nötig).` };
-  if (e.kosten.geld > 0 && !kannBezahlen(e.kosten.geld)) return { ok: false, grund: geldGrund(e.kosten.geld) };
-  spiel.fp = Math.round((spiel.fp - e.kosten.fp) * 10) / 10;
-  if (e.kosten.geld > 0) bucheGeld(-e.kosten.geld, "forschung");
-  spiel.erforscht.push(id);
+  if (e.bedingung.art !== "zeit") return { ok: false, grund: `${e.name} wird nicht an einer Forschungsstation erforscht.` };
+  if (e.spaeter) return { ok: false, grund: `${e.name} kommt in einer späteren Phase.` };
+  if (istErforscht(e.id)) return { ok: false, grund: `${e.name} ist schon erforscht.` };
+  const s = stationId ? spiel.gebaeude.get(stationId) : waehleProjektStation();
+  if (!istForschungsstation(s)) return { ok: false, grund: stationId ? "Das ist keine Forschungsstation." : "Keine freie Forschungsstation: Baumenü (B) → Stationen." };
+  const laeuft = projektStation(e.id);
+  if (laeuft && laeuft !== s.id) return { ok: false, grund: `${e.name} läuft schon an ${gebaeudeName(spiel.gebaeude.get(laeuft))}.` };
+  const vorher = projektVon(s.id);
+  spiel.forschung.projekte[s.id] = e.id;
+  // Der Forscher legt das Zerlegen beiseite (Material, das er trägt, kommt zurück ins Lager)
+  const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
+  if (p && p.phase !== "bringtErzeugnis" && p.phase !== "legtAb") setzePersonZurueck(p);
+  s.fortschritt = projektFortschritt(e.id) / e.bedingung.sek;
+  s.version++;
   meldeStruktur();
-  meldeEreignis("erforscht", { eintrag: e });
+  meldeEreignis("forschungGeaendert", { ids: [e.id] });
+  return { ok: true, stationId: s.id, ersetzt: vorher && vorher !== e.id ? vorher : null };
+}
+// Bricht das Projekt einer Station ab (der Fortschritt bleibt beim Eintrag); die Station zerlegt wieder
+function brichForschungsprojektAb(stationId) {
+  const id = projektVon(stationId);
+  if (!id) return { ok: false, grund: "An dieser Station läuft kein Projekt." };
+  beendeProjekt(spiel.gebaeude.get(stationId));
+  meldeEreignis("forschungGeaendert", { ids: [id] });
   return { ok: true };
+}
+function beendeProjekt(s) {
+  delete spiel.forschung.projekte[s.id];
+  s.fortschritt = 0;
+  s.version++;
+  const p = s.arbeiterId && mitarbeiter.find((m) => m.id === s.arbeiterId);
+  if (p && p.phase === "arbeitet" && !p.auftrag) p.phase = "frei";
+  meldeStruktur();
+}
+// Tempo eines Forschers (Erfahrung und allgemeine Arbeits-Forschung)
+function forscherTempo(p) { return erfahrungsFaktor(p) * forschungsWirkung("arbeitTempo"); }
+// Ein Schritt des Forschers an einer Station mit Projekt (aus schrittArbeiter, Abschnitt 11c)
+function schrittForscher(p, s, eintragId, dt) {
+  const e = forschungNachId.get(eintragId);
+  if (istErforscht(eintragId)) { beendeProjekt(s); return; }
+  if (s.pausiert) { if (p.phase === "arbeitet") p.phase = "frei"; return; }
+  if (hatItems(p) || p.auftrag) setzePersonZurueck(p);
+  if (!istAngekommen(p, s.zugang)) {
+    p.phase = "frei";
+    if (p.zustand === "steht" && (p.timer -= dt) <= 0) { geheZu(p, s.zugang); p.timer = 2; }
+    return;
+  }
+  if (p.phase !== "arbeitet") { p.phase = "arbeitet"; schaueAuf(p, s); }
+  const f = spiel.forschung.fortschritt;
+  f[e.id] = Math.min(e.bedingung.sek, (f[e.id] || 0) + dt * forscherTempo(p));
+  s.fortschritt = f[e.id] / e.bedingung.sek;
+  gibErfahrung(p, dt);                         // 1 EP pro Arbeitssekunde wie an jeder Station
+  if (f[e.id] < e.bedingung.sek - 1e-6) return;
+  beendeProjekt(s);
+  delete f[e.id];
+  if (e.baum === "komponenten") setzeFreigeschaltet([e.id]);
+  else markiereErforscht([e.id]);
+  meldeEreignis("hinweis", { text: `Forschung fertig: ${e.name} (${gebaeudeName(s)}).` });
+}
+
+/* Status, Erforschen, Freischalten */
+// Alles über einen Eintrag – für das Forschungsfenster und den Baumenü-Tooltip. Rückgabe (oder null):
+//   { id, name, baum, gruppe, tier, beschreibung, erforscht, kann, grund, fortschritt: { ist, ziel, art }, spaeter,
+//     sichtbar, aktion ("projekt" | "freischalten" | "erforschen" | null), stationId (laufendes Projekt),
+//     kosten ({ fp, euro } bei Bauforschung), vorgaenger }
+//   kann – erforscheEintrag(id) würde jetzt klappen;  aktion "projekt" – starteForschungsprojekt(null, id)
+function forschungStatus(id) {
+  const e = forschungNachId.get(id);
+  if (!e) return null;
+  const b = e.bedingung;
+  const st = { id, name: e.name, baum: e.baum, gruppe: e.gruppe, tier: e.tier, beschreibung: e.beschreibung,
+               erforscht: istErforscht(id), kann: false, grund: "", fortschritt: { ist: 0, ziel: 0, art: b.art },
+               spaeter: !!e.spaeter, sichtbar: true, aktion: null, stationId: null,
+               kosten: b.art === "fp" ? { fp: b.fp, euro: b.euro } : null, vorgaenger: b.vorgaenger || null };
+  if (b.art === "fp") st.sichtbar = bauTierSichtbar(e.tier);
+  if (st.erforscht) {
+    const ziel = b.sek || b.anzahl || b.xp || b.fp || 1;
+    st.fortschritt.ist = st.fortschritt.ziel = b.art === "herstellung" ? herstellZiel(id) : ziel;
+    st.grund = `${e.name} ist erforscht.`;
+    return st;
+  }
+  if (e.spaeter) { st.grund = "Kommt in einer späteren Phase (das Spielsystem dafür gibt es noch nicht)."; return st; }
+  if (b.art === "zeit") {
+    st.fortschritt.ist = Math.floor(projektFortschritt(id) * 10) / 10;
+    st.fortschritt.ziel = b.sek;
+    st.stationId = projektStation(id);
+    st.aktion = "projekt";
+    if (st.stationId) {
+      const s = spiel.gebaeude.get(st.stationId);
+      st.grund = `Läuft an ${gebaeudeName(s)} (${Math.floor(st.fortschritt.ist)} / ${b.sek} s)${s.arbeiterId ? "" : " – wartet auf einen Forscher"}.`;
+    } else if (!gebaeudeListe(istForschungsstation).length) {
+      st.grund = `Projekt (${b.sek} s): zuerst eine Forschungsstation bauen (Baumenü → Stationen).`;
+    } else {
+      st.grund = `Als Projekt an einer Forschungsstation starten (${b.sek} s Forschungszeit).`;
+    }
+    if (!forscherErlaubt()) st.grund += " Forscher brauchen „Rolle: Forscher“ (HR-003).";
+    return st;
+  }
+  if (b.art === "herstellung") {
+    const fs = freischaltStatus(id);
+    st.fortschritt.ist = fs.ist; st.fortschritt.ziel = fs.ziel;
+    st.kann = fs.kann; st.grund = fs.grund; st.aktion = "freischalten";
+    if (st.kann) st.grund = `Bereit: ${fs.ziel}× ${itemInfo(b.item).name} hergestellt – jetzt freischalten.`;
+    return st;
+  }
+  if (b.art === "xp") {
+    st.fortschritt.ziel = b.xp;
+    st.aktion = "freischalten";
+    const vor = forschungNachId.get(b.vorgaenger);
+    if (!istErforscht(b.vorgaenger)) { st.grund = `Zuerst erforschen: ${vor ? vor.name : b.vorgaenger}. Danach zählt die Erfahrung aller Mitarbeiter.`; return st; }
+    st.fortschritt.ist = Math.min(b.xp, xpFortschritt(e));
+    st.kann = st.fortschritt.ist >= b.xp;
+    st.grund = st.kann ? `${b.xp} XP gesammelt – jetzt freischalten.`
+      : `Noch ${zahlText(b.xp - st.fortschritt.ist)} XP sammeln (${zahlText(st.fortschritt.ist)} / ${b.xp}) – die Erfahrung aller Mitarbeiter zählt.`;
+    return st;
+  }
+  if (b.art === "fp") {
+    st.fortschritt.ist = Math.min(b.fp, spiel.fp);
+    st.fortschritt.ziel = b.fp;
+    st.aktion = "erforschen";
+    if (!st.sichtbar) {
+      const k = FORSCHUNG_NEU.bauKosten[e.tier];
+      st.grund = `Sichtbar ab ${k.sichtbarAb} erforschten Einträgen aus ${vorigesTier(e.tier)} (${anzahlErforschtImTier(vorigesTier(e.tier))} / ${k.sichtbarAb}).`;
+      return st;
+    }
+    if (spiel.fp < b.fp) st.grund = `Nicht genug Forschungspunkte (${b.fp} FP nötig, ${zahlText(spiel.fp)} da).`;
+    else if (b.euro > 0 && !kannBezahlen(b.euro)) st.grund = geldGrund(b.euro);
+    else { st.kann = true; st.grund = `Erforschen für ${b.fp} FP${b.euro ? ` + ${euro(b.euro)}` : ""}.`; }
+    return st;
+  }
+  st.grund = "Ab Start verfügbar.";
+  return st;
+}
+// Erforscht bzw. schaltet einen Eintrag frei (Klick). Bauforschung kostet FP (+ €). Rückgabe: { ok } oder { ok: false, grund }
+function erforscheEintrag(id) {
+  const st = forschungStatus(id);
+  if (!st) return { ok: false, grund: "Unbekannte Forschung." };
+  if (st.erforscht) return { ok: false, grund: `${st.name} ist schon erforscht.` };
+  if (!st.kann) return { ok: false, grund: st.grund };
+  const b = forschungNachId.get(id).bedingung;
+  if (b.art === "herstellung") return schalteFrei(id);
+  if (b.art === "fp") {
+    spiel.fp = Math.round((spiel.fp - b.fp) * 10) / 10;
+    if (b.euro > 0) bucheGeld(-b.euro, "forschung");
+  }
+  markiereErforscht([id]);
+  return { ok: true };
+}
+// Trägt Einträge als erforscht ein (ohne Prüfung). stumm: keine Einzel-Meldungen. Rückgabe: so viele waren neu
+function markiereErforscht(ids, { stumm = false } = {}) {
+  const neu = [];
+  for (const id of ids) {
+    const e = forschungNachId.get(id);
+    if (!e || e.baum === "komponenten" || erforschtMenge().has(id)) continue;
+    spiel.erforscht.push(id);
+    neu.push(id);
+  }
+  if (!neu.length) return 0;
+  setzeXpMarken();
+  spiel.version++;
+  meldeStruktur();
+  meldeEreignis("forschungGeaendert", { ids: neu });
+  if (!stumm) for (const id of neu) meldeEreignis("erforscht", { eintrag: forschungNachId.get(id) });
+  return neu.length;
+}
+// Entwicklung: alles außer "später" (Komponenten schaltet schalteAlleKomponentenFrei frei). Rückgabe: so viele neu
+function erforscheAlles() {
+  return markiereErforscht(FORSCHUNG.filter((e) => e.baum !== "komponenten" && !e.spaeter).map((e) => e.id), { stumm: true });
+}
+// Phase 5 (altes Fenster): "erforscht", "gesperrt", "zuTeuer", "verfuegbar"; neu: "projekt" (startbar), "laeuft"
+function forschungsZustand(e) {
+  const st = forschungStatus(e.id);
+  if (st.erforscht) return "erforscht";
+  if (st.spaeter || !st.sichtbar) return "gesperrt";
+  if (st.kann) return "verfuegbar";
+  if (st.aktion === "projekt") return st.stationId ? "laeuft" : "projekt";
+  if (e.bedingung.art === "xp" && !istErforscht(e.bedingung.vorgaenger)) return "gesperrt";
+  return "zuTeuer";
+}
+function erforsche(id) { return erforscheEintrag(id); }   // Phase 5-Name, bleibt für das Fenster
+// Wie viele Einträge lassen sich gerade per Klick erforschen/freischalten? (für das HUD, höchstens 2× pro Sekunde neu)
+let freischaltbarCache = { zeit: -1, anzahl: 0 };
+function anzahlFreischaltbar() {
+  const jetzt = Math.floor(performance.now() / 500);
+  if (freischaltbarCache.zeit !== jetzt) {
+    freischaltbarCache = { zeit: jetzt, anzahl: FORSCHUNG.filter((e) => !e.spaeter && forschungStatus(e.id).kann).length };
+  }
+  return freischaltbarCache.anzahl;
+}
+// Komponenten melden ihre Freischaltung selbst (7c) – für die UI auch als "forschungGeaendert"
+spielEreignisse.addEventListener("freischaltungGeaendert", (ev) => meldeEreignis("forschungGeaendert", { ids: ev.detail.ids || [] }));
+
+/* Wirkungen auf Personal und Logistik (werden in Abschnitt 11c benutzt) */
+// HR-033: Carbongehäuse tragen Kuriere ohne Exoskelett nur einzeln
+function traglastFuerItem(item, n) {
+  return item === "geh_carbon" && !forschungAktiv("carbonTragen") ? Math.min(n, 1) : n;
+}
+// HR-011: trägt der Kurier etwas Schweres?
+function traegtSchweres(p) {
+  return Object.keys(p.traegt || {}).some((item) => itemVolumen(item) >= FORSCHUNG_NEU.schwerAbVolumen);
+}
+// Arbeitstempo an einer Station (Erfahrung × Forschung: HR-041/042/047/049, Werkbank HR-092/093 PROD-010,
+// Holz HR-086, Metallgehäuse HR-097, Station am Band HR-094)
+function arbeitsTempoVon(p, s, r) {
+  let f = erfahrungsFaktor(p) * forschungsWirkung("arbeitTempo");
+  if (typVon(s).art === "werkbank") f *= forschungsWirkung("werkbankTempo");
+  if (r && r.eingaben && r.eingaben.holz) f *= forschungsWirkung("holzTempo");
+  if (r && FORSCHUNG_NEU.metallGehaeuse.includes(r.ausgabe)) f *= forschungsWirkung("metallGehaeuseTempo");
+  if (s.bandZulauf || s.bandAblauf) f *= forschungsWirkung("bandArbeitTempo");
+  return f;
+}
+// HR-067: neue Mitarbeiter starten auf Erfahrungsstufe 2
+function startErfahrung() {
+  return forschungAktiv("startLevel2") ? FORSCHUNG_WERTE.erfahrungsStufen[1] : 0;
+}
+// HR-071: mehrere auf einmal einstellen. Rückgabe: Liste der neuen Personen
+function stelleEinMehrere(rolle, anzahl) {
+  const max = forschungAktiv("einstellenMehrere") ? FORSCHUNG_NEU.einstellenMehrere : 1;
+  const neu = [];
+  for (let i = 0; i < Math.min(anzahl, max); i++) {
+    const p = stelleEin(rolle);
+    if (!p) break;
+    neu.push(p);
+  }
+  return neu;
+}
+// HR-074: einen erfahrenen Mitarbeiter klonen. Rückgabe: { ok, person } oder { ok: false, grund }
+function kloneMitarbeiter(id) {
+  const p = mitarbeiter.find((m) => m.id === id);
+  if (!p || p.istDu) return { ok: false, grund: "Diesen Mitarbeiter kann man nicht klonen." };
+  if (!forschungAktiv("klonen")) return { ok: false, grund: "Zuerst erforschen: Klon-Anlagen-Verwaltung (HR-074)." };
+  if (erfahrungsStufe(p) < FORSCHUNG_NEU.klonAbStufe) return { ok: false, grund: `Nur Mitarbeiter ab Erfahrungsstufe ${FORSCHUNG_NEU.klonAbStufe}.` };
+  if (angestellte().length >= maxMitarbeiter()) return { ok: false, grund: "Die Halle ist voll (Höchstzahl Mitarbeiter)." };
+  if (!kannBezahlen(FORSCHUNG_NEU.klonPreis)) return { ok: false, grund: geldGrund(FORSCHUNG_NEU.klonPreis) };
+  const klon = stelleEin(p.rolle, { ep: p.ep, kostenlos: true });
+  if (!klon) return { ok: false, grund: "Nicht möglich." };
+  bucheGeld(-FORSCHUNG_NEU.klonPreis, "personal");
+  return { ok: true, person: klon };
+}
+// HR-070: ohne Gehalt sinkt die Reputation an jedem Tagesabschluss
+spielEreignisse.addEventListener("tagesabschluss", () => {
+  if (forschungAktiv("ohneGehalt") && angestellte().length) aendereReputation(-FORSCHUNG_NEU.ohneGehaltRuf * angestellte().length);
+});
+
+/* HR-009: Fließband-Overseer – ein Arbeiter steht an einem Bandsegment, das Segment läuft schneller (+15 %) */
+function setzeOverseer(personId, teilId) {
+  const p = mitarbeiter.find((m) => m.id === personId);
+  if (!p) return { ok: false, grund: "Unbekannter Mitarbeiter." };
+  const ov = spiel.forschung.overseer;
+  if (!teilId) { delete ov[p.id]; meldeStruktur(); return { ok: true }; }
+  if (!istErforscht("HR-009")) return { ok: false, grund: "Zuerst erforschen: Rolle: Fließband-Overseer (HR-009)." };
+  const t = spiel.baender.get(teilId);
+  if (!t || !istSpur(t)) return { ok: false, grund: "Ein Overseer braucht ein Bandstück." };
+  if (p.rolle !== "arbeiter" && !schuleUm(p.id, "arbeiter")) return { ok: false, grund: "Nicht möglich." };
+  weiseZu(p.id, null);                           // Station freigeben, nicht automatisch neu zuordnen
+  if (p.istDu) p.flexibel = false;
+  const seg = segmentVon(t);
+  for (const [pid, tid] of Object.entries(ov)) {  // pro Segment höchstens einer
+    if (pid !== p.id && seg && segmentVon(spiel.baender.get(tid)) === seg) delete ov[pid];
+  }
+  ov[p.id] = teilId;
+  meldeStruktur();
+  return { ok: true };
+}
+// Wer beaufsichtigt das Segment dieses Bandteils? (Person oder null)
+function overseerVon(teilId) {
+  const seg = segmentVon(spiel.baender.get(teilId));
+  if (!seg) return null;
+  for (const [pid, tid] of Object.entries(spiel.forschung.overseer)) {
+    const p = segmentVon(spiel.baender.get(tid)) === seg && mitarbeiter.find((m) => m.id === pid);
+    if (p) return p;
+  }
+  return null;
+}
+function overseerFaktor(t) {
+  const seg = t.segment;
+  return seg && seg.overseerBis > spiel.zeit ? forschungsWirkung("overseer") : 1;
+}
+function schrittOverseer(p, teilId, dt) {
+  const t = spiel.baender.get(teilId);
+  if (!t || p.rolle !== "arbeiter" || p.stationId) { delete spiel.forschung.overseer[p.id]; return; }
+  if (hatItems(p) || p.auftrag) setzePersonZurueck(p);
+  const hier = personKachel(p);
+  if (Math.max(Math.abs(hier.x - t.x), Math.abs(hier.z - t.z)) <= FORSCHUNG_NEU.overseerAbstand) {   // auch schräg daneben
+    const seg = segmentVon(t);
+    if (seg) seg.overseerBis = spiel.zeit + 1;
+    gibErfahrung(p, dt);
+    return;
+  }
+  if (p.zustand !== "steht" || (p.timer -= dt) > 0) return;
+  p.timer = 2;
+  const k = personKachel(p);
+  const plaetze = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]].map(([dx, dz]) => ({ x: t.x + dx, z: t.z + dz }))
+    .filter((c) => istBegehbar(c.x, c.z) && !rasterDaten[c.x][c.z].band && !istZugangsKachel(c.x, c.z)).sort((a, b) => abstand(a, k) - abstand(b, k));
+  if (plaetze.length) geheZu(p, plaetze[0]);
+}
+
+/* Spielstand */
+function forschungSpeicherDaten() {
+  const f = spiel.forschung;
+  return { projekte: f.projekte, fortschritt: f.fortschritt, firmenXp: f.firmenXp, xpMarke: f.xpMarke, overseer: f.overseer };
+}
+// Nach ladeWirtschaft: Forschungszustand übernehmen (null = neues Spiel). spiel.erforscht kommt aus der Wirtschaft.
+function ladeForschung(f) {
+  const d = f || {};
+  spiel.forschung = {
+    projekte: { ...(d.projekte || {}) }, fortschritt: { ...(d.fortschritt || {}) }, firmenXp: Number(d.firmenXp) || 0,
+    xpMarke: { ...(d.xpMarke || {}) }, overseer: { ...(d.overseer || {}) },
+  };
+  spiel.erforscht = (spiel.erforscht || []).filter((id) => forschungNachId.has(id) && forschungNachId.get(id).baum !== "komponenten");
+  const geschenkt = Array.isArray(d.geschenkt) ? d.geschenkt : [];
+  for (const id of [...FORSCHUNG_NEU.startErforscht, ...FORSCHUNG_NEU.grundausstattung, ...geschenkt]) {
+    const e = forschungNachId.get(id);
+    if (e && e.baum !== "komponenten" && !spiel.erforscht.includes(id)) spiel.erforscht.push(id);
+  }
+  setzeXpMarken();
+  meldeEreignis("forschungGeaendert", { ids: [] });
+}
+// Alte Spielstände (bis Version 8): alte Forschung umziehen (6.5), alles Gebaute gilt als erforscht,
+// Funktionen, die es schon gab, bleiben (I/O-Pfeile, Warnungen, Segment-Tempo, Auto-Zuweisung, Forscher).
+// Handkarre ist neu Kurier-Stufe 1: Sackkarre 1 → 2, Hubwagen 2 → 3.
+function stelleAlteForschungUm(d) {
+  const geschenkt = new Set(["HR-003", "PROD-003", "PROD-012", "PROD-015", "PROD-022"]);
+  for (const id of (d.wirtschaft && d.wirtschaft.erforscht) || []) {
+    const neu = ALT_FORSCHUNG[id];
+    if (typeof neu === "string") geschenkt.add(neu);
+  }
+  const typen = [...(d.gebaeude || []).map((g) => g.typ), ...Object.keys((d.depot && d.depot.gebaeude) || {}),
+                 ...(d.baender || []).map((b) => b.typ), ...Object.keys((d.depot && d.depot.baender) || {})];
+  for (const typ of typen) { const id = bauForschungVon(typ); if (id) geschenkt.add(id); }
+  for (const m of d.mitarbeiter || []) {
+    if (m.stufe > 0) m.stufe++;
+    if (m.ausruestung > 0) m.ausruestung++;
+  }
+  d.forschung = { ...(d.forschung || {}), geschenkt: [...geschenkt] };
+  setTimeout(() => meldeEreignis("hinweis", { text: `Neue Forschung mit drei Bäumen (Komponenten, Mitarbeiter, Bau): ${geschenkt.size} Einträge aus deinem Spielstand übernommen – alles Gebaute gilt als erforscht. Sammelfahrt, Direktlieferung, Disponent, Wartungsarm und Präzisionsmaschinen sind jetzt immer an.` }), 1200);
+  return d;
 }
 function gibForschungspunkte(n) {
   spiel.fp = Math.round((spiel.fp + n) * 10) / 10;
@@ -8987,15 +9777,19 @@ function erfahrungsFaktor(p) {
   return 1 + FORSCHUNG_WERTE.tempoProStufe * (erfahrungsStufe(p) - 1);
 }
 function gibErfahrung(p, ep) {
+  ep *= forschungsWirkung("erfahrung");             // Phase 7d: HR-066 Feedback-Kultur
   const alt = erfahrungsStufe(p);
   p.ep = Math.round(((p.ep || 0) + ep) * 10) / 10;
   const neu = erfahrungsStufe(p);
   if (neu > alt) { meldeEreignis("erfahrungAufstieg", { person: p, stufe: neu }); meldeStruktur(); }
+  zaehleFirmenErfahrung(ep);                        // Phase 7d (E6): Firmen-XP für die Mitarbeiterforschung
 }
 // Lohn pro Tag (mit Erfahrung etwas mehr)
 function lohnVon(p) {
   if (p.istDu) return 0;                           // Phase 7a (Nachtrag 2): du arbeitest für dich selbst
-  return Math.round(MITARBEITER_ROLLEN[p.rolle].lohn * (1 + FORSCHUNG_WERTE.lohnProStufe * (erfahrungsStufe(p) - 1)));
+  // Phase 7d: HR-054 (Lohn steigt langsamer), HR-038/061/069/070 (Gehalt)
+  return Math.round(MITARBEITER_ROLLEN[p.rolle].lohn * (1 + FORSCHUNG_WERTE.lohnProStufe * forschungsWirkung("lohnStufe") * (erfahrungsStufe(p) - 1))
+    * forschungsWirkung("lohn"));
 }
 
 /* --- Ausrüstung der Kuriere (Sackkarre, Hubwagen) --- */
@@ -9119,7 +9913,12 @@ function freischaltStatus(id) {
   const status = { id, name: e.name, art: f.art, freigeschaltet: !!e.freigeschaltet, kann: false, ist: 0, ziel: 0,
                    item: f.item || null, sek: f.sek || 0, grund: "" };
   if (status.freigeschaltet) { status.grund = `${e.name} ist schon freigeschaltet.`; return status; }
-  if (f.art === "forschung") { status.grund = KOMPONENTEN.forschungGrund; return status; }
+  if (f.art === "forschung") {                    // Phase 7d: Zeitprojekt an einer Forschungsstation
+    status.ist = Math.floor(projektFortschritt(id)); status.ziel = f.sek;
+    const sid = projektStation(id);
+    status.grund = sid ? `Forschung läuft an ${gebaeudeName(spiel.gebaeude.get(sid))} (${status.ist} / ${f.sek} s).` : `${KOMPONENTEN.forschungGrund} – ${f.sek} s.`;
+    return status;
+  }
   if (f.art === "herstellung") {
     status.ist = spiel.hergestellt[f.item] || 0;
     status.ziel = herstellZiel(id);
@@ -9448,7 +10247,7 @@ function tempoFreigeschaltet(id) { const st = tempoStufe(id); return !st.forschu
 // Geschwindigkeit eines Teils in Kacheln pro Sekunde
 function bandTempo(t) {
   if (istVerteiler(t) || t.typ === "zusammen") return BAENDER.knotenTempo;
-  return tempoStufe(t.tempo).tempo;
+  return tempoStufe(t.tempo).tempo * overseerFaktor(t);   // Phase 7d: HR-009 Overseer
 }
 // Stellt das Tempo eines ganzen Segments ein. Rückgabe: { ok } oder { ok: false, grund }
 function setzeSegmentTempo(teilId, tempoId) {
@@ -9457,6 +10256,8 @@ function setzeSegmentTempo(teilId, tempoId) {
   const st = BAND_TEMPO.find((x) => x.id === tempoId);
   if (!seg || !st) return { ok: false, grund: "Kein Segment ausgewählt." };
   if (!tempoFreigeschaltet(tempoId)) return { ok: false, grund: `${st.name} ist noch nicht erforscht (Techtree, Taste T).` };
+  const steuerung = tempoId !== "pause" && tempoId !== STANDARD_BAND_TEMPO && forschungsSperre("PROD-022");   // Phase 7d: Segment-Steuerung Mk.1
+  if (steuerung) return { ok: false, grund: steuerung };
   for (const teil of seg.teile) teil.tempo = tempoId;
   spiel.bandVersion++;
   meldeStruktur();
@@ -10161,6 +10962,8 @@ function pruefeBandteil(typ, x, z, richtung, { ersetzen = false, laden = false, 
     }
   }
   if (richtung < 0 || richtung > 3) gruende.push("Ungültige Richtung.");
+  const sperre = !laden && info && bauSperre(typ);      // Phase 7d: Bauforschung
+  if (sperre) gruende.push(sperre);
   return { passt: gruende.length === 0, gruende: [...new Set(gruende)], ersetzt };
 }
 
@@ -10589,7 +11392,8 @@ function schuleUm(id, rolle, { vonSelbst = false } = {}) {
 // Freie Forschungsstationen (ohne Arbeiter, nicht automatisch), die nächste zuerst
 function freieStationen(art, p = null) {
   const k = p ? personKachel(p) : null;
-  return gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik && (!art || typVon(g).art === art))
+  return gebaeudeListe((g) => istStation(g) && !g.arbeiterId && !g.automatik && (!art || typVon(g).art === art)
+    && (forscherErlaubt() || !istForschungsstation(g)))   // Phase 7d: HR-003
     .sort((a, b) => (k ? abstand(a.zugang, k) - abstand(b.zugang, k) : 0));
 }
 // "Forschung": an die nächste freie Forschungsstation. Rückgabe: Station oder null
@@ -10603,6 +11407,7 @@ function schickeInForschung(id) {
   return s;
 }
 function setzeAutoZuweisung(an) {
+  if (an && forschungsSperre("PROD-012")) return false;   // Phase 7d: Schichtplan-Tafel
   spiel.autoZuweisung = !!an;
   meldeStruktur();
 }
@@ -11461,7 +12266,7 @@ for (const [modus, info] of Object.entries(ANZEIGE_MODI)) {
   lagerModusTexturen[modus] = new THREE.CanvasTexture(c);
   lagerModusTexturen[modus].colorSpace = THREE.SRGBColorSpace;
 }
-const LAGER_SCHILD_HOEHE = { kiste: 0.95, schrank: 1.8 };   // Höhe des Schilds über dem Boden
+const LAGER_SCHILD_HOEHE = { kiste: 0.95, schrank: 1.8, metallKiste: 0.95, metallSchrank: 1.8, industrieSchrank: 1.8 };   // Höhe des Schilds über dem Boden
 function baueLagerMarke(g, huelle) {
   const t = typVon(g);
   const b = t.breite / 2 - 0.02, d = t.tiefe / 2 - 0.02, r = 0.07;
@@ -11660,14 +12465,15 @@ function baueAusruestung(stufe) {
     g.add(m);
   };
   const ladung = new THREE.Group();
-  if (stufe === 1) {          // Sackkarre: zwei Holme, Schaufel unten, zwei Räder
+  const modell = (KURIER_STUFEN.find((k) => k.stufe === stufe) || {}).modell;   // Phase 7d: Handkarre vorerst wie Sackkarre
+  if (modell === "sackkarre" || modell === "handkarre") {   // Sackkarre: zwei Holme, Schaufel unten, zwei Räder
     for (const x of [-0.15, 0.15]) quader(g, 0.035, 0.7, 0.035, GRAFIK.farbeSackkarre, x, 0.05, 0.42);
     quader(g, 0.33, 0.03, 0.035, GRAFIK.farbeSackkarre, 0, 0.45, 0.42);
     quader(g, 0.36, 0.025, 0.2, GRAFIK.farbeMetallDunkel, 0, 0.03, 0.5);
     quader(g, 0.4, 0.035, 0.035, GRAFIK.farbeSackkarre, 0, 0.72, 0.4);       // Griff
     rad(-0.21, 0.4, 0.09); rad(0.21, 0.4, 0.09);
     ladung.position.set(0, 0.055, 0.52);
-  } else if (stufe === 2) {   // Hubwagen: Gabeln mit Palette, Hydraulik-Körper, Deichsel
+  } else if (modell === "hubwagen") {   // Hubwagen: Gabeln mit Palette, Hydraulik-Körper, Deichsel
     for (const x of [-0.12, 0.12]) quader(g, 0.08, 0.05, 0.75, GRAFIK.farbeHubwagen, x, 0.02, 0.78);
     quader(g, 0.34, 0.2, 0.14, GRAFIK.farbeHubwagen, 0, 0.02, 0.38);
     const deichsel = quader(g, 0.04, 0.55, 0.04, GRAFIK.farbeMetallDunkel, 0, 0.2, 0.33);
@@ -12714,9 +13520,10 @@ function zeichneBauInhalt() {
     const imDepot = spiel.depot.gebaeude[t.typ] || 0;
     const voll = t.maxAnzahl && anzahlTyp(t.typ) >= t.maxAnzahl;
     const gewaehlt = bau.werkzeug && bau.werkzeug.art === "bauen" && bau.werkzeug.typ === t.typ;
-    return `<button class="bau-karte" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll ? "disabled" : ""}
-        title="${htmlSicher(t.beschreibung)}">
-        <span class="bau-symbol" aria-hidden="true">${t.symbol}</span>
+    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss, Grund im Tooltip
+    return `<button class="bau-karte" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll || sperre ? "disabled" : ""}
+        title="${htmlSicher(sperre || t.beschreibung)}">
+        <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.symbol}</span>
         <span><b>${t.name}</b>
           <small>${t.breite} × ${t.tiefe} Kacheln · ${t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : t.art === "forschung" ? "Teile → FP" : `Fach ${t.kapazitaet}`}</small>
           ${voll ? "<small>steht schon in der Halle</small>"
@@ -13134,6 +13941,8 @@ function zeichneInfo() {
         <option value="">– nichts zerlegen –</option>
         ${zerlegOptionen(g.rezept)}
       </select></label>`;
+    const projekt = projektVon(g.id);              // Phase 7d: Zeitprojekt statt Zerlegen
+    if (projekt) html += `<p class="info-leer">Projekt: ${htmlSicher(forschungNachId.get(projekt).name)} – solange ruht das Zerlegen (Forschung, Taste T).</p>`;
   } else if (istZwischenlager(g)) {
     // Phase 7a: keine Schnellwahl mehr – jedes Lager ist "Gemischt", gesteuert wird mit den Pfeilen pro Ressource
     html += `<div class="info-block">
@@ -13440,7 +14249,8 @@ function exportzoneHtml(g) {
 // Phase 7b: Füllstand in Volumen mit Warnfarbe (ab 80 % gelb, voll rot)
 function warnStufe(g) {
   const f = fuellgrad(g);
-  return f >= PRODUKTION.lagerWarnRot ? "rot" : f >= PRODUKTION.lagerWarnGelb ? "gelb" : "";
+  // Phase 7d: die gelbe Vorwarnung gibt es erst mit "Erweiterte Kisten-Logistik" (PROD-015)
+  return f >= PRODUKTION.lagerWarnRot ? "rot" : f >= PRODUKTION.lagerWarnGelb && !forschungsSperre("PROD-015") ? "gelb" : "";
 }
 function fuellstandHtml(g) {
   const stufe = warnStufe(g);
@@ -13622,7 +14432,7 @@ ob.infoInhalt.addEventListener("change", (e) => {
     return;
   }
   if (e.target.dataset.aktion === "arbeiter") {
-    if (e.target.value) weiseZu(e.target.value, g.id);
+    if (e.target.value) { if (!weiseZu(e.target.value, g.id) && istForschungsstation(g)) zeigeMeldung(forschungsSperre("HR-003") || "Nicht möglich.", true); }   // Phase 7d
     else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
   }
   if (e.target.dataset.aktion === "bestell-menge" || e.target.dataset.aktion === "bestell-rhythmus") {   // Phase 7b: Importzone
@@ -13653,7 +14463,7 @@ ob.infoInhalt.addEventListener("change", (e) => {
   }
   if (e.target.dataset.aktion === "ressource" && e.target.value) {     // Phase 5b: Ressource aufnehmen (Import an)
     const item = e.target.value;
-    setzeRegel(g.id, item, "imp", true);
+    if (!setzeRegel(g.id, item, "imp", true) && istZwischenlager(g)) { zeigeMeldung(forschungsSperre("PROD-003") || "Nicht möglich.", true); return; }   // Phase 7d
     if (istHauptlager(g)) zeigeMeldung(`${gebaeudeName(g)}: ${itemInfo(item).name} steht in der Liste – Annahme, Abgabe und Max einstellen.`);   // Phase 7b Nachtrag
     else zeigeMeldung(`${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (⇣ Import).`);
   }
@@ -13690,7 +14500,7 @@ ob.infoInhalt.addEventListener("click", (e) => {
     case "verschieben": starteVerschieben(g.id); break;
     case "pfeil": {                                  // Phase 5b: Import/Export umschalten
       const feld = knopf.dataset.feld;
-      setzeRegel(g.id, item, feld, !regelVon(g, item)[feld]);
+      if (!setzeRegel(g.id, item, feld, !regelVon(g, item)[feld]) && istZwischenlager(g)) zeigeMeldung(forschungsSperre("PROD-003") || "Nicht möglich.", true);   // Phase 7d
       break;
     }
     case "soll-minus":
@@ -13897,7 +14707,7 @@ function aktualisiereWirtschaftsLeiste() {
   if (ob.hudReputation.title !== repTitel) ob.hudReputation.title = repTitel;
 
   setzeText(ob.hudFpZahl, `${zahlText(spiel.fp)} FP`);
-  const bereit = FORSCHUNG.filter((e) => forschungsZustand(e) === "verfuegbar").length;
+  const bereit = anzahlFreischaltbar();             // Phase 7d: neue Forschung (gecacht)
   setzeText(ob.hudFpUnter, bereit ? `${bereit} erforschbar` : "Techtree öffnen");
   ob.hudFpUnter.classList.toggle("plus", bereit > 0);
 
@@ -14185,38 +14995,56 @@ function schliesseForschung(fokusZurueck = true) {
   aktualisiereSperre();
   if (fokusZurueck) ob.hudForschung.focus({ preventScroll: true });
 }
+// Phase 7d: zeigt die neue Forschung (drei Reiter, Raster aus spalte/zeile). Das schöne Fenster baut die UI-Rolle;
+// hier nur so viel, dass alles bedienbar ist: Projekt starten/abbrechen, Erforschen, Freischalten, Schloss "später".
+function bedingungText(e, st) {
+  const b = e.bedingung, f = st.fortschritt;
+  if (b.art === "start") return "ab Start";
+  if (b.art === "zeit") return `⏱ ${b.sek} s Forschung${f.ist && !st.erforscht ? ` · ${Math.floor(f.ist)} / ${b.sek} s` : ""}`;
+  if (b.art === "herstellung") return `⚒ ${f.ziel}× ${itemInfo(b.item).name}${st.erforscht ? "" : ` · ${f.ist} / ${f.ziel}`}`;
+  if (b.art === "xp") return `✦ ${b.xp} XP durch „${forschungNachId.get(b.vorgaenger)?.name || b.vorgaenger}“${st.erforscht ? "" : ` · ${zahlText(f.ist)} / ${b.xp}`}`;
+  return `${b.fp} FP${b.euro ? ` · ${euro(b.euro)}` : ""}`;
+}
 function zeichneForschung() {
   if (!forschungOffen) return;
   const stationen = gebaeudeListe((g) => typVon(g).art === "forschung");
   const besetzt = stationen.filter((g) => g.arbeiterId).length;
+  const projekte = forschungsProjekte();
+  const zaehlbar = FORSCHUNG.filter((e) => e.baum !== "komponenten" && !e.spaeter);
   ob.forschungKopf.innerHTML = `<span>Forschungspunkte <b>${zahlText(spiel.fp)} FP</b></span>
-    <span>Erforscht ${spiel.erforscht.length} / ${FORSCHUNG.length}</span>
-    <span class="leise">FP gibt es für jede Arbeit in der Halle und vor allem an der Forschungsstation (Teile zerlegen).</span>`;
+    <span>Firmen-Erfahrung <b>${zahlText(firmenErfahrung())} XP</b></span>
+    <span>Erforscht ${zaehlbar.filter((e) => istErforscht(e.id)).length} / ${zaehlbar.length}</span>
+    <span class="leise">FP gibt es für jede Arbeit und vor allem fürs Zerlegen an der Forschungsstation; dort laufen auch Zeitprojekte (⏱).</span>`;
   setzeText(ob.forschungStationen, stationen.length
-    ? `Forschungsstationen: ${stationen.length} (${besetzt} besetzt) · bisher ${spiel.statistik.zerlegt} Teile zerlegt. Was zerlegt wird, stellst du im Info-Fenster der Station ein.`
-    : "Noch keine Forschungsstation: Baumenü (B) → Stationen. Sie zerlegt Bauteile und Produkte in Forschungspunkte.");
+    ? `Forschungsstationen: ${stationen.length} (${besetzt} besetzt) · ${projekte.length ? "Projekte: " + projekte.map((p) => `${p.name} ${Math.floor(p.ist)}/${p.ziel} s`).join(", ") : "kein Projekt – die Stationen zerlegen"} · bisher ${spiel.statistik.zerlegt} Teile zerlegt.`
+    : "Noch keine Forschungsstation: Baumenü (B) → Stationen. Sie zerlegt Teile in Forschungspunkte und arbeitet Zeitprojekte ab.");
 
-  // Phase 6: ein Reiter pro Baum
-  const eintraege = FORSCHUNG.filter((e) => e.baum === forschungBaum.id);
-  const zustaende = eintraege.map((e) => forschungsZustand(e));
-  const merker = forschungBaum.id + "|" + zustaende.join() + "|" + spiel.fp + "|" + (spiel.konto < 0);
+  const eintraege = forschungsEintraege(forschungBaum.id);
+  const status = eintraege.map((e) => forschungStatus(e.id));
+  const merker = forschungBaum.id + "|" + status.map((st) => `${st.erforscht ? 1 : 0}${st.kann ? 1 : 0}${st.sichtbar ? 1 : 0}${Math.floor(st.fortschritt.ist)}${st.stationId || ""}`).join()
+    + "|" + spiel.fp + "|" + (spiel.konto < 0) + "|" + stationen.length;
   if (merker === forschungMerker) return;
   forschungMerker = merker;
-  setzeText(ob.forschungTitel, `Forschung · Techtree ${FORSCHUNG_BAEUME.find((b) => b.id === forschungBaum.id)?.name || ""}`);
+  setzeText(ob.forschungTitel, `Forschung · ${FORSCHUNG_BAEUME.find((b) => b.id === forschungBaum.id)?.name || ""}`);
+  ob.techtree.style.gridTemplateColumns = "repeat(5, var(--techtree-knoten))";
   const knoten = eintraege.map((e, i) => {
-    const zustand = zustaende[i];
-    const kosten = `${e.kosten.fp} FP${e.kosten.geld ? ` · ${euro(e.kosten.geld)}` : ""}`;
-    const fehlt = e.braucht.filter((b) => !istErforscht(b)).map((b) => FORSCHUNG.find((x) => x.id === b).name);
-    const ausruestung = e.wirkung.art === "ausruestung" && zustand === "erforscht";
-    return `<div class="tt-knoten ${zustand}" data-id="${e.id}" style="grid-column:${e.spalte + 1};grid-row:${e.zeile + 1}">
-      <header><span aria-hidden="true">${e.symbol}</span><b>${e.name}</b></header>
-      <p>${e.beschreibung}</p>
-      ${zustand === "erforscht" ? `<p class="tt-kosten" style="color:var(--farbe-frei)">✓ erforscht</p>`
-        : `<p class="tt-kosten">${kosten}</p>`}
-      ${fehlt.length ? `<p>Braucht: ${fehlt.join(", ")}</p>` : ""}
-      ${zustand === "erforscht" ? (ausruestung ? `<button class="lz-knopf" type="button" data-aktion="personal">Im Personal kaufen</button>` : "")
-        : `<button class="lz-knopf ${zustand === "verfuegbar" ? "lz-knopf-haupt" : ""}" type="button" data-aktion="erforschen" data-id="${e.id}"
-            ${zustand === "verfuegbar" ? "" : "disabled"}>Erforschen</button>`}
+    const st = status[i];
+    const zustand = forschungsZustand(e);
+    let knopf = "";
+    if (st.spaeter) knopf = `<p>🔒 kommt in einer späteren Phase</p>`;
+    else if (!st.erforscht && st.aktion === "projekt") {
+      knopf = st.stationId
+        ? `<button class="lz-knopf" type="button" data-aktion="abbrechen" data-station="${st.stationId}">Projekt anhalten</button>`
+        : `<button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="projekt" data-id="${e.id}" ${stationen.length ? "" : "disabled"}>Projekt starten</button>`;
+    } else if (!st.erforscht && st.aktion) {
+      knopf = `<button class="lz-knopf ${st.kann ? "lz-knopf-haupt" : ""}" type="button" data-aktion="erforschen" data-id="${e.id}" ${st.kann ? "" : "disabled"}>${st.aktion === "erforschen" ? "Erforschen" : "Freischalten"}</button>`;
+    }
+    return `<div class="tt-knoten ${zustand}" data-id="${e.id}" style="grid-column:${e.spalte + 1};grid-row:${e.zeile + 1}" title="${htmlSicher(st.grund)}">
+      <header><span aria-hidden="true">${e.symbol}</span><b>${htmlSicher(e.name)}</b></header>
+      <p>${e.id.startsWith("k") || e.id.startsWith("geh_") ? "" : `${e.id} · ${e.tier} · `}${htmlSicher(e.beschreibung)}</p>
+      ${st.erforscht ? `<p class="tt-kosten" style="color:var(--farbe-frei)">✓ erforscht</p>` : `<p class="tt-kosten">${bedingungText(e, st)}</p>`}
+      ${st.erforscht ? "" : `<p>${htmlSicher(st.grund)}</p>`}
+      ${knopf}
     </div>`;
   }).join("");
   ob.techtree.innerHTML = knoten + `<svg aria-hidden="true"></svg>`;
@@ -14246,6 +15074,15 @@ ob.techtree.addEventListener("click", (e) => {
   if (!knopf || knopf.disabled) return;
   if (knopf.dataset.aktion === "erforschen") {
     const r = erforsche(knopf.dataset.id);
+    if (!r.ok) zeigeMeldung(r.grund, true);
+    zeichneForschung();
+  } else if (knopf.dataset.aktion === "projekt") {          // Phase 7d: Zeitprojekt an einer freien Station
+    const r = starteForschungsprojekt(null, knopf.dataset.id);
+    if (!r.ok) zeigeMeldung(r.grund, true);
+    else zeigeMeldung(`Projekt gestartet an ${gebaeudeName(spiel.gebaeude.get(r.stationId))}.`);
+    zeichneForschung();
+  } else if (knopf.dataset.aktion === "abbrechen") {        // Phase 7d
+    const r = brichForschungsprojektAb(knopf.dataset.station);
     if (!r.ok) zeigeMeldung(r.grund, true);
     zeichneForschung();
   } else if (knopf.dataset.aktion === "personal") {
@@ -14310,7 +15147,7 @@ spielEreignisse.addEventListener("reputationsStufe", (e) => {
 });
 spielEreignisse.addEventListener("erforscht", (e) => {
   const eintrag = e.detail.eintrag;
-  zeigeMeldung(`Erforscht: ${eintrag.symbol} ${eintrag.name}${eintrag.wirkung.art === "ausruestung" ? " – jetzt im Personal-Reiter kaufen" : ""}`);
+  zeigeMeldung(`Erforscht: ${eintrag.symbol} ${eintrag.name}${eintrag.wirkung === "ausruestung" ? " – jetzt im Personal-Reiter kaufen" : ""}`);
 });
 spielEreignisse.addEventListener("erfahrungAufstieg", (e) =>
   zeigeMeldung(`${e.detail.person.name} erreicht Erfahrungsstufe ${e.detail.stufe}: arbeitet schneller, Lohn steigt leicht.`));
@@ -14655,7 +15492,7 @@ function aktualisiereOberflaeche(sekunden) {
    Baumenü-Reiter "Bänder" und "Halle", das Band-Werkzeug (Ziehen in L-Form, Brücken,
    Abriss durch Ziehen), das Info-Fenster für Bandteile und die Knöpfe für freie Arbeiter.
    ============================================================================ */
-const forschungBaum = { id: "kurier" };   // gewählter Reiter im Techtree
+const forschungBaum = { id: "mitarbeiter" };   // gewählter Reiter im Techtree (Phase 7d: Komponenten, Mitarbeiter, Bau)
 Object.assign(ob, {
   hudFrei: $("hud-frei"),
   hudLagerWarnung: $("hud-lagerwarnung"),   // Phase 7c: eigene ID (vorher doppelt mit dem Lager-Knopf)
@@ -14687,8 +15524,9 @@ function zeichneBaender() {
     }
     const unter = t.typ === "band" ? "ziehen · Kurven automatisch" : t.typ === "bruecke" ? "gerade ziehen · mind. 3 Kacheln"
       : istGreifarm(t) ? `1 × 1 · ${bandTypNach.get("greifarm").tagesKosten} €/Tag` : t.begehbar ? "1 × 1 · begehbar" : "1 × 1 · nicht begehbar";
-    return `<button class="bau-karte" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}" title="${htmlSicher(t.beschreibung)}">
-        <span class="bau-symbol" aria-hidden="true">${t.symbol}</span>
+    const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss, Grund im Tooltip
+    return `<button class="bau-karte" type="button" data-bandtyp="${t.typ}" aria-pressed="${!!gewaehlt}" ${sperre ? "disabled" : ""} title="${htmlSicher(sperre || t.beschreibung)}">
+        <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.symbol}</span>
         <span><b>${t.name}</b><small>${unter}</small>${preis}</span></button>`;
   }).join("");
   const kosten = bandLaufkosten();
@@ -15279,6 +16117,8 @@ ob.bauInhalt.addEventListener("change", (e) => {
     if (p && s && weiseZu(p.id, s.id)) zeigeMeldung(`${p.name} arbeitet jetzt an ${gebaeudeName(s)}.`);
     feld.blur();
   } else if (feld.dataset.aktion === "autoZuweisung") {
+    const sperre = feld.checked && forschungsSperre("PROD-012");   // Phase 7d: Schichtplan-Tafel
+    if (sperre) { feld.checked = false; zeigeMeldung(sperre, true); return; }
     setzeAutoZuweisung(feld.checked);
     zeigeMeldung(feld.checked ? "Freie Arbeiter gehen jetzt selbst an freie Stationen." : "Freie Arbeiter warten auf deine Entscheidung.");
   }
@@ -15291,7 +16131,7 @@ function personalAktion(knopf) {
     case "forschung": {
       if (!p) return true;
       const s = schickeInForschung(p.id);
-      zeigeMeldung(s ? `${p.name} forscht jetzt an ${gebaeudeName(s)}.` : "Keine freie Forschungsstation – stelle eine auf (Baumenü → Stationen).", !s);
+      zeigeMeldung(s ? `${p.name} forscht jetzt an ${gebaeudeName(s)}.` : forschungsSperre("HR-003") || "Keine freie Forschungsstation – stelle eine auf (Baumenü → Stationen).", !s);   // Phase 7d: HR-003
       return true;
     }
     case "logistik":
@@ -15607,7 +16447,7 @@ const ENTWICKLUNG = {
   geld: 10000,   // so viel Euro bringt ein Klick auf "+ Geld"
 };
 function entwicklungHtml() {
-  const offen = FORSCHUNG.filter((e) => !istErforscht(e.id)).length;
+  const offen = FORSCHUNG.filter((e) => !e.spaeter && !istErforscht(e.id)).length;   // Phase 7d: "später" bleibt gesperrt
   const hoechste = REPUTATION_STUFEN[REPUTATION_STUFEN.length - 1];
   return `<p class="kontor-hinweis">Nur zum Testen: Diese Knöpfe verändern den laufenden Spielstand sofort.</p>
     <div class="grafik-liste">
@@ -15630,7 +16470,7 @@ function entwicklungAktion(aktion) {
 // Erforscht alles (ohne Kosten), schaltet Gebäude und Bauteile frei und hebt die Reputation auf das höchste Level.
 function schalteAllesFrei() {
   let neu = 0;
-  for (const e of FORSCHUNG) if (!istErforscht(e.id)) { spiel.erforscht.push(e.id); neu++; }
+  neu += erforscheAlles();                          // Phase 7d: alle Mitarbeiter- und Bau-Einträge außer "später"
   for (const t of GEBAEUDE_TYPEN) t.freigeschaltet = true;
   schalteAlleKomponentenFrei();                     // Phase 7c: alle Komponenten und Gehäuse (bleibt im Spielstand)
   const hoechste = REPUTATION_STUFEN[REPUTATION_STUFEN.length - 1];
@@ -16417,7 +17257,15 @@ window.tradeUp = {
   aktualisiereAutomatik, lagerNimmtWare, siloWareVon, setzeSiloWare, smartNachkaufBedarf, smartNachkaufSchritt,
   setzeSmartNachkauf, naechsteImportzone, hatPuffer, untergrundPartner, planeUntergrund, baueUntergrund,
   taktFrei, segmentDurchsatz, tempoStufe, tempoFreigeschaltet, warnleuchtenAktiv, wareFalschGeroutet,
-  ioGatesAktiv, ueberschussPreis, istErforscht,
+  ioGatesAktiv, ueberschussPreis,
+  // Phase 7d: neue Forschung (drei Bäume, Zeitprojekte, Firmen-XP, Bauforschung, Sperren, Wirkungen)
+  FORSCHUNG_NEU, FORSCHUNG_BAEUME, MITARBEITER_FORSCHUNG, BAU_FORSCHUNG, BAU_KATEGORIEN, BAUTYP_FORSCHUNG, ALT_FORSCHUNG,
+  forschungNachId, istErforscht, forschungStatus, erforscheEintrag, forschungsEintraege, markiereErforscht, erforscheAlles,
+  starteForschungsprojekt, brichForschungsprojektAb, projektVon, projektStation, forschungsProjekte, firmenErfahrung,
+  bauSperre, bauForschungVon, forschungsSperre, sperrenAktiv, bauTierSichtbar, anzahlErforschtImTier, anzahlFreischaltbar,
+  forschungsWirkung, forschungsSumme, forschungsHoechstwert, forschungAktiv, arbeitsTempoVon, laufTempoVon, ladezeitVon,
+  einstellGebuehr, lohnVon, stelleEinMehrere, kloneMitarbeiter, setzeOverseer, overseerVon, bandTempo,
+  ladeForschung, stelleAlteForschungUm, gibErfahrung,
 };
 </script>
 

@@ -54,6 +54,11 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
   - **Fließband Mk.1 bis Mk.4** sind die Tempostufen mit **30 / 60 / 120 / 240 Items pro Minute** (Info-Fenster der Bandgruppe, gesperrte Stufen mit Schloss). **Warnleuchten** blinken bei falsch gerouteter Ware, **I/O-Gates** verkaufen wartenden Überschuss vor Lagern und Exportzone statt zu stauen (gesammelte Meldung). Ein **Overseer** (HR-009) – ein freier Arbeiter, im Info-Fenster der Bandgruppe zugewiesen – macht sein Segment schneller.
   - Der Kontor zeigt im Kassenbuch die Laufkosten von Bändern **und** Maschinen.
 
+- **Neustart, Auftrags-Slots & Einkaufspreise:**
+  - **Spiel neu starten**: Optionen (`O`) → Reiter „Spiel“ → „Spiel neu starten …“ mit Sicherheitsabfrage (auch „Spielstand zurücksetzen“ im Lager-Fenster und „Neues Spiel“ nach der Insolvenz). Alles geht ohne Neuladen auf die Startwerte zurück: 8.000 € Kontostand, Garage 16 × 8 mit Hauptlager, Import- und Exportzone, Startpersonal, Reputation „Neuling“, Tag 1; Gebäude, Bänder, Inventar, Depot, Aufträge und Forschung sind weg. Blaupausen und Einstellungen bleiben.
+  - **6 Auftrags-Slots**: Höchstens 6 Aufträge gleichzeitig. Slot 1 und 2 sind ab Start frei, Slot 3 bis 6 öffnen sich mit den Reputations-Meilensteinen (100 / 300 / 700 / 1.500 Punkte). Im Kontor sind gesperrte Slots mit 🔒, der fehlenden Stufe und einem Fortschrittsbalken markiert.
+  - **Rohstoffe 20 % billiger**: Metall 4,80 €, Kunststoff 3,20 €, Silizium 9,60 €, Holz 2,40 €. Der Wert von Bauteilen und Produkten (und damit Aufträge und Verkäufe) richtet sich weiter nach dem Grundpreis (`grundpreis` in `ROHSTOFFE`, Faktor `EINKAUF_FAKTOR`).
+
 ## Spiel starten
 
 **Lokal:** `index.html` per Doppelklick im Browser öffnen. Es wird eine Internetverbindung benötigt, weil Three.js von `unpkg.com` geladen wird.
@@ -96,7 +101,7 @@ Die leere Datei `.nojekyll` sorgt dafür, dass GitHub Pages die Dateien unverän
 | Auswahl kopieren / einfügen | `Strg+C` / `Strg+V`: die Kopie hängt an der Maus, `R` dreht, Klick stellt auf (mit `Shift` mehrmals), `Esc` bricht ab. Kopiert werden Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und Verknüpfungen innerhalb der Kopie, kein Inhalt |
 | Greifarm-Nehmer / -Geber | Nehmer (roter Ring) holt aus dem Gebäude hinter sich aufs Band, mit Auswahl des Items; Geber (grüner Ring) gibt vom Band in das Gebäude vor sich |
 | Testgeld und alles freischalten | Einstellungen (`O`) → Reiter „Entwicklung“ |
-| Einstellungen (Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
+| Einstellungen (Spiel neu starten, Tastenkürzel, Grafik) | Knopf „Optionen“, `O` |
 | Rezepte (Werkbank und Designer-Entwürfe), 📌 anheften | Knopf „Rezepte“, `Z` |
 | Station finden, die eine Ressource herstellt | Klick auf die Ressource in einem angehefteten Rezept |
 

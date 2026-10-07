@@ -1216,6 +1216,30 @@
   .ak-druck .info-balken span { background: var(--farbe-minus); }
   .ak-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; justify-content: space-between; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
   .ak-fuss .warn { color: var(--farbe-minus); font-weight: 700; }
+  /* Phase 8: Optionen → Spiel (Stand und Neustart) */
+  .spiel-stand { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .spiel-stand div { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--farbe-rand); border-radius: 10px; background: #fff; }
+  .spiel-stand small { font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .spiel-stand b { font-variant-numeric: tabular-nums; }
+  .neustart-box { padding: 4px 12px 12px; border: 1.5px solid var(--farbe-minus); border-radius: 12px; }
+  .neustart-box p { margin: 0 0 8px; font-size: var(--groesse-klein); }
+  .neustart-box .leise { color: var(--farbe-text-leise); }
+  @media (max-width: 520px) { .spiel-stand { grid-template-columns: repeat(2, 1fr); } }
+  /* Phase 8: Auftrags-Slots (6 Plätze; gesperrte mit Schloss) */
+  .ak-slot-nr { font-size: var(--groesse-klein); font-weight: 700; color: var(--farbe-text-leise); font-variant-numeric: tabular-nums; }
+  .auftrag-slot { display: flex; align-items: center; gap: 10px; min-height: 46px; padding: 8px 12px;
+                  border: 1.5px dashed var(--farbe-rand); border-radius: 12px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .auftrag-slot .slot-symbol { font-size: 1.15rem; width: 1.4em; text-align: center; }
+  .auftrag-slot .slot-text { flex: 1; display: grid; gap: 2px; }
+  .auftrag-slot .slot-text b { color: var(--farbe-text); }
+  .auftrag-slot.frei { background: rgba(255, 255, 255, 0.55); }
+  .auftrag-slot.gesperrt { background: repeating-linear-gradient(-45deg, rgba(0,0,0,0.035) 0 8px, transparent 8px 16px); opacity: 0.62; }
+  .auftrag-slot.gesperrt .slot-symbol { filter: grayscale(1); }
+  .auftrag-slot .info-balken { margin: 0; width: 90px; }
+  .slot-leiste { display: flex; gap: 4px; margin: 0 0 8px; }
+  .slot-leiste span { flex: 1; height: 6px; border-radius: 3px; background: var(--farbe-rand); }
+  .slot-leiste span.frei { background: #9cc7a4; }
+  .slot-leiste span.belegt { background: var(--farbe-geld); }
   .kontor-tabelle { width: 100%; border-collapse: collapse; font-size: var(--groesse-text); }
   .kontor-tabelle th {
     padding: 4px 6px;
@@ -1995,7 +2019,8 @@
       <button id="einstellungen-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Einstellungen schließen">✕</button>
     </header>
     <div class="kontor-reiter" role="tablist" aria-label="Bereich">
-      <button type="button" role="tab" data-einstellung-reiter="tasten" aria-selected="true">Tastenkürzel</button>
+      <button type="button" role="tab" data-einstellung-reiter="spiel" aria-selected="true">Spiel</button><!-- Phase 8: Neustart -->
+      <button type="button" role="tab" data-einstellung-reiter="tasten" aria-selected="false">Tastenkürzel</button>
       <button type="button" role="tab" data-einstellung-reiter="grafik" aria-selected="false">Grafik</button>
       <button type="button" role="tab" data-einstellung-reiter="entwicklung" aria-selected="false">Entwicklung</button>
     </div>
@@ -2556,13 +2581,21 @@ const PRODUKTION = {
 };
 
 // Rohstoffe: werden eingekauft (Phase 5), kommen ins Hauptlager und werden an der
-// Werkbank zu Bauteilen verarbeitet. "preis" = Einkaufspreis pro Stück in Euro.
+// Werkbank zu Bauteilen verarbeitet.
+//   grundpreis – Basispreis pro Stück in Euro (Grundlage für den Wert der Bauteile, Abschnitt 11e)
+//   preis      – Einkaufspreis pro Stück = grundpreis × EINKAUF_FAKTOR (wird unten ausgerechnet)
+// Phase 8: Die Einkaufskosten aller Standard-Rohstoffe sind um genau 20 % gesenkt. Der Wert der
+// Bauteile und Produkte richtet sich weiter nach dem Grundpreis – der Einkauf wird also billiger,
+// ohne dass Aufträge und Verkäufe weniger einbringen.
+const EINKAUF_FAKTOR = 0.8;   // 1 − 20 %
 const ROHSTOFFE = [
-  { id: "metall",     name: "Metall",     farbe: "#9aa3ab", preis: 6  },
-  { id: "kunststoff", name: "Kunststoff", farbe: "#f4f1ea", preis: 4  },
-  { id: "silizium",   name: "Silizium",   farbe: "#5b7fc4", preis: 12 },
-  { id: "holz",       name: "Holz",       farbe: "#a0703c", preis: 3  },   // Phase 7c: für Holzgehäuse
+  { id: "metall",     name: "Metall",     farbe: "#9aa3ab", grundpreis: 6  },   // Einkauf 4,80 €
+  { id: "kunststoff", name: "Kunststoff", farbe: "#f4f1ea", grundpreis: 4  },   // Einkauf 3,20 €
+  { id: "silizium",   name: "Silizium",   farbe: "#5b7fc4", grundpreis: 12 },   // Einkauf 9,60 €
+  { id: "holz",       name: "Holz",       farbe: "#a0703c", grundpreis: 3  },   // Phase 7c: für Holzgehäuse · Einkauf 2,40 €
 ];
+// Auf Cent gerundet, damit 0,8 × 6 genau 4,80 ergibt (und nicht 4,800000000000001)
+for (const r of ROHSTOFFE) r.preis = Math.round(r.grundpreis * EINKAUF_FAKTOR * 100) / 100;
 
 // Gebäude im Baumenü. Jedes Gebäude hat:
 //   typ          – interner Name (nicht ändern, sonst passen gespeicherte Spielstände nicht mehr)
@@ -2771,6 +2804,8 @@ const PRODUKTKLASSEN = [
 // Weltaufträge
 const AUFTRAEGE = {
   maxAngebote:           6,     // so viele Angebote passen höchstens aufs Auftragsbrett
+  maxGleichzeitig:       6,     // Phase 8: Hardcap – so viele Aufträge darf man höchstens gleichzeitig angenommen haben
+                                //          (6 Auftrags-Slots; wie viele davon frei sind, steht in REPUTATION_STUFEN)
   startAngebote:         3,     // so viele liegen beim Spielstart bereit
   neueProTag:            2,     // so oft pro Tag kommt ein neues Angebot dazu
   angebotLaufzeitTage:   3,     // so lange bleibt ein Angebot auf dem Brett, wenn es niemand nimmt
@@ -2793,6 +2828,8 @@ const KUNDEN = ["Elektro Krause", "Bastelbude Meier", "Technikhaus Nord", "Schul
 
 // Reputationslevel: "ab" = so viele Punkte braucht man; "gleichzeitig" = so viele Aufträge
 // darf man gleichzeitig annehmen; "bezahlungBonus" = Aufschlag auf neue Aufträge.
+// Phase 8 (Auftrags-Slots): Slot 1 und 2 sind ab Start frei, Slot 3 bis 6 schaltet je ein
+// Reputations-Meilenstein frei (100 / 300 / 700 / 1500 Punkte). Mehr als AUFTRAEGE.maxGleichzeitig geht nie.
 const REPUTATION_STUFEN = [
   { level: 1, name: "Neuling",     ab: 0,    gleichzeitig: 2, bezahlungBonus: 0    },
   { level: 2, name: "Bekannt",     ab: 100,  gleichzeitig: 3, bezahlungBonus: 0    },
@@ -6189,51 +6226,56 @@ for (const b of BAUTEILE) {
 for (const geh of GEHAEUSE) ITEMS.set(geh.id, { id: geh.id, name: geh.name, farbe: geh.farbe, art: "gehaeuse", symbol: geh.symbol });
 
 // Der gesamte Zustand der Halle (wird auch gespeichert, siehe Abschnitt 11d).
-const spiel = {
-  gebaeude: new Map(),          // id → Gebäude
-  naechsteId: 1,
-  depot: { gebaeude: {}, items: {}, baender: {} },  // Lager AUSSERHALB des Rasters: abgebaute Maschinen, Items und (Phase 6) Bandteile
-  naechstePersonId: 1,
-  tempo: 1,                     // 0 = Pause, 1, 2, 3
-  tempoVorPause: 1,
-  produktNamen: {},             // Blaupausen-ID → Name (bleibt, auch wenn die Blaupause gelöscht wird)
-  statistik: { produziert: 0, ausschuss: 0, verkauft: 0, umsatz: 0, zerlegt: 0,
-               auftraegeErfuellt: 0, auftraegeVersaeumt: 0 },
-  schnappschuss: null,          // letzter Aufbau vor "Halle bereinigen"
-  version: 0,                   // zählt jede Bestandsänderung (die Anzeige zeichnet dann neu)
-  strukturVersion: 0,           // zählt Bau, Abriss, Verknüpfungen, Rezepte, Personal
+// Phase 8: als Funktion, damit "Spiel neu starten" (setzeSpielZurueck, Abschnitt 11d) jederzeit
+// frische Startwerte bekommt – dieselben wie beim allerersten Start.
+function spielStartwerte() {
+  return {
+    gebaeude: new Map(),          // id → Gebäude
+    naechsteId: 1,
+    depot: { gebaeude: {}, items: {}, baender: {} },  // Lager AUSSERHALB des Rasters: abgebaute Maschinen, Items und (Phase 6) Bandteile
+    naechstePersonId: 1,
+    tempo: 1,                     // 0 = Pause, 1, 2, 3
+    tempoVorPause: 1,
+    produktNamen: {},             // Blaupausen-ID → Name (bleibt, auch wenn die Blaupause gelöscht wird)
+    statistik: { produziert: 0, ausschuss: 0, verkauft: 0, umsatz: 0, zerlegt: 0,
+                 auftraegeErfuellt: 0, auftraegeVersaeumt: 0 },
+    schnappschuss: null,          // letzter Aufbau vor "Halle bereinigen"
+    version: 0,                   // zählt jede Bestandsänderung (die Anzeige zeichnet dann neu)
+    strukturVersion: 0,           // zählt Bau, Abriss, Verknüpfungen, Rezepte, Personal
 
-  // --- Phase 5: Wirtschaft, Aufträge, Forschung (Abschnitte 11e bis 11g) ---
-  zeit: 0,                      // Spielzeit in Sekunden seit Spielbeginn (0 = Tag 1, 08:00 Uhr)
-  konto: WIRTSCHAFT.startKapital,
-  kassenbuch: [],               // je Tag { tag, ein: { Art: Euro }, aus: { Art: Euro } }
-  bankrottRest: null,           // Restzeit des Bankrott-Timers in Sekunden (null = Konto nicht im Minus)
-  insolvent: false,             // true = Spiel verloren
-  nachfrage: {},                // Produktklasse (oder "sonstige") → Nachfragefaktor (1 = normal)
-  angebote: [],                 // Aufträge auf dem Auftragsbrett
-  auftraege: [],                // angenommene Aufträge
-  naechsteAuftragId: 1,
-  reputation: 0,                // Reputationspunkte
-  konkurrenten: [],             // { id, staerke, reputation } (Name und Schwerpunkt aus KONKURRENTEN)
-  fp: 0,                        // Forschungspunkte
-  erforscht: [],                // IDs aus FORSCHUNG
-  entdeckteKlassen: [],         // Produktklassen, deren Produkt schon einmal zerlegt wurde
-  autoKauf: {},                 // Rohstoff → Mindestbestand im Hauptlager (0 = aus)
-  autoVerkauf: {},              // Item → true (automatisch verkaufen)
-  produktTeile: {},             // Blaupausen-ID → { Bauteil: Anzahl } (bleibt, auch wenn die Blaupause gelöscht wird)
-  produktUeberhitzt: {},        // Blaupausen-ID → true/false
-  produktGehaeuse: {},          // Phase 7c: Blaupausen-ID → Gehäuse-ID (für den Wertfaktor)
-  hergestellt: {},              // Phase 7c: Item → so viele Stück an Stationen hergestellt (Einkauf zählt nicht)
-  freigeschaltet: [],           // Phase 7c: Komponenten und Gehäuse, die im Spiel freigeschaltet wurden (über den Start hinaus)
+    // --- Phase 5: Wirtschaft, Aufträge, Forschung (Abschnitte 11e bis 11g) ---
+    zeit: 0,                      // Spielzeit in Sekunden seit Spielbeginn (0 = Tag 1, 08:00 Uhr)
+    konto: WIRTSCHAFT.startKapital,
+    kassenbuch: [],               // je Tag { tag, ein: { Art: Euro }, aus: { Art: Euro } }
+    bankrottRest: null,           // Restzeit des Bankrott-Timers in Sekunden (null = Konto nicht im Minus)
+    insolvent: false,             // true = Spiel verloren
+    nachfrage: {},                // Produktklasse (oder "sonstige") → Nachfragefaktor (1 = normal)
+    angebote: [],                 // Aufträge auf dem Auftragsbrett
+    auftraege: [],                // angenommene Aufträge
+    naechsteAuftragId: 1,
+    reputation: 0,                // Reputationspunkte
+    konkurrenten: [],             // { id, staerke, reputation } (Name und Schwerpunkt aus KONKURRENTEN)
+    fp: 0,                        // Forschungspunkte
+    erforscht: [],                // IDs aus FORSCHUNG
+    entdeckteKlassen: [],         // Produktklassen, deren Produkt schon einmal zerlegt wurde
+    autoKauf: {},                 // Rohstoff → Mindestbestand im Hauptlager (0 = aus)
+    autoVerkauf: {},              // Item → true (automatisch verkaufen)
+    produktTeile: {},             // Blaupausen-ID → { Bauteil: Anzahl } (bleibt, auch wenn die Blaupause gelöscht wird)
+    produktUeberhitzt: {},        // Blaupausen-ID → true/false
+    produktGehaeuse: {},          // Phase 7c: Blaupausen-ID → Gehäuse-ID (für den Wertfaktor)
+    hergestellt: {},              // Phase 7c: Item → so viele Stück an Stationen hergestellt (Einkauf zählt nicht)
+    freigeschaltet: [],           // Phase 7c: Komponenten und Gehäuse, die im Spiel freigeschaltet wurden (über den Start hinaus)
 
-  // --- Phase 6: Fließbänder, Automatisierung, Halle (Abschnitte 11h bis 11j) ---
-  baender: new Map(),           // Bandteil-ID → Bandteil (Band, Splitter, Zusammenführung, Übergang, Greifarm, Brücke)
-  naechsteBandId: 1,
-  bandVersion: 0,               // zählt jede Änderung an den Bändern (die 3D-Ansicht baut dann neu)
-  halleStufe: 0,                // Ausbaustufe der Halle (Index in HALLE_STUFEN)
-  autoZuweisung: PERSONAL.autoZuweisung,   // freie Arbeiter automatisch an Stationen setzen?
-  rezeptPins: [],               // Phase 7a (Nachtrag 2): angeheftete Rezepte [{ schluessel, zu }]
-};
+    // --- Phase 6: Fließbänder, Automatisierung, Halle (Abschnitte 11h bis 11j) ---
+    baender: new Map(),           // Bandteil-ID → Bandteil (Band, Splitter, Zusammenführung, Übergang, Greifarm, Brücke)
+    naechsteBandId: 1,
+    bandVersion: 0,               // zählt jede Änderung an den Bändern (die 3D-Ansicht baut dann neu)
+    halleStufe: 0,                // Ausbaustufe der Halle (Index in HALLE_STUFEN)
+    autoZuweisung: PERSONAL.autoZuweisung,   // freie Arbeiter automatisch an Stationen setzen?
+    rezeptPins: [],               // Phase 7a (Nachtrag 2): angeheftete Rezepte [{ schluessel, zu }]
+  };
+}
+const spiel = spielStartwerte();
 
 // Name, Farbe und Art eines Items
 function itemInfo(id) {
@@ -8565,11 +8607,62 @@ function starteSpiel() {
   document.addEventListener("visibilitychange", () => { if (document.hidden) speichereSpielstand(); });
 }
 
-// Löscht den gespeicherten Spielstand und lädt die Seite neu (Neustart).
+// Löscht den gespeicherten Spielstand und lädt die Seite neu (Notfall-Neustart, falls
+// setzeSpielZurueck einmal scheitert).
 function setzeSpielstandZurueck() {
   spielstandAktiv = false;            // verhindert, dass beim Neuladen wieder gespeichert wird
   try { window.localStorage.removeItem(PRODUKTION.speicherSchluessel); } catch (fehler) { /* egal */ }
   window.location.reload();
+}
+
+/* --- Phase 8: "Spiel neu starten" – alles auf die Startwerte, ohne die Seite neu zu laden ---
+   Ablauf:
+     1. Halle leeren: dieselbe Logik wie "Halle bereinigen" (halleBereinigen) – Bänder, Greifarme und
+        alle Gebäude werden abgebaut, jedes Gebäude meldet "gebaeudeEntfernt". Danach gehen alle Personen.
+     2. Ereignis "spielZurueckgesetzt": Der 3D-Teil ruft clearHalle() auf und entfernt sofort alle
+        Modelle vom Raster (Abschnitt 12), die Oberfläche schließt offene Fenster (Abschnitt 13b).
+     3. Alle Variablen auf die Startwerte (spielStartwerte, Abschnitt 11): Kontostand, Inventar, Depot,
+        Gebäude, Bänder, Reputation, Aufträge, Forschung, Komponenten-Freischaltungen, Kalender, Halle 16 × 8.
+     4. Neues Spiel aufbauen wie beim allerersten Start (starteNeuesSpiel) und gleich speichern.
+   Bleibt erhalten: Blaupausen (eigener Speicher) und Einstellungen (Tasten, Grafik).
+   Rückgabe: true (in place neu gestartet) – scheitert etwas, lädt die Seite ohne Spielstand neu. */
+function setzeSpielZurueck() {
+  spielstandAktiv = false;                       // während des Umbaus nicht zwischendurch speichern
+  try {
+    // 1. Halle leeren (Gebäude, Bänder, Items) und alle Personen gehen lassen
+    halleBereinigen();
+    for (const p of mitarbeiter) haltePersonAn(p);
+    mitarbeiter.splice(0);                       // auch "Du" – kommt beim Neuaufbau wieder dazu
+    meldeEreignis("mitarbeiterGeaendert", {});
+    // 2. Darstellung: alle 3D-Modelle vom Raster (clearHalle), offene Fenster zu
+    meldeEreignis("spielZurueckgesetzt", {});
+    // 3. Variablen auf Startwerte. Die Zähler für "neu zeichnen" laufen weiter, damit keine
+    //    zwischengespeicherte Anzeige einen alten Stand für aktuell hält.
+    const start = spielStartwerte();
+    start.version = spiel.version + 1;
+    start.strukturVersion = spiel.strukturVersion + 1;
+    start.bandVersion = spiel.bandVersion + 1;
+    for (const schluessel of Object.keys(spiel)) if (!(schluessel in start)) delete spiel[schluessel];   // z. B. Zähler aus späteren Phasen
+    Object.assign(spiel, start);
+    spiel.forschung = neueForschungsDaten();
+    ladeKomponenten(null);                       // Phase 7c: nur die Start-Komponenten sind frei
+    setzeHallenStufe(0);                         // Phase 6: Halle wieder 16 × 8
+    simRest = 0; auftragsTimer = 0; automatikTimer = 0; duTimer = 0;
+    // 4. Neues Spiel wie beim ersten Start
+    erneuereBlaupausenSpeicher();                // Produktnamen und -werte der (erhaltenen) Blaupausen
+    starteNeuesSpiel();
+    baueBandTopologie();
+    setzeTempo(1);
+    meldeStruktur();
+    spielstandAktiv = true;
+    speichereSpielstand();
+    meldeEreignis("spielNeuGestartet", {});
+    return true;
+  } catch (fehler) {
+    console.error("Spiel neu starten fehlgeschlagen – lade ohne Spielstand neu", fehler);
+    setzeSpielstandZurueck();
+    return false;
+  }
 }
 
 /* ============================================================================
@@ -8581,6 +8674,9 @@ function setzeSpielstandZurueck() {
 /* --- Kleine Helfer --- */
 const euroFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 function euro(betrag) { return `${euroFormat.format(Math.round(betrag))}\u00a0€`; }   // geschütztes Leerzeichen: kein Umbruch vor €
+// Phase 8: Stückpreise mit Cent (Rohstoffe kosten jetzt z. B. 4,80 €)
+const euroCentFormat = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function euroStueck(betrag) { return `${euroCentFormat.format(betrag)}\u00a0€`; }
 function zahlText(n) { return String(Math.round(n * 10) / 10).replace(".", ","); }
 function zufall(min, max) { return min + Math.random() * (max - min); }
 function zufallGanz(min, max) { return Math.floor(zufall(min, max + 1)); }
@@ -8639,9 +8735,15 @@ function tagesBilanz(e) {
 }
 
 /* --- Markt: Werte, Produktklassen, Nachfrage --- */
+// Einkaufspreis pro Stück (Phase 8: 20 % unter dem Grundpreis)
 function rohstoffPreis(id) {
   const r = ROHSTOFFE.find((x) => x.id === id);
   return r ? r.preis : 0;
+}
+// Grundpreis pro Stück – nur für den Wert der Bauteile (Phase 8)
+function rohstoffGrundpreis(id) {
+  const r = ROHSTOFFE.find((x) => x.id === id);
+  return r ? r.grundpreis : 0;
 }
 // berechneBauteilwert: Materialkosten × Faktor + Arbeitszeit × Euro pro Sekunde
 // (Phase 7c: gilt auch für Gehäuse; höhere Tiers sind über Rezept und Zeit wertvoller)
@@ -8649,7 +8751,7 @@ function berechneBauteilwert(typ) {
   const b = herstellbarNachTyp.get(typ);
   if (!b) return 0;
   let material = 0;
-  for (const [id, n] of Object.entries(b.rezept || {})) material += rohstoffPreis(id) * n;
+  for (const [id, n] of Object.entries(b.rezept || {})) material += rohstoffGrundpreis(id) * n;   // Phase 8: Grundpreis, nicht Einkaufspreis
   return Math.round(material * WIRTSCHAFT.bauteilMaterialFaktor + (b.zeit || 0) * WIRTSCHAFT.bauteilEuroProSekunde);
 }
 // Erfüllen diese Bauteile ({ typ: Anzahl }) die Produktklasse? (Phase 7c: je eine Komponente aus jeder Kategorie)
@@ -9241,6 +9343,28 @@ function aendereReputation(delta) {
   if (neu !== alt) meldeEreignis("reputationsStufe", { alt, neu: reputationsStufe() });
 }
 
+/* --- Phase 8: Auftrags-Slots ---
+   Es gibt AUFTRAEGE.maxGleichzeitig (6) Plätze für angenommene Aufträge. Wie viele davon frei sind,
+   hängt am Reputationslevel (REPUTATION_STUFEN.gleichzeitig): 2 ab Start, je Meilenstein einer mehr. */
+// So viele Aufträge darf man mit dieser Reputation gleichzeitig annehmen
+function freieAuftragsSlots(punkte = spiel.reputation) {
+  return Math.min(AUFTRAEGE.maxGleichzeitig, reputationsStufe(punkte).gleichzeitig);
+}
+// Ab welcher Reputationsstufe ist Slot nr (1 … maxGleichzeitig) frei? (null = nie)
+function stufeFuerSlot(nr) {
+  return REPUTATION_STUFEN.find((st) => Math.min(AUFTRAEGE.maxGleichzeitig, st.gleichzeitig) >= nr) || null;
+}
+// Alle Slots für die Anzeige: [{ nr, auftrag (oder null), frei, stufe (die ihn freischaltet) }]
+// Angenommene Aufträge belegen die ersten Slots – auch wenn die Reputation inzwischen gesunken ist.
+function auftragsSlots() {
+  const frei = freieAuftragsSlots();
+  const slots = [];
+  for (let nr = 1; nr <= Math.max(AUFTRAEGE.maxGleichzeitig, spiel.auftraege.length); nr++) {
+    slots.push({ nr, auftrag: spiel.auftraege[nr - 1] || null, frei: nr <= frei, stufe: stufeFuerSlot(nr) });
+  }
+  return slots;
+}
+
 // Legt ein neues Angebot aufs Auftragsbrett (passend zum Reputationslevel).
 function erzeugeAngebot() {
   if (spiel.angebote.length >= AUFTRAEGE.maxAngebote) return null;
@@ -9292,8 +9416,10 @@ function nimmAuftragAn(id) {
   const angebot = spiel.angebote.find((a) => a.id === id);
   if (!angebot || spiel.insolvent) return { ok: false, grund: "Dieses Angebot gibt es nicht mehr." };
   const stufe = reputationsStufe();
-  if (spiel.auftraege.length >= stufe.gleichzeitig) {
-    return { ok: false, grund: `Mit Reputation „${stufe.name}“ gehen höchstens ${stufe.gleichzeitig} Aufträge gleichzeitig.` };
+  if (spiel.auftraege.length >= freieAuftragsSlots()) {    // Phase 8: Auftrags-Slots
+    const naechste = stufeFuerSlot(spiel.auftraege.length + 1);
+    return { ok: false, grund: `Alle ${freieAuftragsSlots()} freien Auftrags-Slots sind belegt (Reputation „${stufe.name}“).`
+      + (naechste ? ` Der nächste Slot öffnet sich ab „${naechste.name}“ (${naechste.ab} Reputation).` : "") };
   }
   spiel.angebote.splice(spiel.angebote.indexOf(angebot), 1);
   angebot.angenommen = spiel.zeit;
@@ -14247,13 +14373,67 @@ function zeichneWarnleuchten(zeit) {
   w.strahl.material.opacity = wenigerAnimation ? 0.5 : 0.35 + 0.55 * puls;
 }
 // Phase 7d: für Tests und die Browser-Konsole (3D-Einträge der Gebäude und Bandteile)
-window.tradeUp3d = { gebaeude3d, bandModelle, warnleuchten, OMNI_PLAETZE };
+window.tradeUp3d = { gebaeude3d, bandModelle, warnleuchten, OMNI_PLAETZE, mitarbeiter3d, wagen3d };
 
 // Hallenausbau: Boden, Sockel und Schatten mitwachsen lassen, Anzeige oben links erneuern
 spielEreignisse.addEventListener("halleGewachsen", () => {
   passeHalleAn3d();
   document.getElementById("hud-level").textContent = level.name;
   document.getElementById("hud-masse").textContent = `${level.breite} × ${level.tiefe} Kacheln`;
+  begrenzeKameraZiel();
+  aktualisiereKamera();
+});
+
+/* --- Phase 8: Szenen-Bereinigung beim Neustart ---
+   clearHalle() entfernt SOFORT alle Modelle, die zum Spielstand gehören, vom Raster: Gebäude (auch die
+   gerade erst abgebauten, deren Schrumpf-Animation noch läuft), Zugangspfeile, Status- und Lagerschilder,
+   Mitarbeiter, Bänder und Greifarme, Lieferwagen, Schwebetexte, Stau-Schilder, Pfad und Zielmarke.
+   Warum sofort und nicht animiert: Nach dem Neustart vergibt die Logik wieder dieselben IDs (g1, m1, b1 …).
+   Würde ein altes, noch verschwindendes Modell unter derselben ID weiterleben, überschriebe das neue
+   seinen Eintrag – das alte Mesh bliebe als "Geist" in der Szene stehen. Rückgabe: Anzahl entfernter Objekte.
+   Geometrien werden hier nicht freigegeben, weil Items und Bauteile sie gemeinsam benutzen
+   (wie beim normalen Abriss). */
+function clearHalle() {
+  let entfernt = 0;
+  const weg = (objekt) => { if (objekt && objekt.parent) { objekt.parent.remove(objekt); entfernt++; } };
+  // Gebäude mit allem, was außerhalb ihrer Hülle in der Szene hängt
+  for (const eintrag of gebaeude3d.values()) {
+    weg(eintrag.huelle);
+    weg(eintrag.pfeil);
+    if (eintrag.status) weg(eintrag.status.anzeige);
+    if (eintrag.lagerMarke) weg(eintrag.lagerMarke.schild);
+    if (eintrag.stationsMarke) weg(eintrag.stationsMarke.schild);
+  }
+  gebaeude3d.clear();
+  // Mitarbeiter
+  for (const modell of mitarbeiter3d.values()) weg(modell.gruppe);
+  mitarbeiter3d.clear();
+  // Bänder, Greifarme, Brücken (die Items darauf zeichnet jedes Bild neu aus spiel.baender)
+  for (const id of [...bandModelle.keys()]) { if (bandModelle.get(id).gruppe.parent) entfernt++; entferneBandModell(id); }
+  bandVersion3d = -1;                              // beim nächsten Bild mit dem neuen Stand abgleichen
+  bandRahmenNeu();
+  // Liefer- und Abholwagen der Zonen
+  for (const w of wagen3d.values()) weg(w);
+  wagen3d.clear();
+  // Schwebetexte und Splitter
+  for (const s of schwebende) weg(s.objekt);
+  schwebende.length = 0;
+  for (const schild of stauSchilder) schild.visible = false;
+  // Pfad, Zielmarke, Warnmarke der Spielfigur
+  pfadPunkte.count = 0;
+  zielMarke.visible = false;
+  warnZeit = 0;
+  return entfernt;
+}
+// Die Logik meldet den Neustart, sobald die Halle geleert ist (setzeSpielZurueck, Abschnitt 11d)
+spielEreignisse.addEventListener("spielZurueckgesetzt", () => {
+  clearHalle();
+  kameraFlugZiel = null;
+});
+// Nach dem Neuaufbau: Halle ganz ins Bild (Startansicht wie beim ersten Laden)
+spielEreignisse.addEventListener("spielNeuGestartet", () => {
+  passeHalleAn3d();
+  zoomeAufGarage();
   begrenzeKameraZiel();
   aktualisiereKamera();
 });
@@ -15220,7 +15400,7 @@ function importzoneHtml(g) {
     const b = g.bestellungen.find((x) => x.item === r.id);
     const wann = !b ? "" : !b.rhythmus ? "Rhythmus wählen" : !b.menge ? "Menge eintippen"
       : spiel.zeit >= b.naechste ? "gleich" : `nächste in ${dauerSek(b.naechste - spiel.zeit)}`;
-    return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span> <small class="leise">${euro(r.preis)}</small>${wann ? `<br><small class="leise">${wann}</small>` : ""}</td>
+    return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span> <small class="leise">${euroStueck(r.preis)}</small>${wann ? `<br><small class="leise">${wann}</small>` : ""}</td>
       <td><input class="max-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="bestell-menge" data-item="${r.id}"
         value="${b && b.menge ? b.menge : ""}" placeholder="0" aria-label="Menge ${r.name}" title="Menge eintippen, Enter übernimmt"></td>
       <td><select class="rhythmus-wahl" data-aktion="bestell-rhythmus" data-item="${r.id}" aria-label="Rhythmus ${r.name}">
@@ -15642,11 +15822,7 @@ ob.lagerDepot.addEventListener("click", (e) => {     // Phase 5: Maschinen aus d
   zeichneLager();
 });
 ob.lagerWiederherstellen.addEventListener("click", () => { aufbauWiederherstellen(); zeichneLager(); });
-$("lager-zuruecksetzen").addEventListener("click", () => frage({
-  titel: "Spielstand zurücksetzen?",
-  text: "Die ganze Halle, das Depot und alle Mitarbeiter werden gelöscht und das Spiel beginnt von vorn. Deine Blaupausen bleiben erhalten.",
-  ok: "Zurücksetzen",
-}, setzeSpielstandZurueck));
+$("lager-zuruecksetzen").addEventListener("click", () => frageSpielNeuStarten());   // Phase 8: wie Optionen → Spiel
 ob.lagerOverlay.addEventListener("click", (e) => { if (e.target === ob.lagerOverlay) schliesseLager(); });
 
 /* --- Bestätigungsfenster --- */
@@ -15840,19 +16016,23 @@ function kontorAuftraege() {
           ? `passt: ${produkte.map((p) => htmlSicher(itemInfo(p).name)).join(", ")}`
           : `<span class="warn">noch keine passende Blaupause</span>`} · verschwindet in ${dauerText(a.ablauf - spiel.zeit)}</span>
         <button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="annehmen" data-id="${a.id}"
-          ${spiel.auftraege.length >= stufe.gleichzeitig || zuHoch ? "disabled" : ""}>Annehmen</button>
+          ${spiel.auftraege.length >= freieAuftragsSlots() || zuHoch ? "disabled" : ""}
+          ${spiel.auftraege.length >= freieAuftragsSlots() ? `title="Alle freien Auftrags-Slots sind belegt"` : ""}>Annehmen</button>
       </div>
     </article>`;
   }).join("") || `<p class="info-leer">Gerade keine Angebote. Neue kommen ${AUFTRAEGE.neueProTag}-mal am Tag.</p>`;
 
-  const auftraege = spiel.auftraege.map((a) => {
+  // Phase 8: Angenommene Aufträge als Slots – belegt, frei oder (Reputation fehlt) gesperrt mit Schloss
+  const frei = freieAuftragsSlots();
+  const slots = auftragsSlots();
+  const auftragsKarte = (a, nr) => {
     const klasse = klasseNachId.get(a.klasse);
     const rest = a.frist - spiel.zeit;
     const frueh = rest > (a.fristTage * WIRTSCHAFT.tagSekunden) / 2;
     const inZone = inExportzone(a);                  // Phase 7b: geliefert wird über die Exportzone
     const rest_ = a.menge - a.geliefert;
-    return `<article class="auftrag-karte${rest < WIRTSCHAFT.tagSekunden ? " eng" : ""}">
-      <div class="ak-kopf"><span class="ak-symbol" aria-hidden="true">${klasse.symbol}</span>
+    return `<article class="auftrag-karte${rest < WIRTSCHAFT.tagSekunden ? " eng" : ""}" aria-label="Auftrags-Slot ${nr}">
+      <div class="ak-kopf"><span class="ak-slot-nr" title="Auftrags-Slot ${nr}">#${nr}</span><span class="ak-symbol" aria-hidden="true">${klasse.symbol}</span>
         <b>${klasse.name} · ${a.geliefert} / ${a.menge}</b><span class="ak-kunde">${htmlSicher(a.kunde)}</span></div>
       <div class="info-balken"><span style="width:${Math.round((a.geliefert / a.menge) * 100)}%"></span></div>
       <div class="ak-werte">
@@ -15865,13 +16045,34 @@ function kontorAuftraege() {
           : lieferbar(a) ? ` · im Hauptlager: ${lieferbar(a)} (Kuriere bringen es)` : ` · <span class="warn">keine passende Fertigware</span>`} · braucht ${klassenTeileText(klasse)}</span>
       </div>
     </article>`;
-  }).join("") || `<p class="info-leer">Noch kein Auftrag angenommen.</p>`;
+  };
+  const auftraege = slots.map((sl) => {
+    if (sl.auftrag) return auftragsKarte(sl.auftrag, sl.nr);
+    if (sl.frei) {
+      return `<div class="auftrag-slot frei" aria-label="Auftrags-Slot ${sl.nr}: frei"><span class="ak-slot-nr">#${sl.nr}</span>
+        <span class="slot-symbol" aria-hidden="true">＋</span>
+        <span class="slot-text"><b>Freier Slot</b><span>Nimm ein Angebot vom Auftragsbrett an.</span></span></div>`;
+    }
+    // Gesperrt: Welche Reputationsstufe fehlt noch, und wie weit ist es?
+    const st = sl.stufe;
+    const fehlt = st ? Math.max(0, st.ab - spiel.reputation) : 0;
+    const anteil = st ? Math.min(1, spiel.reputation / st.ab) : 0;
+    return `<div class="auftrag-slot gesperrt" aria-disabled="true" aria-label="Auftrags-Slot ${sl.nr}: gesperrt"
+        title="${st ? `Öffnet sich mit Reputation Level ${st.level} „${st.name}“ (${st.ab} Punkte)` : "Gesperrt"}"><span class="ak-slot-nr">#${sl.nr}</span>
+      <span class="slot-symbol" aria-hidden="true">🔒</span>
+      <span class="slot-text"><b>Gesperrt</b><span>${st ? `ab ★ Lv ${st.level} „${st.name}“ · noch ${fehlt} Reputation` : "Nicht verfügbar"}</span></span>
+      ${st ? `<div class="info-balken" title="${spiel.reputation} / ${st.ab} Reputation"><span style="width:${Math.round(anteil * 100)}%"></span></div>` : ""}
+    </div>`;
+  }).join("");
+  const leiste = `<div class="slot-leiste" aria-hidden="true">${slots.map((sl) =>
+    `<span class="${sl.auftrag ? "belegt" : sl.frei ? "frei" : ""}"></span>`).join("")}</div>`;
 
   return `<p class="kontor-hinweis">Kunden bestellen eine Produktklasse: Jedes nicht überhitzte Produkt mit diesen Bauteilen zählt.
-      Geliefert wird über die Exportzone: Kuriere bringen passende Fertigware hin, der Abholwagen liefert, sobald die ganze Menge dort liegt. Reputation „${stufe.name}“: höchstens ${stufe.gleichzeitig} Aufträge gleichzeitig.</p>
+      Geliefert wird über die Exportzone: Kuriere bringen passende Fertigware hin, der Abholwagen liefert, sobald die ganze Menge dort liegt.
+      Reputation „${stufe.name}“: ${frei} von ${AUFTRAEGE.maxGleichzeitig} Auftrags-Slots frei – weitere öffnen sich mit steigender Reputation.</p>
     <div class="kontor-spalten">
       <section><h3>Auftragsbrett · ${spiel.angebote.length} / ${AUFTRAEGE.maxAngebote}</h3><div class="auftrag-liste">${angebote}</div></section>
-      <section><h3>Angenommen · ${spiel.auftraege.length} / ${stufe.gleichzeitig}</h3><div class="auftrag-liste">${auftraege}</div></section>
+      <section><h3>Auftrags-Slots · ${spiel.auftraege.length} / ${frei} belegt${frei < AUFTRAEGE.maxGleichzeitig ? ` · ${AUFTRAEGE.maxGleichzeitig - frei} 🔒` : ""}</h3>${leiste}<div class="auftrag-liste">${auftraege}</div></section>
     </div>`;
 }
 
@@ -15921,7 +16122,7 @@ function kontorEinkauf() {
   const zeilen = ROHSTOFFE.map((r) => {
     const bestellt = zonen.flatMap((g) => g.bestellungen.filter((b) => b.item === r.id).map((b) => `${b.menge}× ${rhythmusNach.get(b.rhythmus)?.name || ""}`));
     return `<tr><td><span class="info-item" style="--item-farbe:${r.farbe}">${r.name}</span></td>
-      <td class="zahl">${euro(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td><td class="zahl">${zonenMenge("importzone", r.id)}</td>
+      <td class="zahl">${euroStueck(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td><td class="zahl">${zonenMenge("importzone", r.id)}</td>
       <td class="zahl">${wagenUnterwegs(r.id)}</td><td><small class="leise">${bestellt.join(", ") || "–"}</small></td></tr>`;
   }).join("");
   return `<p class="kontor-hinweis">Rohstoffe bestellst du in der <b>Importzone</b> (anklicken): Menge und Rhythmus pro Rohstoff.
@@ -16371,7 +16572,30 @@ function zeigeInsolvenz() {
   aktualisiereSperre();
   ob.insolvenzNeu.focus({ preventScroll: true });
 }
-ob.insolvenzNeu.addEventListener("click", setzeSpielstandZurueck);
+ob.insolvenzNeu.addEventListener("click", starteSpielNeu);   // Phase 8: ohne Neuladen (Notfall: Neuladen)
+
+/* --- Phase 8: Neustart – Oberfläche aufräumen ---
+   Beim Zurücksetzen (setzeSpielZurueck) schließen alle Fenster, Auswahl und Werkzeuge werden aufgehoben;
+   nach dem Neuaufbau zeigen HUD und Tempo-Knöpfe den neuen Stand. */
+spielEreignisse.addEventListener("spielZurueckgesetzt", () => {
+  if (dialogOffen) schliesseDialog(false);
+  if (designer.offen) schliesseDesigner();
+  schliesseAndereFenster();
+  if (bau.offen) schliesseBau();
+  setzeWerkzeug(null);
+  verknuepfModus = null;
+  waehleGebaeude(null);
+  setzeAuswahl(null);
+  if (insolvenzOffen) {
+    insolvenzOffen = false;
+    ob.insolvenzOverlay.hidden = true;
+    aktualisiereSperre();
+  }
+});
+spielEreignisse.addEventListener("spielNeuGestartet", () => {
+  zeigeTempo();
+  aktualisiereBauTipp();
+});
 
 /* --- Meldungen aus der Wirtschaft --- */
 spielEreignisse.addEventListener("tagesabschluss", (e) => {
@@ -16398,7 +16622,7 @@ spielEreignisse.addEventListener("auftragVersaeumt", (e) => {
 spielEreignisse.addEventListener("reputationsStufe", (e) => {
   const { alt, neu } = e.detail;
   zeigeMeldung(neu.level > alt
-    ? `Reputation Level ${neu.level} „${neu.name}“! Jetzt bis zu ${neu.gleichzeitig} Aufträge gleichzeitig.`
+    ? `Reputation Level ${neu.level} „${neu.name}“! Auftrags-Slot ${Math.min(AUFTRAEGE.maxGleichzeitig, neu.gleichzeitig)} ist frei – jetzt bis zu ${freieAuftragsSlots()} Aufträge gleichzeitig.`
     : `Reputation gesunken auf Level ${neu.level} „${neu.name}“.`, neu.level < alt);
 });
 spielEreignisse.addEventListener("erforscht", (e) => {
@@ -16438,7 +16662,7 @@ spielEreignisse.addEventListener("smartNachkauf", (e) => sammleMeldung("smart", 
    dann die neue Taste drücken (Esc bricht ab). Ist die Taste schon vergeben, tauschen
    die beiden Aktionen ihre Tasten – so ist nie eine Taste doppelt belegt.
    ============================================================================ */
-const einstellungsFenster = { offen: false, reiter: "tasten", wartetAuf: null, hinweis: "" };
+const einstellungsFenster = { offen: false, reiter: "spiel", wartetAuf: null, hinweis: "" };   // Phase 8: startet auf "Spiel"
 Object.assign(ob, {
   einstellungenOverlay: $("einstellungen-overlay"), einstellungenFenster: $("einstellungen-fenster"),
   einstellungenInhalt: $("einstellungen-inhalt"), einstellungenHinweis: $("einstellungen-hinweis"),
@@ -16495,6 +16719,8 @@ function zeichneEinstellungen() {
     html += `<p class="einstellungen-fest">Fest: <kbd>Esc</kbd> abbrechen · <kbd>Leer</kbd> Kamera zur Figur · Pfeiltasten Kamera · Rechte Maustaste ziehen · Mausrad zoomen · Mitarbeiter mit gedrückter linker Maustaste auf eine Station ziehen</p>`;
   } else if (einstellungsFenster.reiter === "entwicklung") {
     html += entwicklungHtml();                     // Abschnitt 13e
+  } else if (einstellungsFenster.reiter === "spiel") {
+    html += spielReiterHtml();                     // Phase 8: Spiel neu starten
   } else {
     html += `<div class="grafik-liste">`;
     for (const s of GRAFIK_SCHALTER) {
@@ -16507,6 +16733,42 @@ function zeichneEinstellungen() {
   }
   morphe(ob.einstellungenInhalt, html);
   setzeText(ob.einstellungenHinweis, einstellungsFenster.hinweis);
+  $("einstellungen-standard").hidden = einstellungsFenster.reiter === "spiel";   // gilt nur für Tasten und Grafik
+}
+/* --- Phase 8: Reiter "Spiel" – aktueller Stand und "Spiel neu starten" mit Sicherheitsabfrage --- */
+function spielReiterHtml() {
+  const stufe = reputationsStufe();
+  const personal = angestellte().length;
+  return `<div class="spiel-stand">
+      <div><small>Spieltag</small><b>${aktuellerTag()}</b></div>
+      <div><small>Kontostand</small><b>${euro(spiel.konto)}</b></div>
+      <div><small>Reputation</small><b>★ Lv ${stufe.level} ${stufe.name}</b></div>
+      <div><small>Gebäude · Bänder</small><b>${spiel.gebaeude.size} · ${spiel.baender.size}</b></div>
+      <div><small>Mitarbeiter</small><b>${personal}</b></div>
+      <div><small>Erforscht</small><b>${spiel.erforscht.length}</b></div>
+    </div>
+    <section class="neustart-box">
+      <h3 class="einstellungen-gruppe">Spiel neu starten</h3>
+      <p>Setzt alles auf den Anfang zurück: Kontostand ${euro(WIRTSCHAFT.startKapital)}, Garage ${level.breite} × ${HALLE_STUFEN[0].tiefe},
+        nur Hauptlager mit Startbestand, Import- und Exportzone, Reputation „${REPUTATION_STUFEN[0].name}“, Tag 1.
+        Gebäude, Bänder, Inventar, Depot, Mitarbeiter, Aufträge und Forschung gehen verloren.</p>
+      <p class="leise">Erhalten bleiben deine Blaupausen und diese Einstellungen.</p>
+      <button class="lz-knopf bau-gefahr" type="button" data-spiel-aktion="neustart">⟲ Spiel neu starten …</button>
+    </section>`;
+}
+// Fragt nach und startet dann neu (auch für "Spielstand zurücksetzen" im Lager und "Neues Spiel" bei Insolvenz)
+// Die Abfrage liegt über allen Fenstern (z-index 20); "Abbrechen" lässt das offene Fenster stehen.
+function frageSpielNeuStarten() {
+  frage({
+    titel: "Spiel wirklich neu starten?",
+    text: `Alles wird auf den Anfang zurückgesetzt: Kontostand ${euro(spiel.konto)} → ${euro(WIRTSCHAFT.startKapital)}, `
+      + `Reputation → „${REPUTATION_STUFEN[0].name}“, alle Gebäude, Bänder, Items, Mitarbeiter, Aufträge und Forschung werden gelöscht. `
+      + "Das lässt sich nicht rückgängig machen. Deine Blaupausen bleiben erhalten.",
+    ok: "Ja, neu starten",
+  }, starteSpielNeu);
+}
+function starteSpielNeu() {
+  if (setzeSpielZurueck()) zeigeMeldung(`Neues Spiel gestartet – Tag 1, ${euro(spiel.konto)} auf dem Konto. Viel Erfolg!`);
 }
 // Tastendruck, solange das Einstellungsfenster offen ist
 function einstellungsTaste(taste) {
@@ -16575,6 +16837,7 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
     zeichneEinstellungen();
     return;
   }
+  if (e.target.closest("[data-spiel-aktion='neustart']")) { frageSpielNeuStarten(); return; }   // Phase 8
   const entwickler = e.target.closest("[data-entwicklung]");   // Phase 7a: Test-Werkzeuge
   if (entwickler) { entwicklungAktion(entwickler.dataset.entwicklung); zeichneEinstellungen(); return; }
   const belegen = e.target.closest("[data-belegen]");
@@ -18663,6 +18926,9 @@ window.tradeUp = {
   forschungsWirkung, forschungsSumme, forschungsHoechstwert, forschungAktiv, arbeitsTempoVon, laufTempoVon, ladezeitVon,
   einstellGebuehr, lohnVon, stelleEinMehrere, kloneMitarbeiter, setzeOverseer, overseerVon, bandTempo,
   ladeForschung, stelleAlteForschungUm, gibErfahrung,
+  // Phase 8: Neustart, Auftrags-Slots, Einkaufspreise
+  setzeSpielZurueck, spielStartwerte, clearHalle, frageSpielNeuStarten, freieAuftragsSlots, stufeFuerSlot, auftragsSlots,
+  EINKAUF_FAKTOR, rohstoffPreis, rohstoffGrundpreis,
 };
 </script>
 

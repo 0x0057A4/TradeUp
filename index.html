@@ -331,7 +331,7 @@
 
   /* Das eigentliche Fenster */
   #lz-fenster {
-    width: min(800px, 100%);
+    width: min(1180px, 100%);   /* Phase 7c: breiter – Kategorie-Reiter links, große Gehäuse in der Mitte */
     max-height: 100%;
     overflow: auto;
     display: flex;
@@ -388,7 +388,7 @@
   /* Drei Spalten: Bauteile | Raster | Bewertung & Blaupausen */
   .lz-inhalt {
     display: grid;
-    grid-template-columns: 200px 1fr 230px;
+    grid-template-columns: 280px minmax(0, 1fr) 230px;   /* Phase 7c: Leiste mit Suche und Reitern */
     gap: 18px;
     padding: 16px 18px;
   }
@@ -411,6 +411,9 @@
     padding: 0;
     display: grid;
     gap: 6px;
+    max-height: min(56vh, 560px);   /* Phase 7c: 60+ Komponenten – die Leiste scrollt statt das Fenster zu strecken */
+    padding-right: 2px;
+    overflow-y: auto;
   }
   .lz-bauteil {
     width: 100%;
@@ -1520,6 +1523,132 @@
   .lz-ziel-teil.da { color: var(--farbe-eingang); border-color: var(--farbe-eingang); }
   .lz-ziel-teil.fehlt { color: var(--farbe-ausgang); border-color: var(--farbe-ausgang); }
   .lz-ziel-teil.fertig { color: #fff; background: var(--farbe-eingang); border-color: var(--farbe-eingang); }
+
+  /* ==========================================================================
+     Phase 7c: Komponenten & Gehäuse im Designer, Werkbank-Auswahl, Rezepte  [UI/UX-Agent]
+     ========================================================================== */
+  .lz-unsichtbar {   /* bleibt für Tastatur und Tests erreichbar, ist aber nicht zu sehen */
+    position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .lz-palette-zahl { font-weight: 600; text-transform: none; letter-spacing: normal; }
+  .lz-palette-kopf { display: grid; gap: 6px; margin-bottom: 8px; }
+  .lz-suche {
+    width: 100%; box-sizing: border-box; padding: 6px 10px;
+    font: inherit; font-size: var(--groesse-text); color: var(--farbe-text);
+    background: #fff; border: 1px solid var(--farbe-rand); border-radius: 8px;
+  }
+  .lz-suche:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-filter { display: flex; align-items: center; gap: 6px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); cursor: pointer; white-space: nowrap; }
+  .lz-filter input { width: 16px; height: 16px; margin: 0; accent-color: var(--farbe-akzent); }
+  /* Kategorie-Reiter: Symbol in der Kategorie-Farbe; "Alle" als Text */
+  .lz-kategorien { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .lz-kat {
+    position: relative; min-width: 0; height: 30px; padding: 0 4px;
+    font: inherit; font-size: 1rem; font-weight: 700; line-height: 1; color: var(--farbe-text);
+    background: color-mix(in srgb, var(--kat-farbe, #ddd) 28%, #fff);
+    border: 1px solid var(--kat-farbe, var(--farbe-rand)); border-radius: 8px; cursor: pointer;
+  }
+  .lz-kat.text { font-size: var(--groesse-klein); }
+  .lz-kat:hover { border-color: var(--farbe-akzent); }
+  .lz-kat:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-kat[aria-selected="true"] {
+    color: #fff; background: var(--kat-farbe, var(--farbe-text)); border-color: var(--farbe-text);
+    box-shadow: inset 0 0 0 1px #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  }
+  .lz-kat .lz-punkt {   /* in dieser Kategorie ist etwas freischaltbar */
+    position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--farbe-akzent); box-shadow: 0 0 0 2px var(--lz-fenster);
+  }
+  .rezepte-kategorien { display: flex; flex-wrap: wrap; }
+  .rezepte-kategorien .lz-kat { min-width: 38px; }
+  /* Gruppen- und Linien-Überschriften in der Leiste */
+  #lz-palette .lz-gruppe {
+    display: flex; align-items: center; gap: 6px; margin-top: 6px;
+    font-size: var(--groesse-klein); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--farbe-text-leise);
+  }
+  #lz-palette .lz-gruppe:first-child { margin-top: 0; }
+  #lz-palette .lz-gruppe::before {
+    content: attr(data-symbol); display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px;
+    color: #fff; background: var(--kat-farbe, var(--farbe-akzent)); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); text-transform: none;
+  }
+  #lz-palette .lz-linie { margin-top: 2px; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  #lz-palette .lz-leer { font-size: var(--groesse-klein); color: var(--farbe-text-leise); padding: 6px 2px; }
+  #lz-palette .lz-leer .lz-knopf { margin-top: 6px; font-size: var(--groesse-klein); }
+  .lz-bauteil, .lz-bauteil-gesperrt { border-left: 5px solid var(--kat-farbe, var(--farbe-rand)) !important; }
+  .lz-bauteil-gesperrt {
+    display: grid; grid-template-columns: 46px 1fr; align-items: center; gap: 8px; padding: 6px 8px;
+    color: var(--farbe-text); background: #f3f0ea; border: 1px dashed var(--farbe-rand); border-radius: 10px;
+  }
+  .lz-bauteil-gesperrt .lz-mini { opacity: 0.45; }
+  .lz-bauteil-gesperrt b { display: block; font-size: var(--groesse-text); color: var(--farbe-text-leise); }
+  .lz-bauteil-gesperrt small { display: block; font-size: var(--groesse-klein); color: var(--farbe-text-leise); }
+  .lz-bauteil-gesperrt.bereit { background: #fff6e8; border-color: var(--farbe-akzent); border-style: solid; }
+  .lz-bauteil-gesperrt.bereit b { color: var(--farbe-text); }
+  .lz-werte { display: flex !important; flex-wrap: wrap; gap: 0 6px; }
+  .lz-heiss { color: #b5482f; font-weight: 700; }
+  .lz-kuehl { color: #fff; background: #3d8fc4; padding: 0 5px; border-radius: 999px; font-weight: 700; }
+  .lz-fortschritt { display: block; height: 6px; margin: 4px 0 2px; background: var(--lz-zelle-farbe); border-radius: 999px; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+  .lz-fortschritt > span { display: block; height: 100%; background: var(--farbe-akzent); border-radius: 999px; }
+  .lz-freischalten { margin-top: 4px; padding: 4px 10px; font-size: var(--groesse-klein); }
+  /* Ziel-Kategorien mit Symbol und Farbe; Klick öffnet die Kategorie in der Leiste */
+  button.lz-ziel-teil { font: inherit; font-size: var(--groesse-klein); font-weight: 700; cursor: pointer; }
+  button.lz-ziel-teil:hover { box-shadow: 0 0 0 2px var(--kat-farbe, var(--farbe-akzent)); }
+  .lz-ziel-teil .lz-kat-symbol {
+    display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; margin-right: 4px; border-radius: 5px;
+    color: #fff; background: var(--kat-farbe, #999); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); font-size: 0.85em; vertical-align: -0.2em;
+  }
+  /* Gehäuse-Karten unter dem Raster */
+  .lz-gehaeuse-bereich { width: 100%; display: grid; gap: 6px; }
+  .lz-gehaeuse-titel { margin: 0; font-size: var(--groesse-klein); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--farbe-text-leise); }
+  .lz-gehaeuse-karten { display: grid; grid-template-columns: repeat(auto-fit, minmax(98px, 1fr)); gap: 6px; }
+  .lz-geh-karte {
+    display: grid; justify-items: center; align-content: start; gap: 1px; min-width: 0; padding: 7px 6px 6px;
+    font: inherit; font-size: var(--groesse-klein); color: var(--farbe-text); text-align: center;
+    background: #fff; border: 1px solid var(--farbe-rand); border-radius: 10px; cursor: pointer;
+  }
+  .lz-geh-karte:hover { border-color: var(--farbe-akzent); }
+  .lz-geh-karte:focus-visible { outline: 2px solid var(--farbe-akzent); outline-offset: 1px; }
+  .lz-geh-karte[aria-checked="true"] { background: #fff1e4; border-color: var(--farbe-akzent); box-shadow: inset 0 0 0 1px var(--farbe-akzent); }
+  .lz-geh-karte b { font-size: var(--groesse-klein); line-height: 1.2; }
+  .lz-geh-karte small { color: var(--farbe-text-leise); line-height: 1.3; }
+  .lz-geh-karte.gesperrt { cursor: default; background: #f3f0ea; border-style: dashed; }
+  .lz-geh-karte.gesperrt .lz-geh-form { opacity: 0.4; }
+  .lz-geh-karte.gesperrt.bereit { background: #fff6e8; border-color: var(--farbe-akzent); border-style: solid; }
+  .lz-geh-karte .lz-fortschritt { width: 100%; }
+  .lz-geh-form { display: grid; gap: 1px; margin-bottom: 3px; }
+  .lz-geh-form span { width: 7px; height: 7px; border-radius: 2px; }
+  .lz-gehaeuse-hinweis { margin: 0; padding: 6px 10px; font-size: var(--groesse-klein); color: #7a3a10; background: #fff1e4; border: 1px solid rgba(240, 138, 60, 0.45); border-radius: 8px; }
+  .lz-gehaeuse-hinweis[hidden] { display: none; }
+  .lz-gehaeuse-hinweis .lz-knopf { margin-left: 6px; padding: 2px 8px; font-size: var(--groesse-klein); }
+  .hud-freischaltbar { color: #6b3d00; background: #ffeedd; border-color: var(--farbe-akzent); }
+  .hud-freischaltbar:hover { background: #ffe0c2; }
+  /* Werkbank: Rezept-Suche und Kategorie */
+  .info-rezeptwahl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; margin-bottom: 4px; }
+  .info-rezeptwahl .lz-suche { padding: 4px 8px; font-size: var(--groesse-klein); }
+  .info-rezeptwahl select { min-width: 0; width: 100%; }
+  .info-rezeptwahl small { grid-column: 1 / -1; color: var(--farbe-text-leise); font-size: var(--groesse-klein); }
+  /* Rezepte-Fenster: Filterleiste */
+  .rezepte-filter {   /* bleibt beim Scrollen oben stehen */
+    position: sticky; top: 0; z-index: 1; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 12px;
+    padding: 12px 18px 8px; background: var(--lz-fenster); border-bottom: 1px solid var(--farbe-rand);
+  }
+  .rezepte-filter .rezepte-kategorien { grid-column: 1 / -1; }
+  .rezepte-inhalt h3[data-symbol]::before {
+    content: attr(data-symbol); display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 5px;
+    color: #fff; background: var(--kat-farbe, #999); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); text-transform: none;
+  }
+  /* Item-Zeilen (Lager, Info, Rezepte): Komponenten zeigen das Kategorie-Symbol im Farbfeld */
+  .info-item[data-symbol]::before, .rezept-item[data-symbol]::before {
+    content: attr(data-symbol); width: 1em; height: 1em; display: inline-grid; place-items: center;   /* gleiche Größe wie das Farbfeld */
+    font-size: 0.75em; line-height: 1; color: #fff; text-shadow: 0 0 2px rgba(0, 0, 0, 0.6);
+  }
+  /* in Listen (Lager, Bestände) und Rezept-Chips ist Platz für ein größeres Symbol; Tabellen bleiben schmal */
+  .info-zeilen .info-item[data-symbol]::before, .rezept-item[data-symbol]::before { width: 1.45em; height: 1.45em; font-size: 0.85em; border-radius: 4px; }
+  @media (max-width: 780px) {
+    #lz-palette .lz-gruppe, #lz-palette .lz-linie { display: none; }
+    .lz-gehaeuse-karten { grid-template-columns: repeat(5, minmax(84px, 1fr)); overflow-x: auto; }
+  }
 </style>
 </head>
 <body>
@@ -1537,7 +1666,9 @@
   <!-- Phase 6: freie Arbeiter (Klick öffnet den Personal-Reiter) -->
   <button id="hud-frei" class="hud-frei" type="button" hidden title="Arbeiter ohne Aufgabe – Personal öffnen">👤 0 ohne Aufgabe</button>
   <!-- Phase 7b: volle Lager und Stau (Klick springt zum nächsten) -->
-  <button id="hud-lager" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
+  <button id="hud-lagerwarnung" class="hud-frei hud-lager" type="button" hidden title="Volle Lager und Stationen im Stau – Klick springt hin">📦 Lager voll</button>
+  <!-- Phase 7c: Komponenten/Gehäuse, deren Herstellungsziel erreicht ist (Klick öffnet den Designer) -->
+  <button id="hud-freischaltbar" class="hud-frei hud-freischaltbar" type="button" hidden title="Herstellungsziel erreicht – im Designer freischalten">🔓 0 freischaltbar</button>
   <!-- Phase 5: Konto, Kalender, Reputation, Forschungspunkte -->
   <div class="wirtschaft-leiste">
     <button id="hud-konto" class="wl-chip" type="button" title="Kontor öffnen (K)">
@@ -1606,7 +1737,13 @@
     <div class="lz-inhalt">
       <!-- Linke Spalte: Bauteile zum Herausziehen -->
       <aside class="lz-spalte lz-teile">
-        <h3>Bauteile</h3>
+        <h3>Bauteile <small id="lz-palette-zahl" class="lz-palette-zahl"></small></h3>
+        <!-- Phase 7c: Suche, Kategorie-Reiter und Filter für 300 Komponenten -->
+        <div class="lz-palette-kopf">
+          <input id="lz-suche" class="lz-suche" type="search" placeholder="Bauteil suchen …" autocomplete="off" spellcheck="false" aria-label="Bauteile nach Namen suchen">
+          <div id="lz-kategorien" class="lz-kategorien" role="tablist" aria-label="Kategorien"></div>
+          <label class="lz-filter"><input id="lz-nur-frei" type="checkbox" checked> nur freigeschaltete</label>
+        </div>
         <ul id="lz-palette"></ul>
       </aside>
 
@@ -1621,7 +1758,13 @@
           <div id="lz-raster" class="lz-raster" aria-label="Produkt-Raster"></div>
         </div>
         <!-- Phase 7a: Gehäuse bestimmt die Form des Rasters (weitere Gehäuse folgen in Phase 7c) -->
-        <label class="lz-auswahl lz-gehaeuse">Gehäuse <select id="lz-gehaeuse"><option value="standard">Standardgehäuse 4 × 4</option></select></label>
+        <!-- Phase 7c: Gehäuse als Karten (Form, Zellen, Wärmeabfuhr, Wertfaktor); die Auswahlliste bleibt für Tastatur/Tests unsichtbar -->
+        <label class="lz-auswahl lz-gehaeuse lz-unsichtbar">Gehäuse <select id="lz-gehaeuse"><option value="standard">Standardgehäuse 4 × 4</option></select></label>
+        <div class="lz-gehaeuse-bereich">
+          <h3 class="lz-gehaeuse-titel">Gehäuse</h3>
+          <div id="lz-gehaeuse-karten" class="lz-gehaeuse-karten" role="radiogroup" aria-label="Gehäuse"></div>
+          <p id="lz-gehaeuse-hinweis" class="lz-gehaeuse-hinweis" hidden></p>
+        </div>
         <button id="lz-hitze-knopf" class="lz-knopf" type="button" aria-pressed="false">Hitze-Ansicht <kbd>H</kbd></button>
         <p class="lz-tipp">
           Ziehen: platzieren · <kbd>R</kbd> / Rechtsklick: drehen<br>
@@ -1786,6 +1929,12 @@
       <span class="lz-platz" style="flex:1"></span>
       <button id="rezepte-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Rezepte schließen">✕</button>
     </header>
+    <!-- Phase 7c: Suche und Kategorie-Filter (über 300 Rezepte) -->
+    <div class="rezepte-filter">
+      <input id="rezepte-suche" class="lz-suche" type="search" placeholder="Rezept suchen …" autocomplete="off" spellcheck="false" aria-label="Rezepte nach Namen suchen">
+      <label class="lz-filter"><input id="rezepte-nur-frei" type="checkbox"> nur freigeschaltete</label>
+      <div id="rezepte-kategorien" class="lz-kategorien rezepte-kategorien" role="tablist" aria-label="Kategorien"></div>
+    </div>
     <div id="rezepte-inhalt" class="rezepte-inhalt"></div>
     <footer class="lz-fuss">
       <span class="einstellungen-hinweis">📌 heftet ein Rezept als kleines Fenster an den Rand. Dort zeigt ein Klick auf eine Ressource die Station, die sie gerade herstellt.</span>
@@ -1986,6 +2135,26 @@ const GRAFIK = {
   rangierAbstand:       1.8,         // so weit (Kacheln) vor der Wand wendet der Wagen, bevor er rückwärts ans Tor setzt
   verladeTempo:         1.6,         // so viele Pakete pro Sekunde wandern beim Ab-/Aufladen durchs Tor (nur Anzeige)
   pufferWuerfel:        0.1,         // Kantenlänge der Puffer-Würfel in Splitter, Smart-Verteiler und Ventil
+
+  // --- Phase 7c: Komponenten, Gehäuse und Holz in 3D (Bänder, Lager, Fächer, Kuriere, Verladen) ---
+  // Komponenten tragen die Farbe ihrer Kategorie (KATEGORIEN) und sind nach Raster unterschiedlich groß.
+  // Maße relativ zur Kantenlänge eines Rohstoff-Würfels: [Länge, Höhe, Tiefe]
+  itemRasterMasse: {
+    "1x1": [0.6, 0.42, 0.6],     // klein
+    "1x2": [1.0, 0.42, 0.5],     // länglich
+    "2x2": [0.85, 0.55, 0.85],   // größer
+    "2x3": [1.1, 0.68, 0.95],    // am größten
+  },
+  itemTierHelligkeit:   { T1: 0, T2: 0.05, T3: 0.11 },   // höhere Tiers etwas heller (wirkt wie Glanz)
+  gehaeuseMasse:        [1.1, 0.45, 0.85],   // Gehäuse: flache, oben offene Schale
+  holzMasse:            [1.1, 0.62, 0.8],    // Rohstoff Holz: kleiner Bretterstapel
+  farbeGehaeuse: {                         // Gehäuse in Materialfarbe (fehlt eines, gilt seine Farbe aus GEHAEUSE)
+    geh_holz:       "#9c6b3c",   // Holz: braun
+    geh_kunststoff: "#ecebe3",   // Kunststoff: hell
+    geh_eisen:      "#5c646b",   // Eisen: dunkelgrau
+    geh_alu:        "#c6ced6",   // Aluminium: silber
+    geh_carbon:     "#26292d",   // Carbon: schwarz
+  },
 };
 
 /* ============================================================================
@@ -2018,52 +2187,218 @@ const LOGIK = {
    Hier stellst du die Größe des Produkt-Rasters und alle Bauteile ein.
    ============================================================================ */
 const LAYOUT = {
-  breite: 4,                 // Kacheln nebeneinander im Produkt-Raster
-  hoehe:  4,                 // Kacheln untereinander (4 × 4 = 16 Kacheln)
+  breite: 4,                 // (bis Phase 7b) Kacheln nebeneinander – Phase 7c: die Form bestimmt das Gehäuse (GEHAEUSE);
+  hoehe:  4,                 // 4 × 4 gilt nur noch für alte Blaupausen ohne Gehäuse
   verlaufSchritte: 30,       // Wie viele Schritte "Rückgängig" sich merkt
   warnAbstand: 1,            // Gelbe Ampel, wenn die Hitze auf einem Teil nur noch so weit unter seiner Toleranz liegt
   speicherSchluessel: "tradeup.blaupausen", // Name, unter dem der Browser die Blaupausen speichert
-  blaupausenVersion: 1,      // Format-Version der Blaupausen (für spätere Phasen)
+  blaupausenVersion: 2,      // Format-Version der Blaupausen (Phase 7c: 2 = mit Gehäuse; Version 1 wird beim Laden umgewandelt)
+  standardGehaeuse: "geh_holz",        // Phase 7c: Gehäuse eines neuen, leeren Designs
+  altGehaeuse:      "geh_kunststoff",  // Phase 7c: in dieses Gehäuse kommen alte Blaupausen (4 × 4, ohne Gehäuse)
 };
 
-// Der Bauteil-Katalog. Jedes Bauteil hat:
-//   typ       – interner Name (nicht ändern, sonst passen gespeicherte Blaupausen nicht mehr)
-//   name      – Anzeigename
+// Phase 7c: Der Komponenten-Katalog aus Tims Tabelle „Komponentenforschung“: 12 Kategorien × 5 Linien × 5 Stufen
+// = 300 Komponenten (COMP-001 … COMP-300, interner Typ "k001" … "k300"). Jede Linie folgt demselben Muster;
+// die Namen und Forschungszeiten stehen unten in KATEGORIEN, alles andere ergibt sich aus diesem Muster.
+//   raster – "Reihen x Spalten": 1x2 = 2 breit, 2x3 = 2 hoch und 3 breit (im Designer drehbar)
+//   zeit   – Sekunden Herstellzeit an der Werkbank
+//   freischaltung – "start" (von Beginn an), "forschung" (Sekunden pro Linie, siehe KATEGORIEN … sek) oder
+//            "herstellung": so viele Stück der Stufe "vorStufe" derselben Linie herstellen
+const KOMPONENTEN = {
+  muster: [
+    { tier: 1, hitze: 0,  raster: "1x1", zeit: 3,  freischaltung: "start" },
+    { tier: 1, hitze: 0,  raster: "1x2", zeit: 4,  freischaltung: "forschung" },
+    { tier: 2, hitze: 2,  raster: "1x2", zeit: 6,  freischaltung: "herstellung", vorStufe: 1, anzahl: 250 },
+    { tier: 2, hitze: 5,  raster: "2x2", zeit: 8,  freischaltung: "herstellung", vorStufe: 3, anzahl: 500 },
+    { tier: 3, hitze: 10, raster: "2x3", zeit: 14, freischaltung: "herstellung", vorStufe: 4, anzahl: 1000 },
+  ],
+  toleranz:     { 1: 4, 2: 8, 3: 15 },   // so viel Hitze verträgt ein Teil dieses Tiers (Platzhalter)
+  rezeptFaktor: { 1: 1, 2: 2, 3: 4 },    // Rezept = Grundrezept der Kategorie × Faktor (T2 doppelt, T3 vierfach)
+  herstellZielFaktor: 1.0,               // verkürzt oder verlängert ALLE Herstellungsziele (0,1 → aus 250 werden 25)
+  forschungGrund: "Forschung kommt mit Teilschritt 7d",   // Zeit-Forschung (Stufe 2) gibt es in 7c noch nicht
+};
+
+// Phase 7c: Die 12 Kategorien. Farbe und Symbol gelten für alle ihre Komponenten (Designer, Bänder, Lager).
+//   grundrezept – Rohstoffe einer T1-Komponente (T2/T3 siehe KOMPONENTEN.rezeptFaktor)
+//   hitze       – (optional) eigene Hitzewerte der 5 Stufen statt KOMPONENTEN.muster (negativ = kühlt)
+//   linien      – 5 Linien mit je 5 Namen (Stufe 1 … 5) und der Forschungszeit der Stufe 2 in Sekunden
+const KATEGORIEN = [
+  { id: "energie", name: "Energie", farbe: "#e6c34d", symbol: "ϟ", grundrezept: { metall: 1, kunststoff: 1 }, linien: [
+    { sek: 60, namen: ["Keramik-Kondensator", "Elektrolyt-Kondensator", "Tantal-Kondensator", "Superkondensator", "Quanten-Kondensator"] },
+    { sek: 90, namen: ["Knopfzelle (CR2032)", "NiMH-Akku", "Li-Ion-Akku", "Li-Po-Akku", "Feststoff-Zelle"] },
+    { sek: 120, namen: ["Kupfer-Spule", "Ferrit-Antenne", "Qi-Empfänger", "Resonanz-Spule", "Supraleiter-Empfänger"] },
+    { sek: 150, namen: ["Basis-Transformator", "Linear-Netzteil", "Schaltnetzteil", "GaN-Netzteil", "Micro-Reaktor"] },
+    { sek: 180, namen: ["Mini-Dynamo", "Polykristallin-Solarzelle", "Monokristallin-Solarzelle", "Perowskit-Solarzelle", "Radioisotopen-Batterie"] },
+  ] },
+  { id: "prozessoren", name: "Prozessoren & Logik", farbe: "#b48ad9", symbol: "▣", grundrezept: { silizium: 2 }, linien: [
+    { sek: 60, namen: ["Transistor-Array", "Logik-Gatter (TTL)", "CMOS-Chip", "FPGA-Modul", "Quanten-Gatter"] },
+    { sek: 90, namen: ["8-bit Mikrocontroller", "16-bit Mikrocontroller", "32-bit ARM-Chip", "RISC-V SoC", "Neuronales SoC"] },
+    { sek: 120, namen: ["Single-Core Chip", "Dual-Core Chip", "Quad-Core Prozessor", "Octa-Core Prozessor", "Graphen-Prozessor"] },
+    { sek: 150, namen: ["2D-Grafikchip", "Basis-GPU", "VRAM-Modul", "3D-Beschleuniger", "Raytracing-Einheit"] },
+    { sek: 180, namen: ["Heuristik-Engine", "Tensor-Core (Basis)", "NPU (Neural Processing)", "KI-Prozessor", "Quanten-KI-Kern"] },
+  ] },
+  { id: "speicher", name: "Speicher", farbe: "#d98ab0", symbol: "▤", grundrezept: { silizium: 1, kunststoff: 1 }, linien: [
+    { sek: 60, namen: ["SRAM-Modul", "DRAM-Modul", "SDRAM-Modul", "DDR4-Modul", "HBM-Speicher"] },
+    { sek: 90, namen: ["EEPROM-Chip", "NOR-Flash", "NAND-Flash", "3D-NAND", "Holo-Speicher"] },
+    { sek: 120, namen: ["L1-Cache-Modul", "L2-Cache-Modul", "L3-Cache-Modul", "eSRAM-Modul", "Optischer Cache"] },
+    { sek: 150, namen: ["Magnet-Platter", "Lese-/Schreibkopf", "Basis-SSD-Controller", "NVMe-Controller", "DNA-Speicher-Controller"] },
+    { sek: 180, namen: ["SD-Karten-Slot", "MicroSD-Slot", "USB-Speicher-Controller", "CFexpress-Slot", "Quanten-Cartridge"] },
+  ] },
+  { id: "displays", name: "Displays", farbe: "#6fa8dc", symbol: "▭", grundrezept: { silizium: 1, kunststoff: 2 }, linien: [
+    { sek: 60, namen: ["Segment-LCD", "Matrix-LCD", "Farb-LCD", "IPS-Panel", "Micro-LED-Panel"] },
+    { sek: 90, namen: ["Passiv-OLED", "Aktiv-Matrix OLED", "Flex-OLED", "Transparent-OLED", "Holo-OLED"] },
+    { sek: 120, namen: ["Basis E-Ink", "High-Res E-Ink", "Color E-Ink", "Flex-E-Ink", "Video-fähiges E-Ink"] },
+    { sek: 150, namen: ["Mini-Projektor", "Laser-Projektor (720p)", "Laser-Projektor (1080p)", "4K-Pico-Projektor", "Retina-Projektor"] },
+    { sek: 180, namen: ["Status-LED", "RGB-LED", "LED-Matrix", "Kaltkathodenröhre", "Laser-Diode"] },
+  ] },
+  { id: "konnektivitaet", name: "Konnektivität", farbe: "#5fae8f", symbol: "⌁", grundrezept: { metall: 1, silizium: 1 }, linien: [
+    { sek: 60, namen: ["WLAN-Antenne", "WLAN-Modul (b/g)", "WLAN-Modul (n/ac)", "Wi-Fi 6 Modul", "Wi-Fi 7 Modul"] },
+    { sek: 90, namen: ["Bluetooth 2.0 Modul", "Bluetooth 4.0 (LE)", "Bluetooth 5.0", "Bluetooth 5.3", "Ultrabreitband-Chip (UWB)"] },
+    { sek: 120, namen: ["GSM-Modul (2G)", "LTE-Modul (4G)", "5G-Antenne", "5G-Millimeterwellen-Modul", "6G-Satelliten-Modul"] },
+    { sek: 150, namen: ["RFID-Tag", "NFC-Modul", "Infrarot-Sender", "Infrarot-Empfänger", "Li-Fi-Modul"] },
+    { sek: 180, namen: ["USB-A Port", "Micro-USB Port", "USB-C Port", "Thunderbolt-Controller", "Optischer-Link-Port"] },
+  ] },
+  { id: "audio", name: "Audio", farbe: "#f2a65a", symbol: "♪", grundrezept: { metall: 1, kunststoff: 1 }, linien: [
+    { sek: 60, namen: ["Piezolautsprecher", "Mono-Lautsprecher", "Stereo-Lautsprecher", "Subwoofer-Einheit", "Planar-Treiber"] },
+    { sek: 90, namen: ["Kohlemikrofon", "Elektret-Mikrofon", "MEMS-Mikrofon", "Richtmikrofon", "Studio-Kondensatormikrofon"] },
+    { sek: 120, namen: ["Basis-DAC", "Stereo-DAC", "Hi-Res Audio-Chip", "DSP-Modul", "Surround-Controller"] },
+    { sek: 150, namen: ["3.5mm Klinkenbuchse", "2.5mm Buchse", "Optischer Audio-Port", "XLR-Mini-Buchse", "High-End-Verstärker"] },
+    { sek: 180, namen: ["Ultraschall-Sender", "Ultraschall-Empfänger", "Knochenschall-Überträger", "Noise-Cancelling-Modul", "Psychoakustik-Chip"] },
+  ] },
+  { id: "optik", name: "Optik & Kamera", farbe: "#5b6f9e", symbol: "◎", grundrezept: { kunststoff: 2, silizium: 1 }, linien: [
+    { sek: 60, namen: ["Plastik-Linse", "Glas-Linse (Basis)", "Weitwinkel-Linse", "Tele-Linse", "Flüssiglinse"] },
+    { sek: 90, namen: ["CMOS-Sensor (1MP)", "CMOS-Sensor (8MP)", "BSI-CMOS (12MP)", "Pro-Sensorik (48MP)", "100MP-Medium-Format"] },
+    { sek: 120, namen: ["Fixfokus-Modul", "Autofokus-Motor", "Laser-Autofokus", "PDAF-Sensor", "KI-Fokus-Einheit"] },
+    { sek: 150, namen: ["Infrarot-Kamera", "Wärmebild-Sensor", "Nachtsicht-Modul", "Spektrometer-Modul", "Röntgen-Mikrosensor"] },
+    { sek: 180, namen: ["Xenon-Blitz", "Single-LED-Blitz", "Dual-Tone-LED-Blitz", "Ringlicht-Modul", "Laser-Illuminator"] },
+  ] },
+  { id: "umwelt", name: "Umwelt-Sensorik", farbe: "#8cc96b", symbol: "☼", grundrezept: { silizium: 1, metall: 1 }, linien: [
+    { sek: 60, namen: ["NTC-Widerstand", "PTC-Widerstand", "Digitales Thermometer", "Infrarot-Thermometer", "Quanten-Temperatursensor"] },
+    { sek: 90, namen: ["Feuchtigkeitssensor", "Barometer", "Luftqualitäts-Sensor", "CO2-Sensor", "Feinstaub-Sensor"] },
+    { sek: 120, namen: ["Fotowiderstand (LDR)", "Umgebungslicht-Sensor", "RGB-Farbsensor", "UV-Sensor", "Lidar-Scanner (Basis)"] },
+    { sek: 150, namen: ["Geiger-Müller-Röhre", "PIN-Diode (Strahlung)", "EMF-Sensor", "Mikrowellen-Sensor", "Terahertz-Scanner"] },
+    { sek: 180, namen: ["Herzfrequenz-Sensor", "SpO2-Sensor", "EKG-Modul", "EEG-Modul", "DNA-Schnell-Sequenzierer"] },
+  ] },
+  { id: "bewegung", name: "Bewegungs-Sensorik", farbe: "#e07b6a", symbol: "⟲", grundrezept: { silizium: 1, metall: 1 }, linien: [
+    { sek: 60, namen: ["Neigungsschalter", "Erschütterungs-Sensor", "Schrittzähler", "Basis-Beschleunigungssensor", "3-Achsen-Beschleunigung"] },
+    { sek: 90, namen: ["Mech. Gyroskop", "Piezo-Gyroskop", "MEMS-Gyroskop (3-Achsen)", "6-Achsen-IMU", "9-Achsen-IMU"] },
+    { sek: 120, namen: ["Magnet-Kompass", "Hall-Sensor", "GPS-Empfänger", "GLONASS-Modul", "RTK-GPS"] },
+    { sek: 150, namen: ["Ultraschall-Abstand", "Infrarot-Abstand", "Time-of-Flight Sensor", "Radar-Modul", "Lidar-Scanner (Pro)"] },
+    { sek: 180, namen: ["Optischer Fluss-Sensor", "Rad-Encoder", "Lineares Potentiometer", "Laser-Interferometer", "Subatomarer-Positions-Sensor"] },
+  ] },
+  { id: "kuehlung", name: "Kühlung & Thermik", farbe: "#9fd6e8", symbol: "❄", grundrezept: { metall: 2 }, hitze: [-1, -3, -6, -10, -18], linien: [
+    { sek: 60, namen: ["Aluminium-Kühlkörper", "Kupfer-Kühlkörper", "Passiv-Kühler (Groß)", "Graphen-Wärmeleitpad", "Diamant-Wärmespreizer"] },
+    { sek: 90, namen: ["Basis-Lüfter", "Rotor-Lüfter", "Radial-Lüfter", "Dual-Rotor-Lüfter", "Magnetlager-Lüfter"] },
+    { sek: 120, namen: ["Kupfer-Heatpipe", "Vapor-Chamber", "3D-Vapor-Chamber", "Flüssigmetall-Pumpe", "Supraleitende-Heatpipe"] },
+    { sek: 150, namen: ["Peltier-Element (Basis)", "Peltier-Element (Pro)", "Flüssig-Kühlung", "Stickstoff-Kammer", "Quanten-Kühler"] },
+    { sek: 180, namen: ["Gehäuse-Lüftungsgitter", "Staubfilter-Modul", "Luftstrom-Leitblech", "Aktive-Geräuschunterdrückung", "Ionen-Wind-Kühler"] },
+  ] },
+  { id: "eingabe", name: "Eingabe & Interface", farbe: "#c9b98f", symbol: "◉", grundrezept: { kunststoff: 2 }, linien: [
+    { sek: 60, namen: ["Mikroschalter", "Gummidom-Taste", "Mechanischer Schalter", "Tastenfeld (NumPad)", "QWERTZ-Tastenfeld"] },
+    { sek: 90, namen: ["Potentiometer (Drehregler)", "Schieberegler", "Basis-Joystick", "Hall-Effekt-Joystick", "Force-Feedback-Joystick"] },
+    { sek: 120, namen: ["Resistiver Touchscreen", "Kapazitiver Touchscreen", "Multi-Touch-Controller", "Force-Touch-Panel", "Ultraschall-Touch-Sensor"] },
+    { sek: 150, namen: ["Optischer Fingerabdruck", "Ultraschall-Fingerabdruck", "Iris-Scanner", "Venen-Scanner", "Gesichtserkennungs-Modul"] },
+    { sek: 180, namen: ["Trackball-Modul", "Touchpad", "Stylus-Digitizer", "BCI-Port (Brain-Computer)", "Holographisches-Tastenfeld"] },
+  ] },
+  { id: "mechanik", name: "Mechanik & Aktuatoren", farbe: "#a8876a", symbol: "⚙", grundrezept: { metall: 2 }, linien: [
+    { sek: 60, namen: ["DC-Bürstenmotor", "Vibrationsmotor", "Schrittmotor", "Brushless-DC-Motor", "Linear-Motor"] },
+    { sek: 90, namen: ["Basis-Haptik-Motor", "ERM-Vibrationsmotor", "LRA-Haptik-Modul", "HD-Haptik-Treiber", "Piezoelektrischer Aktuator"] },
+    { sek: 120, namen: ["Basis-Scharnier", "Feder-Mechanismus", "Dämpfer", "Zahnrad-Getriebe", "Stufenloses Getriebe (CVT)"] },
+    { sek: 150, namen: ["Stativ-Gewinde", "VESA-Halterung", "SIM-Karten-Schlitten", "Wasserdichte Dichtung", "Panzerglas-Abdeckung"] },
+    { sek: 180, namen: ["Servo-Motor", "Mikro-Servo", "Pneumatik-Ventil", "Hydraulik-Pumpe", "Künstlicher-Muskel"] },
+  ] },
+];
+
+// Phase 7c: Die 8 Bauteile bis Phase 7b und ihre Nachfolger (für alte Spielstände und Blaupausen)
+const ALTE_BAUTEILE = {
+  kabelbruecke: "k011",   // Kabelbrücke → Kupfer-Spule (COMP-011)
+  taster:       "k251",   // Taster      → Mikroschalter (COMP-251)
+  akku:         "k006",   // Akku        → Knopfzelle (CR2032) (COMP-006)
+  platine:      "k026",   // Platine     → Transistor-Array (COMP-026)
+  display:      "k076",   // Display     → Segment-LCD (COMP-076)
+  netzteil:     "k016",   // Netzteil    → Basis-Transformator (COMP-016)
+  prozessor:    "k036",   // Prozessor   → Single-Core Chip (COMP-036)
+  kuehlkoerper: "k226",   // Kühlkörper  → Aluminium-Kühlkörper (COMP-226)
+};
+
+// Phase 7c: Gehäuse – jedes Produkt braucht genau eines. Die Form bestimmt das Raster im Designer
+// ("#" = Zelle, "." = keine Zelle; eine Zeile pro Reihe). Hergestellt werden sie an der Werkbank.
+//   waermeabfuhr – wird von der Hitze JEDER Kachel abgezogen (nie unter 0)
+//   rezept, zeit – wie bei den Bauteilen (Werkbank)
+//   wertFaktor   – Produktwert × Faktor
+//   freischaltung – { art: "start" } oder { art: "herstellung", item, anzahl } (siehe KOMPONENTEN.herstellZielFaktor)
+const GEHAEUSE = [
+  { id: "geh_holz", name: "Holzgehäuse", farbe: "#b5895a", symbol: "▢",
+    form: [".##.",
+           "####",
+           "####"],
+    waermeabfuhr: 0, rezept: { holz: 3 }, zeit: 4, wertFaktor: 1.0, freischaltung: { art: "start" } },
+  { id: "geh_kunststoff", name: "Kunststoffgehäuse", farbe: "#e9e4d8", symbol: "▢",
+    form: ["#####",
+           "#####",
+           ".###.",
+           "..#.."],
+    waermeabfuhr: 1, rezept: { kunststoff: 3 }, zeit: 5, wertFaktor: 1.1, freischaltung: { art: "herstellung", item: "geh_holz", anzahl: 100 } },
+  { id: "geh_eisen", name: "Eisengehäuse", farbe: "#7d858c", symbol: "▣",
+    form: ["######",
+           "######",
+           "##..##",
+           "#....#"],
+    waermeabfuhr: 3, rezept: { metall: 4 }, zeit: 6, wertFaktor: 1.2, freischaltung: { art: "herstellung", item: "geh_kunststoff", anzahl: 250 } },
+  { id: "geh_alu", name: "Aluminiumgehäuse", farbe: "#c9d1d8", symbol: "▣",
+    form: [".####.",
+           "######",
+           "######",
+           "######",
+           "..##.."],
+    waermeabfuhr: 5, rezept: { metall: 5, silizium: 1 }, zeit: 8, wertFaktor: 1.35, freischaltung: { art: "herstellung", item: "geh_eisen", anzahl: 500 } },
+  { id: "geh_carbon", name: "Carbongehäuse", farbe: "#34383d", symbol: "◆",
+    form: [".#####.",
+           "#######",
+           "###.###",
+           "#######",
+           ".#####.",
+           "..###.."],
+    waermeabfuhr: 8, rezept: { kunststoff: 3, silizium: 2 }, zeit: 10, wertFaktor: 1.5, freischaltung: { art: "herstellung", item: "geh_alu", anzahl: 1000 } },
+];
+
+// Der Bauteil-Katalog (Phase 7c: aus KATEGORIEN und KOMPONENTEN erzeugt – hier nichts von Hand eintragen).
+// Jedes Bauteil hat:
+//   typ       – interner Name "k001" … "k300" (nicht ändern, sonst passen gespeicherte Blaupausen nicht mehr)
+//   nr        – Nummer aus der Tabelle ("COMP-001"), name – Anzeigename
+//   kategorie – ID aus KATEGORIEN, linie (1–5), stufeInLinie (1–5), tier ("T1"–"T3"), raster ("1x2")
 //   form      – belegte Kacheln als [Spalte, Reihe], links oben = [0, 0]
-//   stufe     – Technologie-Stufe 1–3 (höhere Stufen erzeugen Hitze)
+//   stufe     – Technologie-Stufe 1–3 (= Tier als Zahl)
 //   hitze     – um so viel heizt das Teil jede direkt angrenzende Kachel auf
-//   kuehlung  – um so viel kühlt das Teil jede direkt angrenzende Kachel (Kühlkörper)
+//   kuehlung  – um so viel kühlt das Teil jede direkt angrenzende Kachel (negative Hitze in der Tabelle)
 //   toleranz  – so viel Hitze verträgt das Teil; darüber ist es überhitzt
-//   farbe, symbol – Aussehen im Designer
-//   freigeschaltet – später über die Forschung; in Phase 3 sind alle Teile verfügbar
+//   farbe, symbol – Aussehen (von der Kategorie)
+//   freigeschaltet – darf im Designer platziert und an der Werkbank gewählt werden
+//   freischaltung  – { art: "start" } | { art: "forschung", sek } | { art: "herstellung", item, anzahl }
 //   rezept    – (Phase 4) so viele Rohstoffe braucht die Werkbank für EIN Bauteil
 //   zeit      – (Phase 4) so viele Sekunden arbeitet ein Arbeiter an einem Bauteil
-const BAUTEILE = [
-  { typ: "kabelbruecke", name: "Kabelbrücke", form: [[0, 0]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 4, farbe: "#c3cad0", symbol: "≈", freigeschaltet: true,
-    rezept: { metall: 1 }, zeit: 3 },
-  { typ: "taster", name: "Taster", form: [[0, 0], [1, 0]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#f2a65a", symbol: "◉", freigeschaltet: true,
-    rezept: { kunststoff: 1 }, zeit: 3 },
-  { typ: "akku", name: "Akku", form: [[0, 0], [1, 0], [2, 0]],
-    stufe: 1, hitze: 1, kuehlung: 0, toleranz: 2, farbe: "#8cc96b", symbol: "▮", freigeschaltet: true,
-    rezept: { metall: 1, kunststoff: 1 }, zeit: 5 },
-  { typ: "platine", name: "Platine", form: [[0, 0], [0, 1], [1, 1]],
-    stufe: 1, hitze: 0, kuehlung: 0, toleranz: 3, farbe: "#5fae8f", symbol: "⌗", freigeschaltet: true,
-    rezept: { silizium: 1, kunststoff: 1 }, zeit: 5 },
-  { typ: "display", name: "Display", form: [[0, 0], [1, 0], [0, 1], [1, 1]],
-    stufe: 2, hitze: 1, kuehlung: 0, toleranz: 3, farbe: "#6fa8dc", symbol: "▭", freigeschaltet: true,
-    rezept: { silizium: 1, kunststoff: 2 }, zeit: 7 },
-  { typ: "netzteil", name: "Netzteil", form: [[1, 0], [2, 0], [0, 1], [1, 1]],
-    stufe: 2, hitze: 2, kuehlung: 0, toleranz: 4, farbe: "#e6c34d", symbol: "ϟ", freigeschaltet: true,
-    rezept: { metall: 2, silizium: 1 }, zeit: 7 },
-  { typ: "prozessor", name: "Prozessor", form: [[0, 0], [1, 0], [2, 0], [1, 1]],
-    stufe: 3, hitze: 3, kuehlung: 0, toleranz: 5, farbe: "#b48ad9", symbol: "▣", freigeschaltet: true,
-    rezept: { silizium: 2, metall: 1 }, zeit: 10 },
-  { typ: "kuehlkoerper", name: "Kühlkörper", form: [[0, 0]],
-    stufe: 1, hitze: 0, kuehlung: 2, toleranz: 9, farbe: "#9fd6e8", symbol: "❄", freigeschaltet: true,
-    rezept: { metall: 2 }, zeit: 4 },
-];
+function komponentenTyp(nr) { return "k" + String(nr).padStart(3, "0"); }
+const BAUTEILE = [];
+KATEGORIEN.forEach((kat, k) => kat.linien.forEach((linie, l) => linie.namen.forEach((name, s) => {
+  const m = KOMPONENTEN.muster[s];
+  const nr = k * 25 + l * 5 + s + 1;
+  const [reihen, spalten] = m.raster.split("x").map(Number);
+  const form = [];
+  for (let y = 0; y < reihen; y++) for (let x = 0; x < spalten; x++) form.push([x, y]);
+  const hitze = kat.hitze ? kat.hitze[s] : m.hitze;
+  const rezept = {};
+  for (const [id, n] of Object.entries(kat.grundrezept)) rezept[id] = n * KOMPONENTEN.rezeptFaktor[m.tier];
+  const freischaltung = m.freischaltung === "start" ? { art: "start" }
+    : m.freischaltung === "forschung" ? { art: "forschung", sek: linie.sek }
+    : { art: "herstellung", item: komponentenTyp(nr - s + m.vorStufe - 1), anzahl: m.anzahl };
+  BAUTEILE.push({
+    typ: komponentenTyp(nr), nr: "COMP-" + String(nr).padStart(3, "0"), name,
+    kategorie: kat.id, linie: l + 1, stufeInLinie: s + 1, tier: "T" + m.tier, raster: m.raster, form,
+    stufe: m.tier, hitze: Math.max(0, hitze), kuehlung: Math.max(0, -hitze), toleranz: KOMPONENTEN.toleranz[m.tier],
+    farbe: kat.farbe, symbol: kat.symbol, freigeschaltet: freischaltung.art === "start", freischaltung,
+    rezept, zeit: m.zeit,
+  });
+})));
 
 /* ============================================================================
    ABSCHNITT 2d: KONFIGURATION – Produktion & Logistik (Phase 4)  [Logik-Agent]
@@ -2077,7 +2412,7 @@ const PRODUKTION = {
   maxMitarbeiter:      8,     // höchstens so viele Kuriere + Arbeiter pro Halle
   startKuriere:        1,     // Mitarbeiter beim allerersten Start
   startArbeiter:       2,
-  startBestand: { metall: 40, kunststoff: 40, silizium: 20 }, // Inhalt des Hauptlagers beim allerersten Start
+  startBestand: { metall: 40, kunststoff: 40, silizium: 20, holz: 30 }, // Inhalt des Hauptlagers beim allerersten Start (Phase 7c: + Holz für 10 Holzgehäuse)
   startHauptlager: { x: 6, z: 1, drehung: 0 },                // wo das Hauptlager beim allerersten Start steht
   montageGrundzeit:    4,     // Sekunden für ein Produkt am Montagetisch ...
   montageZeitProTeil:  1.5,   // ... plus so viele Sekunden pro Bauteil in der Blaupause
@@ -2089,13 +2424,14 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   7,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; ältere werden umgewandelt)
+  spielstandVersion:   8,     // Format-Version des Spielstands (Phase 7a: 4 Import/Export-Verknüpfungen, 5 Greifarm-Nehmer/-Geber; 7b: 6 Zonen, 7 Verteiler-Puffer + Exportzone an der Wand; 7c: 8 Komponenten-Katalog + Gehäuse; ältere werden umgewandelt)
   kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
   // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
   volumenRohstoff:     1,     // Rohstoff
   volumenBauteilKacheln: 2,   // Bauteil: 1 Volumen je angefangene 2 Kacheln seiner Form (1–2 Kacheln = 1, 3–4 = 2, 5–6 = 3)
   volumenProdukt:      4,     // fertiges Produkt
-  lagerWarnGelb:       0.8,   // ab 80 % Füllung wird ein Lager gelb ...
+  volumenGehaeuse:     2,     // Phase 7c: ein Gehäuse
+  lagerWarnGelb:      0.8,   // ab 80 % Füllung wird ein Lager gelb ...
   lagerWarnRot:        1.0,   // ... ab 100 % rot (Hinweis im HUD)
 };
 
@@ -2105,6 +2441,7 @@ const ROHSTOFFE = [
   { id: "metall",     name: "Metall",     farbe: "#9aa3ab", preis: 6  },
   { id: "kunststoff", name: "Kunststoff", farbe: "#f4f1ea", preis: 4  },
   { id: "silizium",   name: "Silizium",   farbe: "#5b7fc4", preis: 12 },
+  { id: "holz",       name: "Holz",       farbe: "#a0703c", preis: 3  },   // Phase 7c: für Holzgehäuse
 ];
 
 // Gebäude im Baumenü. Jedes Gebäude hat:
@@ -2140,7 +2477,7 @@ const GEBAEUDE_TYPEN = [
     beschreibung: "Großes Zwischenlager, versorgt auch mehrere Stationen." },
   { typ: "werkbank", name: "Werkbank", symbol: "⚒", kategorie: "station", art: "werkbank",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 4, eingangsfach: 6, maxAnzahl: 0, preis: 600, freigeschaltet: true,
-    beschreibung: "Stellt Bauteile aus Rohstoffen her." },
+    beschreibung: "Stellt Bauteile (Komponenten) und Gehäuse aus Rohstoffen her." },   // Phase 7c: auch Gehäuse
   { typ: "montagetisch", name: "Montagetisch", symbol: "⚙", kategorie: "station", art: "montage",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 2, eingangsfach: 16, maxAnzahl: 0, preis: 900, freigeschaltet: true,
     beschreibung: "Baut Produkte nach einer Blaupause aus dem Layout-Designer." },
@@ -2240,15 +2577,21 @@ const KASSEN_ARTEN = {
    ABSCHNITT 2f: KONFIGURATION – Markt, Aufträge & Konkurrenz (Phase 5) [Logik-Agent]
    ============================================================================ */
 // Produktklassen: Kunden bestellen keine bestimmte Blaupause, sondern eine Klasse.
-// Eine Blaupause erfüllt eine Klasse, wenn sie mindestens diese Bauteile enthält und
-// nicht überhitzt ist. "reputation" = ab diesem Reputationslevel gibt es Aufträge dafür.
+// Phase 7c: Eine Blaupause erfüllt eine Klasse, wenn sie aus JEDER genannten Kategorie (IDs aus KATEGORIEN)
+// mindestens eine Komponente enthält und nicht überhitzt ist. "reputation" = ab diesem Reputationslevel
+// gibt es Aufträge dafür.
 const PRODUKTKLASSEN = [
-  { id: "taschenlampe",   name: "Taschenlampe",   symbol: "🔦", teile: ["akku", "taster", "kabelbruecke"],               reputation: 1 },
-  { id: "powerbank",      name: "Powerbank",      symbol: "🔋", teile: ["akku", "platine", "kabelbruecke"],              reputation: 1 },
-  { id: "taschenrechner", name: "Taschenrechner", symbol: "🧮", teile: ["display", "taster", "platine"],                 reputation: 2 },
-  { id: "netzgeraet",     name: "Netzgerät",      symbol: "🔌", teile: ["netzteil", "kuehlkoerper", "kabelbruecke"],     reputation: 2 },
-  { id: "spielkonsole",   name: "Spielkonsole",   symbol: "🎮", teile: ["prozessor", "display", "akku", "taster"],       reputation: 3 },
-  { id: "minipc",         name: "Mini-PC",        symbol: "🖥", teile: ["prozessor", "netzteil", "platine", "kuehlkoerper"], reputation: 4 },
+  { id: "taschenlampe",   name: "Taschenlampe",   symbol: "🔦", kategorien: ["energie", "displays", "eingabe"],                  reputation: 1 },
+  { id: "powerbank",      name: "Powerbank",      symbol: "🔋", kategorien: ["energie", "konnektivitaet", "prozessoren"],         reputation: 1 },
+  { id: "taschenrechner", name: "Taschenrechner", symbol: "🧮", kategorien: ["displays", "eingabe", "prozessoren"],               reputation: 2 },
+  { id: "netzgeraet",     name: "Netzgerät",      symbol: "🔌", kategorien: ["energie", "kuehlung", "konnektivitaet"],            reputation: 2 },
+  { id: "wetterstation",  name: "Wetterstation",  symbol: "🌦", kategorien: ["umwelt", "displays", "energie"],                    reputation: 2 },   // Phase 7c: neu
+  { id: "digitalkamera",  name: "Digitalkamera",  symbol: "📷", kategorien: ["optik", "speicher", "energie", "eingabe"],          reputation: 3 },   // Phase 7c: neu
+  { id: "spielkonsole",   name: "Spielkonsole",   symbol: "🎮", kategorien: ["prozessoren", "displays", "energie", "eingabe", "audio"], reputation: 3 },
+  { id: "fitnesstracker", name: "Fitness-Tracker", symbol: "⌚", kategorien: ["bewegung", "umwelt", "konnektivitaet", "energie"], reputation: 3 },   // Phase 7c: neu
+  { id: "minipc",         name: "Mini-PC",        symbol: "🖥", kategorien: ["prozessoren", "speicher", "energie", "kuehlung"],  reputation: 4 },
+  { id: "drohne",         name: "Drohne",         symbol: "🚁", kategorien: ["mechanik", "bewegung", "optik", "energie", "konnektivitaet"], reputation: 4 },   // Phase 7c: neu
+  { id: "smartphone",     name: "Smartphone",     symbol: "📱", kategorien: ["prozessoren", "speicher", "displays", "konnektivitaet", "optik", "audio", "energie"], reputation: 5 },   // Phase 7c: neu
 ];
 
 // Weltaufträge
@@ -2294,9 +2637,10 @@ const KONKURRENZ = {
   startReputationProStaerke: 60, // Start-Reputation für die Rangliste
 };
 const KONKURRENTEN = [
-  { id: "blechwerk",  name: "Blechwerk AG",    staerke: 2, schwerpunkt: ["netzgeraet", "taschenlampe"] },
-  { id: "kabelkoenig", name: "Kabelkönig GmbH", staerke: 1, schwerpunkt: ["powerbank"] },
-  { id: "novatech",   name: "NovaTech",        staerke: 3, schwerpunkt: ["spielkonsole", "minipc"] },
+  // Phase 7c: Schwerpunkte auf die neuen Klassen verteilt
+  { id: "blechwerk",  name: "Blechwerk AG",    staerke: 2, schwerpunkt: ["netzgeraet", "taschenlampe", "wetterstation", "drohne"] },
+  { id: "kabelkoenig", name: "Kabelkönig GmbH", staerke: 1, schwerpunkt: ["powerbank", "fitnesstracker"] },
+  { id: "novatech",   name: "NovaTech",        staerke: 3, schwerpunkt: ["spielkonsole", "minipc", "digitalkamera", "smartphone"] },
 ];
 
 /* ============================================================================
@@ -3819,20 +4163,43 @@ for (const element of [document.getElementById("hud-info"), document.getElementB
    nutzen. Koordinaten im Produkt-Raster: x = Spalte, y = Reihe (ab 0, y nach unten).
 
    Ein Layout sieht so aus:
-     { breite: 4, hoehe: 4,
+     { gehaeuse: "geh_holz",                     // Phase 7c: Gehäuse (Item-ID aus GEHAEUSE)
+       breite: 4, hoehe: 3,                      // Umriss der Gehäuseform
+       maske:  [false, true, true, false, ...],  // Phase 7c: je Kachel: true = nutzbare Zelle des Gehäuses
        zellen: [null, "t3", "t3", null, ...],   // je Kachel: welche Teil-ID liegt hier
-       teile:  { t3: { typ: "prozessor", x: 1, y: 0, drehung: 90 } },
+       teile:  { t3: { typ: "k036", x: 1, y: 0, drehung: 90 } },
        naechsteNummer: 4 }                       // für die nächste Teil-ID
+   Ein Layout ohne "maske" (vor Phase 7c) gilt als ganz nutzbar.
    Ereignisse: layoutGeaendert, blaupausenGeaendert
    ============================================================================ */
 const bauteilNachTyp = new Map(BAUTEILE.map((b) => [b.typ, b]));
+// Phase 7c: Kategorien und Gehäuse nachschlagen; Gehäuse bekommen hier Umriss, Maske und Zellenzahl
+const kategorieNachId = new Map(KATEGORIEN.map((k) => [k.id, k]));
+// erste Komponente jeder Kategorie (Linie 1, Stufe 1 – ab Start verfügbar), z. B. für den Grundwert einer Produktklasse
+const startKomponente = new Map(KATEGORIEN.map((k) => [k.id, BAUTEILE.find((b) => b.kategorie === k.id && b.freischaltung.art === "start")]));
+for (const geh of GEHAEUSE) {
+  geh.typ = geh.id;                                  // wie ein Bauteil-Typ (Werkbank-Rezept "b:geh_holz")
+  geh.art = "gehaeuse";
+  geh.hoehe = geh.form.length;
+  geh.breite = Math.max(...geh.form.map((zeile) => zeile.length));
+  geh.maske = [];
+  for (let y = 0; y < geh.hoehe; y++) for (let x = 0; x < geh.breite; x++) geh.maske.push(geh.form[y][x] === "#");
+  geh.kacheln = geh.maske.filter(Boolean).length;  // nutzbare Zellen (Holz 10 … Carbon 33)
+  geh.freigeschaltet = geh.freischaltung.art === "start";
+}
+const gehaeuseNachId = new Map(GEHAEUSE.map((g) => [g.id, g]));
+// Alles, was die Werkbank herstellen kann: Bauteile und Gehäuse (gleiche Felder rezept, zeit, freigeschaltet)
+const herstellbarNachTyp = new Map([...BAUTEILE.map((b) => [b.typ, b]), ...GEHAEUSE.map((g) => [g.id, g])]);
 
-// Ein leeres Produkt-Raster in der eingestellten Größe.
-function erstelleLeeresLayout() {
+// Ein leeres Produkt-Raster in der Form eines Gehäuses (Phase 7c; unbekannte ID → Standardgehäuse).
+function erstelleLeeresLayout(gehaeuseId = LAYOUT.standardGehaeuse) {
+  const geh = gehaeuseNachId.get(gehaeuseId) || gehaeuseNachId.get(LAYOUT.standardGehaeuse);
   return {
-    breite: LAYOUT.breite,
-    hoehe: LAYOUT.hoehe,
-    zellen: new Array(LAYOUT.breite * LAYOUT.hoehe).fill(null),
+    gehaeuse: geh.id,
+    breite: geh.breite,
+    hoehe: geh.hoehe,
+    maske: [...geh.maske],
+    zellen: new Array(geh.breite * geh.hoehe).fill(null),
     teile: {},
     naechsteNummer: 1,
   };
@@ -3851,6 +4218,10 @@ function zellenNummer(layout, x, y) {
 // Liegt die Kachel innerhalb des Produkt-Rasters?
 function istImLayout(layout, x, y) {
   return x >= 0 && x < layout.breite && y >= 0 && y < layout.hoehe;
+}
+// Phase 7c: Ist die Kachel eine Zelle des Gehäuses (im Umriss UND nicht ausgespart)?
+function istNutzbar(layout, x, y) {
+  return istImLayout(layout, x, y) && (!layout.maske || !!layout.maske[zellenNummer(layout, x, y)]);
 }
 
 // Dreht eine Form im Uhrzeigersinn um 0, 90, 180 oder 270 Grad und schiebt sie
@@ -3885,15 +4256,18 @@ function zellenVonTeil(typ, x, y, drehung) {
 function passtTeil(layout, typ, x, y, drehung, ignoriereId = null) {
   const zellen = zellenVonTeil(typ, x, y, drehung).map((z) => {
     const imRaster = istImLayout(layout, z.x, z.y);
+    const nutzbar = istNutzbar(layout, z.x, z.y);   // Phase 7c: ausgesparte Zellen des Gehäuses sind gesperrt
     const belegtVon = imRaster ? layout.zellen[zellenNummer(layout, z.x, z.y)] : null;
-    return { ...z, imRaster, frei: imRaster && (belegtVon === null || belegtVon === ignoriereId) };
+    return { ...z, imRaster, nutzbar, frei: nutzbar && (belegtVon === null || belegtVon === ignoriereId) };
   });
   return { passt: zellen.every((z) => z.frei), zellen };
 }
 
 // Legt ein neues Teil ins Layout. Rückgabe: die neue Teil-ID oder null, wenn es nicht passt.
+// Phase 7c: Gesperrte Komponenten (noch nicht freigeschaltet) lassen sich nicht platzieren.
 function platziereTeil(layout, typ, x, y, drehung = 0) {
-  if (!bauteilNachTyp.has(typ) || !passtTeil(layout, typ, x, y, drehung).passt) return null;
+  if (!bauteilNachTyp.has(typ) || !bauteilNachTyp.get(typ).freigeschaltet) return null;
+  if (!passtTeil(layout, typ, x, y, drehung).passt) return null;
   const id = "t" + layout.naechsteNummer++;
   layout.teile[id] = { typ, x, y, drehung };
   for (const z of zellenVonTeil(typ, x, y, drehung)) layout.zellen[zellenNummer(layout, z.x, z.y)] = id;
@@ -3934,6 +4308,45 @@ function findeFreienPlatz(layout, typ) {
     }
   }
   return null;
+}
+
+/* --- Phase 7c: Gehäuse und Kategorien eines Layouts --- */
+
+// Dasselbe Layout in einem anderen Gehäuse: Jedes Teil bleibt an seiner Stelle, wenn es dort in die neue
+// Form passt; alle anderen fallen heraus (zurück in die Bauteil-Leiste – die ist unbegrenzt).
+// Das Original bleibt unverändert. Rückgabe: { layout, entfernt: [{ id, typ, x, y, drehung }] } oder null.
+function layoutMitGehaeuse(layout, gehaeuseId) {
+  if (!gehaeuseNachId.has(gehaeuseId)) return null;
+  const neu = erstelleLeeresLayout(gehaeuseId);
+  neu.naechsteNummer = layout.naechsteNummer || 1;
+  const entfernt = [];
+  for (const [id, teil] of Object.entries(layout.teile)) {
+    if (!bauteilNachTyp.has(teil.typ) || !passtTeil(neu, teil.typ, teil.x, teil.y, teil.drehung).passt) {
+      entfernt.push({ id, ...teil });
+      continue;
+    }
+    neu.teile[id] = { ...teil };
+    for (const z of zellenVonTeil(teil.typ, teil.x, teil.y, teil.drehung)) neu.zellen[zellenNummer(neu, z.x, z.y)] = id;
+  }
+  return { layout: neu, entfernt };
+}
+
+// Kategorien, aus denen Teile vorhanden sind. "teile" = { typ: Anzahl } (wie teileZaehlen) → Set der Kategorie-IDs
+function kategorienVon(teile) {
+  const kategorien = new Set();
+  for (const [typ, n] of Object.entries(teile || {})) {
+    const b = bauteilNachTyp.get(typ);
+    if (b && n >= 1) kategorien.add(b.kategorie);
+  }
+  return kategorien;
+}
+// Welche Kategorien fehlen dem Layout noch für diese Produktklasse? Rückgabe: [Kategorie-IDs] in der
+// Reihenfolge der Klasse ([] = alles da; Überhitzung zählt hier nicht) oder null (unbekannte Klasse).
+function fehlendeKategorien(layout, klassenId) {
+  const klasse = PRODUKTKLASSEN.find((k) => k.id === klassenId);
+  if (!klasse) return null;
+  const da = kategorienVon(teileZaehlen(Object.values(layout.teile)));
+  return klasse.kategorien.filter((k) => !da.has(k));
 }
 
 /* --- Der Designer-Zustand: das Layout, an dem gerade gearbeitet wird --- */
@@ -3982,6 +4395,18 @@ function wiederholen() {
   return true;
 }
 
+// Phase 7c: Gehäuse des Designs wechseln (rückgängig machbar). Teile, die in der neuen Form keinen Platz
+// mehr haben, fallen heraus. Rückgabe: { ok, entfernt: [{ id, typ, x, y, drehung }] } oder { ok: false, grund }
+function wechsleGehaeuse(gehaeuseId) {
+  const geh = gehaeuseNachId.get(gehaeuseId);
+  if (!geh) return { ok: false, grund: "Dieses Gehäuse gibt es nicht." };
+  if (!geh.freigeschaltet) return { ok: false, grund: `${geh.name} ist noch nicht freigeschaltet.` };
+  if (designer.layout.gehaeuse === gehaeuseId) return { ok: true, entfernt: [] };
+  const ergebnis = layoutMitGehaeuse(designer.layout, gehaeuseId);
+  aendereLayout(() => { designer.layout = ergebnis.layout; return true; });
+  return { ok: true, entfernt: ergebnis.entfernt };
+}
+
 /* ============================================================================
    ABSCHNITT 8b: Hitze-Berechnung (Phase 3)                       [Logik-Agent]
    Regeln (bewusst einfach, damit Spieler sie durchschauen):
@@ -3990,6 +4415,8 @@ function wiederholen() {
      2. Kühlkörper senken jede angrenzende Kachel um ihren Kühlwert (nie unter 0).
      3. Liegt auf irgendeiner Kachel eines Teils mehr Hitze als seine Toleranz,
         ist das Teil überhitzt.
+     4. (Phase 7c) Die Wärmeabfuhr des Gehäuses wird von der Hitze JEDER Kachel
+        abgezogen (nie unter 0). Ausgesparte Zellen des Gehäuses bekommen keine Hitze.
    ============================================================================ */
 const VIER_RICHTUNGEN = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -4001,7 +4428,7 @@ function nachbarKachelnVonTeil(layout, teil) {
   for (const z of eigene) {
     for (const [dx, dy] of VIER_RICHTUNGEN) {
       const nx = z.x + dx, ny = z.y + dy;
-      if (!istImLayout(layout, nx, ny)) continue;
+      if (!istNutzbar(layout, nx, ny)) continue;   // Phase 7c: ausgesparte Zellen zählen nicht
       const nr = zellenNummer(layout, nx, ny);
       if (!eigeneNummern.has(nr)) nachbarn.add(nr);
     }
@@ -4016,10 +4443,12 @@ function nachbarKachelnVonTeil(layout, teil) {
 //   ueberhitzt:  [Teil-IDs über ihrer Toleranz],
 //   gefaehrdet:  [Teil-IDs knapp unter ihrer Toleranz (gelbe Ampel)],
 //   gesamtHitze: Summe aller Hitzewerte minus Kühlung (nie unter 0),
-//   heissesteKachel: { x, y, wert } }
+//   heissesteKachel: { x, y, wert },
+//   waermeabfuhr: (Phase 7c) Abzug des Gehäuses pro Kachel }
 function berechneHitze(layout) {
   const proKachel = new Array(layout.zellen.length).fill(0);
   let gesamtHitze = 0;
+  const waermeabfuhr = (gehaeuseNachId.get(layout.gehaeuse) || {}).waermeabfuhr || 0;   // Phase 7c
 
   for (const teil of Object.values(layout.teile)) {
     const bauteil = bauteilNachTyp.get(teil.typ);
@@ -4028,7 +4457,7 @@ function berechneHitze(layout) {
     if (wirkung === 0) continue;
     for (const nr of nachbarKachelnVonTeil(layout, teil)) proKachel[nr] += wirkung;
   }
-  for (let i = 0; i < proKachel.length; i++) proKachel[i] = Math.max(0, proKachel[i]);
+  for (let i = 0; i < proKachel.length; i++) proKachel[i] = Math.max(0, proKachel[i] - waermeabfuhr);
 
   const maxProTeil = {}, ueberhitzt = [], gefaehrdet = [];
   for (const [id, teil] of Object.entries(layout.teile)) {
@@ -4045,7 +4474,7 @@ function berechneHitze(layout) {
   let heissesteNr = 0;
   proKachel.forEach((wert, nr) => { if (wert > proKachel[heissesteNr]) heissesteNr = nr; });
   return {
-    proKachel, maxProTeil, ueberhitzt, gefaehrdet,
+    proKachel, maxProTeil, ueberhitzt, gefaehrdet, waermeabfuhr,
     gesamtHitze: Math.max(0, gesamtHitze),
     heissesteKachel: {
       x: heissesteNr % layout.breite,
@@ -4061,7 +4490,7 @@ function bewerteLayout(layout) {
   const hitze = berechneHitze(layout);
   return {
     belegung: layout.zellen.filter((z) => z !== null).length,
-    kacheln: layout.zellen.length,
+    kacheln: layout.maske ? layout.maske.filter(Boolean).length : layout.zellen.length,   // Phase 7c: nur Zellen des Gehäuses
     teileAnzahl: Object.keys(layout.teile).length,
     gesamtHitze: hitze.gesamtHitze,
     heissesteKachel: hitze.heissesteKachel,
@@ -4078,13 +4507,16 @@ function bewerteLayout(layout) {
    bleiben sie im Arbeitsspeicher, bis die Seite neu geladen wird.
 
    Format einer Blaupause:
-     { id, name, version: 1, raster: { breite, hoehe },
+     { id, name, version: 2, gehaeuse: "geh_holz",   // Phase 7c: Gehäuse (Version 1 hatte keins)
+       raster: { breite, hoehe },                    // Umriss der Gehäuseform
        teile: [{ typ, x, y, drehung }],
        werte: { gesamtHitze, ueberhitzt, belegung },
+       veraltet: true,            // (Phase 7c, nur selten) alte Blaupause passte nicht ins Gehäuse – im Designer neu anordnen
        erstellt, geaendert }      // Zeitangaben als ISO-Text
    ============================================================================ */
 let speicherVerfuegbar = true;      // false, sobald der Browser-Speicher einmal versagt hat
 let blaupausenNotfall = [];         // Ersatz-Speicher im Arbeitsspeicher
+const blaupausenUmstellung = { umgestellt: 0, veraltet: 0 };   // Phase 7c: für den Hinweis beim Laden
 
 // Liest alle Blaupausen (neueste zuerst bleibt der Oberfläche überlassen).
 function ladeBlaupausen() {
@@ -4093,10 +4525,81 @@ function ladeBlaupausen() {
     const text = window.localStorage.getItem(LAYOUT.speicherSchluessel);
     const liste = text ? JSON.parse(text) : [];
     blaupausenNotfall = Array.isArray(liste) ? liste.filter((b) => b && b.id && Array.isArray(b.teile)) : [];
+    // Phase 7c: Blaupausen ohne Gehäuse (Version 1) einmalig umwandeln und gleich zurückschreiben
+    if (blaupausenNotfall.some((b) => !b.gehaeuse)) {
+      blaupausenNotfall = blaupausenNotfall.map((b) => b.gehaeuse ? b : wandleAlteBlaupauseUm(b));
+      window.localStorage.setItem(LAYOUT.speicherSchluessel, JSON.stringify(blaupausenNotfall));
+    }
   } catch (fehler) {
     speicherVerfuegbar = false;
   }
   return blaupausenNotfall.map((b) => ({ ...b }));
+}
+
+/* --- Phase 7c: alte Blaupausen (bis Phase 7b: 4 × 4 ohne Gehäuse, alte Bauteile) umwandeln ---
+   Die alten Bauteile werden zu ihren Nachfolgern (ALTE_BAUTEILE, alle 1 × 1) und kommen ins Gehäuse
+   LAYOUT.altGehaeuse (Kunststoff). Zuerst wird das ganze Design als Block verschoben, bis alle Teile auf
+   Zellen der Form liegen; klappt das nicht, sucht jedes Teil die nächste freie Zelle. Sind es mehr Teile
+   als Zellen, wird die Blaupause als "veraltet" markiert (im Designer neu anordnen). */
+function wandleAlteBlaupauseUm(bp) {
+  const teile = bp.teile.map((t) => ({ typ: ALTE_BAUTEILE[t.typ] || t.typ, x: t.x | 0, y: t.y | 0, drehung: t.drehung || 0 }))
+    .filter((t) => bauteilNachTyp.has(t.typ));
+  const layout = altesDesignImGehaeuse(teile, LAYOUT.altGehaeuse);
+  const geh = gehaeuseNachId.get(LAYOUT.altGehaeuse);
+  const neu = { ...bp, version: LAYOUT.blaupausenVersion, gehaeuse: geh.id, raster: { breite: geh.breite, hoehe: geh.hoehe } };
+  blaupausenUmstellung.umgestellt++;
+  if (layout) {
+    const bewertung = bewerteLayout(layout);
+    neu.teile = Object.values(layout.teile).map(({ typ, x, y, drehung }) => ({ typ, x, y, drehung }));
+    neu.werte = { gesamtHitze: bewertung.gesamtHitze, ueberhitzt: bewertung.ueberhitzt.length > 0, belegung: bewertung.belegung };
+    delete neu.veraltet;
+  } else {
+    neu.teile = teile;
+    neu.veraltet = true;
+    blaupausenUmstellung.veraltet++;
+  }
+  return neu;
+}
+// Legt die Teile in ein leeres Layout des Gehäuses. Rückgabe: das Layout oder null (passt nicht)
+function altesDesignImGehaeuse(teile, gehaeuseId) {
+  const leer = erstelleLeeresLayout(gehaeuseId);
+  const versuche = (dx, dy) => {
+    const l = kopiereLayout(leer);
+    for (const t of teile) {
+      const form = dreheForm(bauteilNachTyp.get(t.typ).form, t.drehung);
+      const drehung = form.length === 1 ? 0 : t.drehung;
+      if (!platziereTeilFrei(l, t.typ, t.x + dx, t.y + dy, drehung)) return null;
+    }
+    return l;
+  };
+  // 1. Als Block verschieben (kleinste Verschiebung zuerst)
+  const verschiebungen = [];
+  for (let dy = -leer.hoehe; dy <= leer.hoehe; dy++) for (let dx = -leer.breite; dx <= leer.breite; dx++) verschiebungen.push([dx, dy]);
+  verschiebungen.sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) - Math.abs(b[0]) - Math.abs(b[1]));
+  for (const [dx, dy] of verschiebungen) {
+    const l = versuche(dx, dy);
+    if (l) return l;
+  }
+  // 2. Jedes Teil einzeln an die nächste freie Stelle
+  const l = kopiereLayout(leer);
+  for (const t of teile) {
+    const plaetze = [];
+    for (let y = 0; y < l.hoehe; y++) for (let x = 0; x < l.breite; x++) for (const d of [0, 90, 180, 270]) {
+      if (passtTeil(l, t.typ, x, y, d).passt) plaetze.push({ x, y, d, weg: Math.abs(x - t.x) + Math.abs(y - t.y) + (d === t.drehung ? 0 : 0.5) });
+    }
+    if (!plaetze.length) return null;
+    plaetze.sort((a, b) => a.weg - b.weg);
+    platziereTeilFrei(l, t.typ, plaetze[0].x, plaetze[0].y, plaetze[0].d);
+  }
+  return l;
+}
+// Wie platziereTeil, aber ohne die Freischalt-Prüfung (Umwandlung alter Daten)
+function platziereTeilFrei(layout, typ, x, y, drehung) {
+  if (!bauteilNachTyp.has(typ) || !passtTeil(layout, typ, x, y, drehung).passt) return null;
+  const id = "t" + layout.naechsteNummer++;
+  layout.teile[id] = { typ, x, y, drehung };
+  for (const z of zellenVonTeil(typ, x, y, drehung)) layout.zellen[zellenNummer(layout, z.x, z.y)] = id;
+  return id;
 }
 
 // Schreibt die komplette Liste zurück und meldet "blaupausenGeaendert".
@@ -4123,6 +4626,7 @@ function speichereBlaupause(layout, name, id = null) {
     id: vorhanden ? vorhanden.id : `bp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     name: (name || "").trim() || naechsterEntwurfsName(),
     version: LAYOUT.blaupausenVersion,
+    gehaeuse: layout.gehaeuse || null,             // Phase 7c (ohne Gehäuse: wird beim nächsten Laden umgewandelt)
     raster: { breite: layout.breite, hoehe: layout.hoehe },
     teile: Object.values(layout.teile).map(({ typ, x, y, drehung }) => ({ typ, x, y, drehung })),
     werte: {
@@ -4139,16 +4643,19 @@ function speichereBlaupause(layout, name, id = null) {
   return blaupause;
 }
 
-// Baut aus einer gespeicherten Blaupause wieder ein Layout.
-// Unbekannte Bauteile oder Teile, die (z. B. nach einer Rastergrößen-Änderung)
-// nicht mehr passen, werden übersprungen. Rückgabe: { layout, blaupause, uebersprungen } oder null.
+// Baut aus einer gespeicherten Blaupause wieder ein Layout (Phase 7c: in ihrem Gehäuse).
+// Unbekannte oder gesperrte Bauteile und Teile, die nirgends mehr passen, werden übersprungen;
+// (Phase 7c) passt ein Teil nicht an seine Stelle (veraltete Blaupause), kommt es an die erste freie.
+// Rückgabe: { layout, blaupause, uebersprungen } oder null.
 function ladeBlaupauseInsLayout(id) {
   const blaupause = ladeBlaupausen().find((b) => b.id === id);
   if (!blaupause) return null;
-  const layout = erstelleLeeresLayout();
+  const layout = erstelleLeeresLayout(blaupause.gehaeuse || LAYOUT.altGehaeuse);
   let uebersprungen = 0;
   for (const t of blaupause.teile) {
-    if (!platziereTeil(layout, t.typ, t.x, t.y, t.drehung || 0)) uebersprungen++;
+    if (platziereTeil(layout, t.typ, t.x, t.y, t.drehung || 0)) continue;
+    const platz = bauteilNachTyp.has(t.typ) ? findeFreienPlatz(layout, t.typ) : null;
+    if (!platz || !platziereTeil(layout, t.typ, platz.x, platz.y, platz.drehung)) uebersprungen++;
   }
   return { layout, blaupause, uebersprungen };
 }
@@ -4231,6 +4738,101 @@ lz.ziel.addEventListener("change", () => {
   lz.fenster.focus({ preventScroll: true });   // damit die Designer-Tasten gleich wieder gehen
   zeichneDesigner();
 });
+// Phase 7c: Gehäuse als Karten unter dem Raster – Form, Zellen, Wärmeabfuhr, Wertfaktor; gesperrte mit
+// Schloss, Fortschritt und "Freischalten". Beim Wechsel steht darunter, welche Teile herausgefallen sind.
+const lzGehKarten = document.getElementById("lz-gehaeuse-karten");
+const lzGehHinweis = document.getElementById("lz-gehaeuse-hinweis");
+let lzGehWechselLaeuft = false;      // während wechsleGehaeuse: Hinweis nicht gleich wieder ausblenden
+function gehaeuseFormHtml(geh) {
+  return `<span class="lz-geh-form" aria-hidden="true" style="grid-template-columns:repeat(${geh.breite},7px)">` +
+    geh.maske.map((zelle) => `<span style="background:${zelle ? geh.farbe : "transparent"};${zelle ? "box-shadow:inset 0 0 0 1px rgba(0,0,0,0.18)" : ""}"></span>`).join("") + `</span>`;
+}
+function faktorText(f) { return String(f).replace(".", ","); }
+function zeichneGehaeuseKarten() {
+  lzGehKarten.innerHTML = GEHAEUSE.map((geh) => {
+    const aktiv = designer.layout.gehaeuse === geh.id;
+    const werte = `<small>${geh.kacheln} Zellen · ${geh.breite} × ${geh.hoehe}</small>
+      <small><span title="Wärmeabfuhr: so viel Hitze zieht das Gehäuse von jeder Kachel ab">❄ ${geh.waermeabfuhr ? `−${geh.waermeabfuhr}` : "0"}</span> · <span title="Produktwert × Faktor">Wert × ${faktorText(geh.wertFaktor)}</span></small>`;
+    if (geh.freigeschaltet) {
+      return `<button class="lz-geh-karte" type="button" role="radio" aria-checked="${aktiv}" data-gehaeuse="${geh.id}"
+        title="${htmlSicher(`${geh.name}: ${geh.kacheln} Zellen, Wärmeabfuhr ${geh.waermeabfuhr} je Kachel, Wert × ${faktorText(geh.wertFaktor)}`)}">
+        ${gehaeuseFormHtml(geh)}<b>${htmlSicher(geh.name)}</b>${werte}</button>`;
+    }
+    const st = uiFreischaltStatus(geh.id);
+    const bereit = !!st && st.kann;
+    const fortschritt = st && st.art === "herstellung"
+      ? `${fortschrittHtml(st.ist, st.ziel)}<small>${st.ist} / ${st.ziel} ${htmlSicher(itemInfo(st.item).name)}</small>` : "";
+    return `<div class="lz-geh-karte gesperrt${bereit ? " bereit" : ""}" data-gehaeuse="${geh.id}"
+        title="${htmlSicher(st ? (bereit ? `${geh.name}: Ziel erreicht – freischalten` : st.grund) : geh.name)}">
+        ${gehaeuseFormHtml(geh)}<b>${bereit ? "🔓" : "🔒"} ${htmlSicher(geh.name)}</b>${werte}${fortschritt}
+        ${bereit ? `<button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${geh.id}">🔓 Freischalten</button>` : ""}
+      </div>`;
+  }).join("");
+}
+// Gehäuse wechseln (Karte oder Auswahlliste) und melden, welche Teile nicht mehr hineinpassten
+function waehleGehaeuseUi(id) {
+  if (designer.layout.gehaeuse === id) return { ok: true, entfernt: [] };
+  lzGehWechselLaeuft = true;
+  const r = wechsleGehaeuse(id);
+  lzGehWechselLaeuft = false;
+  if (!r.ok) { zeigeMeldung(r.grund, true); return r; }
+  const geh = gehaeuseNachId.get(id);
+  if (r.entfernt.length) {
+    const zaehlung = {};
+    for (const t of r.entfernt) { const name = bauteilNachTyp.get(t.typ)?.name || t.typ; zaehlung[name] = (zaehlung[name] || 0) + 1; }
+    const namen = Object.entries(zaehlung).map(([name, n]) => (n > 1 ? `${n}× ${name}` : name)).join(", ");
+    const text = `${r.entfernt.length} Teil${r.entfernt.length === 1 ? "" : "e"} passte${r.entfernt.length === 1 ? "" : "n"} nicht ins ${geh.name} und ${r.entfernt.length === 1 ? "ist" : "sind"} wieder in der Leiste: ${namen}.`;
+    zeigeMeldung(text, true);
+    lzGehHinweis.innerHTML = `⚠ ${htmlSicher(text)}<button class="lz-knopf" type="button" data-aktion="geh-zurueck" title="Rückgängig (Strg+Z)">↶ Rückgängig</button>`;
+    lzGehHinweis.hidden = false;
+  } else {
+    lzGehHinweis.hidden = true;
+    zeigeMeldung(`${geh.name}: ${geh.kacheln} Zellen, Wärmeabfuhr ${geh.waermeabfuhr}.`);
+  }
+  return r;
+}
+lzGehKarten.addEventListener("click", (e) => {
+  const frei = e.target.closest("[data-freischalten]");
+  if (frei) { freischaltenUi(frei.dataset.freischalten); return; }
+  const karte = e.target.closest("[data-gehaeuse]");
+  if (!karte) return;
+  if (karte.classList.contains("gesperrt")) {
+    const st = uiFreischaltStatus(karte.dataset.gehaeuse);
+    if (st) zeigeMeldung(`${st.name} ist noch gesperrt – ${st.grund}`, true);
+    return;
+  }
+  waehleGehaeuseUi(karte.dataset.gehaeuse);
+  zeichneGehaeuseAuswahl();
+  zeichneDesigner();
+  const neu = lzGehKarten.querySelector(`[data-gehaeuse="${karte.dataset.gehaeuse}"]`);
+  if (neu) neu.focus({ preventScroll: true });
+});
+lzGehHinweis.addEventListener("click", (e) => {
+  if (!e.target.closest('[data-aktion="geh-zurueck"]')) return;
+  rueckgaengig();
+  zeichneDesigner();
+});
+// Jede andere Änderung am Layout (auch Rückgängig) macht den Hinweis überflüssig
+spielEreignisse.addEventListener("layoutGeaendert", () => { if (!lzGehWechselLaeuft) lzGehHinweis.hidden = true; });
+// Phase 7c: Die vorhandene Gehäuse-Auswahl mit den freigeschalteten Gehäusen füllen und anbinden
+// (schlichte Liste; Formvorschau o. Ä. ist Sache der Oberfläche)
+const lzGehaeuse = document.getElementById("lz-gehaeuse");
+function zeichneGehaeuseAuswahl() {
+  lzGehaeuse.innerHTML = GEHAEUSE.filter((g) => g.freigeschaltet || g.id === designer.layout.gehaeuse).map((g) =>
+    `<option value="${g.id}">${htmlSicher(g.name)} (${g.kacheln} Zellen · Wärmeabfuhr ${g.waermeabfuhr})</option>`).join("");
+  lzGehaeuse.value = designer.layout.gehaeuse;
+  zeichneGehaeuseKarten();   // Phase 7c (UI): Karten
+}
+lzGehaeuse.addEventListener("change", () => {
+  waehleGehaeuseUi(lzGehaeuse.value);   // Phase 7c (UI): meldet, welche Teile herausgefallen sind
+  lzGehaeuse.blur();
+  lz.fenster.focus({ preventScroll: true });
+  zeichneGehaeuseAuswahl();
+  zeichneDesigner();
+});
+zeichneGehaeuseAuswahl();
+spielEreignisse.addEventListener("freischaltungGeaendert", zeichneGehaeuseAuswahl);
+spielEreignisse.addEventListener("layoutGeaendert", () => { if (lzGehaeuse.value !== designer.layout.gehaeuse) zeichneGehaeuseAuswahl(); });
 // Phase 7a: Pflichtteile des gewählten Endprodukts – vorhanden (✓) oder fehlt (✗)
 function zeichneZiel(layout, bewertung) {
   const klasse = PRODUKTKLASSEN.find((k) => k.id === designer.ziel);
@@ -4239,16 +4841,27 @@ function zeichneZiel(layout, bewertung) {
     lz.zielTeile.innerHTML = `<span class="lz-ziel-hinweis">Wähle ein Endprodukt, dann zeigt diese Liste, welche Bauteile noch fehlen.</span>`;
     return;
   }
-  const vorhanden = teileZaehlen(Object.values(layout.teile));
-  const fehlen = klasse.teile.filter((t) => !(vorhanden[t] >= 1));
-  let html = klasse.teile.map((t) => {
-    const da = vorhanden[t] >= 1;
-    return `<span class="lz-ziel-teil ${da ? "da" : "fehlt"}">${da ? "✓" : "✗"} ${htmlSicher(bauteilNachTyp.get(t).name)}</span>`;
+  // Phase 7c: Die Klasse verlangt Kategorien (je mindestens eine Komponente)
+  const fehlen = fehlendeKategorien(layout, klasse.id);
+  let html = klasse.kategorien.map((k) => {
+    const da = !fehlen.includes(k);
+    const kat = kategorieNachId.get(k);   // Phase 7c (UI): Symbol und Farbe der Kategorie; Klick zeigt ihre Teile
+    return `<button type="button" class="lz-ziel-teil ${da ? "da" : "fehlt"}" data-kat="${k}" style="--kat-farbe:${kat.farbe}"
+      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${da ? "✓" : "✗"} <span class="lz-kat-symbol" aria-hidden="true">${kat.symbol}</span>${htmlSicher(kat.name)}</button>`;
   }).join("");
   if (bewertung.ueberhitzt.length) html += `<span class="lz-ziel-teil fehlt">⚠ überhitzt – zählt nicht</span>`;
   else if (!fehlen.length) html += `<span class="lz-ziel-teil fertig">Erfüllt ${klasse.symbol} ${htmlSicher(klasse.name)}</span>`;
   lz.zielTeile.innerHTML = html;
 }
+// Phase 7c: Klick auf eine Ziel-Kategorie öffnet sie in der Bauteil-Leiste
+lz.zielTeile.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  lzPalette.kategorie = knopf.dataset.kat;
+  lzPalette.suche = "";
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
 lz.raster.style.setProperty("--lz-spalten", LAYOUT.breite);
 lz.raster.style.setProperty("--lz-reihen", LAYOUT.hoehe);
 lz.raster.setAttribute("aria-label", `Produkt-Raster ${LAYOUT.breite} × ${LAYOUT.hoehe}`);
@@ -4317,23 +4930,184 @@ function teilZellenHtml(typ, zellen, { id = null, klassen = "", titel = "", warn
   }).join("");
 }
 
-/* --- Bauteil-Leiste aufbauen (einmalig) --- */
-lz.palette.innerHTML = BAUTEILE.filter((b) => b.freigeschaltet).map((b) => {
-  const form = b.form;
-  const groesse = formGroesse(form);
-  const belegt = new Set(form.map(([x, y]) => `${x},${y}`));
+/* --- Bauteil-Leiste aufbauen (Phase 7c: neu, sobald etwas freigeschaltet wird) ---
+   Phase 7c: 300 Komponenten – Kategorie-Reiter (Farbe + Symbol aus KATEGORIEN) und "Alle", Suchfeld
+   (Teilstring, ohne Groß/Klein) und Filter "nur freigeschaltete" (zeigt auch, was gerade freischaltbar ist).
+   In einer Kategorie stehen die Teile nach Linie (Reihe) und Stufe. Gesperrte Teile zeigen Schloss, Grund,
+   Fortschritt und – sobald das Herstellungsziel erreicht ist – den Knopf "Freischalten". */
+const lzPalette = {
+  kategorie: "",            // "" = alle, sonst Kategorie-ID
+  suche: "",
+  nurFrei: true,            // nur freigeschaltete (und freischaltbare) Teile zeigen
+  sucheFeld: document.getElementById("lz-suche"),
+  reiter: document.getElementById("lz-kategorien"),
+  nurFreiFeld: document.getElementById("lz-nur-frei"),
+  zahl: document.getElementById("lz-palette-zahl"),
+};
+// Vergleichstext für die Suche (ohne Groß/Klein)
+function suchText(text) { return String(text).toLocaleLowerCase("de"); }
+// Freischalt-Status für die Oberfläche: vor dem Spielstart (Aufbau der Seite) gibt es "spiel" noch nicht
+function uiFreischaltStatus(id) {
+  try { return freischaltStatus(id); } catch (fehler) { return null; }
+}
+function istFreischaltbar(id) {
+  const st = uiFreischaltStatus(id);
+  return !!st && !st.freigeschaltet && st.kann;
+}
+// Raster "1x2" (Reihen × Spalten) als Text
+function rasterText(raster) { return String(raster).replace("x", "×"); }
+// Werte einer Komponente als kleine Zeile: Tier · Raster · Hitze (Kühlung deutlich blau) · Toleranz
+function paletteWerteHtml(b) {
+  const wirkung = b.kuehlung
+    ? `<span class="lz-kuehl" title="kühlt jede angrenzende Kachel um ${b.kuehlung}">❄ −${b.kuehlung}</span>`
+    : b.hitze ? `<span class="lz-heiss" title="heizt jede angrenzende Kachel um ${b.hitze}">🔥 ${b.hitze}</span>`
+    : `<span title="erzeugt keine Hitze">Hitze 0</span>`;
+  return `<span>${b.tier}</span><span title="Raster: Reihen × Spalten">${rasterText(b.raster)}</span>${wirkung}<span title="verträgt so viel Hitze">Tol. ${b.toleranz}</span>`;
+}
+// Kleine Vorschau der Form in Kategorie-Farbe
+function miniFormHtml(b) {
+  const groesse = formGroesse(b.form);
+  const belegt = new Set(b.form.map(([x, y]) => `${x},${y}`));
   let mini = "";
   for (let y = 0; y < groesse.hoehe; y++) {
     for (let x = 0; x < groesse.breite; x++) {
       mini += `<span style="background:${belegt.has(`${x},${y}`) ? b.farbe : "transparent"}"></span>`;
     }
   }
-  return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}"
-      aria-label="${b.name} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
-      <span class="lz-mini" style="grid-template-columns:repeat(${groesse.breite},10px)">${mini}</span>
-      <span><b>${b.name}</b><small>${bauteilWerteText(b)}</small></span>
+  return `<span class="lz-mini" style="grid-template-columns:repeat(${groesse.breite},10px)">${mini}</span>`;
+}
+// Fortschrittsbalken ist / ziel
+function fortschrittHtml(ist, ziel) {
+  const anteil = ziel > 0 ? Math.min(100, Math.round(ist / ziel * 100)) : 0;
+  return `<span class="lz-fortschritt" role="progressbar" aria-valuemin="0" aria-valuemax="${ziel}" aria-valuenow="${Math.min(ist, ziel)}"><span style="width:${anteil}%"></span></span>`;
+}
+// Eine Karte der Leiste: freigeschaltet = Knopf zum Ziehen/Klicken, gesperrt = Schloss mit Grund
+function bauteilKarteHtml(b) {
+  const kat = kategorieNachId.get(b.kategorie);
+  if (b.freigeschaltet) {
+    return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
+      title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie}`)}"
+      aria-label="${htmlSicher(b.name)} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
+      ${miniFormHtml(b)}
+      <span><b>${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small></span>
     </button></li>`;
-}).join("");
+  }
+  const st = uiFreischaltStatus(b.typ);
+  const bereit = !!st && st.kann;
+  let unten = "";
+  if (bereit) {
+    unten = `<small>Ziel erreicht: ${st.ist} / ${st.ziel}× ${htmlSicher(itemInfo(st.item).name)}</small>
+      <button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${b.typ}">🔓 Freischalten</button>`;
+  } else if (st && st.art === "herstellung") {
+    unten = `<small>${htmlSicher(st.grund)}</small>${fortschrittHtml(st.ist, st.ziel)}`;
+  } else if (st) {
+    unten = `<small>${htmlSicher(st.grund)}</small>`;
+  }
+  return `<li><div class="lz-bauteil-gesperrt${bereit ? " bereit" : ""}" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
+      title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie} – gesperrt`)}">
+      ${miniFormHtml(b)}
+      <span><b>${bereit ? "🔓" : "🔒"} ${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small>${unten}</span>
+    </div></li>`;
+}
+// Welche Teile zeigt die Leiste (ohne Blick auf den Reiter)?
+function paletteSichtbar(b, suche) {
+  if (lzPalette.nurFrei && !b.freigeschaltet && !istFreischaltbar(b.typ)) return false;
+  return !suche || suchText(b.name).includes(suche) || suchText(b.nr).includes(suche);
+}
+function gruppeHtml(titel, symbol, farbe) {
+  return `<li class="lz-gruppe" data-symbol="${htmlSicher(symbol)}" style="--kat-farbe:${farbe}">${htmlSicher(titel)}</li>`;
+}
+// Kategorie-Reiter: "Alle" + 12 Kategorien (Punkt = dort ist etwas freischaltbar)
+function zeichneKategorieReiter() {
+  const bereit = new Set(BAUTEILE.filter((b) => !b.freigeschaltet && istFreischaltbar(b.typ)).map((b) => b.kategorie));
+  lzPalette.reiter.innerHTML = `<button class="lz-kat text" type="button" role="tab" data-kat="" aria-selected="${lzPalette.kategorie === ""}" title="Alle Kategorien">Alle</button>` +
+    KATEGORIEN.map((k) => `<button class="lz-kat" type="button" role="tab" data-kat="${k.id}" style="--kat-farbe:${k.farbe}"
+      aria-selected="${lzPalette.kategorie === k.id}" aria-label="${htmlSicher(k.name)}" title="${htmlSicher(k.name)}">${k.symbol}${bereit.has(k.id) ? '<span class="lz-punkt" aria-hidden="true"></span>' : ""}</button>`).join("");
+}
+function zeichnePalette() {
+  zeichneKategorieReiter();
+  const suche = suchText(lzPalette.suche.trim());
+  if (lzPalette.sucheFeld.value !== lzPalette.suche) lzPalette.sucheFeld.value = lzPalette.suche;
+  lzPalette.nurFreiFeld.checked = lzPalette.nurFrei;
+  const frei = BAUTEILE.filter((b) => b.freigeschaltet).length;
+  lzPalette.zahl.textContent = `· ${frei} / ${BAUTEILE.length} frei`;
+  let html = "";
+  if (lzPalette.kategorie) {
+    // Eine Kategorie: Linie für Linie (Reihen), darin nach Stufe
+    const kat = kategorieNachId.get(lzPalette.kategorie);
+    html += gruppeHtml(kat.name, kat.symbol, kat.farbe);
+    for (let linie = 1; linie <= kat.linien.length; linie++) {
+      const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && b.linie === linie && paletteSichtbar(b, suche));
+      if (!teile.length) continue;
+      html += `<li class="lz-linie">Linie ${linie} · ${htmlSicher(kat.linien[linie - 1].namen[0])} …</li>` + teile.map(bauteilKarteHtml).join("");
+    }
+  } else {
+    // Alle: zuerst, was gerade freischaltbar ist; dann nach Kategorie
+    const bereit = suche ? [] : BAUTEILE.filter((b) => !b.freigeschaltet && istFreischaltbar(b.typ));
+    if (bereit.length) html += gruppeHtml("Bereit zum Freischalten", "🔓", "var(--farbe-akzent)") + bereit.map(bauteilKarteHtml).join("");
+    for (const kat of KATEGORIEN) {
+      const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && !bereit.includes(b) && paletteSichtbar(b, suche));
+      if (teile.length) html += gruppeHtml(kat.name, kat.symbol, kat.farbe) + teile.map(bauteilKarteHtml).join("");
+    }
+  }
+  if (!html.includes("<li><")) {
+    // Nichts gefunden: Hinweis und Abkürzungen (in allen Kategorien / auch gesperrte)
+    const ueberall = BAUTEILE.filter((b) => paletteSichtbar(b, suche)).length;
+    const gesperrt = lzPalette.nurFrei ? BAUTEILE.filter((b) => (!lzPalette.kategorie || b.kategorie === lzPalette.kategorie)
+      && (!suche || suchText(b.name).includes(suche) || suchText(b.nr).includes(suche))).length : 0;
+    html = `<li class="lz-leer">Keine passenden Bauteile${lzPalette.kategorie ? " in dieser Kategorie" : ""}.` +
+      (lzPalette.kategorie && ueberall ? `<br><button class="lz-knopf" type="button" data-palette="alle">In allen Kategorien suchen (${ueberall})</button>` : "") +
+      (gesperrt ? `<br><button class="lz-knopf" type="button" data-palette="gesperrte">Auch gesperrte zeigen (${gesperrt})</button>` : "") + `</li>`;
+  }
+  lz.palette.innerHTML = html;
+}
+// Reiter, Suche und Filter
+lzPalette.reiter.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  lzPalette.kategorie = knopf.dataset.kat;
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
+lzPalette.sucheFeld.addEventListener("input", () => {
+  lzPalette.suche = lzPalette.sucheFeld.value;
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+});
+lzPalette.sucheFeld.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {          // Esc: erst Suche leeren, dann zurück zu den Designer-Tasten
+    e.preventDefault();
+    if (lzPalette.sucheFeld.value) { lzPalette.sucheFeld.value = ""; lzPalette.suche = ""; zeichnePalette(); }
+    else lz.fenster.focus({ preventScroll: true });
+  } else if (e.key === "Enter") {    // Enter: das erste Teil der Liste einsetzen
+    const erstes = lz.palette.querySelector(".lz-bauteil");
+    if (erstes) erstes.click();
+  }
+});
+lzPalette.nurFreiFeld.addEventListener("change", () => {
+  lzPalette.nurFrei = lzPalette.nurFreiFeld.checked;
+  zeichnePalette();
+  lz.fenster.focus({ preventScroll: true });
+});
+// Freischalten per Klick (Leiste und Gehäuse-Karten) und die Abkürzungen bei "keine Treffer"
+function freischaltenUi(id) {
+  const r = schalteFrei(id);
+  const name = herstellbarNachTyp.get(id)?.name || id;
+  if (r.ok) zeigeMeldung(`🔓 ${name} ist freigeschaltet${gehaeuseNachId.has(id) ? " – als Gehäuse wählbar" : " – jetzt im Designer und an der Werkbank"}.`);
+  else zeigeMeldung(r.grund, true);
+  return r;
+}
+lz.palette.addEventListener("click", (e) => {
+  const frei = e.target.closest("[data-freischalten]");
+  if (frei) { freischaltenUi(frei.dataset.freischalten); return; }
+  const abk = e.target.closest("[data-palette]");
+  if (!abk) return;
+  if (abk.dataset.palette === "alle") lzPalette.kategorie = "";
+  if (abk.dataset.palette === "gesperrte") lzPalette.nurFrei = false;
+  zeichnePalette();
+});
+zeichnePalette();
+spielEreignisse.addEventListener("freischaltungGeaendert", zeichnePalette);   // Phase 7c
 
 /* --- Raster und Bewertung zeichnen --- */
 
@@ -4358,10 +5132,15 @@ function zeichneDesigner() {
   const bewertung = bewerteLayout(anzeige);
   const { hitze } = bewertung;
   let html = "";
+  // Phase 7c: Das Raster hat die Größe der Gehäuseform
+  lz.raster.style.setProperty("--lz-spalten", anzeige.breite);
+  lz.raster.style.setProperty("--lz-reihen", anzeige.hoehe);
+  passeKachelGroesseAn(anzeige);   // Phase 7c (UI): auch Carbon (7 × 6) passt in die mittlere Spalte
 
-  // Ebene 1: leere Kacheln
+  // Ebene 1: leere Kacheln (Phase 7c: ausgesparte Zellen des Gehäuses bleiben leer)
   for (let y = 0; y < anzeige.hoehe; y++) {
     for (let x = 0; x < anzeige.breite; x++) {
+      if (!istNutzbar(anzeige, x, y)) continue;
       html += `<div class="lz-zelle" data-x="${x}" data-y="${y}" style="grid-column:${x + 1};grid-row:${y + 1}"></div>`;
     }
   }
@@ -4399,9 +5178,27 @@ function zeichneDesigner() {
   lz.vor.disabled = designer.zukunft.length === 0;
 }
 
+// Phase 7c: Kachelgröße so wählen, dass die Gehäuseform in die mittlere Spalte passt (höchstens --lz-zelle,
+// nicht höher als etwa die halbe Fensterhöhe). kachelPixel() misst danach die echte Größe (Ziehen, Geist).
+function passeKachelGroesseAn(layout) {
+  const mitte = lz.raster.closest(".lz-mitte");
+  const rahmen = lz.raster.parentElement;
+  const innen = parseFloat(getComputedStyle(rahmen).paddingLeft) * 2 || 16;
+  const basis = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--lz-zelle")) || 68;
+  const breite = (mitte ? mitte.clientWidth : 400) - innen;
+  const hoehe = Math.max(200, window.innerHeight - 540);   // Rest des Fensters (Kopf, Ziel, Gehäuse, Fuß) braucht ca. 540 px
+  const g = Math.max(30, Math.min(basis, Math.floor(breite / layout.breite), Math.floor(hoehe / layout.hoehe)));
+  const wert = g + "px";
+  if (lz.raster.style.getPropertyValue("--lz-zelle") !== wert) lz.raster.style.setProperty("--lz-zelle", wert);
+}
+window.addEventListener("resize", () => { if (designer.offen && !(ui.ziehen && ui.ziehen.gestartet)) zeichneDesigner(); });
+
 // Rechte Spalte: Belegung, Hitze, Ampel und überhitzte Teile.
 const STATUS_TEXT = { gruen: "Alles im grünen Bereich", gelb: "Knapp an der Grenze", rot: "Überhitzt!" };
 function zeichneBewertung(bewertung, layout) {
+  // Phase 7c: Die Hitze-Ansicht zeigt die Werte nach Abzug der Wärmeabfuhr des Gehäuses
+  const geh = gehaeuseNachId.get(layout.gehaeuse);
+  lz.hitzeKnopf.title = geh ? `Hitze je Kachel nach Abzug der Wärmeabfuhr (${geh.name}: −${geh.waermeabfuhr})` : "Hitze je Kachel";
   const heiss = bewertung.heissesteKachel;
   const ueberhitztNamen = bewertung.ueberhitzt.map((id) => bauteilNachTyp.get(layout.teile[id].typ).name);
   lz.bewertung.innerHTML = `
@@ -4409,6 +5206,7 @@ function zeichneBewertung(bewertung, layout) {
     <dt>Bauteile</dt><dd>${bewertung.teileAnzahl}</dd>
     <dt>Gesamthitze</dt><dd>${bewertung.gesamtHitze}</dd>
     <dt>Heißeste Kachel</dt><dd>${heiss.wert > 0 ? heiss.wert : "–"}</dd>
+    <dt title="Das Gehäuse zieht diese Hitze von jeder Kachel ab (in der Hitze-Ansicht schon abgezogen)">Wärmeabfuhr</dt><dd>${bewertung.hitze.waermeabfuhr ? `−${bewertung.hitze.waermeabfuhr} je Kachel` : "keine"}</dd>
     ${produktZeilen(bewertung, layout)}
     <dd class="lz-status-zeile"><span class="lz-ampel ${bewertung.status}">${STATUS_TEXT[bewertung.status]}</span></dd>
     ${ueberhitztNamen.length ? `<dd class="lz-liste-ueberhitzt">⚠ Überhitzt: ${ueberhitztNamen.join(", ")}</dd>` : ""}`;
@@ -4421,7 +5219,7 @@ function produktZeilen(bewertung, layout) {
     const ueberhitzt = bewertung.ueberhitzt.length > 0;
     const klasse = besteKlasse(teile, ueberhitzt);
     return `<dt>Erfüllt</dt><dd>${klasse ? `${klasse.symbol} ${klasse.name}` : "keine Klasse"}</dd>
-      <dt>Marktwert</dt><dd>ca. ${euro(marktwertAusTeilen(teile, ueberhitzt))}</dd>`;
+      <dt>Marktwert</dt><dd>ca. ${euro(marktwertAusTeilen(teile, ueberhitzt, layout.gehaeuse))}</dd>`;
   } catch (fehler) {
     return "";   // Wirtschaft noch nicht bereit (sollte nicht vorkommen)
   }
@@ -4439,7 +5237,7 @@ function zeichneBlaupausen() {
     <li data-id="${htmlSicher(bp.id)}" class="${bp.id === designer.blaupauseId ? "aktiv" : ""}">
       <button class="lz-bp-laden" type="button" data-aktion="laden" title="In den Designer laden">
         <span>${htmlSicher(bp.name)}${bp.werte && bp.werte.ueberhitzt ? ' <b class="lz-bp-warn" title="überhitzt">⚠</b>' : ""}</span>
-        <small>${bp.werte ? `${bp.werte.belegung}/${(bp.raster?.breite || LAYOUT.breite) * (bp.raster?.hoehe || LAYOUT.hoehe)} Kacheln · Hitze ${bp.werte.gesamtHitze}` : ""}${blaupausenKlassenText(bp)}</small>
+        <small>${bp.werte ? `${bp.werte.belegung}/${gehaeuseNachId.get(bp.gehaeuse)?.kacheln || (bp.raster?.breite || LAYOUT.breite) * (bp.raster?.hoehe || LAYOUT.hoehe)} Kacheln · Hitze ${bp.werte.gesamtHitze}` : ""}${blaupausenKlassenText(bp)}</small>
       </button>
       <button class="lz-symbol-knopf" type="button" data-aktion="umbenennen" aria-label="${htmlSicher(bp.name)} umbenennen" title="Umbenennen">✎</button>
       <button class="lz-symbol-knopf" type="button" data-aktion="duplizieren" aria-label="${htmlSicher(bp.name)} duplizieren" title="Duplizieren">⧉</button>
@@ -4528,7 +5326,7 @@ lz.blaupausen.addEventListener("click", (e) => {
 
 // Größe einer Raster-Kachel in Pixeln (für Geister-Teil und Einrasten).
 function kachelPixel() {
-  return lz.raster.getBoundingClientRect().width / LAYOUT.breite;
+  return lz.raster.getBoundingClientRect().width / designer.layout.breite;   // Phase 7c: Breite der Gehäuseform
 }
 
 // Merkt sich einen möglichen Zieh-Vorgang. Losgezogen wird erst nach ZIEH_SCHWELLE Pixeln,
@@ -4570,7 +5368,7 @@ function aktualisiereZiehen(erzwingen = false) {
   const z = ui.ziehen;
   lz.geist.style.transform = `translate(${z.letzteX - z.griffX}px, ${z.letzteY - z.griffY}px)`;
   const rechteck = lz.raster.getBoundingClientRect();
-  const g = rechteck.width / LAYOUT.breite;
+  const g = kachelPixel();   // Phase 7c
   const toleranz = 10;   // Pixel: auch knapp neben dem Raster (auf dem Rahmen) zählt noch
   const ueberRaster = z.letzteX >= rechteck.left - toleranz && z.letzteX <= rechteck.right + toleranz
                    && z.letzteY >= rechteck.top - toleranz && z.letzteY <= rechteck.bottom + toleranz;
@@ -4627,7 +5425,7 @@ lz.raster.addEventListener("pointerdown", (e) => {
   const id = zelle.dataset.teil;
   const teil = designer.layout.teile[id];
   const rechteck = lz.raster.getBoundingClientRect();
-  const g = rechteck.width / LAYOUT.breite;
+  const g = kachelPixel();   // Phase 7c
   beginneZiehen(e, {
     typ: teil.typ, drehung: teil.drehung, teilId: id,
     // Das Teil genau dort festhalten, wo es angefasst wurde
@@ -4737,14 +5535,14 @@ lz.vor.addEventListener("click", () => { wiederholen(); zeichneDesigner(); });
 document.getElementById("lz-leeren").addEventListener("click", () => {
   aendereLayout((l) => {
     if (Object.keys(l.teile).length === 0) return false;
-    designer.layout = erstelleLeeresLayout();
+    designer.layout = erstelleLeeresLayout(l.gehaeuse);   // Phase 7c: Gehäuse bleibt
     return true;
   });
   zeichneDesigner();
 });
 document.getElementById("lz-neu").addEventListener("click", () => {
   if (Object.keys(designer.layout.teile).length > 0) {
-    aendereLayout(() => { designer.layout = erstelleLeeresLayout(); return true; });
+    aendereLayout(() => { designer.layout = erstelleLeeresLayout(designer.layout.gehaeuse); return true; });   // Phase 7c: Gehäuse bleibt
   }
   designer.blaupauseId = null;
   designer.name = naechsterEntwurfsName();
@@ -4781,6 +5579,8 @@ function oeffneDesigner() {
   lz.name.value = designer.name;
   sperre3dEingaben(true);
   lz.overlay.hidden = false;
+  zeichnePalette();              // Phase 7c (UI): Fortschritt und Freischaltbares auffrischen
+  zeichneGehaeuseAuswahl();
   zeichneBlaupausen();
   zeichneDesigner();
   lz.fenster.focus({ preventScroll: true });
@@ -4890,7 +5690,11 @@ const gebaeudeTypNach = new Map(GEBAEUDE_TYPEN.map((t) => [t.typ, t]));
 // Alle Items, die es gibt: Rohstoffe und Bauteile. Produkte heißen "p:<Blaupausen-ID>".
 const ITEMS = new Map();
 for (const r of ROHSTOFFE) ITEMS.set(r.id, { ...r, art: "rohstoff" });
-for (const b of BAUTEILE) ITEMS.set(b.typ, { id: b.typ, name: b.name, farbe: b.farbe, art: "bauteil" });
+// Phase 7c: Bauteile mit Kategorie, Raster und Tier (für Anzeige und 3D), dazu die Gehäuse (art "gehaeuse")
+for (const b of BAUTEILE) {
+  ITEMS.set(b.typ, { id: b.typ, name: b.name, farbe: b.farbe, art: "bauteil", kategorie: b.kategorie, raster: b.raster, tier: b.tier, symbol: b.symbol });
+}
+for (const geh of GEHAEUSE) ITEMS.set(geh.id, { id: geh.id, name: geh.name, farbe: geh.farbe, art: "gehaeuse", symbol: geh.symbol });
 
 // Der gesamte Zustand der Halle (wird auch gespeichert, siehe Abschnitt 11d).
 const spiel = {
@@ -4926,6 +5730,9 @@ const spiel = {
   autoVerkauf: {},              // Item → true (automatisch verkaufen)
   produktTeile: {},             // Blaupausen-ID → { Bauteil: Anzahl } (bleibt, auch wenn die Blaupause gelöscht wird)
   produktUeberhitzt: {},        // Blaupausen-ID → true/false
+  produktGehaeuse: {},          // Phase 7c: Blaupausen-ID → Gehäuse-ID (für den Wertfaktor)
+  hergestellt: {},              // Phase 7c: Item → so viele Stück an Stationen hergestellt (Einkauf zählt nicht)
+  freigeschaltet: [],           // Phase 7c: Komponenten und Gehäuse, die im Spiel freigeschaltet wurden (über den Start hinaus)
 
   // --- Phase 6: Fließbänder, Automatisierung, Halle (Abschnitte 11h bis 11j) ---
   baender: new Map(),           // Bandteil-ID → Bandteil (Band, Splitter, Zusammenführung, Übergang, Greifarm, Brücke)
@@ -4984,6 +5791,7 @@ function kapazitaetVon(g) { return typVon(g).kapazitaet; }
    als ein Rohstoff. Die Fächer der Stationen zählen weiter Stück. */
 function itemVolumen(item) {
   if (item.startsWith("p:")) return PRODUKTION.volumenProdukt;
+  if (gehaeuseNachId.has(item)) return PRODUKTION.volumenGehaeuse;   // Phase 7c
   const b = bauteilNachTyp.get(item);
   if (b) return Math.max(1, Math.ceil(b.form.length / PRODUKTION.volumenBauteilKacheln));
   return PRODUKTION.volumenRohstoff;
@@ -5557,7 +6365,12 @@ function fachInhalt(g, fach) {
   return fach === "eingang" ? g.eingang : g.bestand;
 }
 function fachGroesse(g, fach) {
-  return fach === "eingang" ? typVon(g).eingangsfach || 0 : kapazitaetVon(g);
+  if (fach !== "eingang") return kapazitaetVon(g);
+  const grund = typVon(g).eingangsfach || 0;
+  // Phase 7c: Ein Durchgang muss immer ins Eingangsfach passen (T3-Rezepte, große Gehäuse mit vielen Teilen)
+  if (!grund || !g.rezept) return grund;
+  const r = rezeptVon(g);
+  return r ? Math.max(grund, summe(r.eingaben)) : grund;
 }
 // Ändert den Inhalt eines Fachs und merkt sich, dass neu gezeichnet werden muss.
 function aendereFach(g, fach, item, delta) {
@@ -5939,6 +6752,7 @@ function merkeProdukt(bp) {
   spiel.produktNamen[bp.id] = bp.name;
   spiel.produktTeile[bp.id] = teileZaehlen(bp.teile);
   spiel.produktUeberhitzt[bp.id] = !!(bp.werte && bp.werte.ueberhitzt);
+  if (bp.gehaeuse) spiel.produktGehaeuse[bp.id] = bp.gehaeuse;   // Phase 7c
 }
 // [{ typ }, ...] → { typ: Anzahl }
 function teileZaehlen(teile) {
@@ -5954,17 +6768,18 @@ function rezeptVon(s) {
   if (!s.rezept) return null;
   const art = typVon(s).art;
   if (art === "werkbank") {
-    const b = bauteilNachTyp.get(s.rezept);
+    const b = herstellbarNachTyp.get(s.rezept);       // Phase 7c: Bauteile und Gehäuse
     if (!b || !b.rezept) return null;
     return { schluessel: "b:" + b.typ, name: b.name, eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit, ausschuss: 0 };
   }
   if (art === "montage") {
     const bp = blaupausenNachId.get(s.rezept);
-    if (!bp) return null;
+    if (!bp || bp.veraltet) return null;            // Phase 7c: veraltete Blaupause erst im Designer neu anordnen
     const eingaben = {};
     for (const t of bp.teile) if (bauteilNachTyp.has(t.typ)) eingaben[t.typ] = (eingaben[t.typ] || 0) + 1;
     const teile = summe(eingaben);
     if (!teile) return null;
+    if (gehaeuseNachId.has(bp.gehaeuse)) eingaben[bp.gehaeuse] = 1;   // Phase 7c: genau ein Gehäuse pro Produkt
     return {
       schluessel: "p:" + bp.id, name: bp.name, eingaben, ausgabe: "p:" + bp.id,
       zeit: PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile,
@@ -5983,9 +6798,14 @@ function rezeptVon(s) {
 }
 
 // Setzt das Rezept einer Station (Bauteil-Typ für die Werkbank, Blaupausen-ID für den Montagetisch).
+// Phase 7c: An der Werkbank nur freigeschaltete Bauteile und Gehäuse.
 function setzeRezept(id, rezept) {
   const s = spiel.gebaeude.get(id);
   if (!s || !istStation(s)) return false;
+  if (rezept && typVon(s).art === "werkbank") {
+    const b = herstellbarNachTyp.get(rezept);
+    if (!b || !b.rezept || !b.freigeschaltet) return false;
+  }
   s.rezept = rezept || null;
   s.fortschritt = 0;
   if (rezept && typVon(s).art === "montage" && blaupausenNachId.has(rezept)) merkeProdukt(blaupausenNachId.get(rezept));
@@ -6725,6 +7545,7 @@ function schrittArbeiter(p, dt) {
         break;
       }
       spiel.statistik.produziert++;
+      zaehleHergestellt(r.ausgabe);                    // Phase 7c: für die Freischaltung
       const lager = ausgabeLagerFuer(s, r.ausgabe, res);
       if (lager) {                                     // Phase 5: selbst ins Ausgang-Lager tragen
         p.traegt = { [r.ausgabe]: 1 };
@@ -6961,6 +7782,7 @@ function spielstandDaten() {
     })),
     naechstePersonId: spiel.naechstePersonId,
     rezeptPins: spiel.rezeptPins,                  // Phase 7a (Nachtrag 2)
+    komponenten: { hergestellt: spiel.hergestellt, freigeschaltet: spiel.freigeschaltet },   // Phase 7c
     produktNamen: spiel.produktNamen,
     statistik: spiel.statistik,
     schnappschuss: spiel.schnappschuss,
@@ -6973,6 +7795,7 @@ function spielstandDaten() {
       fp: spiel.fp, erforscht: spiel.erforscht, entdeckteKlassen: spiel.entdeckteKlassen,
       autoKauf: spiel.autoKauf, autoVerkauf: spiel.autoVerkauf,
       produktTeile: spiel.produktTeile, produktUeberhitzt: spiel.produktUeberhitzt,
+      produktGehaeuse: spiel.produktGehaeuse,      // Phase 7c
     },
   };
 }
@@ -6996,7 +7819,8 @@ function leseSpielstand() {
     const daten = JSON.parse(text);
     // Phase 5: version 1 (Phase 4) wird ebenfalls gelesen und in wendeSpielstandAn umgewandelt
     // Phase 6: version 2 (Phase 5) wird ohne Bänder geladen
-    return daten && [1, 2, 3, 4, 5, 6, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    // Phase 7c: version 7 (Phase 7b) wird gelesen und in wendeSpielstandAn auf die neuen Komponenten umgestellt
+    return daten && [1, 2, 3, 4, 5, 6, 7, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -7005,6 +7829,10 @@ function leseSpielstand() {
 
 // Baut die Halle aus gespeicherten Daten wieder auf.
 function wendeSpielstandAn(d) {
+  // Phase 7c: Spielstände bis Version 7 kennen die 8 alten Bauteile – überall auf die Nachfolger umstellen
+  const alteVersion = (d.version || 1) < 8;
+  if (alteVersion) d = stelleAlteBauteileUm(d);
+  ladeKomponenten(d.komponenten || null);
   spiel.naechsteId = d.naechsteId || 1;
   spiel.naechstePersonId = d.naechstePersonId || 1;
   spiel.rezeptPins = Array.isArray(d.rezeptPins) ? d.rezeptPins.filter((p) => p && typeof p.schluessel === "string") : [];
@@ -7103,6 +7931,7 @@ function wendeSpielstandAn(d) {
   }
   if (!mitarbeiter.includes(figur)) nimmDuAuf();  // ältere Spielstände: "Du" kommt dazu
   bucheInsLager(d.unterwegs || {});
+  if (alteVersion) meldeKomponentenUmstellung(true);   // Phase 7c
 }
 
 // Allererster Start: Hauptlager mit Startbestand, Kuriere und Arbeiter davor.
@@ -7125,6 +7954,10 @@ function starteSpiel() {
   const gespeichert = leseSpielstand();
   if (gespeichert) wendeSpielstandAn(gespeichert);
   else starteNeuesSpiel();
+  if (!gespeichert || gespeichert.version >= 8) meldeKomponentenUmstellung(false);   // Phase 7c: nur alte Blaupausen umgestellt?
+  // Phase 7c: Alte Blaupausen liegen jetzt im Kunststoffgehäuse – damit sie weiter gebaut werden können,
+  // ist es bei alten Spielständen (und frisch umgestellten Blaupausen) gleich freigeschaltet.
+  if (blaupausenUmstellung.umgestellt || (gespeichert && gespeichert.version < 8)) setzeFreigeschaltet([LAYOUT.altGehaeuse]);
   if (level.tiefe !== level.basisTiefe) zoomeAufGarage();   // Phase 6: ausgebaute Halle ganz zeigen
   spielstandAktiv = true;
   meldeStruktur();
@@ -7213,22 +8046,27 @@ function rohstoffPreis(id) {
   return r ? r.preis : 0;
 }
 // berechneBauteilwert: Materialkosten × Faktor + Arbeitszeit × Euro pro Sekunde
+// (Phase 7c: gilt auch für Gehäuse; höhere Tiers sind über Rezept und Zeit wertvoller)
 function berechneBauteilwert(typ) {
-  const b = bauteilNachTyp.get(typ);
+  const b = herstellbarNachTyp.get(typ);
   if (!b) return 0;
   let material = 0;
   for (const [id, n] of Object.entries(b.rezept || {})) material += rohstoffPreis(id) * n;
   return Math.round(material * WIRTSCHAFT.bauteilMaterialFaktor + (b.zeit || 0) * WIRTSCHAFT.bauteilEuroProSekunde);
 }
-// Erfüllen diese Bauteile ({ typ: Anzahl }) die Produktklasse?
+// Erfüllen diese Bauteile ({ typ: Anzahl }) die Produktklasse? (Phase 7c: je eine Komponente aus jeder Kategorie)
 function erfuelltKlasse(teile, ueberhitzt, klasse) {
-  return !ueberhitzt && klasse.teile.every((t) => (teile[t] || 0) >= 1);
+  if (ueberhitzt || !klasse || !teile) return false;
+  const da = kategorienVon(teile);
+  return klasse.kategorien.every((k) => da.has(k));
 }
-// Grundwert einer Produktklasse: Produkt aus genau ihren Bauteilen, ohne Nachfrage
+// Grundwert einer Produktklasse: Produkt aus je einer Start-Komponente ihrer Kategorien im Standardgehäuse,
+// ohne Nachfrage (Phase 7c)
 function klassenGrundwert(klasse) {
-  let basis = 0;
-  for (const t of klasse.teile) basis += berechneBauteilwert(t);
-  return Math.round(basis * WIRTSCHAFT.produktFaktor * WIRTSCHAFT.klassenBonus);
+  let basis = berechneBauteilwert(LAYOUT.standardGehaeuse);
+  for (const k of klasse.kategorien) if (startKomponente.get(k)) basis += berechneBauteilwert(startKomponente.get(k).typ);
+  const faktor = (gehaeuseNachId.get(LAYOUT.standardGehaeuse) || {}).wertFaktor || 1;
+  return Math.round(basis * WIRTSCHAFT.produktFaktor * WIRTSCHAFT.klassenBonus * faktor);
 }
 // Die wertvollste Klasse, die diese Bauteile erfüllen (oder null)
 function besteKlasse(teile, ueberhitzt) {
@@ -7248,15 +8086,19 @@ function nachfrageVon(klassenId) {
   const basis = spiel.nachfrage[klassenId] ?? 1;
   return Math.max(WIRTSCHAFT.nachfrageMin, basis * (1 - druck));
 }
-// berechneMarktwert: Summe der Bauteilwerte × Produktfaktor × (Klassenbonus) × Nachfrage
-function marktwertAusTeilen(teile, ueberhitzt) {
+// berechneMarktwert: (Summe der Bauteilwerte + Gehäusewert) × Produktfaktor × (Klassenbonus)
+// × Wertfaktor des Gehäuses (Phase 7c) × Nachfrage
+function marktwertAusTeilen(teile, ueberhitzt, gehaeuse = null) {
   let basis = 0;
   for (const [typ, n] of Object.entries(teile)) basis += berechneBauteilwert(typ) * n;
+  const geh = gehaeuseNachId.get(gehaeuse);
+  if (geh) basis += berechneBauteilwert(geh.id);
   const k = besteKlasse(teile, ueberhitzt);
-  return Math.round(basis * WIRTSCHAFT.produktFaktor * (k ? WIRTSCHAFT.klassenBonus : 1) * nachfrageVon(k ? k.id : "sonstige"));
+  return Math.round(basis * WIRTSCHAFT.produktFaktor * (k ? WIRTSCHAFT.klassenBonus : 1) * (geh ? geh.wertFaktor : 1)
+    * nachfrageVon(k ? k.id : "sonstige"));
 }
 function berechneMarktwert(blaupause) {
-  return marktwertAusTeilen(teileZaehlen(blaupause.teile), !!(blaupause.werte && blaupause.werte.ueberhitzt));
+  return marktwertAusTeilen(teileZaehlen(blaupause.teile), !!(blaupause.werte && blaupause.werte.ueberhitzt), blaupause.gehaeuse);
 }
 // Produktklasse eines produzierten Produkts (Blaupausen-ID) oder null
 function produktKlasse(bpId) {
@@ -7272,9 +8114,9 @@ function senkeNachfrage(klassenId) {
 function verkaufspreis(item) {
   if (item.startsWith("p:")) {
     const id = item.slice(2), teile = spiel.produktTeile[id];
-    return teile ? Math.round(marktwertAusTeilen(teile, spiel.produktUeberhitzt[id]) * WIRTSCHAFT.direktverkaufProdukt) : 0;
+    return teile ? Math.round(marktwertAusTeilen(teile, spiel.produktUeberhitzt[id], spiel.produktGehaeuse[id]) * WIRTSCHAFT.direktverkaufProdukt) : 0;
   }
-  if (bauteilNachTyp.has(item)) return Math.round(berechneBauteilwert(item) * WIRTSCHAFT.direktverkaufBauteil);
+  if (herstellbarNachTyp.has(item)) return Math.round(berechneBauteilwert(item) * WIRTSCHAFT.direktverkaufBauteil);   // Phase 7c: auch Gehäuse
   return 0;
 }
 // Verkauft bis zu "anzahl" Stück aus dem Hauptlager. Rückgabe: { anzahl, erloes }
@@ -8019,6 +8861,139 @@ function ladeWirtschaft(w) {
   spiel.autoVerkauf = w.autoVerkauf || {};
   spiel.produktTeile = { ...(w.produktTeile || {}), ...spiel.produktTeile };
   spiel.produktUeberhitzt = { ...(w.produktUeberhitzt || {}), ...spiel.produktUeberhitzt };
+  spiel.produktGehaeuse = { ...(w.produktGehaeuse || {}), ...spiel.produktGehaeuse };   // Phase 7c
+}
+
+/* ============================================================================
+   ABSCHNITT 11k: Komponenten & Gehäuse – Herstellungszähler, Freischaltung, alte Stände (Phase 7c) [Logik-Agent]
+   Jede Station zählt in spiel.hergestellt mit, wie viele Stück sie hergestellt hat (Einkauf zählt nicht).
+   Ist ein Herstellungsziel erreicht, meldet das Spiel "freischaltbar"; freigeschaltet wird per Klick
+   (schalteFrei). Zeit-Forschung (Stufe 2 jeder Linie) kommt erst mit Teilschritt 7d.
+   Ereignisse: freischaltbar { id, name }, freischaltungGeaendert { ids }
+   ============================================================================ */
+// Wer wartet auf welches Item? (Item → Komponenten/Gehäuse mit Bedingung "herstellung" dieses Items)
+const wartetAufItem = new Map();
+for (const e of herstellbarNachTyp.values()) {
+  if (e.freischaltung.art !== "herstellung") continue;
+  if (!wartetAufItem.has(e.freischaltung.item)) wartetAufItem.set(e.freischaltung.item, []);
+  wartetAufItem.get(e.freischaltung.item).push(e);
+}
+// Herstellungsziel eines Eintrags (mit KOMPONENTEN.herstellZielFaktor; 0 = keine Herstellungs-Bedingung)
+function herstellZiel(id) {
+  const e = herstellbarNachTyp.get(id);
+  if (!e || e.freischaltung.art !== "herstellung") return 0;
+  return Math.max(1, Math.ceil(e.freischaltung.anzahl * KOMPONENTEN.herstellZielFaktor));
+}
+function istFreigeschaltet(id) {
+  const e = herstellbarNachTyp.get(id);
+  return !!e && !!e.freigeschaltet;
+}
+// Zählt fertige Erzeugnisse einer Station (Werkbank, Montagetisch, Automatik)
+function zaehleHergestellt(item, n = 1) {
+  if (!item) return;
+  const vorher = spiel.hergestellt[item] || 0;
+  spiel.hergestellt[item] = vorher + n;
+  for (const e of wartetAufItem.get(item) || []) {
+    const ziel = herstellZiel(e.typ);
+    if (e.freigeschaltet || vorher >= ziel || vorher + n < ziel) continue;
+    meldeEreignis("freischaltbar", { id: e.typ, name: e.name });
+    meldeEreignis("hinweis", { text: `Freischaltbar: ${e.name} (${ziel}× ${itemInfo(item).name} hergestellt).` });
+  }
+}
+// Alles über die Freischaltung eines Eintrags – für Designer, Werkbank und (7d) den Forschungsbaum.
+// Rückgabe: { id, name, art, freigeschaltet, kann, ist, ziel, item, sek, grund } oder null (unbekannt)
+//   art  – "start" | "forschung" | "herstellung";  ist/ziel – Herstellungsfortschritt (Bedingung "herstellung")
+//   kann – true: Bedingung erfüllt, "Freischalten" möglich;  grund – warum (noch) nicht
+function freischaltStatus(id) {
+  const e = herstellbarNachTyp.get(id);
+  if (!e) return null;
+  const f = e.freischaltung;
+  const status = { id, name: e.name, art: f.art, freigeschaltet: !!e.freigeschaltet, kann: false, ist: 0, ziel: 0,
+                   item: f.item || null, sek: f.sek || 0, grund: "" };
+  if (status.freigeschaltet) { status.grund = `${e.name} ist schon freigeschaltet.`; return status; }
+  if (f.art === "forschung") { status.grund = KOMPONENTEN.forschungGrund; return status; }
+  if (f.art === "herstellung") {
+    status.ist = spiel.hergestellt[f.item] || 0;
+    status.ziel = herstellZiel(id);
+    status.kann = status.ist >= status.ziel;
+    if (!status.kann) status.grund = `Noch ${status.ziel - status.ist}× ${itemInfo(f.item).name} herstellen (${status.ist} / ${status.ziel}).`;
+  }
+  return status;
+}
+function kannFreischalten(id) {
+  const st = freischaltStatus(id);
+  return !!st && st.kann;
+}
+// Schaltet einen Eintrag frei (Klick auf "Freischalten"). Rückgabe: { ok } oder { ok: false, grund }
+function schalteFrei(id) {
+  const st = freischaltStatus(id);
+  if (!st) return { ok: false, grund: "Unbekannte Komponente." };
+  if (!st.kann) return { ok: false, grund: st.grund };
+  setzeFreigeschaltet([id]);
+  return { ok: true };
+}
+function setzeFreigeschaltet(ids) {
+  const neu = [];
+  for (const id of ids) {
+    const e = herstellbarNachTyp.get(id);
+    if (!e || e.freigeschaltet) continue;
+    e.freigeschaltet = true;
+    if (!spiel.freigeschaltet.includes(id)) spiel.freigeschaltet.push(id);
+    neu.push(id);
+  }
+  if (!neu.length) return 0;
+  meldeStruktur();
+  meldeEreignis("freischaltungGeaendert", { ids: neu });
+  return neu.length;
+}
+// Entwicklung: alle Komponenten und Gehäuse freischalten. Rückgabe: so viele waren neu
+function schalteAlleKomponentenFrei() {
+  return setzeFreigeschaltet([...herstellbarNachTyp.keys()]);
+}
+// Spielstand: Zähler und Freischaltungen übernehmen (null = neues Spiel)
+function ladeKomponenten(k) {
+  spiel.hergestellt = { ...((k && k.hergestellt) || {}) };
+  spiel.freigeschaltet = Array.isArray(k && k.freigeschaltet) ? k.freigeschaltet.filter((id) => herstellbarNachTyp.has(id)) : [];
+  for (const e of herstellbarNachTyp.values()) e.freigeschaltet = e.freischaltung.art === "start" || spiel.freigeschaltet.includes(e.typ);
+  meldeEreignis("freischaltungGeaendert", { ids: [] });
+}
+
+/* --- Alte Spielstände (bis Version 7): die 8 alten Bauteile auf ihre Nachfolger umstellen ---
+   Geht einmal durch ALLE gespeicherten Daten: Schlüssel und Texte, die genau ein alter Bauteil-Typ sind
+   (Bestände, Fächer, Kuriere, Band-Items, Verteiler-Puffer, Filter, Rezepte, Regeln, Bestellungen,
+   Exportmodus, Produktteile …), sowie Rezept-Schlüssel "b:akku" / "z:akku". Namen bleiben unangetastet. */
+const UMSTELLUNG_BEHALTEN = new Set(["name", "produktNamen", "kunde", "gespeichert", "level"]);
+function neuerBauteilTyp(text) {
+  if (Object.prototype.hasOwnProperty.call(ALTE_BAUTEILE, text)) return ALTE_BAUTEILE[text];
+  const m = /^([bz]):(.+)$/.exec(text);
+  if (m && Object.prototype.hasOwnProperty.call(ALTE_BAUTEILE, m[2])) return `${m[1]}:${ALTE_BAUTEILE[m[2]]}`;
+  return text;
+}
+function stelleAlteBauteileUm(wert) {
+  if (Array.isArray(wert)) return wert.map(stelleAlteBauteileUm);
+  if (typeof wert === "string") return neuerBauteilTyp(wert);
+  if (!wert || typeof wert !== "object") return wert;
+  const neu = {};
+  for (const [schluessel, inhalt] of Object.entries(wert)) {
+    const s = neuerBauteilTyp(schluessel);
+    const v = UMSTELLUNG_BEHALTEN.has(schluessel) ? inhalt : stelleAlteBauteileUm(inhalt);
+    neu[s] = typeof neu[s] === "number" && typeof v === "number" ? neu[s] + v : v;
+  }
+  return neu;
+}
+// Hinweis nach dem Laden: was wurde umgestellt? (spielstand = true: ein alter Spielstand wurde geladen)
+function meldeKomponentenUmstellung(spielstand) {
+  const bp = blaupausenUmstellung;
+  if (!spielstand && !bp.umgestellt) return;
+  const teile = [];
+  if (spielstand) teile.push("Die 8 alten Bauteile heißen jetzt wie im neuen Katalog (z. B. Akku → Knopfzelle, Taster → Mikroschalter); Bestände, Rezepte und Bänder sind umgestellt");
+  if (bp.umgestellt) {
+    const kunststoff = gehaeuseNachId.get(LAYOUT.altGehaeuse).name;
+    teile.push(`${bp.umgestellt} alte Blaupause(n) liegen jetzt im ${kunststoff}` +
+      (bp.veraltet ? ` – ${bp.veraltet} davon passten nicht und sind als „veraltet“ markiert (im Designer neu anordnen)` : ""));
+  }
+  teile.push("Produktklassen verlangen jetzt Kategorien");
+  setTimeout(() => meldeEreignis("hinweis", { text: `Neuer Komponenten-Katalog: ${teile.join(". ")}.` }), 1100);
 }
 
 /* ============================================================================
@@ -9143,6 +10118,7 @@ function schrittStationAutomatik(s, dt) {
     return;
   }
   spiel.statistik.produziert++;
+  zaehleHergestellt(ra.ausgabe);                 // Phase 7c: für die Freischaltung
   aendereBestand(s, ra.ausgabe, 1);
 }
 
@@ -9593,7 +10569,7 @@ function zeigeVerladen(eintrag, g, z) {
     const u = (t - j / rate) / VERLADE_DAUER;
     if (u < 0 || u > 1) continue;
     const paket = eintrag.pakete[j % eintrag.pakete.length];
-    paket.material = figurMaterial(itemInfo(v.liste[Math.floor(j * v.liste.length / anzahl)]).farbe);
+    zeigeItemAlsMesh(paket, v.liste[Math.floor(j * v.liste.length / anzahl)], 0.18);   // Phase 7c: Form, Farbe, Größe des Items
     // Palette (in der Zone) und Ladefläche (am Heck des Wagens) in Weltkoordinaten
     const palette = eintrag.plaetze[(j * 7) % eintrag.plaetze.length];
     eintrag.modell.localToWorld(verladeHilfe.a.copy(palette));
@@ -9775,7 +10751,7 @@ const MODELLE = {
     const bildschirm = quader(g, 0.49, 0.3, 0.01, GRAFIK.farbeBildschirm, 0.62, H + 0.2, -0.24, m || new THREE.MeshBasicMaterial({ color: GRAFIK.farbeBildschirm }));
     bildschirm.castShadow = false;
     // Zerlegte Kleinteile auf der Unterlage
-    const farben = BAUTEILE.map((b) => b.farbe);
+    const farben = KATEGORIEN.map((k) => k.farbe);   // Phase 7c: Farben der Kategorien (statt der ersten Bauteile)
     [[-0.25, 0.1], [-0.05, 0.2], [0.12, 0.05], [0.25, 0.22], [-0.3, -0.12]].forEach(([x, z], i) =>
       quader(g, 0.07, 0.04, 0.05, farben[i % farben.length], x, H + 0.012, z, m));
     return { gruppe: g, plaetze: [], wuerfel: 0.18 };
@@ -9897,13 +10873,98 @@ function wuerfelGeometrie(kante) {
   if (!wuerfelGeometrien.has(kante)) wuerfelGeometrien.set(kante, new THREE.BoxGeometry(kante, kante, kante));
   return wuerfelGeometrien.get(kante);
 }
+
+/* --- Phase 7c: Aussehen der Items (Würfel, Komponente, Gehäuse-Schale, Bretterstapel) ---
+   Jedes Item bekommt eine Form (eine von vier Geometrien, je 1 × 1 × 1 groß), Maße und eine Farbe:
+     Rohstoffe, Produkte, Unbekanntes → Würfel in der Item-Farbe (Holz: Bretterstapel)
+     Komponenten → kleine Platine mit Chip in der Farbe der Kategorie, Größe nach Raster, Tier etwas heller
+     Gehäuse     → flache Schale in Materialfarbe (GRAFIK.farbeGehaeuse)
+   Die Geometrien tragen Grautöne als Vertex-Farben (Schattierung); die eigentliche Farbe kommt aus dem
+   Material (Lager, Kuriere) bzw. pro Instanz (Bänder). Ergebnisse werden pro Item-Id gemerkt. */
+function itemGeometrieAusQuadern(quaderListe) {
+  const pos = [], nor = [], col = [];
+  for (const [b, h, t, x, y, z, hell] of quaderListe) {
+    const box = new THREE.BoxGeometry(b, h, t).toNonIndexed();
+    box.translate(x, y, z);
+    pos.push(...box.attributes.position.array);
+    nor.push(...box.attributes.normal.array);
+    for (let i = 0; i < box.attributes.position.count; i++) col.push(hell, hell, hell);
+    box.dispose();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
+  return geo;
+}
+// Alle Formen füllen den Würfel von -0,5 bis 0,5 aus: [Breite, Höhe, Tiefe, x, y, z, Helligkeit]
+const ITEM_GEOMETRIEN = {
+  wuerfel: itemGeometrieAusQuadern([[1, 1, 1, 0, 0, 0, 1]]),
+  // Platine (dunkler) mit aufgesetztem Chip
+  komponente: itemGeometrieAusQuadern([[1, 0.34, 1, 0, -0.33, 0, 0.62], [0.78, 0.66, 0.78, 0, 0.17, 0, 1]]),
+  // oben offene Schale: Boden (innen etwas dunkler) und vier Wände
+  schale: itemGeometrieAusQuadern([
+    [1, 0.24, 1, 0, -0.38, 0, 0.78],
+    [1, 1, 0.13, 0, 0, 0.435, 1], [1, 1, 0.13, 0, 0, -0.435, 1],
+    [0.13, 1, 0.74, 0.435, 0, 0, 0.92], [0.13, 1, 0.74, -0.435, 0, 0, 0.92],
+  ]),
+  // drei Lagen aus je zwei Brettern, abwechselnd hell und dunkel, mit kleinen Fugen
+  bretter: itemGeometrieAusQuadern([0, 1, 2].flatMap((lage) => [-1, 1].map((seite) =>
+    [1 - lage * 0.06, 0.32, 0.47, lage * 0.03 * seite, -0.34 + lage * 0.34, seite * 0.265, (lage + (seite > 0 ? 1 : 0)) % 2 ? 0.8 : 1]))),
+};
+const itemMaterialien = new Map();
+function itemMaterial(farbe) {
+  if (!itemMaterialien.has(farbe)) {
+    itemMaterialien.set(farbe, new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.75, flatShading: true, vertexColors: true }));
+  }
+  return itemMaterialien.get(farbe);
+}
+const itemFormen = new Map();
+function itemForm(id) {
+  if (itemFormen.has(id)) return itemFormen.get(id);
+  // Unbekannte oder kaputte Ids (alte Spielstände): grauer Würfel statt Absturz
+  const info = typeof id === "string" && id ? itemInfo(id) : { farbe: "#cccccc", art: "unbekannt" };
+  const farbe = new THREE.Color(info.farbe || "#cccccc");
+  let geo = "wuerfel", masse = [1, 1, 1];
+  if (info.art === "bauteil") {
+    const kat = info.kategorie && kategorieNachId.get(info.kategorie);
+    if (kat) farbe.set(kat.farbe);
+    masse = GRAFIK.itemRasterMasse[info.raster] || GRAFIK.itemRasterMasse["1x1"];
+    farbe.offsetHSL(0, 0, GRAFIK.itemTierHelligkeit[info.tier] || 0);
+    geo = "komponente";
+  } else if (info.art === "gehaeuse") {
+    farbe.set(GRAFIK.farbeGehaeuse[id] || info.farbe || "#cccccc");
+    masse = GRAFIK.gehaeuseMasse;
+    geo = "schale";
+  } else if (id === "holz") {
+    masse = GRAFIK.holzMasse;
+    geo = "bretter";
+  }
+  const form = { geo, geometrie: ITEM_GEOMETRIEN[geo], masse, farbe, hex: "#" + farbe.getHexString() };
+  form.material = itemMaterial(form.hex);
+  itemFormen.set(id, form);
+  return form;
+}
+// Setzt Geometrie, Material und Größe eines Meshs für ein Item (kante = Kantenlänge eines Rohstoff-Würfels).
+// Rückgabe: Höhe des Items (zum Stapeln)
+function zeigeItemAlsMesh(mesh, id, kante) {
+  const form = itemForm(id);
+  mesh.geometry = form.geometrie;
+  mesh.material = form.material;
+  mesh.scale.set(form.masse[0] * kante, form.masse[1] * kante, form.masse[2] * kante);
+  return form.masse[1] * kante;
+}
 // Verteilt den Bestand auf die freien Plätze. Gibt es mehr Items als Plätze,
 // wird anteilig gerundet (jede Sorte bekommt mindestens einen Würfel).
 function zeichneFuellung(eintrag, bestand) {
   const { fuellung, plaetze, wuerfel } = eintrag;
-  while (fuellung.children.length) fuellung.remove(fuellung.children[0]);
+  // Phase 7c: Komponenten, Gehäuse und Holz haben eigene Formen und Größen. Die vorhandenen Meshes werden
+  // weiterverwendet (nur Geometrie, Material und Größe wechseln); flache Items liegen auf dem Boden ihres
+  // Platzes, und was darüber liegt, liegt auf ihnen (statt in der Luft zu schweben).
   const gesamt = summe(bestand);
-  if (!gesamt) return;
+  if (!gesamt) { while (fuellung.children.length) fuellung.remove(fuellung.children[0]); return; }
   const sorten = Object.entries(bestand).sort((a, b) => b[1] - a[1]);
   let liste = [];
   for (const [item, n] of sorten) {
@@ -9911,13 +10972,22 @@ function zeichneFuellung(eintrag, bestand) {
     for (let i = 0; i < anzahl; i++) liste.push(item);
   }
   liste = liste.slice(0, plaetze.length);
+  const oberkanten = [];   // Phase 7c: { platz, oben } der schon gezeichneten Items (zum Stapeln)
   liste.forEach((item, i) => {
-    const mesh = new THREE.Mesh(wuerfelGeometrie(wuerfel), figurMaterial(itemInfo(item).farbe));
-    mesh.position.copy(plaetze[i]);
+    let mesh = fuellung.children[i];
+    if (!mesh) { mesh = new THREE.Mesh(); mesh.castShadow = true; fuellung.add(mesh); }
+    const hoehe = zeigeItemAlsMesh(mesh, item, wuerfel);
+    const p = plaetze[i];
+    let boden = p.y - wuerfel / 2;
+    // Liegt direkt unter diesem Platz ein anderer (Stapel), kommt das Item auf dessen Item
+    for (const u of oberkanten) {
+      if (Math.abs(u.platz.x - p.x) < 0.01 && Math.abs(u.platz.z - p.z) < 0.01 && Math.abs(u.platz.y + wuerfel - p.y) < 0.08) boden = u.oben + 0.005;
+    }
+    mesh.position.set(p.x, boden + hoehe / 2, p.z);
     mesh.rotation.y = ((i * 37) % 11 - 5) * 0.04;    // leicht schief, wirkt lebendiger
-    mesh.castShadow = true;
-    fuellung.add(mesh);
+    oberkanten.push({ platz: p, oben: boden + hoehe });
   });
+  while (fuellung.children.length > liste.length) fuellung.remove(fuellung.children[fuellung.children.length - 1]);
 }
 
 /* --- Gebäude erscheinen und verschwinden --- */
@@ -10218,11 +11288,14 @@ function zeichneGetragenes(modell, traegt, stufe = 0) {
   for (const [item, n] of Object.entries(traegt)) for (let i = 0; i < n; i++) liste.push(item);
   const ziel = modell.ausruestung ? modell.ausruestung.ladung : modell.trage;
   const proLage = stufe === 2 ? 4 : 2;           // Hubwagen: 2 × 2 pro Lage, sonst 2 nebeneinander
+  const oben = [0, 0, 0, 0];                     // Phase 7c: Stapelhöhe je Platz (Items sind unterschiedlich hoch)
   liste.slice(0, 10).forEach((item, i) => {
-    const w = new THREE.Mesh(wuerfelGeometrie(0.16), figurMaterial(itemInfo(item).farbe));
-    const lage = Math.floor(i / proLage), platz = i % proLage;
-    if (stufe === 2) w.position.set(((platz % 2) - 0.5) * 0.17, 0.08 + lage * 0.165, (Math.floor(platz / 2) - 0.5) * 0.17);
-    else w.position.set((platz - 0.5) * (liste.length > 1 ? 0.17 : 0), 0.08 + lage * 0.165, 0);
+    const w = new THREE.Mesh();
+    const hoehe = zeigeItemAlsMesh(w, item, 0.16);   // Phase 7c: Form und Farbe nach Kategorie/Gehäuse/Holz
+    const platz = i % proLage, y = oben[platz] + hoehe / 2;
+    oben[platz] += hoehe + 0.005;
+    if (stufe === 2) w.position.set(((platz % 2) - 0.5) * 0.17, y, (Math.floor(platz / 2) - 0.5) * 0.17);
+    else w.position.set((platz - 0.5) * (liste.length > 1 ? 0.17 : 0), y, 0);
     w.castShadow = true;
     ziel.add(w);
   });
@@ -10776,24 +11849,46 @@ function gleicheBandModelleAb() {
 }
 
 /* --- Items auf den Bändern: ein InstancedMesh für alle --- */
-const bandItems = new THREE.InstancedMesh(
-  new THREE.BoxGeometry(GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse, GRAFIK.bandItemGroesse),
-  new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true }),
-  GRAFIK.maxBandItems);
-bandItems.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-bandItems.castShadow = true;
-bandItems.frustumCulled = false;
-bandItems.count = 0;
-bandItems.setColorAt(0, new THREE.Color("#ffffff"));
-szene.add(bandItems);
-const itemFarben = new Map();
+// Phase 7c: je Item-Form (Würfel, Komponente, Gehäuse-Schale, Bretter) EIN InstancedMesh für alle Items;
+// Größe, Drehung und Farbe kommen pro Instanz (itemForm). "bandItems" bleibt der Würfel.
+function baueBandItemNetz(geo) {
+  const netz = new THREE.InstancedMesh(ITEM_GEOMETRIEN[geo],
+    new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true, vertexColors: true }),
+    GRAFIK.maxBandItems);
+  netz.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  netz.castShadow = true;
+  netz.frustumCulled = false;
+  netz.count = 0;
+  netz.setColorAt(0, new THREE.Color("#ffffff"));
+  szene.add(netz);
+  return netz;
+}
+const bandItemNetze = Object.fromEntries(Object.keys(ITEM_GEOMETRIEN).map((geo) => [geo, baueBandItemNetz(geo)]));
+const bandItems = bandItemNetze.wuerfel;
 function itemFarbe(item) {
-  if (!itemFarben.has(item)) itemFarben.set(item, new THREE.Color(itemInfo(item).farbe));
-  return itemFarben.get(item);
+  return itemForm(item).farbe;   // Phase 7c: Kategorie-Farbe (Komponenten) bzw. Materialfarbe (Gehäuse)
 }
 const bandHilfsVektor = new THREE.Vector3();
 const bandHilfsQuat = new THREE.Quaternion();
 const bandHilfsSkala = new THREE.Vector3(1, 1, 1);
+const bandHochachse = new THREE.Vector3(0, 1, 0);
+// Phase 7c: ein Item als Instanz eintragen. punkt = Mitte, winkel = Drehung um die Hochachse,
+// kante = Kantenlänge eines Rohstoff-Würfels, aufBoden = Unterkante bleibt dort, wo die des Würfels wäre.
+// Rückgabe: Höhe des Items
+function setzeBandItem(id, punkt, winkel, kante, aufBoden) {
+  const form = itemForm(id);
+  const netz = bandItemNetze[form.geo];
+  if (netz.count >= GRAFIK.maxBandItems) return 0;
+  const hoehe = form.masse[1] * kante;
+  if (aufBoden) punkt.y += (hoehe - kante) / 2;
+  bandHilfsSkala.set(form.masse[0] * kante, hoehe, form.masse[2] * kante);
+  bandHilfsQuat.setFromAxisAngle(bandHochachse, winkel);
+  hilfsMatrix.compose(punkt, bandHilfsQuat, bandHilfsSkala);
+  netz.setMatrixAt(netz.count, hilfsMatrix);
+  netz.setColorAt(netz.count, form.farbe);
+  netz.count++;
+  return hoehe;
+}
 // Höhe der Bahn auf Ebene 0 bzw. 1
 const bahnHoehe = (ebene) => ebene ? GRAFIK.brueckenHoehe + GRAFIK.bandHoehe : GRAFIK.bandHoehe;
 
@@ -10831,56 +11926,56 @@ for (let lage = 0; lage < 3; lage++) {
     }
   }
 }
-const pufferSkala = new THREE.Vector3().setScalar(GRAFIK.pufferWuerfel / GRAFIK.bandItemGroesse);
-function zeichnePufferItems(n) {
-  const max = GRAFIK.maxBandItems, k = GRAFIK.pufferWuerfel;
+const pufferOben = new Float32Array(12);   // Phase 7c: Stapelhöhe je Puffer-Platz (Items sind unterschiedlich hoch)
+function zeichnePufferItems() {
+  const k = GRAFIK.pufferWuerfel;
   for (const t of spiel.baender.values()) {
     const puffer = t.puffer;
     if (!puffer || !puffer.length || !istVerteiler(t)) continue;
     const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
     const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
-    const boden = rasterHoehe + bahnHoehe(0) + 0.004 + k / 2;
-    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length && n < max; i++) {
-      const p = PUFFER_PLAETZE[i];
-      bandHilfsVektor.set(mx + p.x, boden + p.lage * (k + 0.004), mz + p.z);
-      hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, pufferSkala);
-      bandItems.setMatrixAt(n, hilfsMatrix);
-      bandItems.setColorAt(n, itemFarbe(puffer[i]));
-      n++;
+    pufferOben.fill(rasterHoehe + bahnHoehe(0) + 0.004);
+    for (let i = 0; i < puffer.length && i < PUFFER_PLAETZE.length; i++) {
+      const p = PUFFER_PLAETZE[i], s = i % 12;
+      // Phase 7c: liegt auf dem Item darunter; Form, Größe und Farbe nach Item
+      bandHilfsVektor.set(mx + p.x, pufferOben[s] + k / 2, mz + p.z);
+      pufferOben[s] += setzeBandItem(puffer[i], bandHilfsVektor, 0, k, true) + 0.004;
     }
   }
-  return n;
 }
 function zeichneBandItems() {
-  let n = 0;
-  const max = GRAFIK.maxBandItems;
+  for (const netz of Object.values(bandItemNetze)) netz.count = 0;   // Phase 7c: ein InstancedMesh je Item-Form
   for (const t of spiel.baender.values()) {
     if (t.items) {
+      const aus = istVerteiler(t) ? null : RICHTUNGEN[t.richtung];
       for (const it of t.items) {
-        if (n >= max) break;
         bandItemPunkt(t, it, bandHilfsVektor);
-        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
-        bandItems.setMatrixAt(n, hilfsMatrix);
-        bandItems.setColorAt(n, itemFarbe(it.item));
-        n++;
+        // Phase 7c: längliche Items zeigen in Laufrichtung (in Kurven zwischen Ein- und Austritt gemischt)
+        const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung], ziel = aus || ein;
+        const dx = ein.x * (1 - it.pos) + ziel.x * it.pos, dz = ein.z * (1 - it.pos) + ziel.z * it.pos;
+        setzeBandItem(it.item, bandHilfsVektor, Math.atan2(-dz, dx), GRAFIK.bandItemGroesse, true);
       }
     }
     // Greifarm: das gehaltene Item hängt am Greifer
-    if (istGreifarm(t) && t.haelt && n < max) {
+    if (istGreifarm(t) && t.haelt) {
       const m = bandModelle.get(t.id);
       if (m && m.greifer) {
         m.greifer.getWorldPosition(bandHilfsVektor);
-        hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat, bandHilfsSkala);
-        bandItems.setMatrixAt(n, hilfsMatrix);
-        bandItems.setColorAt(n, itemFarbe(t.haelt));
-        n++;
+        setzeBandItem(t.haelt, bandHilfsVektor, m.arm ? m.arm.rotation.y : 0, GRAFIK.bandItemGroesse, false);
       }
     }
   }
-  n = zeichnePufferItems(n);   // Phase 7b Nachtrag: Puffer der Verteiler
-  bandItems.count = n;
-  bandItems.instanceMatrix.needsUpdate = true;
-  if (bandItems.instanceColor) bandItems.instanceColor.needsUpdate = true;
+  zeichnePufferItems();   // Phase 7b Nachtrag: Puffer der Verteiler
+  // Nur den belegten Teil zur Grafikkarte schicken (leere Netze zeichnen ohnehin nichts)
+  for (const netz of Object.values(bandItemNetze)) {
+    if (!netz.count) continue;
+    for (const [attr, breite] of [[netz.instanceMatrix, 16], [netz.instanceColor, 3]]) {
+      if (!attr) continue;
+      attr.clearUpdateRanges();
+      attr.addUpdateRange(0, netz.count * breite);
+      attr.needsUpdate = true;
+    }
+  }
 }
 
 /* --- Segment-Rahmen (ausgewähltes Segment) und Stau-Schilder --- */
@@ -11073,6 +12168,11 @@ const anzeige = { struktur: -1, version: -1, timer: 0, infoStrukturFehlt: false 
 let auswahlBandId = null;     // Phase 6: Bandteil im Info-Fenster
 const zug = { start: null, ende: null, shift: false, plan: null };   // Phase 6: gerade gezogene Bandstrecke
 
+// Phase 7c: Komponenten und Gehäuse zeigen ihr Symbol im Farbfeld (CSS .info-item[data-symbol]) – nur Optik,
+// der Text der Zeile bleibt gleich
+function symbolAttr(info) {
+  return info && info.symbol && (info.kategorie || info.art === "gehaeuse") ? ` data-symbol="${htmlSicher(info.symbol)}"` : "";
+}
 // Liste von Items als Zeilen: Name | Menge (| Soll). "markiere(id)" liefert einen Zusatztext (Phase 5).
 function itemZeilen(bestand, soll = null, markiere = null) {
   const ids = [...new Set([...Object.keys(bestand), ...Object.keys(soll || {})])];
@@ -11081,7 +12181,7 @@ function itemZeilen(bestand, soll = null, markiere = null) {
   return `<dl class="info-zeilen${soll ? "" : " zwei"}">` + ids.map((id) => {
     const info = itemInfo(id);
     const zusatz = markiere ? markiere(id) : "";
-    return `<dt><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}${zusatz ? ` <small class="leise">${zusatz}</small>` : ""}</span></dt>` +
+    return `<dt><span class="info-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}${zusatz ? ` <small class="leise">${zusatz}</small>` : ""}</span></dt>` +
       `<dd>${bestand[id] || 0}</dd>` + (soll ? `<dd class="leise">/ ${soll[id] || 0}</dd>` : "");
   }).join("") + `</dl>`;
 }
@@ -11595,11 +12695,7 @@ function zeichneInfo() {
   ob.infoUnter.textContent = t.beschreibung;
   let html = "";
   if (t.art === "werkbank") {
-    html += `<label class="info-feld">Rezept <select data-aktion="rezept">
-        <option value="">– kein Rezept –</option>
-        ${BAUTEILE.filter((b) => b.rezept && b.freigeschaltet).map((b) =>
-          `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${b.name} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`).join("")}
-      </select></label>`;
+    html += werkbankRezeptHtml(g);   // Phase 7c (UI): Suche + Kategorie, Gehäuse oben, nur freigeschaltete
   } else if (t.art === "montage") {
     const liste = [...blaupausenNachId.values()].sort((a, b) => a.name.localeCompare(b.name));
     const fehlt = g.rezept && !blaupausenNachId.has(g.rezept);
@@ -11624,7 +12720,7 @@ function zeichneInfo() {
         <p class="modus-text">⇣ grün = Import (Kuriere bringen bis zum Soll) · ⇡ rot = Export (Kuriere holen ab, was darüber liegt).</p>
         <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
           <option value="">– Item wählen –</option>
-          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
+          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...GEHAEUSE.map((g) => g.id), ...bekannteProdukte()]
             .filter((item) => !regelZeilenIds(g).includes(item))
             .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
         </select></label>
@@ -11636,7 +12732,7 @@ function zeichneInfo() {
           ⇣ grün = Annahme (darf hier eingelagert werden) · ⇡ rot = Abgabe (darf hier entnommen werden) · Max leer = keine Grenze.</p>
         <label class="info-feld">Ressource hinzufügen <select data-aktion="ressource">
           <option value="">– Item wählen –</option>
-          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()]
+          ${[...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...GEHAEUSE.map((g) => g.id), ...bekannteProdukte()]
             .filter((item) => !hauptlagerRegelIds(g).includes(item))
             .map((item) => `<option value="${htmlSicher(item)}">${htmlSicher(itemInfo(item).name)}</option>`).join("")}
         </select></label>
@@ -11677,6 +12773,69 @@ function zeichneInfo() {
   anzeige.infoStrukturFehlt = false;
 }
 
+/* --- Phase 7c: Rezeptwahl der Werkbank – Suche und Kategorie statt einer langen Liste ---
+   Gehäuse stehen oben als eigene Gruppe, darunter die 12 Kategorien. Wählbar ist nur, was freigeschaltet ist;
+   das eingestellte Rezept bleibt immer in der Liste, auch wenn der Filter es ausblendet. */
+const werkbankWahl = { suche: "", kategorie: "" };   // kategorie: "" = alle, "gehaeuse" oder Kategorie-ID
+function werkbankGruppen() {
+  return [{ id: "gehaeuse", name: "Gehäuse", symbol: "▢", eintraege: GEHAEUSE },
+    ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name, symbol: k.symbol, eintraege: BAUTEILE.filter((b) => b.kategorie === k.id) }))];
+}
+function werkbankRezeptHtml(g) {
+  const suche = suchText(werkbankWahl.suche.trim());
+  const option = (b) => `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${htmlSicher(b.name)}${b.tier ? ` · ${b.tier}` : ""} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`;
+  let optionen = "", treffer = 0, frei = 0, gesperrt = 0, drin = false;
+  for (const gruppe of werkbankGruppen()) {
+    const liste = gruppe.eintraege.filter((b) => b.rezept && b.freigeschaltet);
+    frei += liste.length;
+    gesperrt += gruppe.eintraege.filter((b) => b.rezept && !b.freigeschaltet).length;
+    if (werkbankWahl.kategorie && gruppe.id !== werkbankWahl.kategorie) continue;
+    const passend = liste.filter((b) => !suche || suchText(b.name).includes(suche));
+    if (!passend.length) continue;
+    treffer += passend.length;
+    if (passend.some((b) => b.typ === g.rezept)) drin = true;
+    optionen += `<optgroup label="${gruppe.symbol} ${htmlSicher(gruppe.name)}">${passend.map(option).join("")}</optgroup>`;
+  }
+  const aktuell = g.rezept && herstellbarNachTyp.get(g.rezept);
+  const ausgeblendet = aktuell && !drin ? `<option value="${aktuell.typ}" selected>${htmlSicher(aktuell.name)} (eingestellt)</option>` : "";
+  const filter = werkbankWahl.suche.trim() || werkbankWahl.kategorie;
+  return `<div class="info-rezeptwahl">
+      <input class="lz-suche" type="search" data-aktion="rezept-suche" value="${htmlSicher(werkbankWahl.suche)}" placeholder="Rezept suchen …"
+        autocomplete="off" spellcheck="false" aria-label="Werkbank-Rezepte durchsuchen">
+      <select data-aktion="rezept-kategorie" aria-label="Kategorie der Rezepte">
+        <option value="" ${werkbankWahl.kategorie ? "" : "selected"}>Alle Kategorien</option>
+        ${werkbankGruppen().map((gr) => `<option value="${gr.id}" ${werkbankWahl.kategorie === gr.id ? "selected" : ""}>${gr.symbol} ${htmlSicher(gr.name)}</option>`).join("")}
+      </select>
+      <small>${filter ? `${treffer} Treffer · ` : ""}${frei} frei${gesperrt ? ` · ${gesperrt} gesperrt (Designer)` : ""}</small>
+    </div>
+    <label class="info-feld">Rezept <select data-aktion="rezept">
+        <option value="">${filter && !treffer ? "– keine Treffer –" : "– kein Rezept –"}</option>
+        ${ausgeblendet}${optionen}
+      </select></label>`;
+}
+// Tippen in der Suche: Liste sofort filtern (das Feld behält den Fokus, siehe infoFormularAktiv)
+ob.infoInhalt.addEventListener("input", (e) => {
+  if (e.target.dataset.aktion !== "rezept-suche") return;
+  werkbankWahl.suche = e.target.value;
+  zeichneInfo();
+});
+ob.infoInhalt.addEventListener("keydown", (e) => {
+  if (e.target.dataset.aktion !== "rezept-suche") return;
+  e.stopPropagation();               // Buchstaben steuern nicht die Kamera (W/A/S/D)
+  if (e.key === "Escape") {
+    if (e.target.value) { e.target.value = ""; werkbankWahl.suche = ""; zeichneInfo(); } else e.target.blur();
+  } else if (e.key === "Enter") {    // Enter: das einzige bzw. erste Ergebnis wählen
+    const g = spiel.gebaeude.get(auswahlGebaeudeId);
+    const erstes = ob.infoInhalt.querySelector('select[data-aktion="rezept"] optgroup option');
+    if (g && erstes && werkbankWahl.suche.trim()) {
+      setzeRezept(g.id, erstes.value);
+      zeigeMeldung(`${gebaeudeName(g)}: Rezept ${herstellbarNachTyp.get(erstes.value)?.name || erstes.value}.`);
+      e.target.blur();
+      sofortAktualisieren();
+    }
+  }
+});
+
 /* --- Ressourcen-Reiter (Phase 5b): Import-/Export-Pfeile pro Ressource --- */
 // Welche Ressourcen zeigt der Reiter eines Zwischenlagers? Inhalt, Soll, Bedarf und Erzeugnisse
 // der verknüpften Stationen und alles, was von Hand eingestellt ist.
@@ -11711,7 +12870,7 @@ function regelZeileHtml(z) {
       <button class="mini-knopf" type="button" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(z.sollText)} erhöhen">+</button></span>`
     : z.max !== undefined ? ` <span class="leise">/ ∞</span>` : "";
   return `<tr>
-    <td><span class="info-item" style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
+    <td><span class="info-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${htmlSicher(info.name)}</span>${z.notiz ? ` <small class="leise">${z.notiz}</small>` : ""}</td>
     <td class="zahl">${menge}${knoepfe}</td>
     <td>${z.imp === null ? "" : pfeilKnopf(z.item, "imp", z.imp, z.hauptlager ? "Annahme: Kuriere, Bänder und Greifarme dürfen es hier einlagern"
       : "Import (grün): Kuriere bringen bis zum Soll")}</td>
@@ -11840,7 +12999,7 @@ function exportzoneHtml(g) {
     const id = htmlSicher(item);
     const modus = exportModusVon(g, item);
     const hand = !!(g.regeln[item] && g.regeln[item].imp === true);
-    return `<tr><td><span class="info-item" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span></td>
+    return `<tr><td><span class="info-item"${symbolAttr(itemInfo(item))} style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span></td>
       <td class="zahl">${g.bestand[item] || 0}</td>
       <td><button class="mini-knopf export-modus" type="button" data-aktion="export-modus" data-item="${id}" data-modus="${modus}"
         title="Klick wechselt zwischen „Für Aufträge“ und „Verkaufen“">${modus === "auftrag" ? "📋 Für Aufträge" : `💶 Verkaufen · ${euro(zonenVerkaufspreis(item))}`}</button></td>
@@ -12035,6 +13194,13 @@ ob.infoInhalt.addEventListener("change", (e) => {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!g) return;
   if (e.target.dataset.aktion === "rezept") setzeRezept(g.id, e.target.value || null);
+  if (e.target.dataset.aktion === "rezept-kategorie") {             // Phase 7c (UI): Werkbank-Rezepte filtern
+    werkbankWahl.kategorie = e.target.value;
+    e.target.blur();
+    infoFormSperre = 0;
+    zeichneInfo();
+    return;
+  }
   if (e.target.dataset.aktion === "arbeiter") {
     if (e.target.value) weiseZu(e.target.value, g.id);
     else if (g.arbeiterId) weiseZu(g.arbeiterId, null);
@@ -12280,7 +13446,7 @@ function vorzeichenEuro(betrag) {
 }
 function tageText(n) { return n === 1 ? "1 Tag" : `${n} Tage`; }
 function klassenTeileText(klasse) {
-  return klasse.teile.map((t) => itemInfo(t).name).join(", ");
+  return klasse.kategorien.map((k) => kategorieNachId.get(k).name).join(", ");   // Phase 7c: Kategorien statt Bauteile
 }
 // Welche bekannten Produkte (Blaupausen) erfüllen diese Klasse?
 function passendeProdukte(klasse) {
@@ -12445,7 +13611,7 @@ function kontorVerkauf() {
     const preis = verkaufspreis(item);
     const klasse = item.startsWith("p:") ? produktKlasse(item.slice(2)) : null;
     const auftrag = fuerAuftragGebraucht(item);
-    return `<tr><td><span class="info-item" style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span>
+    return `<tr><td><span class="info-item"${symbolAttr(itemInfo(item))} style="--item-farbe:${itemInfo(item).farbe}">${htmlSicher(itemInfo(item).name)}</span>
         ${klasse ? `<small class="leise">${klasse.symbol} ${klasse.name}</small>` : ""}${auftrag ? ` <small class="trend-hoch">für Auftrag</small>` : ""}</td>
       <td class="zahl">${n}</td><td class="zahl">${euro(preis)}</td>
       <td><div class="knoepfe">
@@ -13040,6 +14206,7 @@ function aktualisiereOberflaeche(sekunden) {
   }
   aktualisiereFreiChip();
   aktualisiereLagerChip();                       // Phase 7b
+  aktualisiereFreischaltChip();                  // Phase 7c (UI)
   zeichneRezeptStapel();                         // Phase 7a (Nachtrag 2): Zahlen auf den angehefteten Rezepten
   if (rezeptFenster.offen) zeichneRezepte();
   // Info-Fenster nicht neu bauen, solange darin ein Auswahlfeld offen ist
@@ -13071,13 +14238,13 @@ function aktualisiereOberflaeche(sekunden) {
 const forschungBaum = { id: "kurier" };   // gewählter Reiter im Techtree
 Object.assign(ob, {
   hudFrei: $("hud-frei"),
-  hudLager: $("hud-lager"),
+  hudLagerWarnung: $("hud-lagerwarnung"),   // Phase 7c: eigene ID (vorher doppelt mit dem Lager-Knopf)
   forschungReiter: $("forschung-reiter"), forschungTitel: $("forschung-titel"),
 });
 
 // Alle Items, die man in Filtern wählen kann (Rohstoffe, Bauteile, bekannte Produkte)
 function alleItems() {
-  return [...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...bekannteProdukte()];
+  return [...ROHSTOFFE.map((r) => r.id), ...BAUTEILE.map((b) => b.typ), ...GEHAEUSE.map((g) => g.id), ...bekannteProdukte()];
 }
 function itemOptionen(gewaehlt, leerText) {
   return `<option value="">${leerText}</option>` + alleItems().map((item) =>
@@ -13771,12 +14938,12 @@ function aktualisiereLagerChip() {
     const namen = ohneLager.slice(0, 2).map((item) => itemInfo(item).name).join(", ");
     teile.push(`kein Lager für ${namen}${ohneLager.length > 2 ? ` +${ohneLager.length - 2}` : ""}`);
   }
-  ob.hudLager.hidden = !teile.length;
-  ob.hudLager.classList.toggle("rot", voll.length + stau.length > 0);
-  ob.hudLager.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
-  setzeText(ob.hudLager, `📦 ${teile.join(" · ")}`);
+  ob.hudLagerWarnung.hidden = !teile.length;
+  ob.hudLagerWarnung.classList.toggle("rot", voll.length + stau.length > 0);
+  ob.hudLagerWarnung.classList.toggle("gelb", !voll.length && !stau.length && (fast.length > 0 || ohneLager.length > 0));
+  setzeText(ob.hudLagerWarnung, `📦 ${teile.join(" · ")}`);
 }
-ob.hudLager.addEventListener("click", () => {
+ob.hudLagerWarnung.addEventListener("click", () => {
   const { voll, fast, stau } = lagerWarnListe();
   const liste = [...stau, ...voll, ...fast];
   // Phase 7b Nachtrag: nur "kein Lager für …" – zu den Hauptlagern springen (dort Annahme/Max ändern)
@@ -13792,6 +14959,35 @@ ob.hudFrei.addEventListener("click", () => {
   bau.reiter = "personal";
   if (bau.offen) { setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); } else oeffneBau();
 });
+
+// Phase 7c: "🔓 n freischaltbar" – Herstellungsziel erreicht, Klick öffnet den Designer (dort "Freischalten")
+Object.assign(ob, { hudFreischaltbar: $("hud-freischaltbar") });
+function freischaltbarListe() {
+  return [...herstellbarNachTyp.values()].filter((e) => !e.freigeschaltet && e.freischaltung.art === "herstellung" && kannFreischalten(e.typ));
+}
+function aktualisiereFreischaltChip() {
+  const liste = freischaltbarListe();
+  ob.hudFreischaltbar.hidden = !liste.length;
+  if (!liste.length) return;
+  setzeText(ob.hudFreischaltbar, `🔓 ${liste.length} freischaltbar · Im Designer freischalten`);
+  const titel = `Herstellungsziel erreicht: ${liste.slice(0, 4).map((e) => e.name).join(", ")}${liste.length > 4 ? " …" : ""} – Klick öffnet den Designer`;
+  if (ob.hudFreischaltbar.title !== titel) ob.hudFreischaltbar.title = titel;
+}
+function zeigeFreischaltbareImDesigner() {
+  oeffneDesigner();
+  lzPalette.kategorie = "";       // "Alle" zeigt oben die Gruppe "Bereit zum Freischalten"
+  lzPalette.suche = "";
+  zeichnePalette();
+  lz.palette.scrollTop = 0;
+}
+ob.hudFreischaltbar.addEventListener("click", zeigeFreischaltbareImDesigner);
+spielEreignisse.addEventListener("freischaltbar", (e) => {
+  // Nach dem Hinweis der Logik anzeigen (gleicher Takt), damit der Verweis auf den Designer sichtbar bleibt
+  setTimeout(() => zeigeMeldung(`🔓 Freischaltbar: ${e.detail.name} – Im Designer freischalten (${tasteFuer("designer").toUpperCase()} oder „🔓 freischaltbar“ links oben).`), 0);
+  aktualisiereFreischaltChip();
+  if (designer.offen) { zeichnePalette(); zeichneGehaeuseAuswahl(); }   // Knopf "Freischalten" gleich zeigen
+});
+spielEreignisse.addEventListener("freischaltungGeaendert", () => aktualisiereFreischaltChip());
 
 /* --- Meldungen --- */
 spielEreignisse.addEventListener("arbeiterFrei", (e) => {
@@ -13997,9 +15193,9 @@ function entwicklungHtml() {
     <div class="grafik-liste">
       <div class="grafik-zeile"><span><b>Geld</b><small>Bucht ${euro(ENTWICKLUNG.geld)} aufs Konto (im Kassenbuch als „Entwicklung (Test)“). Konto jetzt: ${euro(spiel.konto)}.</small></span>
         <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="geld">+ ${euro(ENTWICKLUNG.geld)}</button></div>
-      <div class="grafik-zeile"><span><b>Alles freischalten</b><small>Alle Forschungen im Techtree (noch ${offen} offen), alle Gebäude, Bauteile, Bandteile und Ausrüstungen.
+      <div class="grafik-zeile"><span><b>Alles freischalten</b><small>Alle Forschungen im Techtree (noch ${offen} offen), alle Gebäude, Komponenten, Gehäuse, Bandteile und Ausrüstungen.
         Reputation auf Level ${hoechste.level} „${hoechste.name}“, damit alle Produktklassen als Aufträge kommen.</small></span>
-        <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="freischalten" ${offen || spiel.reputation < hoechste.ab ? "" : "disabled"}>Freischalten</button></div>
+        <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="freischalten" ${offen || spiel.reputation < hoechste.ab || [...herstellbarNachTyp.values()].some((e) => !e.freigeschaltet) ? "" : "disabled"}>Freischalten</button></div>
     </div>`;
 }
 function entwicklungAktion(aktion) {
@@ -14016,7 +15212,7 @@ function schalteAllesFrei() {
   let neu = 0;
   for (const e of FORSCHUNG) if (!istErforscht(e.id)) { spiel.erforscht.push(e.id); neu++; }
   for (const t of GEBAEUDE_TYPEN) t.freigeschaltet = true;
-  for (const b of BAUTEILE) b.freigeschaltet = true;
+  schalteAlleKomponentenFrei();                     // Phase 7c: alle Komponenten und Gehäuse (bleibt im Spielstand)
   const hoechste = REPUTATION_STUFEN[REPUTATION_STUFEN.length - 1];
   if (spiel.reputation < hoechste.ab) aendereReputation(hoechste.ab - spiel.reputation);
   forschungMerker = "";
@@ -14044,7 +15240,7 @@ Object.assign(ob, {
 // Alle Angaben zu einem Rezept (oder null, z. B. wenn der Entwurf gelöscht wurde)
 function rezeptDaten(schluessel) {
   if (schluessel.startsWith("b:")) {
-    const b = bauteilNachTyp.get(schluessel.slice(2));
+    const b = herstellbarNachTyp.get(schluessel.slice(2));   // Phase 7c: auch Gehäuse
     if (!b || !b.rezept) return null;
     return { schluessel, name: b.name, ort: "Werkbank", eingaben: { ...b.rezept }, ausgabe: b.typ, zeit: b.zeit,
              wert: berechneBauteilwert(b.typ), gesperrt: !b.freigeschaltet };
@@ -14056,6 +15252,7 @@ function rezeptDaten(schluessel) {
     const teile = summe(eingaben);
     const ueberhitzt = !!(bp.werte && bp.werte.ueberhitzt);
     const klasse = besteKlasse(eingaben, ueberhitzt);
+    if (gehaeuseNachId.has(bp.gehaeuse)) eingaben[bp.gehaeuse] = 1;   // Phase 7c: ein Gehäuse pro Produkt
     return { schluessel, name: bp.name, ort: "Montagetisch", eingaben, ausgabe: "p:" + bp.id,
              zeit: PRODUKTION.montageGrundzeit + PRODUKTION.montageZeitProTeil * teile,
              wert: berechneMarktwert(bp), klasse, ueberhitzt, blaupause: bp.id };
@@ -14063,7 +15260,7 @@ function rezeptDaten(schluessel) {
   return null;
 }
 function alleRezeptSchluessel() {
-  return [...BAUTEILE.filter((b) => b.rezept).map((b) => "b:" + b.typ), ...[...blaupausenNachId.keys()].map((id) => "p:" + id)];
+  return [...GEHAEUSE.map((g) => "b:" + g.id), ...BAUTEILE.filter((b) => b.rezept).map((b) => "b:" + b.typ), ...[...blaupausenNachId.keys()].map((id) => "p:" + id)];   // Phase 7c: Gehäuse
 }
 // Welche Stationen stellen dieses Item gerade her? (Rezept passt, nicht pausiert; die nächste zur Kamera zuerst)
 function stationenFuer(item) {
@@ -14076,12 +15273,12 @@ const istRohstoff = (item) => ROHSTOFFE.some((r) => r.id === item);
 function rezeptItemHtml(item, n, knopf) {
   const info = itemInfo(item);
   const name = `${n > 1 || knopf ? `${n}× ` : ""}${htmlSicher(info.name)}`;
-  if (!knopf) return `<span class="rezept-item" style="--item-farbe:${info.farbe}">${name}</span>`;
+  if (!knopf) return `<span class="rezept-item"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${name}</span>`;   // Phase 7c: Symbol
   const anzahl = istRohstoff(item) ? null : stationenFuer(item).length;
   const titel = istRohstoff(item) ? `${info.name}: wird in der Importzone bestellt`
     : anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} ${info.name} gerade her – Klick zeigt sie`
     : `Keine Station stellt ${info.name} gerade her`;
-  return `<button type="button" class="rezept-item" data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
+  return `<button type="button" class="rezept-item"${symbolAttr(info)} data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
     + `<span class="name">${name}</span>${anzahl === null ? "" : `<span class="anzahl ${anzahl ? "" : "null"}">${anzahl}</span>`}</button>`;
 }
 function istAngeheftet(schluessel) {
@@ -14135,16 +15332,61 @@ function zeichneRezepte() {
         <span class="rezept-formel">${formel}</span>
       </li>`;
   };
-  const bauteile = alleRezeptSchluessel().filter((k) => k.startsWith("b:"));
-  const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
-  const html = `<h3>Bauteile · Werkbank</h3><ul class="rezept-liste">${bauteile.map(zeile).join("")}</ul>
-    <h3>Produkte · Montagetisch (Entwürfe aus dem Designer)</h3>
-    ${produkte.length ? `<ul class="rezept-liste">${produkte.map(zeile).join("")}</ul>`
+  // Phase 7c (UI): Gruppen Gehäuse, 12 Kategorien, Produkte – gefiltert nach Suche, Kategorie und "nur freigeschaltete"
+  const suche = suchText(rezeptFilter.suche.trim());
+  const passt = (k) => {
+    const r = rezeptDaten(k);
+    return !!r && (!suche || suchText(r.name).includes(suche)) && (!rezeptFilter.nurFrei || !r.gesperrt);
+  };
+  let html = "";
+  for (const gruppe of rezeptGruppen()) {
+    if (rezeptFilter.kategorie && rezeptFilter.kategorie !== gruppe.id) continue;
+    const liste = gruppe.schluessel.filter(passt);
+    if (liste.length) html += `<h3 data-symbol="${gruppe.symbol}" style="--kat-farbe:${gruppe.farbe}">${htmlSicher(gruppe.titel)}</h3><ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`;
+  }
+  if (!rezeptFilter.kategorie || rezeptFilter.kategorie === "produkte") {
+    const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
+    const liste = produkte.filter(passt);
+    html += `<h3>Produkte · Montagetisch (Entwürfe aus dem Designer)</h3>
+    ${liste.length ? `<ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`
+      : produkte.length ? `<p class="info-leer">Kein Entwurf passt zur Suche.</p>`
       : `<p class="info-leer">Noch keine Entwürfe. Im Layout-Designer (${kbd("designer")}) entwerfen und speichern.</p>`}`;
+  }
+  if (!html.includes("rezept-zeile")) html = `<p class="info-leer">Keine passenden Rezepte – Suche oder Filter ändern.</p>` + html;
   if (rezeptFenster.html === html) return;
   rezeptFenster.html = html;
   morphe(ob.rezepteInhalt, html);
 }
+// Phase 7c (UI): Filter des Rezepte-Fensters (Suche, Kategorie-Reiter, nur freigeschaltete)
+const rezeptFilter = { suche: "", kategorie: "", nurFrei: false };   // kategorie: "", "gehaeuse", Kategorie-ID, "produkte"
+function rezeptGruppen() {
+  return [{ id: "gehaeuse", titel: "Gehäuse · Werkbank", symbol: "▢", farbe: "#b5895a", schluessel: GEHAEUSE.map((g) => "b:" + g.id) },
+    ...KATEGORIEN.map((k) => ({ id: k.id, titel: `${k.name} · Werkbank`, symbol: k.symbol, farbe: k.farbe,
+      schluessel: BAUTEILE.filter((b) => b.kategorie === k.id && b.rezept).map((b) => "b:" + b.typ) }))];
+}
+function zeichneRezeptReiter() {
+  const reiter = [{ id: "", text: "Alle", name: "Alle Rezepte" }, { id: "gehaeuse", symbol: "▢", farbe: "#b5895a", name: "Gehäuse" },
+    ...KATEGORIEN.map((k) => ({ id: k.id, symbol: k.symbol, farbe: k.farbe, name: k.name })), { id: "produkte", text: "Produkte", name: "Produkte (Montagetisch)" }];
+  $("rezepte-kategorien").innerHTML = reiter.map((r) => `<button class="lz-kat${r.text ? " text" : ""}" type="button" role="tab" data-kat="${r.id}"
+    ${r.farbe ? `style="--kat-farbe:${r.farbe}"` : ""} aria-selected="${rezeptFilter.kategorie === r.id}" title="${htmlSicher(r.name)}" aria-label="${htmlSicher(r.name)}">${r.text || r.symbol}</button>`).join("");
+}
+zeichneRezeptReiter();
+$("rezepte-kategorien").addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-kat]");
+  if (!knopf) return;
+  rezeptFilter.kategorie = knopf.dataset.kat;
+  zeichneRezeptReiter();
+  zeichneRezepte();
+  ob.rezepteInhalt.scrollTop = 0;
+});
+$("rezepte-suche").addEventListener("input", (e) => { rezeptFilter.suche = e.target.value; zeichneRezepte(); });
+$("rezepte-suche").addEventListener("keydown", (e) => {
+  e.stopPropagation();
+  if (e.key !== "Escape") return;
+  e.preventDefault();
+  if (e.target.value) { e.target.value = ""; rezeptFilter.suche = ""; zeichneRezepte(); } else ob.rezepteFenster.focus({ preventScroll: true });
+});
+$("rezepte-nur-frei").addEventListener("change", (e) => { rezeptFilter.nurFrei = e.target.checked; zeichneRezepte(); });
 ob.rezepteInhalt.addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-aktion]");
   if (!knopf) return;
@@ -14743,6 +15985,12 @@ window.tradeUp = {
   // Phase 7b Nachtrag (Logik): Verteiler-Puffer, Hauptlager-Regeln, Zugang überall, Exportzone an der Wand
   PUFFER_GROESSE, pufferVon, hlNimmtAn, hlGibtAb, hlAufnahme, keinLagerFuer, zugangGesperrt, istLagerTyp,
   wandRichtung, setzeAnWand, hlEntnimm, hlEinlagern,
+  // Phase 7c: Komponenten-Katalog, Gehäuse, Produktklassen nach Kategorien, Freischaltung
+  KOMPONENTEN, KATEGORIEN, GEHAEUSE, ALTE_BAUTEILE, ROHSTOFFE, ITEMS, bauteilNachTyp, kategorieNachId, gehaeuseNachId,
+  herstellbarNachTyp, startKomponente, itemInfo, istNutzbar, layoutMitGehaeuse, wechsleGehaeuse, kategorienVon,
+  fehlendeKategorien, erfuelltKlasse, besteKlasse, klassenGrundwert, marktwertAusTeilen, teileZaehlen,
+  herstellZiel, istFreigeschaltet, freischaltStatus, kannFreischalten, schalteFrei, schalteAlleKomponentenFrei,
+  zaehleHergestellt, fachGroesse, stelleAlteBauteileUm, wandleAlteBlaupauseUm, findeFreienPlatz,
 };
 </script>
 

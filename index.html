@@ -3864,6 +3864,7 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 
 <script type="module">
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";   // 12d: abgerundete Teile im neuen Band-Look
 
 /* ============================================================================
    ABSCHNITT 1: KONFIGURATION – 3D & Grafik                       [3D-Agent]
@@ -3986,7 +3987,9 @@ const GRAFIK = {
   farbeArm:             "#f5c542",   // Greifarm (Gelb)
   farbeArmGelenk:       "#3a3f47",   // Gelenke und Greifer
   farbeSegment:         "#f08a3c",   // Rahmen um das ausgewählte Segment
-  bandHoehe:            0.09,        // Höhe der Bandoberfläche über dem Boden (Kacheln)
+  bandHoehe:            0.09,        // Höhe der Bandoberfläche über dem Boden (Kacheln) – wird von wendeBandLookAn() gesetzt
+  bandHoeheKlassisch:   0.09,        // 12d: bisherige flache Bänder
+  bandHoeheNeu:         0.2,         // 12d: neuer Band-Look (Band steht auf kleinen Füßen)
   brueckenHoehe:        1.2,         // Höhe des Hochbands einer Brücke über dem Boden
   bandItemGroesse:      0.2,         // Kantenlänge der Item-Würfel auf den Bändern
   maxBandItems:         3000,        // so viele Item-Würfel können höchstens gleichzeitig gezeichnet werden
@@ -5514,6 +5517,7 @@ const GRAFIK_STANDARD = {
   bandPfeile:   true,   // kleine Richtungspfeile auf jedem Bandstück
   ioLinien:     true,   // grüne/rote Import- und Exportlinien, solange ein Gebäude ausgewählt ist
   hoheAufloesung: true, // volle Bildschirmauflösung (aus = schneller auf schwachen Geräten)
+  neueBaender:  true,   // 12d: Fließbänder im neuen Look (Schienen, weiße Knotenköpfe, Portalkran, kräftige Greifarme)
   neueDisplayModelle: false, // Vorschau: Display-Teile mit den neuen 3D-Modellen aus Display.html (Abschnitt 12c)
 };
 const EINSTELLUNGEN_SCHLUESSEL = "tradeup.einstellungen";   // Name, unter dem der Browser die Einstellungen speichert
@@ -5544,6 +5548,7 @@ try {
     if ((gespeichert.tastenVersion || 1) < 2 && gespeichert.tasten?.pause === "p") einstellungen.tasten.pause = " ";
   }
 } catch (fehler) { /* privates Fenster o. ä.: dann gelten einfach die Standardwerte */ }
+wendeBandLookAn();   // 12d: Bahnhöhe passend zum gewählten Band-Look
 
 // Einstellungen im Browser ablegen (Fehler, z. B. im privaten Fenster, sind egal)
 function speichereEinstellungen() {
@@ -18096,6 +18101,7 @@ function geradesBand(g, material, y = GRAFIK.bandHoehe) {
 
 // Baut das Modell eines Bandteils. Rückgabe: { gruppe, arm, greifer }
 function baueBandModell(t) {
+  if (neuerBandLook()) return { ...baueNeuesBandModell(t), neu: true };   // 12d: neuer Band-Look
   const g = new THREE.Group();
   const material = bandMaterialien.get(t.tempo) || bandMaterialien.get(STANDARD_BAND_TEMPO);
   const H = GRAFIK.bandHoehe, HB = GRAFIK.brueckenHoehe;
@@ -18347,6 +18353,657 @@ function maglevLeisten(g, t) {
   } else gerade(g, H + 0.03, 1);
 }
 
+/* ============================================================================
+   ABSCHNITT 12d: Neuer Band-Look (Fließband-Baukasten)          [3D-Agent]
+   Alle Bandteile im Stil der Vorlage: dunkle Rippenbahn, runde Seitenschienen mit Rollenbolzen
+   (Farbe = Tempostufe), weiße Knotenköpfe mit Bedienfeldern und Leuchtknöpfen, Stahlfachwerk-Brücke,
+   Betonportal für den Untergrund, Portalkran als Übergang und kräftige Greifarme (Nehmer grün, Geber rot).
+   Grafik-Schalter "neueBaender" (Standard an). Aus = bisherige Modelle aus Abschnitt 12b.
+   Jedes Modell zeigt mit seiner Fahrtrichtung nach +z (wie baueBandModell). Feste Teile werden mit
+   verschmelzeTeile() je Material zu einem Mesh zusammengefasst; bewegliche Teile liegen in Untergruppen.
+   Geometrien werden pro Modell neu erzeugt (entferneBandModell gibt sie wieder frei), Materialien geteilt.
+   ============================================================================ */
+const NB = {
+  bahnBreite: 0.62,     // Breite der Gummibahn
+  schiene:    0.075,    // Breite einer Seitenschiene
+  kistenRadius: 0.46,   // Kopfgröße der Knoten: Items darin sind verdeckt
+  // Schienenfarbe je Tempostufe (Mk.1 gelb, Mk.2 orange, Mk.3 rot, Mk.4 Mag-Lev dunkelblau mit Leuchtkante)
+  schienenFarbe: { pause: "#f2b233", langsam: "#f2b233", normal: "#f2b233", schnell: "#ef7d2d", express: "#d8473c", maglev: "#2b3954" },
+  farben: {
+    unterbau: "#48515a", bolzen: "#a3acb3", stahl: "#a7b0b6", stahlDunkel: "#5f6a73", fachwerk: "#6b747c",
+    kopf: "#f3f6f7", dunkel: "#1f2328", feld: "#2a3036", leuchten: "#5fe3ff", gestell: "#7d7891", kranRot: "#d8473c",
+    gestaenge: "#f29a2e", tuerkis: "#27aaa6", walze: "#d5dadd", beton: "#aab1b5", betonDunkel: "#7f878c",
+    weiss: "#e9eef0", nehmer: "#3fa65c", geber: "#d8473c", ausschuss: "#d8473c", qaGruen: "#3fcf6a",
+  },
+  knopfFarben: ["#3fe07a", "#ffc23a", "#ff4a3a"],
+  // Oberkante der Knotenköpfe über der Bahn (für Warnleuchten)
+  kopfHoehe: { splitter: 0.44, smartVerteiler: 0.43, ventil: 0.57, zusammen: 0.47, smartZusammen: 0.47, omniMerger: 0.55 },
+  uebergangHub: 0.3,    // so hoch hebt der Portalkran die Items über den Gehweg
+};
+function neuerBandLook() { return einstellungen.grafik.neueBaender !== false; }
+// Bahnhöhe passend zum Look (Abschnitt 1: bandHoeheNeu / bandHoeheKlassisch). Wird beim Start und beim Umschalten gesetzt.
+function wendeBandLookAn() {
+  GRAFIK.bandHoehe = neuerBandLook() ? GRAFIK.bandHoeheNeu : GRAFIK.bandHoeheKlassisch;
+}
+
+/* --- Materialien (geteilt) --- */
+const nbMatSpeicher = new Map();
+function nbMat(farbe, o = {}) {
+  const key = farbe + "|" + JSON.stringify(o);
+  if (!nbMatSpeicher.has(key)) {
+    nbMatSpeicher.set(key, new THREE.MeshStandardMaterial({
+      color: farbe, roughness: o.r ?? 0.6, metalness: o.m ?? 0.08, emissive: o.e ?? "#000000", emissiveIntensity: o.ei ?? 1,
+      transparent: !!o.t, opacity: o.o ?? 1, depthWrite: o.t ? false : true, side: o.doppelt ? THREE.DoubleSide : THREE.FrontSide,
+    }));
+  }
+  return nbMatSpeicher.get(key);
+}
+const nbLeucht = (farbe, staerke = 1.4) => nbMat(farbe, { e: farbe, ei: staerke, r: 0.4 });
+// Gummibahn mit vier Querrippen pro Kachel; je Tempostufe ein Material, dessen Rippen mit dem Tempo laufen
+function nbRippenTextur(basis, rippe, licht, rand) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const k = c.getContext("2d");
+  k.fillStyle = basis; k.fillRect(0, 0, 64, 64);
+  for (let i = 0; i < 4; i++) {
+    k.fillStyle = rippe; k.fillRect(0, i * 16, 64, 6);
+    k.fillStyle = licht; k.fillRect(0, i * 16 + 6, 64, 2);
+  }
+  k.fillStyle = rand; k.fillRect(0, 0, 5, 64); k.fillRect(59, 0, 5, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+const nbBahnMaterialien = new Map(BAND_TEMPO.map((st) => {
+  if (st.id === "maglev") {
+    const t = nbRippenTextur("#1b2740", "#142036", "#5fd4ff", "rgba(95,212,255,0.55)");
+    return [st.id, new THREE.MeshStandardMaterial({ map: t, emissive: "#ffffff", emissiveMap: t, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.2 })];
+  }
+  return [st.id, new THREE.MeshStandardMaterial({ map: nbRippenTextur("#353b41", "#23272b", "#565f67", "rgba(0,0,0,0.3)"), roughness: 0.85 })];
+}));
+const nbStillBahn = new THREE.MeshStandardMaterial({ map: nbRippenTextur("#353b41", "#23272b", "#565f67", "rgba(0,0,0,0.3)"), roughness: 0.85 });
+const nbBahnMaterial = (t) => nbBahnMaterialien.get(t.tempo) || nbBahnMaterialien.get(STANDARD_BAND_TEMPO);
+const nbSchienenMaterial = (t) => t.tempo === "maglev" ? nbMat(NB.schienenFarbe.maglev, { r: 0.35, m: 0.35 })
+  : nbMat(NB.schienenFarbe[t.tempo] || NB.schienenFarbe.normal, { r: 0.45 });
+
+/* --- Formhelfer (wie quader(), aber leicht abgerundet; Unterkante bei y) --- */
+function nbBox(g, w, h, d, m, x, y, z, r = 0.015) {
+  r = Math.min(r, w / 2 - 0.002, h / 2 - 0.002, d / 2 - 0.002);
+  const geo = r > 0.004 ? new RoundedBoxGeometry(w, h, d, 2, r) : new THREE.BoxGeometry(w, h, d);
+  const mesh = new THREE.Mesh(geo, m);
+  mesh.position.set(x, y + h / 2, z);
+  mesh.castShadow = mesh.receiveShadow = true;
+  g.add(mesh);
+  return mesh;
+}
+// Zylinder mit Mitte bei (x, y, z); achse = Längsachse
+function nbZyl(g, rOben, rUnten, h, m, x, y, z, achse = "y", seg = 16) {
+  const geo = new THREE.CylinderGeometry(rOben, rUnten, h, seg);
+  if (achse === "x") geo.rotateZ(Math.PI / 2);
+  if (achse === "z") geo.rotateX(Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, m);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = mesh.receiveShadow = true;
+  g.add(mesh);
+  return mesh;
+}
+const NB_Z = new THREE.Vector3(0, 0, 1);
+function nbStrebe(g, a, b, dicke, m) {
+  const richtung = new THREE.Vector3().subVectors(b, a);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(dicke, dicke, richtung.length()), m);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.quaternion.setFromUnitVectors(NB_Z, richtung.normalize());
+  mesh.castShadow = true;
+  g.add(mesh);
+  return mesh;
+}
+// Flache Form aus Umrisspunkten (x, z), hochgezogen von y0 bis y0 + h, mit weicher Kante
+function nbPlatte(g, punkte, h, y0, m, fase = 0.02) {
+  const form = new THREE.Shape(punkte.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const geo = new THREE.ExtrudeGeometry(form, { depth: Math.max(0.001, h - 2 * fase), bevelEnabled: fase > 0,
+    bevelThickness: fase, bevelSize: fase, bevelSegments: 2, curveSegments: 24 });
+  geo.rotateX(-Math.PI / 2);
+  const mesh = new THREE.Mesh(geo, m);
+  mesh.position.y = y0 + fase;
+  mesh.castShadow = mesh.receiveShadow = true;
+  g.add(mesh);
+  return mesh;
+}
+// Flacher Pfeil (Spitze bei winkel 0 nach +z)
+function nbPfeil(g, x, y, z, winkel, s = 1, farbe = "#ffffff") {
+  const p = [[-0.035, -0.08], [0.035, -0.08], [0.035, 0], [0.085, 0], [0, 0.095], [-0.085, 0], [-0.035, 0]];
+  const geo = new THREE.ShapeGeometry(new THREE.Shape(p.map(([px, pz]) => new THREE.Vector2(px, -pz))));
+  geo.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(geo, nbMat(farbe, { e: farbe, ei: 0.35, doppelt: true }));
+  m.position.set(x, y, z);
+  m.rotation.y = winkel;
+  m.scale.setScalar(s);
+  g.add(m);
+  return m;
+}
+const nbWinkel = (dx, dz) => Math.atan2(dx, dz);
+function nbBahn(g, breite, laenge, material, x, y, z) {   // Textur wiederholt sich einmal pro Kachel (wie bahn())
+  return bahn(g, breite, laenge, material, x, y, z);
+}
+
+/* --- Bausteine --- */
+// Gerades Band von z0 bis z1; deck = in Brücke oder Rampe (Träger statt Füße)
+function nbGeradesBand(g, t, { z0 = -0.5, z1 = 0.5, y = GRAFIK.bandHoehe, deck = false, schieneM = null } = {}) {
+  const BW = NB.bahnBreite, RW = NB.schiene, L = z1 - z0, zm = (z0 + z1) / 2, F = NB.farben;
+  const sm = schieneM || nbSchienenMaterial(t);
+  if (deck) nbBox(g, BW + 0.02, 0.1, L - 0.01, nbMat(F.unterbau), 0, y - 0.13, zm, 0.02);
+  else nbBox(g, BW + 0.02, y - 0.06, L - 0.02, nbMat(F.unterbau), 0, 0.025, zm, 0.02);
+  nbBahn(g, BW, L, nbBahnMaterial(t), 0, y + 0.002, zm);
+  for (const s of [-1, 1]) {
+    const sx = s * (BW / 2 + RW / 2);
+    nbBox(g, RW, 0.15, L - 0.014, sm, sx, y - 0.1, zm, 0.034);
+    for (let zz = z0 + 0.25; zz < z1 - 0.01; zz += 0.5) nbZyl(g, 0.036, 0.036, 0.022, nbMat(F.bolzen, { m: 0.4, r: 0.4 }), sx + s * (RW / 2 + 0.008), y - 0.03, zz, "x", 12);
+    if (t.tempo === "maglev") nbBox(g, 0.03, 0.012, L - 0.05, nbLeucht(F.leuchten, 1.6), sx, y + 0.05, zm, 0);
+    if (!deck) for (let zz = z0 + 0.5; zz < z1; zz += 1) nbBox(g, RW + 0.03, y - 0.1, 0.14, nbMat(F.stahlDunkel), sx, 0, zz, 0.012);
+  }
+}
+// Geneigtes Deck von (z0, y0) nach (z1, y1)
+function nbRampe(g, t, z0, y0, z1, y1) {
+  const deck = new THREE.Group();
+  deck.position.set(0, (y0 + y1) / 2, (z0 + z1) / 2);
+  deck.rotation.x = -Math.atan2(y1 - y0, z1 - z0);
+  const L = Math.hypot(z1 - z0, y1 - y0);
+  nbGeradesBand(deck, t, { z0: -L / 2, z1: L / 2, y: 0, deck: true });
+  g.add(deck);
+  return deck;
+}
+// Kurve: Viertelkreis nach kurvenBogen() (Abschnitt 12b)
+function nbBogenRing(g, b, rInnen, rAussen, y0, h, m, fase = 0.012) {
+  const n = GRAFIK.kurvenSegmente, pkt = [];
+  for (let i = 0; i <= n; i++) { const p = bogenPunkt(b, i / n, rAussen); pkt.push([p.x, p.z]); }
+  for (let i = n; i >= 0; i--) { const p = bogenPunkt(b, i / n, rInnen); pkt.push([p.x, p.z]); }
+  return nbPlatte(g, pkt, h, y0, m, fase);
+}
+function nbKurve(g, t) {
+  const H = GRAFIK.bandHoehe, BW = NB.bahnBreite, RW = NB.schiene, F = NB.farben, b = kurvenBogen(t);
+  nbBogenRing(g, b, 0.5 - BW / 2 - 0.01, 0.5 + BW / 2 + 0.01, 0.025, H - 0.06, nbMat(F.unterbau), 0.01);
+  for (const r of [0.5 - BW / 2 - RW / 2, 0.5 + BW / 2 + RW / 2]) {
+    nbBogenRing(g, b, r - RW / 2, r + RW / 2, H - 0.1, 0.15, nbSchienenMaterial(t), 0.022);
+    if (t.tempo === "maglev") nbBogenRing(g, b, r - 0.015, r + 0.015, H + 0.05, 0.012, nbLeucht(F.leuchten, 1.6), 0);
+    const aussen = r > 0.5 ? 1 : -1;
+    for (const p of [0.25, 0.75]) {
+      const q = bogenPunkt(b, p, r + aussen * (RW / 2 + 0.008));
+      const bolz = nbZyl(g, 0.036, 0.036, 0.022, nbMat(F.bolzen, { m: 0.4, r: 0.4 }), q.x, H - 0.03, q.z, "y", 12);
+      bolz.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(q.x - b.c.x, 0, q.z - b.c.z).normalize());
+    }
+  }
+  // Rippenbahn entlang des Bogens (v läuft wie bei bahn() mit der Fahrtrichtung)
+  const n = GRAFIK.kurvenSegmente, pos = [], uvs = [], idx = [], laenge = Math.PI / 4;
+  for (let i = 0; i <= n; i++) {
+    for (const [r, u] of [[0.5 - BW / 2, 0], [0.5 + BW / 2, 1]]) {
+      const q = bogenPunkt(b, i / n, r);
+      pos.push(q.x, 0, q.z); uvs.push(u, (1 - i / n) * laenge);
+    }
+  }
+  for (let i = 0; i < n; i++) { const a = i * 2, c = a + 2; idx.push(a, a + 1, c, a + 1, c + 1, c); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  if (geo.attributes.normal.getY(0) < 0) {
+    for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+    geo.setIndex(idx); geo.computeVertexNormals();
+  }
+  const mesh = new THREE.Mesh(geo, nbBahnMaterial(t));
+  mesh.position.y = H + 0.002;
+  mesh.receiveShadow = true;
+  g.add(mesh);
+  const fuss = bogenPunkt(b, 0.5, 0.5 + BW / 2 + RW / 2);
+  nbBox(g, RW + 0.03, H - 0.1, 0.14, nbMat(F.stahlDunkel), fuss.x, 0, fuss.z, 0.012);
+}
+
+/* --- Knoten: Sockel, Öffnungen, Bedienfelder, Füllstandsrohr --- */
+const NB_SEITEN = { hinten: { x: 0, z: -1 }, vorn: { x: 0, z: 1 }, links: { x: 1, z: 0 }, rechts: { x: -1, z: 0 } };
+const NB_ECKEN = [[1, 1], [-1, 1], [1, -1], [-1, -1]];
+function nbKreuz(arm, weite) {
+  const w = arm, e = weite;
+  return [[w, e], [w, w], [e, w], [e, -w], [w, -w], [w, -e], [-w, -e], [-w, -w], [-e, -w], [-e, w], [-w, w], [-w, e]];
+}
+function nbAchteck(halb, fase) {
+  const a = halb, b = halb - fase;
+  return [[b, a], [a, b], [a, -b], [b, -a], [-b, -a], [-a, -b], [-a, b], [-b, a]];
+}
+function nbSockel(g) {
+  const H = GRAFIK.bandHoehe;
+  nbBox(g, 0.94, H - 0.03, 0.94, nbMat(NB.farben.unterbau), 0, 0.01, 0, 0.03);
+  nbBahn(g, NB.bahnBreite, NB.bahnBreite, nbStillBahn, 0, H - 0.015, 0);
+}
+// Dunkle Öffnung an einer Seite des Kopfs (so groß, dass ein Item hindurchpasst)
+function nbMaul(g, d, abstand, breite = 0.3, hoehe = 0.27) {
+  const m = nbMat(NB.farben.dunkel, { r: 0.9 }), H = GRAFIK.bandHoehe;
+  if (d.x) nbBox(g, 0.012, hoehe, breite, m, d.x * abstand, H - 0.01, 0, 0);
+  else nbBox(g, breite, hoehe, 0.012, m, 0, H - 0.01, d.z * abstand, 0);
+}
+// Bedienfeld: dunkle Leiste mit drei leuchtenden Knöpfen und einer Statusleiste in der Bauteilfarbe
+function nbKnoepfe(g, d, abstand, y, breite, akzent) {
+  const n = Math.hypot(d.x, d.z), dx = d.x / n, dz = d.z / n;
+  const f = new THREE.Group();
+  f.position.set(dx * abstand, 0, dz * abstand);
+  f.rotation.y = nbWinkel(dx, dz);
+  nbBox(f, breite, 0.085, 0.014, nbMat(NB.farben.feld, { r: 0.5 }), 0, y, 0.004, 0.006);
+  NB.knopfFarben.forEach((farbe, i) => nbZyl(f, 0.017, 0.017, 0.02, nbLeucht(farbe, 1.6), (i - 1) * 0.05 - 0.035, y + 0.042, 0.016, "z", 12));
+  nbBox(f, 0.05, 0.016, 0.006, nbLeucht(akzent, 1.8), breite / 2 - 0.045, y + 0.035, 0.013, 0);
+  nbBox(f, 0.05, 0.016, 0.006, nbLeucht(akzent, 0.6), breite / 2 - 0.045, y + 0.015, 0.013, 0);
+  g.add(f);
+}
+function nbLeuchtPunkt(g, x, y, z, farbe, r = 0.022) { nbZyl(g, r, r, 0.016, nbLeucht(farbe, 2), x, y, z, "y", 10); }
+// Kleine Anzeige auf einem Ständer (Smart-Teile)
+function nbAnzeige(g, x, z, farbe, y0) {
+  nbBox(g, 0.035, 0.24, 0.035, nbMat(NB.farben.stahlDunkel), x, y0, z, 0.01);
+  const schirm = new THREE.Group();
+  schirm.position.set(x, y0 + 0.3, z);
+  schirm.rotation.y = Math.PI / 4;
+  nbBox(schirm, 0.22, 0.15, 0.04, nbMat(GRAFIK.farbeArmGelenk), 0, -0.075, 0, 0.015);
+  nbBox(schirm, 0.18, 0.11, 0.01, nbLeucht(farbe, 1.1), 0, -0.055, 0.021, 0);
+  g.add(schirm);
+}
+// Füllstandsrohr: Glasröhre, darin eine Leuchtsäule, die mit dem Puffer wächst (ersetzt die Puffer-Würfel)
+function nbFuellRohr(g, x, y, z, farbe) {
+  nbZyl(g, 0.055, 0.055, 0.025, nbMat(NB.farben.stahlDunkel), x, y + 0.012, z, "y", 14);
+  const glas = nbZyl(g, 0.045, 0.045, 0.22, nbMat("#d8f4ff", { t: true, o: 0.28, r: 0.1 }), x, y + 0.135, z, "y", 14);
+  glas.userData.einzeln = true; glas.castShadow = false;
+  nbZyl(g, 0.055, 0.055, 0.02, nbMat(NB.farben.stahlDunkel), x, y + 0.255, z, "y", 14);
+  const geo = new THREE.CylinderGeometry(0.032, 0.032, 0.21, 12);
+  geo.translate(0, 0.105, 0);   // wächst von unten nach oben
+  const saeule = new THREE.Mesh(geo, nbLeucht(farbe, 1.3));
+  saeule.position.set(x, y + 0.03, z);
+  saeule.scale.y = 0.02;
+  saeule.userData.einzeln = true;
+  g.add(saeule);
+  return saeule;
+}
+
+/* --- Knotenköpfe (Splitter, Smart-Verteiler, Ventil, Zusammenführungen, Omni-Merger) ---
+   Weiße Gehäuse bis fast an die Kachelkante, höher als ein Item: Items darin sind verdeckt. */
+function nbKnotenKopf(g, art) {
+  const H = GRAFIK.bandHoehe, F = NB.farben, weiss = nbMat(F.kopf, { r: 0.35 });
+  let fuell = null;
+  if (art === "splitter") {
+    const T = H + 0.39, akzent = GRAFIK.farbeSplitter;
+    nbPlatte(g, nbKreuz(0.25, 0.47), 0.42, H - 0.03, weiss);
+    for (const [sx, sz] of NB_ECKEN) {
+      nbBox(g, 0.15, 0.32, 0.15, nbMat(akzent, { r: 0.45 }), sx * 0.36, H - 0.02, sz * 0.36, 0.035);
+      if (sx < 0 || sz < 0) nbLeuchtPunkt(g, sx * 0.36, H + 0.308, sz * 0.36, F.leuchten);
+    }
+    fuell = nbFuellRohr(g, 0.36, H + 0.3, 0.36, akzent);
+    nbZyl(g, 0.16, 0.16, 0.03, nbMat(akzent, { r: 0.4 }), 0, T + 0.015, 0, "y", 24);
+    for (const d of [NB_SEITEN.links, NB_SEITEN.vorn, NB_SEITEN.rechts]) nbPfeil(g, d.x * 0.34, T + 0.004, d.z * 0.34, nbWinkel(d.x, d.z), 0.9);
+    for (const d of Object.values(NB_SEITEN)) { nbMaul(g, d, 0.492); nbKnoepfe(g, d, 0.492, H + 0.275, 0.26, akzent); }
+  } else if (art === "smartVerteiler") {
+    const T = H + 0.37, akzent = GRAFIK.farbeSmartVerteiler;
+    nbPlatte(g, nbAchteck(0.47, 0.13), 0.4, H - 0.03, weiss);
+    nbBox(g, 0.66, 0.04, 0.66, nbMat(akzent, { e: akzent, ei: 0.35, r: 0.35 }), 0, T, 0, 0.02);
+    for (const [sx, sz] of NB_ECKEN) if (sx < 0 || sz < 0) nbZyl(g, 0.03, 0.03, 0.03, nbLeucht(F.leuchten, 2), sx * 0.28, T + 0.05, sz * 0.28, "y", 12);
+    fuell = nbFuellRohr(g, 0.27, T + 0.04, 0.27, akzent);
+    for (const d of [NB_SEITEN.links, NB_SEITEN.vorn, NB_SEITEN.rechts]) nbPfeil(g, d.x * 0.17, T + 0.043, d.z * 0.17, nbWinkel(d.x, d.z), 0.75);
+    for (const d of Object.values(NB_SEITEN)) { nbMaul(g, d, 0.492); nbKnoepfe(g, d, 0.492, H + 0.275, 0.26, akzent); }
+    nbAnzeige(g, -0.2, -0.2, akzent, T + 0.04);
+  } else if (art === "ventil") {
+    const T = H + 0.37, akzent = GRAFIK.farbeVentil, orange = nbMat(akzent, { r: 0.45 });
+    nbZyl(g, 0.45, 0.47, 0.4, weiss, 0, H + 0.17, 0, "y", 36);
+    nbZyl(g, 0.475, 0.475, 0.06, orange, 0, H + 0.3, 0, "y", 36);
+    nbZyl(g, 0.04, 0.04, 0.16, nbMat(F.stahlDunkel), 0, T + 0.08, 0);
+    const rad = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.025, 10, 32), orange);
+    rad.rotation.x = Math.PI / 2; rad.position.y = T + 0.16; rad.castShadow = true;
+    g.add(rad);
+    for (let i = 0; i < 4; i++) {
+      const w = i * Math.PI / 2 + Math.PI / 4;
+      nbStrebe(g, new THREE.Vector3(0, T + 0.16, 0), new THREE.Vector3(Math.cos(w) * 0.17, T + 0.16, Math.sin(w) * 0.17), 0.024, orange);
+    }
+    nbZyl(g, 0.055, 0.055, 0.035, nbMat(GRAFIK.farbeArmGelenk), 0, T + 0.17, 0);
+    nbPfeil(g, 0, T + 0.004, 0.32, 0, 1.0);
+    for (const d of [NB_SEITEN.links, NB_SEITEN.rechts]) nbPfeil(g, d.x * 0.32, T + 0.004, -0.04, nbWinkel(d.x, d.z), 0.5, "#ffd59a");
+    for (const d of Object.values(NB_SEITEN)) nbMaul(g, d, 0.472);
+    for (let i = 0; i < 8; i++) {
+      const w = i / 8 * Math.PI * 2 + Math.PI / 8;
+      nbLeuchtPunkt(g, Math.cos(w) * 0.39, T + 0.002, Math.sin(w) * 0.39, i % 4 === 1 ? "#ffc23a" : "#3fe07a", 0.02);
+    }
+    for (const [x, z] of NB_ECKEN) nbKnoepfe(g, { x, z }, 0.462, H + 0.04, 0.2, akzent);
+    fuell = nbFuellRohr(g, -0.25, T, -0.25, akzent);
+  } else if (art === "zusammen" || art === "smartZusammen") {
+    const T = H + 0.33, akzent = GRAFIK.farbeZusammen;
+    nbPlatte(g, nbAchteck(0.47, 0.13), 0.36, H - 0.03, weiss);
+    const krone = nbPlatte(g, nbKreuz(0.09, 0.4), 0.08, T, nbMat(akzent, { r: 0.4 }), 0.015);   // X-Krone wie der Kreuzknoten der Vorlage
+    krone.rotation.y = Math.PI / 4;
+    nbZyl(g, 0.14, 0.14, 0.04, weiss, 0, T + 0.1, 0, "y", 28);
+    nbPfeil(g, 0, T + 0.122, 0, 0, 0.8, akzent);
+    for (const d of [NB_SEITEN.links, NB_SEITEN.hinten, NB_SEITEN.rechts]) nbPfeil(g, d.x * 0.4, T + 0.004, d.z * 0.4, nbWinkel(-d.x, -d.z), 0.6, akzent);
+    nbPfeil(g, 0, T + 0.004, 0.38, 0, 0.75);
+    for (const d of Object.values(NB_SEITEN)) nbMaul(g, d, 0.492);
+    for (const [x, z] of NB_ECKEN) nbKnoepfe(g, { x, z }, 0.594, H + 0.12, 0.16, akzent);
+    fuell = nbFuellRohr(g, 0.33, T, -0.18, akzent);
+    if (art === "smartZusammen") {
+      nbAnzeige(g, -0.24, 0, akzent, T);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.014, 8, 32), nbLeucht("#7fe08a", 1.5));
+      ring.rotation.x = Math.PI / 2; ring.position.y = T + 0.12;
+      g.add(ring);
+    }
+  } else if (art === "omniMerger") {
+    const akzent = GRAFIK.farbeOmniMerger;
+    nbZyl(g, 0.46, 0.48, 0.3, weiss, 0, H + 0.12, 0, "y", 40);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.465, 0.022, 8, 48), nbLeucht(akzent, 1.3));
+    ring.rotation.x = Math.PI / 2; ring.position.y = H + 0.27;
+    g.add(ring);
+    const kuppel = new THREE.Mesh(new THREE.SphereGeometry(0.4, 40, 14, 0, Math.PI * 2, 0, Math.PI / 2), nbMat(F.kopf, { r: 0.3, m: 0.1 }));
+    kuppel.position.y = H + 0.27; kuppel.scale.y = 0.6; kuppel.castShadow = true;
+    g.add(kuppel);
+    nbZyl(g, 0.12, 0.12, 0.04, nbLeucht(akzent, 0.9), 0, H + 0.51, 0, "y", 24);
+    for (const d of Object.values(NB_SEITEN)) nbMaul(g, d, 0.482);
+    for (const [x, z] of NB_ECKEN) nbKnoepfe(g, { x, z }, 0.472, H + 0.04, 0.2, akzent);
+    for (let i = 0; i < 8; i++) { const w = i / 8 * Math.PI * 2; nbLeuchtPunkt(g, Math.cos(w) * 0.27, H + 0.44, Math.sin(w) * 0.27, i % 2 ? akzent : F.leuchten, 0.018); }
+    nbPfeil(g, 0, H + 0.275, 0.43, 0, 0.42);
+    fuell = nbFuellRohr(g, -0.32, H + 0.27, 0.32, akzent);
+  }
+  return fuell;
+}
+
+/* --- Brücke: Hochband mit Stahlfachwerk, Auf- und Abfahrt mit Stützenturm --- */
+function nbHochband(g, t) {
+  const H = GRAFIK.bandHoehe, y = GRAFIK.brueckenHoehe + H, BW = NB.bahnBreite, RW = NB.schiene, F = NB.farben;
+  nbGeradesBand(g, t, { y, deck: true });
+  const stahlM = nbMat(F.fachwerk, { m: 0.3, r: 0.45 }), V = (a, b, c) => new THREE.Vector3(a, b, c);
+  const gerade = (t.x + t.z) % 2 === 0;   // Diagonalen wechseln von Kachel zu Kachel die Richtung
+  for (const sx of [-1, 1]) {
+    const x = sx * (BW / 2 + RW / 2), a = gerade ? -0.5 : 0.5;
+    nbStrebe(g, V(x, y + 0.3, -0.5), V(x, y + 0.3, 0.5), 0.045, stahlM);
+    nbStrebe(g, V(x, y + 0.05, -0.5), V(x, y + 0.3, -0.5), 0.035, stahlM);
+    nbStrebe(g, V(x, y + 0.05, 0), V(x, y + 0.3, 0), 0.03, stahlM);
+    nbStrebe(g, V(x, y + 0.05, a), V(x, y + 0.3, 0), 0.028, stahlM);
+    nbStrebe(g, V(x, y + 0.3, 0), V(x, y + 0.05, -a), 0.028, stahlM);
+  }
+  // Stützenpaar an der vorderen Kachelkante: darunter bleibt Platz für Bänder quer
+  for (const sx of [-1, 1]) {
+    nbBox(g, 0.07, y - 0.13, 0.07, nbMat(F.stahl, { m: 0.3, r: 0.45 }), sx * 0.46, 0, 0.455, 0.02);
+    nbBox(g, 0.15, 0.03, 0.12, nbMat(F.stahlDunkel), sx * 0.46, 0, 0.44, 0.01);
+  }
+  nbBox(g, 1.0, 0.07, 0.08, nbMat(F.stahlDunkel, { m: 0.3 }), 0, y - 0.2, 0.455, 0.02);
+}
+function nbBrueckenRampe(g, t) {
+  const H = GRAFIK.bandHoehe, HB = GRAFIK.brueckenHoehe, hoch = t.typ === "rampeHoch", F = NB.farben;
+  nbRampe(g, t, -0.5, hoch ? H : H + HB, 0.5, hoch ? H + HB : H);
+  const zh = hoch ? 0.42 : -0.42, y = H + HB - 0.13, V = (a, b, c) => new THREE.Vector3(a, b, c);
+  for (const sx of [-1, 1]) nbBox(g, 0.08, y, 0.08, nbMat(F.stahl, { m: 0.3, r: 0.45 }), sx * 0.44, 0, zh, 0.02);
+  nbStrebe(g, V(-0.44, 0.1, zh), V(0.44, y * 0.55, zh), 0.035, nbMat(F.stahlDunkel));
+  nbStrebe(g, V(0.44, 0.1, zh), V(-0.44, y * 0.55, zh), 0.035, nbMat(F.stahlDunkel));
+  nbBox(g, 0.98, 0.06, 0.1, nbMat(F.stahlDunkel), 0, y - 0.03, zh, 0.02);
+}
+
+/* --- Untergrund: Betonportal mit Bogenöffnung; die Bahn fährt im Portal schräg in den Boden.
+   Der Tunnel liegt wie bisher unter der Erde (untergrundItem senkt die Items ab und blendet sie aus). --- */
+function nbTunnelPortal(g, t) {
+  const H = GRAFIK.bandHoehe, F = NB.farben, ein = t.typ === "untergrundEin", sg = ein ? 1 : -1;
+  nbGeradesBand(g, t, ein ? { z0: -0.5, z1: -0.05 } : { z0: 0.05, z1: 0.5 });
+  if (ein) nbRampe(g, t, -0.05, H, 0.45, H - 0.3); else nbRampe(g, t, -0.45, H - 0.3, 0.05, H);
+  // dunkler Schacht im Boden (dort verschwindet die Bahn)
+  nbBox(g, 0.66, 0.004, 0.24, nbMat(F.dunkel, { r: 1 }), 0, 0.001, sg * 0.32, 0);
+  // Portalkörper: Bogen, ausgehöhlt (Innenflächen dunkel)
+  const form = new THREE.Shape();
+  form.moveTo(-0.48, 0); form.lineTo(0.48, 0); form.lineTo(0.48, 0.68); form.lineTo(-0.48, 0.68); form.lineTo(-0.48, 0);
+  const loch = new THREE.Path();
+  loch.moveTo(-0.33, 0); loch.lineTo(0.33, 0); loch.lineTo(0.33, 0.26); loch.absarc(0, 0.26, 0.33, 0, Math.PI, false); loch.lineTo(-0.33, 0);
+  form.holes.push(loch);
+  const geo = new THREE.ExtrudeGeometry(form, { depth: 0.48, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2, curveSegments: 20 });
+  const koerper = new THREE.Mesh(geo, [nbMat(F.beton, { r: 0.8 }), nbMat("#3a4046", { r: 0.9 })]);
+  koerper.position.set(0, 0, ein ? -0.04 : -0.44);
+  koerper.castShadow = koerper.receiveShadow = true;
+  g.add(koerper);
+  const haut = nbMat(F.beton, { r: 0.8 }), zm = ein ? 0.2 : -0.2;
+  for (const sx of [-1, 1]) nbBox(g, 0.02, 0.7, 0.5, haut, sx * 0.495, -0.005, zm, 0.005);
+  nbBox(g, 1.0, 0.03, 0.52, nbMat(F.betonDunkel, { r: 0.8 }), 0, 0.68, zm, 0.01);
+  nbBox(g, 0.98, 0.7, 0.05, haut, 0, 0, sg * 0.475, 0.01);                    // geschlossene Stirnwand
+  nbBox(g, 0.66, 0.58, 0.01, nbMat(F.dunkel, { r: 1 }), 0, 0, sg * 0.445, 0);   // dunkle Rückwand innen
+  const front = ein ? -0.06 : 0.06, aussen = sg * 0.502;
+  for (const sx of [-1, 1]) nbBox(g, 0.04, 0.3, 0.012, nbLeucht(F.leuchten, 1.8), sx * 0.405, 0.12, front, 0.004);
+  warnStreifen(g, 0.62, 0.05, 0.012, 0, 0.6, front);
+  warnStreifen(g, 0.9, 0.05, 0.012, 0, 0.6, aussen);
+  for (const sx of [-1, 1]) nbBox(g, 0.05, 0.05, 0.012, nbLeucht(F.leuchten, 1.8), sx * 0.32, 0.48, aussen, 0);
+  nbBox(g, 0.34, 0.16, 0.012, nbMat(F.betonDunkel, { r: 0.7 }), 0, 0.3, aussen, 0.004);
+  for (let i = -1; i <= 1; i++) nbBox(g, 0.5, 0.018, 0.05, nbMat(F.betonDunkel), 0, 0.71, zm + i * 0.1, 0.006);
+  nbPfeil(g, 0.3, 0.712, zm, 0, 0.5, F.leuchten);
+}
+
+/* --- Übergang: zwei Rollenbahnen, dazwischen ein Gehweg; ein Portalkran hebt die Items darüber --- */
+function nbRollenBett(g, z0, z1) {
+  const H = GRAFIK.bandHoehe, BW = NB.bahnBreite, F = NB.farben, L = z1 - z0, zm = (z0 + z1) / 2;
+  const rahmen = nbMat(F.gestell, { r: 0.55 }), tuerkis = nbMat(F.tuerkis);
+  for (const sx of [-1, 1]) {
+    nbBox(g, 0.05, 0.1, L, rahmen, sx * (BW / 2 + 0.03), H - 0.07, zm, 0.015);
+    for (const zz of [z0 + 0.05, z1 - 0.05]) nbBox(g, 0.06, H - 0.07, 0.06, tuerkis, sx * (BW / 2 + 0.03), 0, zz, 0.012);
+  }
+  nbBox(g, BW + 0.1, 0.03, 0.06, tuerkis, 0, 0.03, zm, 0.01);
+  const walze = nbMat(F.walze, { m: 0.5, r: 0.3 });
+  for (let zz = z0 + 0.04; zz < z1 - 0.02; zz += 0.065) nbZyl(g, 0.03, 0.03, BW, walze, 0, H - 0.03, zz, "x", 10);
+}
+// Hubprofil eines Items auf dem Übergang (pos 0..1): vor dem Gehweg anheben, danach absetzen
+function uebergangHub(pos) {
+  const glatt = (a, b, x) => { const u = Math.min(1, Math.max(0, (x - a) / (b - a))); return u * u * (3 - 2 * u); };
+  return NB.uebergangHub * (glatt(0.16, 0.3, pos) - glatt(0.7, 0.84, pos));
+}
+function nbUebergang(g) {
+  const H = GRAFIK.bandHoehe, F = NB.farben, oben = 1.08;
+  nbRollenBett(g, -0.5, -0.14);
+  nbRollenBett(g, 0.14, 0.5);
+  warnStreifen(g, 1.0, 0.006, 0.26, 0, 0.001, 0);   // Gehweg in Gelb-Schwarz
+  const pfosten = nbMat(F.gestell, { r: 0.5 }), rot = nbMat(F.kranRot, { r: 0.5 }), V = (a, b, c) => new THREE.Vector3(a, b, c);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      nbBox(g, 0.07, 0.5, 0.07, pfosten, sx * 0.47, 0, sz * 0.44, 0.02);
+      nbStrebe(g, V(sx * 0.47, 0.48, sz * 0.44), V(sx * 0.44, 0.62, sz * 0.4), 0.07, pfosten);
+      nbBox(g, 0.07, oben - 0.6, 0.07, pfosten, sx * 0.44, 0.6, sz * 0.4, 0.02);
+      nbBox(g, 0.16, 0.025, 0.16, nbMat(F.stahlDunkel), sx * 0.47, 0, sz * 0.44, 0.008);
+      warnStreifen(g, 0.1, 0.006, 0.14, sx * 0.44, oben + 0.12, sz * 0.43);
+    }
+    nbBox(g, 0.1, 0.12, 1.1, rot, sx * 0.44, oben, 0, 0.05);
+    for (let zz = -0.36; zz <= 0.37; zz += 0.12) nbZyl(g, 0.028, 0.028, 0.02, nbMat(F.stahl, { m: 0.4 }), sx * 0.5, oben + 0.06, zz, "x", 10);
+  }
+  // Laufkatze mit Scherengestänge und Greifer (beweglich, siehe animiere)
+  const katze = new THREE.Group();
+  katze.position.y = oben;
+  g.add(katze);
+  const orange = nbMat(F.gestaenge, { r: 0.45 });
+  nbBox(katze, 0.92, 0.07, 0.1, orange, 0, -0.07, 0, 0.025);
+  const glieder = [];
+  for (const sx of [-1, 1]) for (let i = 0; i < 2; i++) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 1), orange);
+    m.castShadow = true;
+    m.userData.einzeln = true;   // bewegt sich: nicht verschmelzen
+    katze.add(m); glieder.push({ m, sx, i });
+  }
+  const greifer = new THREE.Group();
+  katze.add(greifer);
+  nbBox(greifer, 0.3, 0.03, 0.28, nbMat(GRAFIK.farbeArmGelenk), 0, 0, 0, 0.01);
+  for (const sx of [-1, 1]) nbBox(greifer, 0.03, 0.12, 0.2, nbMat(GRAFIK.farbeArmGelenk), sx * 0.14, -0.1, 0, 0.008);
+  const a = new THREE.Vector3(), b = new THREE.Vector3();
+  const ruhe = H + GRAFIK.bandItemGroesse + 0.02 + NB.uebergangHub;
+  // Folgt dem Item, das gerade angehoben wird; sonst wartet der Kran hinten oben
+  return (t) => {
+    let z = -0.3, y = ruhe;
+    const it = (t.items || []).find((x) => x.pos > 0.12 && x.pos < 0.88);
+    if (it) { z = Math.max(-0.34, Math.min(0.34, it.pos - 0.5)); y = H + GRAFIK.bandItemGroesse + 0.02 + uebergangHub(it.pos); }
+    katze.position.z = z;
+    greifer.position.y = y - oben;
+    for (const { m, sx, i } of glieder) {     // zwei gekreuzte Glieder je Seite (Schere)
+      const dz = i ? 0.05 : -0.05;
+      a.set(sx * 0.3, -0.07, dz); b.set(sx * 0.12, y - oben + 0.02, -dz);
+      m.position.copy(a).add(b).multiplyScalar(0.5);
+      const r = b.sub(a); m.scale.z = r.length();
+      m.quaternion.setFromUnitVectors(NB_Z, r.normalize());
+    }
+  };
+}
+
+/* --- QA-Teststrecke: Scannerbogen mit Lichtvorhang; Ausschuss-Weiche: rote Schienen, Stößel, Ausschusskiste --- */
+function nbPruefband(g, t) {
+  const H = GRAFIK.bandHoehe, F = NB.farben;
+  nbGeradesBand(g, t);
+  const weissM = nbMat(F.weiss, { r: 0.4 }), tuerkis = nbMat(F.tuerkis, { r: 0.4 });
+  for (const sx of [-1, 1]) {
+    nbBox(g, 0.08, 0.62, 0.34, weissM, sx * 0.46, 0, 0, 0.03);
+    nbBox(g, 0.012, 0.42, 0.24, nbLeucht(F.leuchten, 1.4), sx * 0.414, 0.12, 0, 0);
+    nbBox(g, 0.02, 0.5, 0.36, tuerkis, sx * 0.505, 0.04, 0, 0.008);
+  }
+  nbBox(g, 1.0, 0.12, 0.36, weissM, 0, 0.6, 0, 0.04);
+  nbBox(g, 0.8, 0.012, 0.24, nbLeucht(F.leuchten, 1.4), 0, 0.598, 0, 0);
+  nbBox(g, 0.6, 0.04, 0.37, tuerkis, 0, 0.66, 0, 0.012);
+  nbKnoepfe(g, { x: 0, z: 1 }, 0.18, 0.62, 0.22, F.qaGruen);
+  const vorhang = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.012, 0.22),
+    new THREE.MeshBasicMaterial({ color: F.leuchten, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+  vorhang.userData.einzeln = true;
+  g.add(vorhang);
+  return (tt, zeit) => { vorhang.position.y = H + 0.05 + 0.3 * (0.5 + 0.5 * Math.sin(zeit * 3)); };
+}
+function nbAusschussWeiche(g, t) {
+  const H = GRAFIK.bandHoehe, BW = NB.bahnBreite, RW = NB.schiene, F = NB.farben, rot = nbMat(F.ausschuss, { r: 0.45 });
+  nbBox(g, BW + 0.02, H - 0.06, 0.98, nbMat(F.unterbau), 0, 0.025, 0, 0.02);
+  nbBahn(g, BW, 1, nbBahnMaterial(t), 0, H + 0.002, 0);
+  nbBox(g, RW, 0.15, 0.986, rot, -(BW / 2 + RW / 2), H - 0.1, 0, 0.034);
+  for (const z0 of [-0.5, 0.23]) nbBox(g, RW, 0.15, 0.27, rot, BW / 2 + RW / 2, H - 0.1, z0 + 0.135, 0.034);
+  // Rutsche durch die Lücke und kleine Ausschusskiste an der Kachelkante
+  const rutsche = new THREE.Group();
+  rutsche.position.set(0.4, H - 0.05, 0); rutsche.rotation.z = -0.4;
+  nbBox(rutsche, 0.18, 0.025, 0.42, nbMat(F.stahl), 0, 0, 0, 0.008);
+  g.add(rutsche);
+  nbBox(g, 0.12, 0.03, 0.4, rot, 0.44, 0, 0, 0.01);
+  for (const sz of [-1, 1]) nbBox(g, 0.12, 0.16, 0.03, rot, 0.44, 0, sz * 0.185, 0.008);
+  nbBox(g, 0.03, 0.16, 0.4, rot, 0.485, 0, 0, 0.008);
+  // Stößel auf der anderen Seite
+  nbBox(g, 0.12, 0.2, 0.22, rot, -0.44, 0, 0, 0.03);
+  nbBox(g, 0.05, 0.12, 0.2, nbMat(GRAFIK.farbeArmGelenk), -0.36, H + 0.03, 0, 0.01);
+  nbKnoepfe(g, { x: -1, z: 0 }, 0.5, 0.04, 0.16, F.ausschuss);
+}
+
+/* --- Greifarm: kräftiger Industrieroboter. Farbe zeigt die Rolle: grün = Nehmer, rot = Geber.
+   pose(winkel): winkel 0 = greift hinten, π = legt vorn ab (t.winkel aus der Logik, Abschnitt 11). Unterwegs hebt der
+   Arm an; Ober- und Unterarm werden per Zwei-Gelenk-Rechnung so gestellt, dass der Greifer senkrecht hängt. --- */
+const NB_ARM = { L1: 0.5, L2: 0.5, schulter: 0.34, hand: 0.115, reichweite: 0.82, hub: 0.24 };
+function nbGreifarm(g, t) {
+  const farbe = t.typ === "greifarm" ? NB.farben.nehmer : NB.farben.geber, F = NB.farben, { L1, L2 } = NB_ARM;
+  const dunkel = nbMat("#2e343a", { r: 0.45, m: 0.3 }), stahlM = nbMat(F.stahl, { r: 0.35, m: 0.5 });
+  const chrom = nbMat("#dfe5e9", { r: 0.18, m: 0.85 }), lack = nbMat(farbe, { r: 0.38, m: 0.1 }), kabel = nbMat("#1d2226", { r: 0.7 });
+  // Bodenplatte mit Schraubköpfen, Leuchtring, Sockel mit Warnstreifen und Steuerkasten
+  nbZyl(g, 0.44, 0.46, 0.05, nbMat("#59636c", { r: 0.5, m: 0.3 }), 0, 0.025, 0, "y", 36);
+  for (let i = 0; i < 8; i++) { const w = i / 8 * Math.PI * 2 + 0.2; nbZyl(g, 0.022, 0.022, 0.02, stahlM, Math.cos(w) * 0.4, 0.06, Math.sin(w) * 0.4, "y", 6); }
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.02, 8, 40), nbLeucht(farbe, 1.2));
+  ring.rotation.x = Math.PI / 2; ring.position.y = 0.055;
+  g.add(ring);
+  const sockel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.28, 0.1, 28), [warnStreifenMaterial, dunkel, dunkel]);
+  const uv = sockel.geometry.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * 5);
+  sockel.position.y = 0.1; sockel.castShadow = true;
+  g.add(sockel);
+  nbBox(g, 0.08, 0.12, 0.2, dunkel, 0.43, 0.05, 0, 0.015);
+  nbKnoepfe(g, { x: 1, z: 0 }, 0.47, 0.075, 0.16, farbe);
+  // Drehturm (= m.arm, dreht um die Hochachse)
+  const dreh = new THREE.Group();
+  g.add(dreh);
+  nbZyl(dreh, 0.19, 0.22, 0.14, lack, 0, 0.22, 0, "y", 28);
+  nbZyl(dreh, 0.23, 0.23, 0.025, dunkel, 0, 0.16, 0, "y", 28);
+  nbBox(dreh, 0.3, 0.2, 0.22, lack, 0, 0.22, -0.02, 0.06);
+  for (const sx of [-1, 1]) {
+    nbBox(dreh, 0.07, 0.16, 0.18, dunkel, sx * 0.18, 0.24, -0.05, 0.02);
+    nbZyl(dreh, 0.045, 0.045, 0.03, stahlM, sx * 0.22, 0.32, -0.05, "x", 14);
+  }
+  nbLeuchtPunkt(dreh, -0.06, 0.427, -0.1, "#3fe07a", 0.016);
+  nbLeuchtPunkt(dreh, 0, 0.427, -0.1, "#ffc23a", 0.016);
+  nbZyl(dreh, 0.11, 0.11, 0.3, dunkel, 0, NB_ARM.schulter, 0, "x", 20);
+  for (const sx of [-1, 1]) nbZyl(dreh, 0.085, 0.085, 0.02, lack, sx * 0.16, NB_ARM.schulter, 0, "x", 20);
+  // Oberarm mit Hydraulikzylinder und Kabelstrang
+  const oa = new THREE.Group(); oa.position.y = NB_ARM.schulter; dreh.add(oa);
+  nbBox(oa, 0.16, 0.15, L1 - 0.05, lack, 0, -0.075, L1 / 2, 0.05);
+  nbBox(oa, 0.17, 0.03, 0.18, dunkel, 0, -0.015, L1 / 2, 0.01);
+  nbZyl(oa, 0.035, 0.035, 0.2, dunkel, 0, -0.13, 0.16, "z", 12);
+  nbZyl(oa, 0.02, 0.02, 0.2, chrom, 0, -0.13, 0.33, "z", 10);
+  nbZyl(oa, 0.018, 0.018, L1 - 0.12, kabel, 0.05, 0.09, L1 / 2, "z", 8);
+  nbZyl(oa, 0.085, 0.085, 0.22, dunkel, 0, 0, L1, "x", 20);
+  for (const sx of [-1, 1]) nbZyl(oa, 0.065, 0.065, 0.02, lack, sx * 0.12, 0, L1, "x", 20);
+  // Unterarm mit Kabel
+  const ua = new THREE.Group(); ua.position.z = L1; oa.add(ua);
+  nbBox(ua, 0.12, 0.11, L2 - 0.06, lack, 0, -0.055, L2 / 2 - 0.01, 0.04);
+  nbBox(ua, 0.13, 0.025, 0.14, dunkel, 0, 0.045, 0.15, 0.008);
+  nbZyl(ua, 0.015, 0.015, L2 - 0.14, kabel, -0.045, 0.07, L2 / 2, "z", 8);
+  // Handgelenk und Greifer (Flansch, Leuchtring, zwei Backen)
+  const hg = new THREE.Group(); hg.position.z = L2; ua.add(hg);
+  nbZyl(hg, 0.06, 0.06, 0.16, dunkel, 0, 0, 0, "x", 16);
+  nbZyl(hg, 0.05, 0.05, 0.05, stahlM, 0, -0.045, 0, "y", 16);
+  nbBox(hg, 0.22, 0.035, 0.1, dunkel, 0, -NB_ARM.hand, 0, 0.01);
+  const led = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.008, 6, 20), nbLeucht(farbe, 2));
+  led.rotation.x = Math.PI / 2; led.position.y = -0.074;
+  led.userData.einzeln = true;
+  hg.add(led);
+  for (const sx of [-1, 1]) {
+    nbBox(hg, 0.03, 0.13, 0.08, stahlM, sx * 0.125, -0.24, 0, 0.008);
+    nbBox(hg, 0.012, 0.06, 0.07, nbMat(farbe, { r: 0.5 }), sx * 0.107, -0.23, 0, 0.004);
+  }
+  // Hier hängt das gehaltene Item (zeichneBandItems nimmt die Weltposition)
+  const greifer = new THREE.Object3D();
+  greifer.position.y = -NB_ARM.hand - GRAFIK.bandItemGroesse / 2;
+  hg.add(greifer);
+  const yItem = GRAFIK.bandHoehe + GRAFIK.bandItemGroesse;   // Oberkante eines Items auf dem Band
+  function pose(winkel) {
+    dreh.rotation.y = Math.PI - winkel;
+    const wy = yItem + NB_ARM.hub * Math.sin(Math.max(0, Math.min(Math.PI, winkel))) + NB_ARM.hand;
+    const dx = NB_ARM.reichweite, dy = wy - NB_ARM.schulter;
+    const d = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.001);
+    const t1 = Math.atan2(dy, dx) + Math.acos(Math.min(1, Math.max(-1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+    const ex = L1 * Math.cos(t1), ey = L1 * Math.sin(t1);
+    const t2 = Math.atan2(dy - ey, dx - ex);
+    oa.rotation.x = -t1; ua.rotation.x = -(t2 - t1); hg.rotation.x = t2;
+  }
+  pose(0);
+  return { arm: dreh, greifer, pose };
+}
+
+// Baut das Modell eines Bandteils im neuen Look. Rückgabe wie baueBandModell: { gruppe, arm, greifer, pose, fuell, animiere }
+function baueNeuesBandModell(t) {
+  const g = new THREE.Group(), H = GRAFIK.bandHoehe;
+  const ergebnis = { gruppe: g, arm: null, greifer: null };
+  switch (t.typ) {
+    case "band":
+      if (t.kurve !== null && t.kurve !== undefined) {
+        nbKurve(g, t);
+        if (einstellungen.grafik.bandPfeile) {
+          const b = kurvenBogen(t), mitte = bogenPunkt(b, 0.5, 0.5), tangente = bogenTangente(b, 0.5);
+          richtungsPfeil(g, mitte.x, H + 0.006, mitte.z, Math.atan2(tangente.x, tangente.z));
+        }
+      } else {
+        nbGeradesBand(g, t);
+        if (einstellungen.grafik.bandPfeile) richtungsPfeil(g, 0, H + 0.006, 0, 0);
+      }
+      break;
+    case "uebergang": ergebnis.animiere = nbUebergang(g); break;
+    case "pruefband": ergebnis.animiere = nbPruefband(g, t); break;
+    case "aussweiche": nbAusschussWeiche(g, t); break;
+    case "splitter": case "smartVerteiler": case "ventil": case "zusammen": case "smartZusammen": case "omniMerger":
+      nbSockel(g);
+      ergebnis.fuell = nbKnotenKopf(g, t.typ);
+      break;
+    case "untergrundEin": case "untergrundAus": nbTunnelPortal(g, t); break;
+    case "greifarm": case "greifGeber": Object.assign(ergebnis, nbGreifarm(g, t)); break;
+    case "hochband": nbHochband(g, t); if (einstellungen.grafik.bandPfeile) richtungsPfeil(g, 0, GRAFIK.brueckenHoehe + H + 0.006, 0, 0); break;
+    case "rampeHoch": case "rampeRunter": nbBrueckenRampe(g, t); break;
+    default: nbGeradesBand(g, t);
+  }
+  verschmelzeTeile(g);
+  return ergebnis;
+}
+// Jedes Bild: bewegliche Teile des neuen Looks (Greifarm-Pose, Füllstand, Portalkran, Lichtvorhang)
+function aktualisiereNeueBandTeile(t, m, zeit) {
+  if (m.pose) m.pose(t.winkel || 0);
+  if (m.fuell) {
+    const max = t.typ === "omniMerger" ? BAENDER.omniPuffer : PUFFER_GROESSE;
+    m.fuell.scale.y = Math.max(0.02, Math.min(1, (t.puffer ? t.puffer.length : 0) / max));
+  }
+  if (m.animiere) m.animiere(t, zeit);
+}
+
 function entferneBandModell(id) {
   const m = bandModelle.get(id);
   if (!m) return;
@@ -18358,7 +19015,7 @@ function entferneBandModell(id) {
 function gleicheBandModelleAb() {
   for (const id of [...bandModelle.keys()]) if (!spiel.baender.has(id)) entferneBandModell(id);
   for (const t of spiel.baender.values()) {
-    const schluessel = `${t.typ}|${t.richtung}|${t.kurve ?? ""}|${t.tempo}|${t.x},${t.z}|${einstellungen.grafik.bandPfeile}`;
+    const schluessel = `${t.typ}|${t.richtung}|${t.kurve ?? ""}|${t.tempo}|${t.x},${t.z}|${einstellungen.grafik.bandPfeile}|${neuerBandLook()}`;
     const alt = bandModelle.get(t.id);
     if (alt && alt.schluessel === schluessel) continue;
     if (alt) entferneBandModell(t.id);
@@ -18452,6 +19109,7 @@ for (let lage = 0; lage < 3; lage++) {
 }
 const pufferOben = new Float32Array(12);   // Phase 7c: Stapelhöhe je Puffer-Platz (Items sind unterschiedlich hoch)
 function zeichnePufferItems() {
+  if (neuerBandLook()) return;   // 12d: geschlossene Knotenköpfe zeigen den Puffer als Füllstandsrohr
   const k = GRAFIK.pufferWuerfel;
   for (const t of spiel.baender.values()) {
     const puffer = t.puffer;
@@ -18484,6 +19142,7 @@ function zeichneBandItems() {
       for (const it of t.items) {
         bandItemPunkt(t, it, bandHilfsVektor);
         if (untergrund && !untergrundItem(t, it, bandHilfsVektor)) continue;     // Phase 7d: im Tunnel unsichtbar
+        if (t.typ === "uebergang" && neuerBandLook()) bandHilfsVektor.y += uebergangHub(it.pos);   // 12d: Portalkran hebt über den Gehweg
         // Phase 7c: längliche Items zeigen in Laufrichtung (in Kurven zwischen Ein- und Austritt gemischt)
         const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung], ziel = aus || ein;
         const dx = ein.x * (1 - it.pos) + ziel.x * it.pos, dz = ein.z * (1 - it.pos) + ziel.z * it.pos;
@@ -18943,12 +19602,18 @@ function aktualisiereBaender3d(simSekunden, zeit) {
     for (const st of BAND_TEMPO) {
       bandLauf[st.id] = (bandLauf[st.id] + st.tempo * simSekunden) % 1;
       bandMaterialien.get(st.id).map.offset.y = bandLauf[st.id];
+      nbBahnMaterialien.get(st.id).map.offset.y = bandLauf[st.id];   // 12d
     }
   }
   for (const t of spiel.baender.values()) {
-    if (!istGreifarm(t)) continue;
     const m = bandModelle.get(t.id);
-    if (m && m.arm) { m.arm.rotation.y = Math.PI - (t.winkel || 0); m.gruppe.updateMatrixWorld(true); }
+    if (!m) continue;
+    if (m.neu) {                                   // 12d: Greifarm-Pose, Füllstand, Portalkran, Lichtvorhang
+      aktualisiereNeueBandTeile(t, m, zeit);
+      if (m.pose) m.gruppe.updateMatrixWorld(true);
+      continue;
+    }
+    if (m.arm && istGreifarm(t)) { m.arm.rotation.y = Math.PI - (t.winkel || 0); m.gruppe.updateMatrixWorld(true); }
   }
   zeichneBandItems();
   zeichneSegmentRahmen();
@@ -18999,8 +19664,11 @@ const warnHilfe = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), skal
 // Wo steht die Leuchte an einem Bandteil? Auf der rechten Leiste, vorn (dort wartet das Item); auf Knoten oben drauf.
 function warnPunktBand(t, ziel) {
   const mitte = kachelZuWelt(t.x, t.z), r = RICHTUNGEN[t.richtung], H = GRAFIK.bandHoehe;
-  if (hatPuffer(t) || t.typ === "zusammen") return ziel.set(mitte.x, rasterHoehe + (t.typ === "omniMerger" ? 0.48 : H + 0.52), mitte.z);
-  if (t.typ === "untergrundEin" || t.typ === "untergrundAus") return ziel.set(mitte.x - r.z * 0.3, rasterHoehe + 0.49, mitte.z + r.x * 0.3);
+  if (hatPuffer(t) || t.typ === "zusammen") {
+    const y = neuerBandLook() ? H + (NB.kopfHoehe[t.typ] ?? 0.45) + 0.03 : (t.typ === "omniMerger" ? 0.48 : H + 0.52);   // 12d: auf dem höheren Kopf
+    return ziel.set(mitte.x, rasterHoehe + y, mitte.z);
+  }
+  if (t.typ === "untergrundEin" || t.typ === "untergrundAus") return ziel.set(mitte.x - r.z * 0.3, rasterHoehe + (neuerBandLook() ? 0.72 : 0.49), mitte.z + r.x * 0.3);
   const y = bahnHoehe(bandTyp(t).ebeneAus) + (bandTyp(t).hoch ? 0.05 : 0.03);
   const seite = BAND_BREITE / 2 + 0.03;
   return ziel.set(mitte.x + r.x * 0.3 - r.z * seite, rasterHoehe + y, mitte.z + r.z * 0.3 + r.x * seite);
@@ -23191,6 +23859,7 @@ const GRAFIK_SCHALTER = [
   { schalter: "bandPfeile",     name: "Richtungspfeile auf Bändern", text: "Kleiner Pfeil auf jedem Bandstück, in Fahrtrichtung." },
   { schalter: "ioLinien",       name: "Import-/Exportlinien",     text: "Grüne (Import) und rote (Export) Bögen, solange ein Lager oder eine Station ausgewählt ist." },
   { schalter: "hoheAufloesung", name: "Hohe Auflösung",           text: "Volle Bildschirmauflösung. Aus = schneller auf schwachen Geräten." },
+  { schalter: "neueBaender",    name: "Neuer Fließband-Look",     text: "Bänder mit Schienen und Rollenbolzen, weiße Knotenköpfe mit Leuchtknöpfen, Stahlbrücke, Betonportal, Portalkran und kräftige Greifarme. Aus = bisherige flache Bänder (etwas schneller)." },
   { schalter: "neueDisplayModelle", name: "Neue Display-Modelle (Vorschau)", text: "Display-Teile auf Bändern, in Lagern und bei Kurieren mit den neuen 3D-Modellen aus Display.html. Aus = bisherige Platine. Ansehen: Entwicklung → Komponenten-Vorschau." },
 ];
 
@@ -23345,7 +24014,8 @@ function grafikGeaendert() {
   }
   renderer.setPixelRatio(pixelVerhaeltnis());
   renderer.setSize(window.innerWidth, window.innerHeight);
-  gleicheBandModelleAb();                          // Bandpfeile: Modelle mit neuem Schlüssel neu bauen
+  wendeBandLookAn(); bandRahmenNeu();              // 12d: Band-Look gewechselt → andere Bahnhöhe
+  gleicheBandModelleAb();                          // Bandpfeile, Band-Look: Modelle mit neuem Schlüssel neu bauen
   wendeKomponentenModelleAn();                     // 12c: neue Display-Modelle an/aus
   if (auswahlGebaeudeId) zeigeGebaeudeAuswahl(spiel.gebaeude.get(auswahlGebaeudeId));   // Import-/Exportlinien
 }

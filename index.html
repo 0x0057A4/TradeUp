@@ -3433,6 +3433,8 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 #kurier-overlay.kw-bearbeiten .kw-strecke { min-height:0; }
 body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !important; }
 .kw-dragging, .kw-ghost { opacity:.3; }
+@keyframes kw-markiert { 0%,100% { box-shadow:none; } 30%,70% { box-shadow:0 0 0 3px #f97316; } }
+.kw-card.kw-markiert { animation:kw-markiert 1.2s ease-in-out 1; }
 .kw-fuss { display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-top:1px solid var(--mi-border); padding-top:10px; }
 .kw-fuss small { margin-right:auto; color:var(--mi-muted); }
 .modern-ui small, .modern-ui .kw-status { color:var(--mi-muted); }.kw-status { max-height:65px; overflow:auto; scrollbar-width:none; margin:8px 0; line-height:1.5; }
@@ -3465,16 +3467,26 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 .iz-capacity-text { display:flex; justify-content:space-between; color:var(--mi-muted); margin-top:6px; }.iz-inventory { background:var(--mi-card); border:1px dashed var(--mi-border); border-radius:8px; padding:12px; color:var(--mi-muted); }
 .iz-order-list { display:flex; flex-direction:column; gap:6px; }.iz-resource { display:grid; grid-template-columns:22px minmax(80px,1fr) 58px 128px 70px 70px; align-items:center; gap:4px 7px; background:var(--mi-card); padding:7px 9px; border-radius:8px; border:1px solid transparent; }
 .iz-resource.iz-geaendert { border-color:var(--mi-blue); }
+.lager-falt td { padding:2px 0 !important; }
+.info-warnmarke { position:relative; margin-left:auto; flex:0 0 auto; width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#dc2626; color:#fff; font-weight:900; font-size:16px; cursor:help; box-shadow:0 0 0 3px rgba(220,38,38,.25); }
+.info-warnmarke[hidden] { display:none; }
+.info-warnmarke + #info-schliessen { margin-left:0; }
+.info-warnmarke-text { display:none; position:absolute; top:calc(100% + 8px); right:-8px; width:300px; padding:10px 12px; border-radius:10px; background:#3b0d0d; border:1px solid #ef4444; color:#fecaca; font-size:12px; font-weight:500; line-height:1.4; text-align:left; z-index:5; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+.info-warnmarke:hover .info-warnmarke-text, .info-warnmarke:focus .info-warnmarke-text { display:block; }
+.lager-falt-knopf { width:100%; text-align:left; background:rgba(255,255,255,.04); border:1px dashed rgba(255,255,255,.18); border-radius:8px; color:inherit; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
+.lager-falt-knopf:hover { background:rgba(255,255,255,.09); }
 .iz-stepper { display:flex; align-items:center; gap:3px; }
 #info-panel.modern-import .iz-stepper input { width:56px; -moz-appearance:textfield; appearance:textfield; }
 #info-panel.modern-import .iz-stepper input::-webkit-inner-spin-button, #info-panel.modern-import .iz-stepper input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
 #info-panel.modern-import .iz-resource .iz-minus, #info-panel.modern-import .iz-resource .iz-plus { width:30px; padding:5px 0; font-size:16px; font-weight:700; line-height:1; }
 #info-panel.modern-import .iz-resource .iz-minus { color:#f87171; border-color:rgba(248,113,113,.6); }
 #info-panel.modern-import .iz-resource .iz-plus { color:#4ade80; border-color:rgba(74,222,128,.6); }
-.iz-zufluss { grid-column:2/-1; font-size:11px; color:var(--mi-muted); min-height:0; }.iz-zufluss:empty { display:none; }
-.iz-summe { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; padding:8px 10px; border-radius:8px; background:var(--mi-input); border:1px solid var(--mi-border); font-size:12px; }
-#info-panel.modern-import .iz-bestellen { background:#16a34a; border-color:#16a34a; color:#fff; font-weight:700; padding:7px 14px; white-space:nowrap; }
-#info-panel.modern-import .iz-bestellen:disabled { background:transparent; color:var(--mi-muted); border-color:var(--mi-border); }
+@keyframes iz-blink { 0%,100% { box-shadow:none; } 25%,75% { box-shadow:0 0 0 3px rgba(251,191,36,.85); background:rgba(251,191,36,.18); color:#fbbf24; } 50% { box-shadow:none; } }
+#info-panel.modern-import .iz-blinkt { animation:iz-blink 1.1s ease-in-out 1; }
+#info-panel.modern-import .iz-content { gap:10px; }
+#info-panel.modern-import .iz-resource { padding:4px 8px; }
+#info-panel.modern-import .iz-order-list { gap:4px; }
+#info-panel.modern-import #info-inhalt, #info-panel.modern-import { overflow:hidden !important; }
 .iz-resource b { font-size:12px; }.iz-price { color:var(--mi-green); font-size:12px; white-space:nowrap; }.iz-icon { font-size:18px; }
 #info-panel.modern-import .iz-resource input { padding:6px; width:66px; text-align:right; }
 #info-panel.modern-import .iz-resource button { padding:6px 7px; font-size:11px; color:var(--mi-muted); background:transparent; }
@@ -3666,6 +3678,7 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 <aside id="info-panel" hidden aria-labelledby="info-titel">
   <div class="info-kopf">
     <h2 id="info-titel"></h2>
+    <span id="info-warnmarke" class="info-warnmarke" hidden tabindex="0" role="img" aria-label=""><b aria-hidden="true">!</b><span class="info-warnmarke-text"></span></span>
     <button id="info-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Info schließen">✕</button>
   </div>
   <p id="info-unter" class="info-unter"></p>
@@ -20216,7 +20229,7 @@ function kwListeHtml() {
 function zeichneKurierwege() {
   const v=kurierwegeAnsicht;
   kwOverlay.classList.toggle('kw-bearbeiten',v.modus==='bearbeiten');
-  if(v.modus!=='bearbeiten'){kwRoutenGruppe.userData.schluessel='';
+  if(v.modus!=='bearbeiten'){kwRoutenGruppe.userData.schluessel='';kwOverlay.style.cursor='';
     if(kwSortierer){kwSortierer.destroy();kwSortierer=null;}
     kwFenster.innerHTML=kwListeHtml();kwZeigeRoute(null);return;
   }
@@ -20242,57 +20255,116 @@ function zeichneKurierwege() {
         '<select class="kw-kurier-wahl" data-kw-kurier aria-label="Kurier zuweisen"><option value="" selected>+ Kurier zuweisen</option>'+
           freie.map(p=>'<option value="'+p.id+'">'+htmlSicher(p.name)+' ('+(p.kurierwegId?htmlSicher(kurierwegVon(p)?.name||'andere Route'):'Frei')+')</option>').join('')+
           (!freie.length?'<option value="" disabled>Keine weiteren Kuriere – im Personal-Reiter einstellen</option>':'')+'</select></div>'+
-    '<div class="kw-fuss"><small>Rundlauf · Pfeile in der Halle zeigen den Weg · Stopp-Kopf ziehen zum Umsortieren · Menge leer = Auto · Ändern gilt nach „Speichern“</small>'+
+    '<div class="kw-fuss"><small>Rundlauf · orange Linie in der Halle = Laufweg, Kreis anklicken springt zum Stopp · Stopp-Kopf ziehen zum Umsortieren · Menge leer = Auto · Ändern gilt nach „Speichern“</small>'+
       '<button type="button" class="kw-route-weg" data-kw="loeschen" '+(!r?'disabled':'')+'>'+kwIcon('trash-can')+' Route löschen</button></div>'+
     '<div class="kw-status" aria-live="off"></div><div class="kw-meldung" role="status">'+htmlSicher(v.meldung)+'</div></div>';
   kwRichteSortierungEin();
   kwStatusAktualisieren();
   kwZeigeRoute(d);
 }
-// Route in der Halle: Pfeile über jede Kachel des Laufwegs (Stopp → Stopp, am Ende zurück zum ersten),
-// je Richtung leicht seitlich versetzt (Hin- und Rückweg auf denselben Kacheln bleiben getrennt), Nummern an den Stopps.
-const kwRoutenGruppe=new THREE.Group();kwRoutenGruppe.name='kurierweg-route';kwRoutenGruppe.renderOrder=20;szene.add(kwRoutenGruppe);
-const kwPfeilGeo=(()=>{const K=KACHEL_GROESSE,g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.Float32BufferAttribute([0.34*K,0,0, -0.22*K,0,-0.24*K, -0.06*K,0,0,  0.34*K,0,0, -0.06*K,0,0, -0.22*K,0,0.24*K],3));
-  g.computeVertexNormals();return g;})();
-const kwPfeilMat=new THREE.MeshBasicMaterial({color:0x38bdf8,side:THREE.DoubleSide,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
-const kwPfeilMatRueck=kwPfeilMat.clone();kwPfeilMatRueck.color.set(0xfacc15);
-function kwStoppSchild(text) {
-  const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
-  x.fillStyle='#38bdf8';x.beginPath();x.arc(32,32,29,0,Math.PI*2);x.fill();x.lineWidth=4;x.strokeStyle='#0b1220';x.stroke();
-  x.fillStyle='#0b1220';x.font='bold '+(text.length>2?22:32)+'px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,32,34);
-  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,depthWrite:false,transparent:true}));
-  sp.scale.set(0.7*KACHEL_GROESSE,0.7*KACHEL_GROESSE,1);sp.renderOrder=21;return sp;
+// 2026-10-11 (Tim): Route in der Halle als orange Linie über den Boden – genau der Weg, den die Kuriere laufen
+// (Stopp → Stopp, am Ende zurück zum ersten; Hin- und Rückweg auf denselben Kacheln leicht versetzt). Ein
+// helles Strichmuster wandert in Laufrichtung. Stopps = runde Knoten mit Nummer (Spiel-Schrift Nunito):
+// Darüberfahren hebt sie hervor, Klick springt zur Stopp-Karte.
+const KW_LINIE={farbe:'#f97316',breite:0.13,versatz:0.14,hoehe:0.035,knotenRadius:0.3,tempo:0.6};
+const kwRoutenGruppe=new THREE.Group();kwRoutenGruppe.name='kurierweg-route';szene.add(kwRoutenGruppe);
+const kwLinienTextur=(()=>{const c=document.createElement('canvas');c.width=64;c.height=8;const x=c.getContext('2d');
+  x.fillStyle=KW_LINIE.farbe;x.fillRect(0,0,64,8);x.fillStyle='rgba(255,236,210,.85)';x.fillRect(40,0,14,8);
+  const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;return t;})();
+const kwLinienMat=new THREE.MeshBasicMaterial({map:kwLinienTextur,transparent:true,depthWrite:false,depthTest:false});
+const kwGelenkMat=new THREE.MeshBasicMaterial({color:KW_LINIE.farbe,transparent:true,depthWrite:false,depthTest:false});
+let kwKnotenHover=null;
+document.fonts?.load('700 40px Nunito').then(()=>{if(kurierwegeAnsicht.offen&&kurierwegeAnsicht.modus==='bearbeiten')kwZeigeRoute(kurierwegeAnsicht.entwurf);}).catch(()=>{});
+function kwKnotenTextur(text,hell) {
+  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  x.beginPath();x.arc(64,64,58,0,Math.PI*2);x.fillStyle=hell?'#2b3445':'#1e2533';x.fill();
+  x.lineWidth=hell?12:9;x.strokeStyle=hell?'#fdba74':KW_LINIE.farbe;x.stroke();
+  x.fillStyle='#fff';x.font='700 '+(text.length>2?40:58)+'px Nunito, "Segoe UI", sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(text,64,68);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+// Weg auf Ecken reduzieren (gerade Kachelfolgen = eine Strecke)
+function kwEcken(pfad) {
+  const p=[];
+  for(let i=0;i<pfad.length;i++){
+    const a=pfad[i-1],b=pfad[i],c=pfad[i+1];
+    if(!a||!c||Math.sign(b.x-a.x)!==Math.sign(c.x-b.x)||Math.sign(b.z-a.z)!==Math.sign(c.z-b.z))p.push(b);
+  }
+  return p;
+}
+function kwLinienStueck(w1,w2,u0) {
+  const K=KACHEL_GROESSE,dx=w2.x-w1.x,dz=w2.z-w1.z,len=Math.hypot(dx,dz);if(len<1e-6)return null;
+  const nx=-dz/len*KW_LINIE.breite*K/2,nz=dx/len*KW_LINIE.breite*K/2,y=KW_LINIE.hoehe,u1=u0+len/(0.5*K);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute([w1.x+nx,y,w1.z+nz, w1.x-nx,y,w1.z-nz, w2.x+nx,y,w2.z+nz, w2.x-nx,y,w2.z-nz],3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute([u0,1, u0,0, u1,1, u1,0],2));
+  g.setIndex([0,2,1,1,2,3]);
+  const m=new THREE.Mesh(g,kwLinienMat);m.renderOrder=20;m.userData.u1=u1;return m;
+}
+function kwLeereRoute() {
+  for(const k of [...kwRoutenGruppe.children]){kwRoutenGruppe.remove(k);k.geometry?.dispose();if(k.userData.knoten){k.material.map.dispose();k.material.dispose();}}
+  kwKnotenHover=null;
 }
 function kwZeigeRoute(d) {
-  for(const k of [...kwRoutenGruppe.children]){kwRoutenGruppe.remove(k);if(k.isSprite){k.material.map.dispose();k.material.dispose();}}
-  kwRoutenGruppe.userData.beine=0;
+  kwLeereRoute();
   if(!d)return;
-  const halte=d.stopps.map((s,i)=>({g:spiel.gebaeude.get(s.gebaeudeId),i})).filter(h=>h.g);
-  const K=KACHEL_GROESSE;
+  const K=KACHEL_GROESSE,halte=d.stopps.map((s,i)=>({g:spiel.gebaeude.get(s.gebaeudeId),i})).filter(h=>h.g);
   for(let j=0;j<halte.length&&halte.length>1;j++){
-    const von=halte[j].g.zugang,nach=halte[(j+1)%halte.length].g.zugang,rueck=j===halte.length-1;
+    const von=halte[j].g.zugang,nach=halte[(j+1)%halte.length].g.zugang;
     if(von.x===nach.x&&von.z===nach.z)continue;
-    const pfad=findePfad(von,nach).pfad||[];
-    for(let k=0;k+1<pfad.length;k++){
-      const a=pfad[k],b=pfad[k+1],dx=Math.sign(b.x-a.x),dz=Math.sign(b.z-a.z);
-      const m=new THREE.Mesh(kwPfeilGeo,rueck?kwPfeilMatRueck:kwPfeilMat),w=kachelZuWelt(a.x,a.z),w2=kachelZuWelt(b.x,b.z);
-      m.position.set((w.x+w2.x)/2-dz*0.2*K,0.05,(w.z+w2.z)/2+dx*0.2*K);   // halbe Kachel weiter, rechts der Fahrtrichtung
-      m.rotation.y=Math.atan2(-dz,dx);m.renderOrder=20;kwRoutenGruppe.add(m);
+    const ecken=kwEcken(findePfad(von,nach).pfad||[]);
+    // Punkte rechts der Laufrichtung versetzen (Hin- und Rückweg getrennt), an Ecken mit beiden Nachbarn
+    const pkt=ecken.map((e,i)=>{
+      const w=kachelZuWelt(e.x,e.z),a=ecken[i-1]||e,b=ecken[i+1]||e;
+      let rx=0,rz=0;
+      for(const [p,q] of [[a,e],[e,b]]){const dx=Math.sign(q.x-p.x),dz=Math.sign(q.z-p.z);if(dx||dz){rx+=-dz;rz+=dx;}}
+      const l=Math.hypot(rx,rz)||1,f=KW_LINIE.versatz*K*(l>1.2?Math.SQRT2:1);
+      return new THREE.Vector3(w.x+rx/l*f,0,w.z+rz/l*f);
+    });
+    let u=0;
+    for(let k=0;k+1<pkt.length;k++){
+      const m=kwLinienStueck(pkt[k],pkt[k+1],u);if(!m)continue;u=m.userData.u1;kwRoutenGruppe.add(m);
+      if(k>0){const gel=new THREE.Mesh(new THREE.CircleGeometry(KW_LINIE.breite*K/2,16),kwGelenkMat);gel.rotation.x=-Math.PI/2;gel.position.set(pkt[k].x,KW_LINIE.hoehe,pkt[k].z);gel.renderOrder=20;kwRoutenGruppe.add(gel);}
     }
-    kwRoutenGruppe.userData.beine++;
   }
-  // Nummern: mehrere Stopps am selben Gebäude teilen sich ein Schild ("1·3")
+  // Knoten: mehrere Stopps am selben Gebäude teilen sich einen Kreis ("1·3")
   const proGebaeude=new Map();
-  for(const h of halte){const l=proGebaeude.get(h.g.id)||[];l.push(h.i+1);proGebaeude.set(h.g.id,l);}
-  for(const [id,nummern] of proGebaeude){
-    const g=spiel.gebaeude.get(id),sp=kwStoppSchild(nummern.join('·')),w=kachelZuWelt(g.zugang.x,g.zugang.z);
-    sp.position.set(w.x,0.6*K,w.z);kwRoutenGruppe.add(sp);
+  for(const h of halte){const l=proGebaeude.get(h.g.id)||[];l.push(h.i);proGebaeude.set(h.g.id,l);}
+  for(const [id,idx] of proGebaeude){
+    const g=spiel.gebaeude.get(id),text=idx.map(i=>i+1).join('·'),w=kachelZuWelt(g.zugang.x,g.zugang.z);
+    const m=new THREE.Mesh(new THREE.CircleGeometry(KW_LINIE.knotenRadius*K,40),new THREE.MeshBasicMaterial({map:kwKnotenTextur(text,false),transparent:true,depthWrite:false,depthTest:false}));
+    const f=kamera.getWorldDirection(new THREE.Vector3());   // Zahl aufrecht zur Kamera drehen
+    m.rotation.set(-Math.PI/2,0,Math.atan2(-f.x,-f.z));m.position.set(w.x,KW_LINIE.hoehe+0.01,w.z);m.renderOrder=21;
+    m.userData={knoten:true,text,stopps:idx,gebaeudeId:id};kwRoutenGruppe.add(m);
   }
   // Neue Gebäude in der Route: Kamera so schieben, dass die Route im freien Bereich über dem Fenster liegt
   const schluessel=[...proGebaeude.keys()].join(',');
   if(schluessel&&schluessel!==kwRoutenGruppe.userData.schluessel)kwKameraAufRoute(halte.map(h=>h.g));
   kwRoutenGruppe.userData.schluessel=schluessel;
+  kwLinieAnimieren();
+}
+// Strichmuster wandert in Laufrichtung, solange die Route sichtbar ist
+let kwAnimLaeuft=false,kwAnimZeit=0;
+function kwLinieAnimieren() {
+  if(kwAnimLaeuft||wenigerAnimation)return;kwAnimLaeuft=true;kwAnimZeit=performance.now();
+  const schritt=jetzt=>{
+    if(!kwRoutenGruppe.children.length){kwAnimLaeuft=false;return;}
+    kwLinienTextur.offset.x-=(jetzt-kwAnimZeit)/1000*KW_LINIE.tempo;kwAnimZeit=jetzt;
+    requestAnimationFrame(schritt);
+  };
+  requestAnimationFrame(schritt);
+}
+function kwKnotenUnter(e) {
+  const knoten=kwRoutenGruppe.children.filter(k=>k.userData.knoten);if(!knoten.length)return null;
+  const f=renderer.domElement.getBoundingClientRect();
+  const strahl=new THREE.Raycaster();strahl.setFromCamera(new THREE.Vector2((e.clientX-f.left)/f.width*2-1,-((e.clientY-f.top)/f.height*2-1)),kamera);
+  return strahl.intersectObjects(knoten,false)[0]?.object||null;
+}
+function kwSetzeHover(k) {
+  if(k===kwKnotenHover)return;
+  for(const [m,an] of [[kwKnotenHover,false],[k,true]]){
+    if(!m)continue;m.material.map.dispose();m.material.map=kwKnotenTextur(m.userData.text,an);m.material.needsUpdate=true;m.scale.setScalar(an?1.25:1);
+  }
+  kwKnotenHover=k;kwOverlay.style.cursor=k?'pointer':'';
 }
 function kwKameraAufRoute(liste) {
   if(!liste.length)return;
@@ -20328,7 +20400,15 @@ kwPickBanner.querySelector('button').addEventListener('click',()=>kwPickEnde());
 for(const art of ['pointerdown','pointerup','click','wheel','dblclick','contextmenu']) {
   kwOverlay.addEventListener(art,e=>e.stopPropagation());kwPickBanner.addEventListener(art,e=>e.stopPropagation());
 }
-kwOverlay.addEventListener('click',e=>{if(e.target===kwOverlay)schliesseKurierwege();});
+kwOverlay.addEventListener('click',e=>{
+  if(e.target!==kwOverlay)return;
+  if(kurierwegeAnsicht.modus!=='bearbeiten'){schliesseKurierwege();return;}
+  // Bearbeiten: Klick auf einen Knoten springt zur Stopp-Karte (sonst passiert nichts, die Halle bleibt sichtbar)
+  const k=kwKnotenUnter(e);if(!k)return;
+  const karte=kwFenster.querySelector('[data-kw-stopp="'+k.userData.stopps[0]+'"]');
+  if(karte){karte.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});karte.classList.remove('kw-markiert');void karte.offsetWidth;karte.classList.add('kw-markiert');}
+});
+kwOverlay.addEventListener('pointermove',e=>{if(kurierwegeAnsicht.modus==='bearbeiten')kwSetzeHover(e.target===kwOverlay?kwKnotenUnter(e):null);});
 kwOverlay.addEventListener('input',e=>{
   const d=kurierwegeAnsicht.entwurf;if(!d)return;
   if(e.target.matches('[data-kw-name]'))d.name=e.target.value;
@@ -21054,6 +21134,7 @@ function zeichneInfo() {
   const ziel = $("info-zahlen");
   if (ziel) ziel._html = zahlen;
   anzeige.infoStrukturFehlt = false;
+  if (istImportzone(g)) izEinpassen();   // kein Scrollbalken in der Importzone
 }
 
 // Phase 7d: Einstellungen der neuen Lager im Info-Fenster
@@ -21241,11 +21322,47 @@ function lagerAusgabeTabelle(g, zeilen, kopf = "Ist / Max", pfeilNamen = ["Impor
   const [imp, exp] = pfeilNamen;
   return hinweis + `<table class="regel-tabelle lager-ausgabe-tabelle" data-lager-ausgabe="${htmlSicher(g.id)}"><thead><tr><th>Produkt / Reihenfolge</th><th class="zahl">${kopf}</th><th title="${imp}">⇣</th><th title="${exp}">⇡</th><th></th></tr></thead><tbody>${zeilen.map((z) => z.html).join("")}</tbody></table>`;
 }
+// 2026-10-11 (Tim): Smarte Lagerliste. Einzeln stehen nur Waren „im Fluss“: Rohstoffe, Material und Erzeugnisse
+// der Stationen in der Halle, Ware auf Kurierwegen und alles, was im Lager eingestellt ist (Max, Pfeile).
+// Der Rest (z. B. Einzelstücke, Testware) faltet sich je Kategorie zu einer Zeile zusammen – Klick klappt auf.
+const lagerOffeneGruppen = new Set();   // "Lager-ID|Gruppe"
+function wareImFluss(g) {
+  const ids = new Set(ROHSTOFFE.map((r) => r.id));
+  for (const s of gebaeudeListe(istStation)) {
+    const r = rezeptVon(s);
+    if (r) { Object.keys(r.eingaben).forEach((i) => ids.add(i)); if (r.ausgabe) ids.add(r.ausgabe); }
+  }
+  for (const r of spiel.kurierwege || []) for (const st of r.stopps) for (const e of st.ressourcen || []) if (e.item) ids.add(e.item);
+  for (const item of Object.keys(g.regeln || {})) ids.add(item);
+  return ids;
+}
+function lagerFaltGruppe(item) {
+  const b = bauteilNachTyp.get(item);
+  if (b && kategorieNachId.has(b.kategorie)) return { id: "k:" + b.kategorie, name: kategorieNachId.get(b.kategorie).name };
+  const art = itemGruppeVon(item);
+  return { id: art, name: ITEM_GRUPPEN.find((x) => x.art === art)?.titel || "Sonstiges" };
+}
+function lagerSmartZeilen(g, ids, zeile) {
+  const fluss = wareImFluss(g), haupt = [], gruppen = new Map();
+  for (const item of ids) {
+    if (fluss.has(item)) { haupt.push(zeile(item)); continue; }
+    const gr = lagerFaltGruppe(item);
+    if (!gruppen.has(gr.id)) gruppen.set(gr.id, { ...gr, items: [] });
+    gruppen.get(gr.id).items.push(item);
+  }
+  for (const gr of [...gruppen.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+    const key = g.id + "|" + gr.id, offen = lagerOffeneGruppen.has(key);
+    const stueck = gr.items.reduce((n, i) => n + (g.bestand[i] || 0), 0);
+    haupt.push({ item: null, html: `<tr class="lager-falt"><td colspan="5"><button type="button" class="lager-falt-knopf" data-aktion="lager-falt" data-gruppe="${htmlSicher(gr.id)}" aria-expanded="${offen}">${offen ? "▾" : "▸"} ${htmlSicher(gr.name)} <span class="leise">· ${gr.items.length} ${gr.items.length === 1 ? "Art" : "Arten"} · ${stueck} Stück · nicht im Fluss</span></button></td></tr>` });
+    if (offen) for (const item of gr.items) haupt.push(zeile(item));
+  }
+  return haupt;
+}
 // Ressourcen-Reiter eines Zwischenlagers
 function lagerZeilen(g) {
   const soll = sollbestand(g);
   const ids = lagerAusgabeItems(g, regelZeilenIds(g));
-  return lagerAusgabeTabelle(g, ids.map((item) => {
+  return lagerAusgabeTabelle(g, lagerSmartZeilen(g, ids, (item) => {
     const r = regelVon(g, item);
     const fest = g.regeln[item] && g.regeln[item].soll !== undefined;
     // Phase 7b: Max per Zahl für jede Ware (auch reine Export-Ware: Bänder und Arbeiter liefern nur bis Max)
@@ -21263,7 +21380,7 @@ function hauptlagerRegelIds(g) {
   return [...new Set([...Object.keys(g.bestand).filter((item) => g.bestand[item] > 0), ...Object.keys(g.regeln || {})])];
 }
 function hauptlagerZeilen(g) {
-  return lagerAusgabeTabelle(g, lagerAusgabeItems(g, hauptlagerRegelIds(g)).map((item) => {
+  return lagerAusgabeTabelle(g, lagerSmartZeilen(g, lagerAusgabeItems(g, hauptlagerRegelIds(g)), (item) => {
     const r = regelVon(g, item);
     const fest = !!(g.regeln && g.regeln[item] && g.regeln[item].soll !== undefined);
     return lagerAusgabeZeile(g, {
@@ -21315,48 +21432,27 @@ function aktualisiereInfoZahlen() {
 // Kurze Beschriftungen für die Rhythmus-Combobox der Importzone (Anzeige; Werte bleiben gleich)
 // 7e-3d: Spaltenköpfe der Rhythmus-Matrix (Tooltip = Langname aus ZONEN.rhythmen)
 const KURZER_RHYTHMUS = { einmal: "1×", "1min": "1min", "2min": "2min", "5min": "5min", taeglich: "8:00", bisSoll: "bis Soll" };
-// 2026-10-11 (Tim): Menge mit −/+ in 10er-Schritten, Einmalig/Bis Soll umschalten; jede Änderung rechnet den
-// Zufluss sofort neu (pro Zeile und gesamt). Bestellt wird erst mit „Bestellen“ (oder Enter) – alle Zeilen auf einmal.
+// 2026-10-11 (Tim): Menge mit −/+ in 10er-Schritten oder eintippen; bestellt wird sofort mit Klick auf „Einmalig“
+// oder „Bis Soll“. Steht eine Menge da, die noch nicht bestellt ist, blinken die beiden Knöpfe kurz auf.
+// Das Fenster bekommt nie einen Scrollbalken: passt der Inhalt nicht, wird er verkleinert (izEinpassen).
 const IZ_SCHRITT=10;
-const izEntwurf=new Map();   // Zonen-ID → { item: { menge, modus } } (noch nicht bestellt)
+const izEntwurf=new Map();   // Zonen-ID → { item: menge } (eingetippt, noch nicht bestellt)
 function izZeile(g,item) {
   const b=g.bestellungen.find(b=>b.item===item),e=izEntwurf.get(g.id)?.[item];
-  const menge=e?e.menge:(b?.menge||0);
-  const modus=e?.modus||(b?.rhythmus==='bisSoll'?'bisSoll':b?.rhythmus||'einmal');
-  return {b,e,menge,modus};
-}
-// Was kommt mit dieser Zeile an? Einmalig: die Menge; Bis Soll: was Hauptlager + Importzonen + Wagen noch fehlt
-function izZufluss(item,menge,modus) {
-  if(!(menge>0))return {n:0,text:''};
-  if(modus!=='bisSoll'&&modus!=='einmal')return {n:menge,text:'+'+menge+' je Takt'};
-  if(modus==='einmal')return {n:menge,text:'+'+menge+' einmalig'};
-  const hat=hlMenge(item)+zonenMenge('importzone',item)+wagenUnterwegs(item),n=Math.max(0,menge-hat);
-  return {n,text:n?'+'+n+' bis Soll '+menge+' (vorhanden '+hat+')':'0 – schon '+hat+' vorhanden (Soll '+menge+')'};
-}
-function izGesamt(g) {
-  let stueck=0,kosten=0,volumen=0;
-  for(const r of ROHSTOFFE){const z=izZeile(g,r.id),f=izZufluss(r.id,z.menge,z.modus);stueck+=f.n;kosten+=f.n*rohstoffPreis(r.id);volumen+=f.n*itemVolumen(r.id);}
-  const frei=Math.max(0,kapazitaetVon(g)-belegt(g));
-  const warn=volumen>frei?' · ⚠ Zone hat nur '+frei+' frei – der Rest wird abgewiesen':(kosten>spiel.konto?' · ⚠ Kontostand reicht nicht':'');
-  return 'Zufluss gesamt: <b>'+stueck+' Stück</b> · '+euro(kosten)+' · Platz in der Zone '+frei+' / '+kapazitaetVon(g)+warn;
+  return {b,menge:e!==undefined?e:(b?.menge||0),entwurf:e!==undefined};
 }
 function importzoneHtml(g) {
-  const offen=Object.keys(izEntwurf.get(g.id)||{}).length;
   const zeilen=ROHSTOFFE.map(r=>{
-    const {b,e,menge,modus}=izZeile(g,r.id),f=izZufluss(r.id,menge,modus);
-    const alt=!e&&b?.rhythmus&&!['einmal','bisSoll'].includes(b.rhythmus);
-    return '<div class="iz-resource'+(e?' iz-geaendert':'')+'" data-iz-item="'+r.id+'"><span class="iz-icon" style="color:'+r.farbe+'">◆</span><b>'+htmlSicher(r.name)+'</b><span class="iz-price">'+euroStueck(rohstoffPreis(r.id))+'</span>'+
+    const {b,menge,entwurf}=izZeile(g,r.id),aktiv=b&&bestellungAktiv(b)?b.rhythmus:null;
+    const alt=aktiv&&!['einmal','bisSoll'].includes(aktiv);
+    return '<div class="iz-resource'+(entwurf?' iz-geaendert':'')+'" data-iz-item="'+r.id+'"><span class="iz-icon" style="color:'+r.farbe+'">◆</span><b>'+htmlSicher(r.name)+'</b><span class="iz-price">'+euroStueck(rohstoffPreis(r.id))+'</span>'+
       '<span class="iz-stepper"><button type="button" class="iz-minus" data-iz-schritt="-1" data-item="'+r.id+'" title="−'+IZ_SCHRITT+'" aria-label="'+r.name+' −'+IZ_SCHRITT+'">−</button>'+
       '<input type="number" class="iz-amount" min="0" max="9999" step="1" placeholder="0" data-iz-menge="'+r.id+'" aria-label="Menge '+r.name+'" value="'+(menge||'')+'">'+
       '<button type="button" class="iz-plus" data-iz-schritt="1" data-item="'+r.id+'" title="+'+IZ_SCHRITT+'" aria-label="'+r.name+' +'+IZ_SCHRITT+'">+</button></span>'+
-      ['einmal','bisSoll'].map(m=>'<button type="button" data-iz-modus="'+m+'" data-item="'+r.id+'" aria-pressed="'+(modus===m)+'" title="'+(m==='einmal'?'Einmalige Lieferung':'Jede Minute: Hauptlager + Importzonen bis zur Menge auffüllen')+'">'+(m==='einmal'?'Einmalig':'Bis Soll')+'</button>').join('')+
-      '<small class="iz-zufluss" data-iz-zufluss="'+r.id+'">'+(f.text?'→ '+htmlSicher(f.text)+(f.n?' · '+euro(f.n*rohstoffPreis(r.id)):''):'')+(e?' · noch nicht bestellt':(b&&bestellungAktiv(b)&&b.rhythmus!=='einmal'?' · läuft':''))+'</small>'+
-      (alt?'<small class="iz-legacy">Bestehender Takt: '+htmlSicher(rhythmusNach.get(b.rhythmus)?.name||b.rhythmus)+'</small>':'')+'</div>';
+      ['einmal','bisSoll'].map(m=>'<button type="button" data-iz-modus="'+m+'" data-item="'+r.id+'" aria-pressed="'+(aktiv===m||alt&&m==='bisSoll')+'" title="'+(m==='einmal'?'Menge jetzt einmal bestellen':'Jede Minute Hauptlager + Importzonen bis zur Menge auffüllen (nochmal klicken: stoppen)')+(alt&&m==='bisSoll'?' – läuft: '+htmlSicher(rhythmusNach.get(aktiv)?.name||aktiv):'')+'">'+(m==='einmal'?'Einmalig':'Bis Soll')+'</button>').join('')+'</div>';
   }).join('');
   const wagen=g.lieferwagen.filter(w=>!w.abgeladen).map(w=>'<p>🚚 '+(w.ankunft>spiel.zeit?'in '+dauerSek(w.ankunft-spiel.zeit):'wartet auf Platz / Geld')+': '+Object.entries(w.items).map(([i,n])=>n+'× '+htmlSicher(itemInfo(i).name)).join(', ')+'</p>').join('');
   return '<section class="iz-orders"><h3>Ressourcen bestellen</h3><div class="iz-order-list">'+zeilen+'</div>'+
-    '<div class="iz-summe"><span data-iz-summe>'+izGesamt(g)+'</span><button type="button" class="iz-bestellen" data-iz-bestellen '+(offen?'':'disabled')+'>Bestellen'+(offen?' ('+offen+')':'')+'</button></div>'+
-    '<small>Menge 0 + Bestellen stoppt eine Nachbestellung. Bereits fahrende Wagen bleiben unterwegs.</small>'+
     '<div class="iz-message" role="status"></div></section>'+(wagen?'<section class="iz-deliveries"><h3>Unterwegs</h3>'+wagen+'</section>':'');
 }
 function moderneImportzoneHtml(g) {
@@ -21367,63 +21463,73 @@ function moderneImportzoneHtml(g) {
     '<section><h3>Aktuelles Inventar</h3><div class="iz-inventory">'+(summe(g.bestand)?itemZeilen(g.bestand):'▣ Zone ist derzeit leer')+'</div>'+
     (summe(g.bestand)?'<details><summary>Inventar verwalten</summary>'+importInventarHtml(g)+'</details>':'')+'</section>'+importzoneHtml(g)+'</div>';
 }
-// Entwurf einer Zeile ändern und Zufluss sofort neu zeigen (auch während das Feld den Fokus hat)
-function izSetze(item,aenderung) {
+
+// Kein Scrollbalken: Inhalt der Importzone bei Bedarf verkleinern, bis er ins Fenster passt
+function izEinpassen() {
+  const el=ob.infoInhalt;
+  if(!el.querySelector('.iz-content')||ob.info.hidden||!ob.info.classList.contains('modern-import'))return;
+  const kinder=[...el.children],setze=z=>kinder.forEach(k=>{k.style.zoom=z;});
+  const alt=kinder[0]?.style.zoom||'';
+  setze('');
+  if(el.scrollHeight<=el.clientHeight+1)return;
+  let z=Math.max(0.55,Math.floor(el.clientHeight/el.scrollHeight*100)/100);
+  for(let i=0;i<8;i++){setze(String(z));if(el.scrollHeight<=el.clientHeight+1||z<=0.55)break;z=Math.max(0.55,z-0.02);}
+  void alt;
+}
+setInterval(izEinpassen,400);
+window.addEventListener('resize',()=>izEinpassen());
+// Eingetippte, noch nicht bestellte Menge merken; Einmalig / Bis Soll blinken kurz als Hinweis
+function izSetzeMenge(item,wert) {
   const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
-  const z=izZeile(g,item),e={menge:z.menge,modus:z.modus,...aenderung};
-  e.menge=Math.max(0,Math.min(9999,Math.round(Number(e.menge))||0));
+  const n=Math.max(0,Math.min(9999,Math.round(Number(wert))||0)),b=g.bestellungen.find(b=>b.item===item);
   const ent=izEntwurf.get(g.id)||{};
-  if(z.b&&e.menge===z.b.menge&&e.modus===z.b.rhythmus||!z.b&&!e.menge)delete ent[item];else ent[item]=e;
+  if(b?n===b.menge:!n)delete ent[item];else ent[item]=n;
   izEntwurf.set(g.id,ent);
-  izVorschauNeu(g);
+  const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');if(!zeile)return;
+  zeile.classList.toggle('iz-geaendert',item in ent);
+  const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=n||'';
+  if(item in ent)izBlinke(zeile);
 }
-function izVorschauNeu(g) {
-  for(const r of ROHSTOFFE){
-    const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+r.id+'"]');if(!zeile)continue;
-    const {b,e,menge,modus}=izZeile(g,r.id),f=izZufluss(r.id,menge,modus);
-    zeile.classList.toggle('iz-geaendert',!!e);
-    const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=menge||'';
-    zeile.querySelectorAll('[data-iz-modus]').forEach(k=>k.setAttribute('aria-pressed',String(k.dataset.izModus===modus)));
-    zeile.querySelector('[data-iz-zufluss]').textContent=(f.text?'→ '+f.text+(f.n?' · '+euro(f.n*rohstoffPreis(r.id)):''):'')+(e?' · noch nicht bestellt':(b&&bestellungAktiv(b)&&b.rhythmus!=='einmal'?' · läuft':''));
-  }
-  const summe=ob.infoInhalt.querySelector('[data-iz-summe]');if(summe)summe.innerHTML=izGesamt(g);
-  const offen=Object.keys(izEntwurf.get(g.id)||{}).length,k=ob.infoInhalt.querySelector('[data-iz-bestellen]');
-  if(k){k.disabled=!offen;k.textContent='Bestellen'+(offen?' ('+offen+')':'');}
+function izBlinke(zeile) {
+  zeile.querySelectorAll('[data-iz-modus]').forEach(k=>{k.classList.remove('iz-blinkt');void k.offsetWidth;k.classList.add('iz-blinkt');});
 }
-function izBestellen() {
+// Klick auf Einmalig / Bis Soll: sofort bestellen (bei laufendem „Bis Soll“ ohne neue Menge: stoppen)
+function izBestelle(item,modus) {
   const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
-  const ent=izEntwurf.get(g.id)||{},texte=[];
-  for(const [item,e] of Object.entries(ent)){
-    const r=setzeBestellung(g.id,item,e.menge,e.menge?e.modus:null);
-    if(!r.ok){zeigeMeldung(r.grund,true);continue;}
-    const f=izZufluss(item,e.menge,e.modus);
-    texte.push(e.menge?(itemInfo(item).name+' '+(e.modus==='bisSoll'?'bis Soll '+e.menge+(f.n?'':' (gerade nichts nötig)'):e.menge+'×')):itemInfo(item).name+' gestoppt');
-    delete ent[item];
+  const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');
+  const feld=zeile?.querySelector('[data-iz-menge]');
+  if(feld&&feld===document.activeElement)izSetzeMenge(item,feld.value);
+  const {b,menge,entwurf}=izZeile(g,item),name=itemInfo(item).name,laeuft=b&&bestellungAktiv(b)&&b.rhythmus!=='einmal';
+  let text;
+  if(laeuft&&modus==='bisSoll'&&!entwurf){setzeBestellung(g.id,item,0,null);text=name+': Nachbestellung gestoppt.';}
+  else if(!menge){if(feld){feld.focus();feld.classList.remove('iz-blinkt');void feld.offsetWidth;feld.classList.add('iz-blinkt');}text='Erst eine Menge eintragen.';}
+  else {
+    const r=setzeBestellung(g.id,item,menge,modus);
+    if(!r.ok){zeigeMeldung(r.grund,true);return;}
+    if(modus==='einmal')text=menge+'× '+name+' bestellt – Lieferung in '+ZONEN.lieferzeit+' s.';
+    else {const hat=hlMenge(item)+zonenMenge('importzone',item)+wagenUnterwegs(item);
+      text=name+' bis Soll '+menge+': '+(hat>=menge?'gerade nichts nötig ('+hat+' vorhanden).':'+'+(menge-hat)+' kommen.');}
   }
-  izEntwurf.delete(g.id);
+  const ent=izEntwurf.get(g.id);if(ent)delete ent[item];
   speichereSpielstand();infoKlickSperre=0;
   if(ob.infoInhalt.contains(document.activeElement))document.activeElement.blur();
   zeichneInfo();
-  const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=texte.length?'Bestellt: '+texte.join(' · '):'';
+  const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=text||'';
 }
 ob.infoInhalt.addEventListener('submit',e=>{
   if(!e.target.matches('.gebaeude-name-form'))return;
   e.preventDefault();benenneGebaeude(auswahlGebaeudeId,e.target.querySelector('input').value);
   e.target.querySelector('input').blur();zeichneInfo();
 });
-ob.infoInhalt.addEventListener('input',e=>{if(e.target.dataset.izMenge)izSetze(e.target.dataset.izMenge,{menge:e.target.value});});
-// Knöpfe im Bestellbereich: Fokus im Mengenfeld bleiben lassen, kein Neuzeichnen zwischen Drücken und Loslassen
+ob.infoInhalt.addEventListener('input',e=>{if(e.target.dataset.izMenge)izSetzeMenge(e.target.dataset.izMenge,e.target.value);});
 ob.infoInhalt.addEventListener('pointerdown',e=>{if(e.target.closest('[data-iz-modus],[data-iz-schritt]'))e.preventDefault();});
-ob.infoInhalt.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&e.target.dataset.izMenge){e.preventDefault();izSetze(e.target.dataset.izMenge,{menge:e.target.value});izBestellen();}
-});
+ob.infoInhalt.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.izMenge){e.preventDefault();e.target.blur();}});
 ob.infoInhalt.addEventListener('click',e=>{
-  const m=e.target.closest('[data-iz-modus]');if(m){izSetze(m.dataset.item,{modus:m.dataset.izModus});return;}
+  const m=e.target.closest('[data-iz-modus]');if(m){izBestelle(m.dataset.item,m.dataset.izModus);return;}
   const s=e.target.closest('[data-iz-schritt]');
   if(s){const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
     const alt=izZeile(g,s.dataset.item).menge,d=Number(s.dataset.izSchritt)*IZ_SCHRITT;
-    izSetze(s.dataset.item,{menge:d>0?Math.floor(alt/IZ_SCHRITT)*IZ_SCHRITT+d:Math.ceil(alt/IZ_SCHRITT)*IZ_SCHRITT+d});return;}
-  if(e.target.closest('[data-iz-bestellen]'))izBestellen();
+    izSetzeMenge(s.dataset.item,d>0?Math.floor(alt/IZ_SCHRITT)*IZ_SCHRITT+d:Math.ceil(alt/IZ_SCHRITT)*IZ_SCHRITT+d);}
 });
 function dauerSek(s) { return `${Math.max(0, Math.ceil(s))} s`; }
 // Phase 7b: Exportzone – Ware mit Modus, Aufträge und Abholwagen
@@ -21468,15 +21574,23 @@ function fuellstandHtml(g) {
   return `<span class="fuell-wert ${stufe}" title="Volumen: Rohstoff 1, kleines Bauteil 1, 2×2-Bauteil 2, 2×3-Bauteil 3, Produkt 4">${belegt(g)} / ${kapazitaetVon(g)}</span>`
     + (stufe === "rot" ? ` <span class="fuell-wert rot">voll</span>` : "");
 }
+function setzeInfoWarnmarke(text) {
+  const m = document.getElementById("info-warnmarke");
+  if (!m) return;
+  const t = String(text || "").replace(/<[^>]*>/g, "");
+  if (m.dataset.text === t) return;
+  m.dataset.text = t; m.hidden = !t; m.setAttribute("aria-label", t ? "Warnung: " + t : "");
+  m.querySelector(".info-warnmarke-text").textContent = t;
+}
 // Der laufend aktualisierte Teil des Info-Fensters (Status, Ressourcen, Füllstand)
 function infoZahlenHtml(g) {
   const t = typVon(g);
   const lagerName = (v) => istZwischenlager(v) ? `${ANZEIGE_MODI[lagerAnzeigeModus(v)].symbol} ${htmlSicher(gebaeudeName(v))}` : htmlSicher(gebaeudeName(v));
   let html = "";
   // Der Hinweis gilt für Lager, Zonen, Stationen und Maschinen gleichermaßen.
-  if (typeof zugangGesperrt === "function" && zugangGesperrt(g)) {
-    html += `<p class="info-warnung zugang-warnung">⚠ Zugangspfeil blockiert durch ${zugangsHindernis(g)}. Mitarbeitende und Kuriere können das Gebäude und seine Inhalte nicht erreichen. Entferne oder versetze das Hindernis, um den Zugang wieder freizugeben.</p>`;
-  }
+  // 2026-10-11 (Tim): als rotes ! neben dem Schließen-X, Text nur beim Darüberfahren
+  setzeInfoWarnmarke(typeof zugangGesperrt === "function" && zugangGesperrt(g)
+    ? `Zugangspfeil blockiert durch ${zugangsHindernis(g)}. Mitarbeitende und Kuriere können das Gebäude und seine Inhalte nicht erreichen. Entferne oder versetze das Hindernis, um den Zugang wieder freizugeben.` : "");
   if (istStation(g)) {
     const art = g.status || stationsStatus(g);
     // Phase 7d: Maschinen (und Gigafactory-Werkbänke) "arbeiten" statt "läuft automatisch"
@@ -21795,6 +21909,12 @@ ob.infoInhalt.addEventListener("click", (e) => {
       break;
     }
     case "pause": schaltePause(g.id); break;
+    case "lager-falt": {                             // smarte Lagerliste: Gruppe auf-/zuklappen
+      const key = g.id + "|" + knopf.dataset.gruppe;
+      if (lagerOffeneGruppen.has(key)) lagerOffeneGruppen.delete(key); else lagerOffeneGruppen.add(key);
+      sofortAktualisieren();
+      return;
+    }
     case "fo-abbrechen": {                           // Phase 7d: Projekt der Forschungsstation
       const name = forschungNachId.get(projektVon(g.id))?.name;
       if (brichForschungsprojektAb(g.id).ok) zeigeMeldung(`Projekt „${name}“ angehalten – der Fortschritt bleibt, die Station zerlegt wieder.`);

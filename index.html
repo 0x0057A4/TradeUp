@@ -3409,6 +3409,21 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 .kw-fuss small { margin-right:auto; color:var(--mi-muted); }
 .modern-ui small, .modern-ui .kw-status { color:var(--mi-muted); }.kw-status { max-height:65px; overflow:auto; scrollbar-width:none; margin:8px 0; line-height:1.5; }
 .modern-ui .kw-meldung { color:var(--mi-blue); min-height:18px; }
+/* Komponenten-Vorschau (Abschnitt 12c) */
+#kv-overlay { z-index:350; }
+#kv-fenster { width:min(1240px,var(--fenster-breite,100%)); padding:18px 20px; box-sizing:border-box; display:flex; flex-direction:column; gap:10px; box-shadow:0 25px 65px #0006; }
+.kv-kopf { display:flex; align-items:center; gap:14px; }
+.kv-kopf h2 { margin:0 auto 0 0; font-size:18px; color:var(--mi-text); }.kv-kopf h2 small { color:var(--mi-muted); font-weight:500; font-size:12px; }
+.kv-legende { display:flex; gap:12px; font-size:12px; color:var(--mi-muted); }.kv-legende span { display:flex; align-items:center; gap:5px; }
+.kv-legende i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.kv-leiste { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.kv-seg { display:flex; }.modern-ui .kv-seg button { border-radius:0; }.modern-ui .kv-seg button:first-child { border-radius:6px 0 0 6px; }.modern-ui .kv-seg button:last-child { border-radius:0 6px 6px 0; }
+.modern-ui .kv-seg button[aria-pressed="true"] { color:var(--mi-blue); border-color:var(--mi-blue); background:color-mix(in srgb,var(--mi-blue) 12%,var(--mi-input)); }
+.kv-schalter { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }.kv-schalter input { accent-color:var(--mi-green); width:16px; height:16px; }
+.kv-buehne { position:relative; height:min(58vh,560px); min-height:240px; border-radius:8px; overflow:hidden; border:1px solid var(--mi-border); }
+.kv-buehne canvas { display:block; width:100% !important; height:100% !important; cursor:grab; }
+.kv-hinweis { color:var(--mi-muted); line-height:1.4; }
+.modern-ui .kv-meldung { color:var(--mi-blue); min-height:18px; font-size:12px; }
 #kw-pick-banner { position:fixed; top:75px; left:50%; transform:translateX(-50%); z-index:360; border:1px solid #38bdf8; border-radius:8px; background:#203448; color:white; padding:12px 20px; box-shadow:0 8px 20px #0005; }
 #kw-pick-banner[hidden] { display:none; }#kw-pick-banner button { margin-left:20px; padding:6px 10px; }
 .gebaeude-name-form { display:flex; gap:8px; align-items:center; margin:8px 0 16px; }.gebaeude-name-form label { display:flex; align-items:center; gap:8px; flex:1; }
@@ -3789,7 +3804,8 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
   }
 }
 </script>
@@ -5446,6 +5462,7 @@ const GRAFIK_STANDARD = {
   bandPfeile:   true,   // kleine Richtungspfeile auf jedem Bandstück
   ioLinien:     true,   // grüne/rote Import- und Exportlinien, solange ein Gebäude ausgewählt ist
   hoheAufloesung: true, // volle Bildschirmauflösung (aus = schneller auf schwachen Geräten)
+  neueDisplayModelle: false, // Vorschau: Display-Teile mit den neuen 3D-Modellen aus Display.html (Abschnitt 12c)
 };
 const EINSTELLUNGEN_SCHLUESSEL = "tradeup.einstellungen";   // Name, unter dem der Browser die Einstellungen speichert
 const DOPPELKLICK_ZEIT = 400;   // Millisekunden: zwei Klicks auf dasselbe Band gelten als Doppelklick
@@ -17228,6 +17245,9 @@ function itemMaterial(farbe) {
 const itemFormen = new Map();
 function itemForm(id) {
   if (itemFormen.has(id)) return itemFormen.get(id);
+  // Vorschau (Abschnitt 12c): neue 3D-Modelle für Display-Teile, wenn der Grafik-Schalter an ist
+  const neu = komponentenModellForm(id);
+  if (neu) { itemFormen.set(id, neu); return neu; }
   // Unbekannte oder kaputte Ids (alte Spielstände): grauer Würfel statt Absturz
   const info = typeof id === "string" && id ? itemInfo(id) : { farbe: "#cccccc", art: "unbekannt" };
   const farbe = new THREE.Color(info.farbe || "#cccccc");
@@ -18323,7 +18343,7 @@ const bandHochachse = new THREE.Vector3(0, 1, 0);
 // Rückgabe: Höhe des Items
 function setzeBandItem(id, punkt, winkel, kante, aufBoden) {
   const form = itemForm(id);
-  const netz = bandItemNetze[form.geo];
+  const netz = bandItemNetze[form.geo] || (bandItemNetze[form.geo] = baueBandItemNetz(form.geo));   // 12c: neue Modelle erst bei Bedarf
   if (netz.count >= GRAFIK.maxBandItems) return 0;
   const hoehe = form.masse[1] * kante;
   if (aufBoden) punkt.y += (hoehe - kante) / 2;
@@ -18331,7 +18351,7 @@ function setzeBandItem(id, punkt, winkel, kante, aufBoden) {
   bandHilfsQuat.setFromAxisAngle(bandHochachse, winkel);
   hilfsMatrix.compose(punkt, bandHilfsQuat, bandHilfsSkala);
   netz.setMatrixAt(netz.count, hilfsMatrix);
-  netz.setColorAt(netz.count, form.farbe);
+  netz.setColorAt(netz.count, form.instanzFarbe || form.farbe);   // 12c: neue Modelle tragen ihre Farben selbst
   netz.count++;
   return hoehe;
 }
@@ -19032,6 +19052,745 @@ spielEreignisse.addEventListener("spielNeuGestartet", () => {
   begrenzeKameraZiel();
   aktualisiereKamera();
 });
+
+/* ============================================================================
+   ABSCHNITT 12c: 3D – Neue Komponenten-Modelle (Vorschau, Display.html)  [3D- & UI/UX-Agent]
+   Tims Modelle aus „Display.html“ (Kategorie 4 · Displays, 25 Komponenten) sind hier eingebaut –
+   zunächst nur ZUM PRÜFEN, nichts Bestehendes wird endgültig ersetzt:
+     • Fenster „Komponenten-Vorschau“ (Einstellungen → Entwicklung): alle 25 Modelle im Licht und
+       Kamerawinkel des Spiels; umschaltbar „Neu · Detail“ / „Neu · im Spiel“ / „Bisher“ und
+       „Spiel-Licht“ / „Studio-Licht“ (wie in Display.html).
+     • Schalter „Neue Display-Modelle (Vorschau)“ (Einstellungen → Grafik, Standard: aus): zeigt die
+       Display-Komponenten auf Bändern, in Lagern, bei Kurieren und beim Verladen mit dem neuen Modell
+       (vereinfacht: eine Geometrie mit Vertex-Farben, damit viele Items flüssig bleiben).
+   Die Zusatzmodule von Three.js (RoundedBoxGeometry, OrbitControls, RoomEnvironment) werden erst bei
+   Bedarf geladen. Klappt das nicht, bleibt alles beim Alten.
+   Alles hier sind Funktionsdeklarationen: itemForm() darf sie schon beim Laden des Spielstands aufrufen.
+   ============================================================================ */
+const KOMPONENTEN_MODELLE = {
+  kategorie: "displays",          // für diese Kategorie gibt es neue Modelle
+  vorschauAbstand: 1.15,          // Abstand der Modelle im Vorschau-Fenster (wie Display.html)
+  vorschauReihe: 2.4,             // Abstand der Tier-Reihen
+  vorschauFaktor: 0.8,            // Ansicht „im Spiel“/„Bisher“: Vergrößerung der Spielmaße (GRAFIK.itemRasterMasse) in der Vorschau
+  backDetail: 0.45,               // 0…1: Rundungen/Segmente der Spiel-Version (weniger = schneller)
+  minTeil: 0.02,                  // kleinere Einzelteile fallen in der Spiel-Version weg (Funken, Beinchen)
+  tierFarben: { 1: "#8a94a3", 2: "#3aa7ff", 3: "#b388ff" },
+};
+// Zustand ohne const/let auf Modulebene (siehe oben): als Eigenschaften der Funktion
+function kmZustand() {
+  return kmZustand.z || (kmZustand.z = {
+    module: null, laedt: null, fehler: "",      // Three.js-Zusatzmodule
+    detail: 1,                                   // aktueller Segment-Faktor beim Bauen
+    zufall: 1,                                   // fester Zufall (immer gleiches Aussehen)
+    formen: new Map(),                           // Item-Id → gebackene Form (null = kein neues Modell)
+  });
+}
+function ladeKomponentenModule() {
+  const z = kmZustand();
+  if (z.module) return Promise.resolve(z.module);
+  if (!z.laedt) {
+    z.laedt = Promise.all([
+      import("three/addons/geometries/RoundedBoxGeometry.js"),
+      import("three/addons/controls/OrbitControls.js"),
+      import("three/addons/environments/RoomEnvironment.js"),
+    ]).then(([a, b, c]) => {
+      z.module = { RoundedBoxGeometry: a.RoundedBoxGeometry, OrbitControls: b.OrbitControls, RoomEnvironment: c.RoomEnvironment };
+      return z.module;
+    }).catch((fehler) => {
+      z.fehler = "Three.js-Zusatzmodule konnten nicht geladen werden (Internet?).";
+      z.laedt = null;
+      throw fehler;
+    });
+  }
+  return z.laedt;
+}
+function kmSeg(n) { return Math.max(3, Math.round(n * kmZustand().detail)); }
+function kmZufall() {   // kleiner fester Zufallsgenerator (statt Math.random)
+  const z = kmZustand();
+  z.zufall = (z.zufall * 16807) % 2147483647;
+  return (z.zufall - 1) / 2147483646;
+}
+
+/* --- Baustein-Helfer (aus Display.html) --- */
+function kmGruppe() { return new THREE.Group(); }
+function kmNetz(geo, mat) { const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; return m; }
+function kmMetall(hex = "#C7CCD3", extra = {}) {
+  return new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.3, metalness: 0.82, clearcoat: 0.25, ...extra });
+}
+function kmTierMaterial(hex, tier, extra = {}) {
+  const stufen = {
+    1: { roughness: 0.5, metalness: 0.1, clearcoat: 0.2, clearcoatRoughness: 0.35 },
+    2: { roughness: 0.32, metalness: 0.25, clearcoat: 0.5, clearcoatRoughness: 0.2 },
+    3: { roughness: 0.16, metalness: 0.4, clearcoat: 0.75, clearcoatRoughness: 0.08 },
+  };
+  return new THREE.MeshPhysicalMaterial({ color: hex, ...stufen[tier], ...extra });
+}
+function kmRundBox(b, h, t, seg, radius) {
+  return new (kmZustand().module.RoundedBoxGeometry)(b, h, t, Math.max(1, Math.round(seg * kmZustand().detail)), radius);
+}
+function kmRundRechteck(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+function kmLeinwand(zeichne, w = 256, h = 160) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  zeichne(c.getContext("2d"), w, h);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* --- Bildschirm-Inhalte (Canvas-Texturen) --- */
+function kmSegmentLCD(ctx, w, h) {
+  ctx.fillStyle = "#AEC9A8"; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(0,0,0,0.06)";
+  for (let i = 0; i < w; i += 3) ctx.fillRect(i, 0, 1, h);
+  ctx.fillStyle = "#24331f";
+  ctx.font = "800 72px Consolas, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("88:88", w / 2, h / 2);
+  kmRundRechteck(ctx, 14, 14, 18, 22, 3); ctx.fill();
+}
+function kmPunktMatrix(ctx, w, h) {
+  ctx.fillStyle = "#10120f"; ctx.fillRect(0, 0, w, h);
+  const spalten = 20, reihen = 12, cw = w / spalten, ch = h / reihen;
+  for (let y = 0; y < reihen; y++) for (let x = 0; x < spalten; x++) {
+    ctx.fillStyle = (Math.sin(x * 0.9) + Math.cos(y * 0.7)) > 0.3 ? "#9dff6b" : "rgba(157,255,107,0.08)";
+    ctx.beginPath(); ctx.arc(x * cw + cw / 2, y * ch + ch / 2, cw * 0.28, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function kmOled(ctx, w, h, farbe) {
+  ctx.fillStyle = "#000000"; ctx.fillRect(0, 0, w, h);
+  const grad = ctx.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, 80);
+  grad.addColorStop(0, farbe); grad.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = farbe; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(w / 2, h / 2, 34, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = farbe;
+  ctx.beginPath(); ctx.moveTo(w / 2 - 10, h / 2 - 16); ctx.lineTo(w / 2 - 10, h / 2 + 16); ctx.lineTo(w / 2 + 18, h / 2); ctx.closePath(); ctx.fill();
+}
+function kmKachelUI(ctx, w, h, hintergrund, farben, pad, radius, leuchten) {
+  if (hintergrund) { ctx.fillStyle = hintergrund; ctx.fillRect(0, 0, w, h); }
+  const spalten = 3, reihen = 2, cw = (w - pad * 4) / spalten, ch = (h - pad * 3) / reihen;
+  let i = 0;
+  for (let y = 0; y < reihen; y++) for (let x = 0; x < spalten; x++) {
+    const px = pad + x * (cw + pad), py = pad + y * (ch + pad), f = farben[i++ % farben.length];
+    if (leuchten) {
+      const g = ctx.createRadialGradient(px + cw / 2, py + ch / 2, 2, px + cw / 2, py + ch / 2, cw * 0.7);
+      g.addColorStop(0, f); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(px - 10, py - 10, cw + 20, ch + 20);
+    }
+    ctx.fillStyle = f;
+    kmRundRechteck(ctx, px, py, cw, ch, radius); ctx.fill();
+  }
+}
+function kmAktivOled(ctx, w, h) { kmKachelUI(ctx, w, h, "#000000", ["#ff6a3d", "#5EE0C8", "#3aa7ff", "#ffd166", "#ff7aa2", "#b388ff"], 18, 10, true); }
+function kmFarbUI(ctx, w, h) {
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, "#bfe8ff"); grad.addColorStop(1, "#ffd6ec");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  kmKachelUI(ctx, w, h, null, ["#ff9b5e", "#5ee0c8", "#ffd166", "#ff7aa2", "#3aa7ff", "#b388ff"], 16, 12, false);
+}
+function kmEink(ctx, w, h, farbig) {
+  ctx.fillStyle = "#EDEAE0"; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(40,40,35,0.55)";
+  for (let i = 0; i < 6; i++) ctx.fillRect(16, 16 + i * 20, w * (0.5 + kmZufall() * 0.35), 7);
+  if (farbig) {
+    ctx.fillStyle = "#d9824a"; kmRundRechteck(ctx, w - 70, h - 56, 54, 40, 6); ctx.fill();
+    ctx.fillStyle = "#3aa7ff"; kmRundRechteck(ctx, w - 70, h - 50, 24, 16, 4); ctx.fill();
+  }
+}
+function kmVideo(ctx, w, h) {
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, "#ff8a5c"); grad.addColorStop(0.5, "#5b6fd6"); grad.addColorStop(1, "#1d3557");
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath(); ctx.arc(w / 2, h / 2, 26, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#1d3557";
+  ctx.beginPath(); ctx.moveTo(w / 2 - 7, h / 2 - 13); ctx.lineTo(w / 2 - 7, h / 2 + 13); ctx.lineTo(w / 2 + 14, h / 2); ctx.closePath(); ctx.fill();
+}
+function kmTransparentUI(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(94,224,200,0.9)"; ctx.lineWidth = 3;
+  kmRundRechteck(ctx, 20, 20, w - 40, h - 40, 14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(30, h / 2); ctx.lineTo(w - 30, h / 2); ctx.stroke();
+  ctx.fillStyle = "rgba(94,224,200,0.9)";
+  ctx.beginPath(); ctx.arc(w / 2, h / 2, 6, 0, Math.PI * 2); ctx.fill();
+}
+function kmHolo(ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(179,136,255,0.8)"; ctx.lineWidth = 2; ctx.globalAlpha = 0.08;
+  for (let i = 0; i < h; i += 6) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(w, i); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#b388ff";
+  ctx.save(); ctx.translate(w / 2, h / 2); ctx.rotate(Math.PI / 8);
+  ctx.strokeRect(-40, -40, 80, 80);
+  ctx.beginPath(); ctx.moveTo(-40, -40); ctx.lineTo(40, 40); ctx.moveTo(40, -40); ctx.lineTo(-40, 40); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = "#5EE0C8";
+  for (let i = 0; i < 14; i++) { ctx.beginPath(); ctx.arc(kmZufall() * w, kmZufall() * h, 2, 0, Math.PI * 2); ctx.fill(); }
+}
+
+/* --- Grundformen (Archetypen aus Display.html) --- */
+function kmGebogeneBox(w, h, tiefe, segmente = 16, biegung = 0) {
+  const geo = new THREE.BoxGeometry(w, h, tiefe, kmSeg(segmente), 1, 1);
+  if (biegung) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const t = pos.getX(i) / (w / 2);
+      pos.setZ(i, pos.getZ(i) - Math.cos(t * Math.PI * 0.4) * biegung + biegung);
+    }
+    geo.computeVertexNormals();
+  }
+  return geo;
+}
+// Flachbildschirm: Rahmen, Bildschirm (Canvas), optional Leuchtkante, gebogen oder Glas; kleiner Standfuß
+function kmFlachbild({ w = 0.5, h = 0.32, tier, rahmen = "#1b1d20", bild, kante = null, biegung = 0, glas = false }) {
+  const g = kmGruppe();
+  const rand = 0.035, gw = w + rand * 2, gh = h + rand * 2, tiefe = 0.045;
+  const r = kmNetz(kmGebogeneBox(gw, gh, tiefe, 16, biegung), kmTierMaterial(rahmen, tier, { roughness: 0.42 }));
+  r.position.y = gh / 2 + 0.08;
+  g.add(r);
+  const tex = kmLeinwand(bild);
+  const mat = glas
+    ? new THREE.MeshPhysicalMaterial({ map: tex, transparent: true, roughness: 0.05, transmission: 0.7, thickness: 0.05, ior: 1.3 })
+    : new THREE.MeshBasicMaterial({ map: tex });
+  const schirm = kmNetz(kmGebogeneBox(w, h, 0.004, 16, biegung * 0.96), mat);
+  schirm.position.set(0, gh / 2 + 0.08, tiefe / 2 + 0.003 - biegung * 0.02);
+  g.add(schirm);
+  if (kante) {
+    const k = kmNetz(new THREE.BoxGeometry(gw * 0.9, 0.01, 0.012), new THREE.MeshPhysicalMaterial({ color: kante, emissive: kante, emissiveIntensity: 1.3 }));
+    k.position.set(0, 0.09, tiefe / 2 + 0.01);
+    g.add(k);
+  }
+  const fuss = kmNetz(kmRundBox(gw * 0.32, 0.05, 0.1, 2, 0.015), kmMetall("#9aa1ab"));
+  fuss.position.y = 0.065;
+  g.add(fuss);
+  return g;
+}
+function kmRgbStreifen() {
+  return kmLeinwand((ctx, w, h) => {
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, "#ff4d4d"); grad.addColorStop(0.5, "#4dff7a"); grad.addColorStop(1, "#4d9fff");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, w, h);
+  }, 128, 64);
+}
+// Bedrahtete LED (THT)
+function kmLed({ farbe = "#E6413C", rgb = false }) {
+  const g = kmGruppe();
+  const flansch = kmNetz(new THREE.CylinderGeometry(0.07, 0.075, 0.02, kmSeg(16)), kmMetall("#9aa1ab"));
+  flansch.position.y = 0.09;
+  g.add(flansch);
+  const mat = rgb
+    ? new THREE.MeshPhysicalMaterial({ map: kmRgbStreifen(), roughness: 0.15, transmission: 0.4, emissiveMap: kmRgbStreifen(), emissive: "#ffffff", emissiveIntensity: 0.6 })
+    : new THREE.MeshPhysicalMaterial({ color: farbe, roughness: 0.1, transmission: 0.35, emissive: farbe, emissiveIntensity: 0.9 });
+  const kuppel = kmNetz(new THREE.SphereGeometry(0.065, kmSeg(20), kmSeg(16), 0, Math.PI * 2, 0, Math.PI / 1.7), mat);
+  kuppel.position.y = 0.1;
+  g.add(kuppel);
+  for (const dx of [-0.03, 0.03]) {
+    const bein = kmNetz(new THREE.CylinderGeometry(0.008, 0.008, 0.14, kmSeg(8)), kmMetall("#C7CCD3"));
+    bein.position.set(dx, 0.02, 0);
+    g.add(bein);
+  }
+  return g;
+}
+// Projektor: Gehäuse mit Lüftungsschlitzen, Linse, optional Leuchtring und Lichtkegel mit Bild
+function kmProjektor({ tier, w = 0.4, h = 0.2, d = 0.3, linse = "#2b2f36", bild = null, ring = null }) {
+  const g = kmGruppe();
+  const koerper = kmNetz(kmRundBox(w, h, d, 4, 0.03), kmTierMaterial("#eceeef", tier, { roughness: 0.35 }));
+  koerper.position.y = h / 2 + 0.08;
+  g.add(koerper);
+  for (let i = 0; i < 3; i++) {
+    const schlitz = kmNetz(new THREE.BoxGeometry(w * 0.4, 0.012, 0.008), new THREE.MeshStandardMaterial({ color: "#101215" }));
+    schlitz.position.set(-w * 0.2, h * 0.3 + 0.08 + i * 0.035, d / 2 + 0.004);
+    g.add(schlitz);
+  }
+  const fassung = kmNetz(new THREE.CylinderGeometry(0.09, 0.095, 0.06, kmSeg(24)), kmMetall(linse, { roughness: 0.3 }));
+  fassung.rotation.x = Math.PI / 2;
+  fassung.position.set(w * 0.18, h / 2 + 0.08, d / 2 + 0.03);
+  g.add(fassung);
+  const glas = kmNetz(new THREE.CylinderGeometry(0.065, 0.065, 0.015, kmSeg(24)),
+    new THREE.MeshPhysicalMaterial({ color: "#1d3557", roughness: 0.05, transmission: 0.6, clearcoat: 1 }));
+  glas.rotation.x = Math.PI / 2;
+  glas.position.set(w * 0.18, h / 2 + 0.08, d / 2 + 0.062);
+  g.add(glas);
+  if (ring) {
+    const rg = kmNetz(new THREE.TorusGeometry(0.095, 0.008, kmSeg(10), kmSeg(28)), new THREE.MeshPhysicalMaterial({ color: ring, emissive: ring, emissiveIntensity: 1.4 }));
+    rg.rotation.x = Math.PI / 2;
+    rg.position.set(w * 0.18, h / 2 + 0.08, d / 2 + 0.06);
+    g.add(rg);
+  }
+  if (bild) {
+    const kegel = kmNetz(new THREE.ConeGeometry(0.22, 0.5, kmSeg(24), 1, true),
+      new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.1, side: THREE.DoubleSide }));
+    kegel.rotation.x = -Math.PI / 2;
+    kegel.position.set(w * 0.18, h / 2 + 0.08, d / 2 + 0.3);
+    kegel.userData.nurDetail = true;     // Lichtkegel und Bild nur in der Detail-Ansicht
+    g.add(kegel);
+    const flaeche = kmNetz(new THREE.PlaneGeometry(0.34, 0.22), new THREE.MeshBasicMaterial({ map: kmLeinwand(bild, 220, 140), transparent: true, opacity: 0.95 }));
+    flaeche.position.set(w * 0.18, h / 2 + 0.08, d / 2 + 0.56);
+    flaeche.userData.nurDetail = true;
+    g.add(flaeche);
+  }
+  return g;
+}
+// LED-Matrix-Tafel
+function kmLedMatrix({ tier, reihen = 5, spalten = 8, farbeFuer }) {
+  const g = kmGruppe();
+  const w = 0.64, h = 0.4;
+  const rueck = kmNetz(kmRundBox(w + 0.05, h + 0.05, 0.03, 3, 0.012), kmTierMaterial("#15171b", tier));
+  rueck.position.y = h / 2 + 0.08;
+  g.add(rueck);
+  const sx = w / spalten, sy = h / reihen;
+  for (let r = 0; r < reihen; r++) for (let c = 0; c < spalten; c++) {
+    const f = farbeFuer(r, c);
+    const led = kmNetz(new THREE.SphereGeometry(0.016, kmSeg(10), kmSeg(8)),
+      new THREE.MeshPhysicalMaterial({ color: f, emissive: f, emissiveIntensity: 1.1, roughness: 0.3 }));
+    led.position.set(-w / 2 + sx * (c + 0.5), 0.08 + h - sy * (r + 0.5), 0.02);
+    g.add(led);
+  }
+  const fuss = kmNetz(kmRundBox(w * 0.3, 0.05, 0.1, 2, 0.015), kmMetall("#9aa1ab"));
+  fuss.position.y = 0.065;
+  g.add(fuss);
+  return g;
+}
+// Kaltkathodenröhre
+function kmKaltkathode() {
+  const g = kmGruppe();
+  const glas = kmNetz(new THREE.CylinderGeometry(0.05, 0.05, 0.5, kmSeg(24)),
+    new THREE.MeshPhysicalMaterial({ color: "#eaf6ff", roughness: 0.04, transmission: 0.92, thickness: 0.2, ior: 1.4 }));
+  glas.rotation.z = Math.PI / 2; glas.position.y = 0.13;
+  g.add(glas);
+  const kern = kmNetz(new THREE.CylinderGeometry(0.025, 0.025, 0.44, kmSeg(16)),
+    new THREE.MeshPhysicalMaterial({ color: "#bfe8ff", emissive: "#bfe8ff", emissiveIntensity: 1.4 }));
+  kern.rotation.z = Math.PI / 2; kern.position.y = 0.13;
+  g.add(kern);
+  for (const dx of [-0.27, 0.27]) {
+    const kappe = kmNetz(new THREE.CylinderGeometry(0.055, 0.055, 0.03, kmSeg(20)), kmMetall("#9aa1ab"));
+    kappe.rotation.z = Math.PI / 2; kappe.position.set(dx, 0.13, 0);
+    g.add(kappe);
+  }
+  for (const dx of [-0.22, 0.22]) {
+    const fuss = kmNetz(kmRundBox(0.1, 0.05, 0.1, 2, 0.015), kmMetall("#9aa1ab"));
+    fuss.position.set(dx, 0.065, 0);
+    g.add(fuss);
+  }
+  return g;
+}
+// Holo-OLED: Sockel, Leuchtring, zwei gekreuzte Hologramm-Flächen, Funken
+function kmHoloOled() {
+  const g = kmGruppe();
+  const sockel = kmNetz(kmRundBox(0.38, 0.05, 0.38, 3, 0.015), kmTierMaterial("#15171b", 3));
+  sockel.position.y = 0.105;
+  g.add(sockel);
+  const ring = kmNetz(new THREE.TorusGeometry(0.14, 0.01, kmSeg(10), kmSeg(32)), new THREE.MeshPhysicalMaterial({ color: "#b388ff", emissive: "#b388ff", emissiveIntensity: 1.2 }));
+  ring.rotation.x = Math.PI / 2; ring.position.y = 0.132;
+  g.add(ring);
+  const bild = kmNetz(new THREE.PlaneGeometry(0.3, 0.3), new THREE.MeshBasicMaterial({ map: kmLeinwand(kmHolo, 220, 220), transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
+  bild.position.y = 0.38;
+  bild.userData.nurDetail = true;
+  g.add(bild);
+  const bild2 = bild.clone(); bild2.rotation.y = Math.PI / 2; g.add(bild2);
+  for (let i = 0; i < 10; i++) {
+    const funke = kmNetz(new THREE.SphereGeometry(0.006, 6, 6), new THREE.MeshPhysicalMaterial({ color: "#5EE0C8", emissive: "#5EE0C8", emissiveIntensity: 1.5 }));
+    const winkel = kmZufall() * Math.PI * 2, rad = 0.05 + kmZufall() * 0.1;
+    funke.position.set(Math.cos(winkel) * rad, 0.14 + kmZufall() * 0.3, Math.sin(winkel) * rad);
+    g.add(funke);
+  }
+  return g;
+}
+// Laser-Diode mit Strahl
+function kmLaserDiode() {
+  const g = kmGruppe();
+  const dose = kmNetz(new THREE.CylinderGeometry(0.045, 0.05, 0.09, kmSeg(20)), kmMetall("#C7CCD3", { roughness: 0.25 }));
+  dose.rotation.z = Math.PI / 2; dose.position.y = 0.125;
+  g.add(dose);
+  const linse = kmNetz(new THREE.CylinderGeometry(0.025, 0.03, 0.02, kmSeg(16)), new THREE.MeshPhysicalMaterial({ color: "#1d3557", roughness: 0.05, transmission: 0.5, clearcoat: 1 }));
+  linse.rotation.z = Math.PI / 2; linse.position.set(0.055, 0.125, 0);
+  g.add(linse);
+  const strahl = kmNetz(new THREE.CylinderGeometry(0.004, 0.004, 0.6, 8), new THREE.MeshBasicMaterial({ color: "#ff2d2d" }));
+  strahl.rotation.z = Math.PI / 2; strahl.position.set(0.37, 0.125, 0);
+  strahl.userData.nurDetail = true;
+  g.add(strahl);
+  for (const dz of [-0.045, 0.045]) {
+    const bein = kmNetz(new THREE.CylinderGeometry(0.006, 0.006, 0.1, kmSeg(8)), kmMetall("#C7CCD3"));
+    bein.position.set(-0.03, 0.04, dz);
+    g.add(bein);
+  }
+  return g;
+}
+
+/* --- Die 25 Display-Komponenten (Name wie in KATEGORIEN → Modell) --- */
+function kmDisplayModelle() {
+  return kmDisplayModelle.liste || (kmDisplayModelle.liste = [
+    // Stufe 1 + 2 jeder Linie (T1)
+    ["Segment-LCD", () => kmFlachbild({ w: 0.4, h: 0.22, tier: 1, bild: kmSegmentLCD })],
+    ["Matrix-LCD", () => kmFlachbild({ w: 0.42, h: 0.26, tier: 1, bild: kmPunktMatrix })],
+    ["Passiv-OLED", () => kmFlachbild({ w: 0.34, h: 0.22, tier: 1, bild: (c, w, h) => kmOled(c, w, h, "#5EE0C8") })],
+    ["Aktiv-Matrix OLED", () => kmFlachbild({ w: 0.4, h: 0.26, tier: 1, bild: kmAktivOled })],
+    ["Basis E-Ink", () => kmFlachbild({ w: 0.4, h: 0.28, tier: 1, bild: (c, w, h) => kmEink(c, w, h, false) })],
+    ["High-Res E-Ink", () => kmFlachbild({ w: 0.46, h: 0.3, tier: 1, bild: (c, w, h) => kmEink(c, w, h, false) })],
+    ["Mini-Projektor", () => kmProjektor({ tier: 1, w: 0.34, h: 0.18, d: 0.26 })],
+    ["Laser-Projektor (720p)", () => kmProjektor({ tier: 1, w: 0.4, h: 0.2, d: 0.3, bild: kmVideo })],
+    ["Status-LED", () => kmLed({ farbe: "#5EE0C8" })],
+    ["RGB-LED", () => kmLed({ rgb: true })],
+    // Stufe 3 + 4 (T2)
+    ["Farb-LCD", () => kmFlachbild({ w: 0.46, h: 0.3, tier: 2, bild: kmFarbUI })],
+    ["IPS-Panel", () => kmFlachbild({ w: 0.5, h: 0.3, tier: 2, bild: kmFarbUI, kante: "#3aa7ff" })],
+    ["Flex-OLED", () => kmFlachbild({ w: 0.4, h: 0.26, tier: 2, bild: (c, w, h) => kmOled(c, w, h, "#ff6a3d"), biegung: 0.045 })],
+    ["Transparent-OLED", () => kmFlachbild({ w: 0.4, h: 0.26, tier: 2, bild: kmTransparentUI, glas: true })],
+    ["Color E-Ink", () => kmFlachbild({ w: 0.42, h: 0.28, tier: 2, bild: (c, w, h) => kmEink(c, w, h, true) })],
+    ["Flex-E-Ink", () => kmFlachbild({ w: 0.4, h: 0.26, tier: 2, bild: (c, w, h) => kmEink(c, w, h, true), biegung: 0.04 })],
+    ["Laser-Projektor (1080p)", () => kmProjektor({ tier: 2, w: 0.46, h: 0.22, d: 0.34, ring: "#3aa7ff", bild: kmVideo })],
+    ["4K-Pico-Projektor", () => kmProjektor({ tier: 2, w: 0.3, h: 0.15, d: 0.22, ring: "#5EE0C8" })],
+    ["LED-Matrix", () => kmLedMatrix({ tier: 2, reihen: 6, spalten: 9, farbeFuer: (r, c) => (r + c) % 3 === 0 ? "#5EE0C8" : (r + c) % 3 === 1 ? "#3aa7ff" : "#1b1d20" })],
+    ["Kaltkathodenröhre", () => kmKaltkathode()],
+    // Stufe 5 (T3)
+    ["Micro-LED-Panel", () => kmFlachbild({ w: 0.48, h: 0.3, tier: 3, bild: kmFarbUI, kante: "#b388ff" })],
+    ["Holo-OLED", () => kmHoloOled()],
+    ["Video-fähiges E-Ink", () => kmFlachbild({ w: 0.44, h: 0.28, tier: 3, bild: kmVideo })],
+    ["Retina-Projektor", () => kmProjektor({ tier: 3, w: 0.4, h: 0.18, d: 0.3, ring: "#b388ff", bild: kmVideo })],
+    ["Laser-Diode", () => kmLaserDiode()],
+  ]);
+}
+// Komponenten-Typ (z. B. "k076") → Bau-Funktion
+function kmBauerFuer(typ) {
+  if (!kmBauerFuer.map) {
+    kmBauerFuer.map = new Map();
+    const nachName = new Map(kmDisplayModelle());
+    for (const b of BAUTEILE) if (b.kategorie === KOMPONENTEN_MODELLE.kategorie && nachName.has(b.name)) kmBauerFuer.map.set(b.typ, nachName.get(b.name));
+  }
+  return kmBauerFuer.map.get(typ) || null;
+}
+// Baut ein Modell mit festem Zufall (detail 1 = wie Display.html, kleiner = weniger Segmente)
+function kmBaue(typ, detail = 1) {
+  const bauer = kmBauerFuer(typ), z = kmZustand();
+  if (!bauer || !z.module) return null;
+  z.detail = detail; z.zufall = 7 + typ.length * 131 + Number(typ.slice(1)) * 977;
+  const g = bauer();
+  z.detail = 1;
+  return g;
+}
+
+/* --- Spiel-Version: Modell zu EINER Geometrie mit Vertex-Farben „backen“ --- */
+function kmMittelfarbe(bild) {
+  const c = document.createElement("canvas"); c.width = c.height = 8;
+  const k = c.getContext("2d");
+  k.drawImage(bild, 0, 0, 8, 8);
+  const d = k.getImageData(0, 0, 8, 8).data;
+  let r = 0, g = 0, b = 0, a = 0;
+  for (let i = 0; i < d.length; i += 4) { const w = d[i + 3] / 255; r += d[i] * w; g += d[i + 1] * w; b += d[i + 2] * w; a += w; }
+  if (a < 0.5) return null;   // (fast) durchsichtig
+  return new THREE.Color().setRGB(r / a / 255, g / a / 255, b / a / 255, THREE.SRGBColorSpace);
+}
+function kmBackFarbe(mat) {
+  const f = new THREE.Color(mat.color || "#ffffff");
+  if (mat.map?.image) { const m = kmMittelfarbe(mat.map.image); if (m) f.multiply(m); }
+  if (mat.emissive && (mat.emissiveIntensity || 0) > 0) {
+    const e = mat.emissiveMap?.image ? kmMittelfarbe(mat.emissiveMap.image) : mat.emissive.clone();
+    if (e && e.r + e.g + e.b > 0.01) f.lerp(e, 0.55);
+  }
+  return f;
+}
+function kmBacke(gruppe) {
+  gruppe.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(gruppe);
+  const groesse = box.getSize(new THREE.Vector3()), mitte = box.getCenter(new THREE.Vector3());
+  const minTeil = KOMPONENTEN_MODELLE.minTeil * Math.max(groesse.x, groesse.y, groesse.z);
+  const pos = [], nor = [], col = [];
+  gruppe.traverse((teil) => {
+    if (!teil.isMesh || teil.userData.nurDetail) return;
+    const mat = Array.isArray(teil.material) ? teil.material[0] : teil.material;
+    if (mat.transparent && mat.opacity < 0.5) return;
+    let geo = teil.geometry.clone().applyMatrix4(teil.matrixWorld);
+    geo.computeBoundingSphere();
+    if (geo.boundingSphere.radius * 2 < minTeil) { geo.dispose(); return; }
+    if (geo.index) geo = geo.toNonIndexed();
+    const f = kmBackFarbe(mat);
+    pos.push(...geo.attributes.position.array);
+    nor.push(...geo.attributes.normal.array);
+    for (let i = 0; i < geo.attributes.position.count; i++) col.push(f.r, f.g, f.b);
+    geo.dispose();
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  // Auf den Einheitswürfel -0,5 … 0,5 bringen (wie ITEM_GEOMETRIEN); die echten Proportionen merkt sich "ausmass"
+  const aus = [Math.max(groesse.x, 1e-3), Math.max(groesse.y, 1e-3), Math.max(groesse.z, 1e-3)];
+  geo.translate(-mitte.x, -mitte.y, -mitte.z);
+  geo.scale(1 / aus[0], 1 / aus[1], 1 / aus[2]);
+  geo.computeBoundingBox(); geo.computeBoundingSphere();
+  return { geometrie: geo, ausmass: aus };
+}
+// Maße im Spiel: das Modell behält seine Proportionen und passt in den Platz seines Rasters (GRAFIK.itemRasterMasse)
+function kmSpielMasse(ausmass, raster) {
+  const platz = GRAFIK.itemRasterMasse[raster] || GRAFIK.itemRasterMasse["1x1"];
+  const s = Math.min(platz[0] / ausmass[0], platz[1] / ausmass[1], platz[2] / ausmass[2]);
+  return ausmass.map((a) => a * s);
+}
+// Für itemForm(): neue Form eines Display-Teils oder null (Schalter aus, kein Modell, Module noch nicht geladen)
+function komponentenModellForm(id) {
+  if (!einstellungen.grafik.neueDisplayModelle || typeof id !== "string") return null;
+  const z = kmZustand();
+  if (!z.module) {   // erst laden (einmal), danach werden alle Formen neu bestimmt
+    if (!z.laedt && !z.fehler) ladeKomponentenModule().then(wendeKomponentenModelleAn, () => zeigeMeldung(z.fehler, true));
+    return null;
+  }
+  if (z.formen.has(id)) return z.formen.get(id);
+  const info = itemInfo(id);
+  const gruppe = info.art === "bauteil" && info.kategorie === KOMPONENTEN_MODELLE.kategorie ? kmBaue(id, KOMPONENTEN_MODELLE.backDetail) : null;
+  let form = null;
+  if (gruppe) {
+    const { geometrie, ausmass } = kmBacke(gruppe);
+    const geo = "modell:" + id;
+    ITEM_GEOMETRIEN[geo] = geometrie;
+    const kat = kategorieNachId.get(info.kategorie);
+    const farbe = new THREE.Color(kat ? kat.farbe : "#cccccc");
+    form = { geo, geometrie, masse: kmSpielMasse(ausmass, info.raster), farbe, hex: "#" + farbe.getHexString(), instanzFarbe: new THREE.Color("#ffffff"), neu: true };
+    form.material = itemMaterial("#ffffff");
+  }
+  z.formen.set(id, form);
+  return form;
+}
+// Schalter umgelegt oder Module fertig geladen: alle Item-Formen neu bestimmen und neu zeichnen
+function wendeKomponentenModelleAn() {
+  itemFormen.clear();
+  for (const e of gebaeude3d.values()) e.version = -1;
+  for (const m of mitarbeiter3d.values()) m.trageSchluessel = "";
+  if (komponentenVorschau().offen) zeichneKomponentenVorschauKnoepfe();
+}
+
+/* --- Fenster „Komponenten-Vorschau“ (eigene kleine 3D-Bühne im Licht und Winkel des Spiels) --- */
+function komponentenVorschau() {
+  return komponentenVorschau.z || (komponentenVorschau.z = {
+    offen: false, ansicht: "detail", licht: "spiel", overlay: null, fenster: null, buehne: null,
+    renderer: null, szene: null, kamera: null, steuerung: null, spielLicht: null, studioLicht: null, umgebung: null,
+    plaetze: [], schleife: 0, meldung: "",
+  });
+}
+function kvBaueFenster() {
+  const v = komponentenVorschau();
+  if (v.overlay) return;
+  v.overlay = document.createElement("div");
+  v.overlay.id = "kv-overlay"; v.overlay.className = "modal-schleier"; v.overlay.hidden = true;
+  v.overlay.innerHTML = `<section id="kv-fenster" class="modal-fenster modern-ui" role="dialog" aria-modal="true" aria-label="Komponenten-Vorschau" tabindex="-1">
+    <div class="kv-kopf"><h2>Komponenten-Vorschau · Displays <small>(25 Modelle aus Display.html)</small></h2>
+      <span class="kv-legende">${[1, 2, 3].map((t) => `<span><i style="background:${KOMPONENTEN_MODELLE.tierFarben[t]}"></i>T${t}</span>`).join("")}</span>
+      <button type="button" data-kv="schliessen" aria-label="Vorschau schließen" title="Schließen (Esc)">×</button></div>
+    <div class="kv-leiste">
+      <div class="kv-seg" role="group" aria-label="Ansicht">
+        <button type="button" data-kv-ansicht="detail" title="Die Modelle genau wie in Display.html">Neu · Detail</button>
+        <button type="button" data-kv-ansicht="spiel" title="So erscheinen sie im Spiel: vereinfacht, in den Maßen ihres Rasters">Neu · im Spiel</button>
+        <button type="button" data-kv-ansicht="bisher" title="Die bisherige Platine in Kategorie-Farbe">Bisher</button></div>
+      <div class="kv-seg" role="group" aria-label="Licht">
+        <button type="button" data-kv-licht="spiel" title="Himmels- und Sonnenlicht der Halle">Spiel-Licht</button>
+        <button type="button" data-kv-licht="studio" title="Studio-Licht mit Spiegelungen wie in Display.html">Studio-Licht</button></div>
+      <button type="button" data-kv="winkel" title="Kamera zurück auf den Spielwinkel (Isometrie)">Spielwinkel</button>
+      <label class="kv-schalter" title="Display-Teile auf Bändern, in Lagern und bei Kurieren mit dem neuen Modell zeigen (Einstellungen → Grafik)">
+        <input type="checkbox" data-kv="imSpiel"> Im Spiel verwenden (Test)</label>
+      <button type="button" data-kv="testware" title="Legt je 1 Stück aller 25 Display-Teile ins Hauptlager (verändert den Spielstand)">Testware ins Lager</button>
+    </div>
+    <div class="kv-buehne"></div>
+    <small class="kv-hinweis">Ziehen: drehen · Mausrad: Zoom · rechte Maustaste: verschieben. Reihen: T1 (Stufe 1–2), T2 (Stufe 3–4), T3 (Stufe 5).
+      Ersetzt wird nichts: Der Schalter „Im Spiel verwenden“ (auch unter Einstellungen → Grafik) lässt sich jederzeit wieder ausschalten.</small>
+    <div class="kv-meldung" role="status"></div>
+  </section>`;
+  document.body.append(v.overlay);
+  v.fenster = v.overlay.firstElementChild;
+  v.buehne = v.fenster.querySelector(".kv-buehne");
+  for (const art of ["pointerdown", "pointerup", "click", "wheel", "dblclick", "contextmenu"]) v.overlay.addEventListener(art, (e) => e.stopPropagation());
+  v.overlay.addEventListener("click", (e) => {
+    if (e.target === v.overlay) { schliesseKomponentenVorschau(); return; }
+    const b = e.target.closest("[data-kv], [data-kv-ansicht], [data-kv-licht]");
+    if (!b || b.matches("input")) return;
+    if (b.dataset.kvAnsicht) { v.ansicht = b.dataset.kvAnsicht; kvZeigeAnsicht(); }
+    else if (b.dataset.kvLicht) { v.licht = b.dataset.kvLicht; kvZeigeAnsicht(); }
+    else if (b.dataset.kv === "schliessen") schliesseKomponentenVorschau();
+    else if (b.dataset.kv === "winkel") kvSpielwinkel();
+    else if (b.dataset.kv === "testware") {
+      const items = {};
+      for (const t of BAUTEILE) if (t.kategorie === KOMPONENTEN_MODELLE.kategorie) items[t.typ] = 1;
+      bucheInsLager(items);
+      meldeStruktur(); speichereSpielstand();
+      kvMeldung(`Je 1 Stück der ${Object.keys(items).length} Display-Teile ins Hauptlager gelegt (was nicht passt, liegt im Depot).`);
+    }
+    zeichneKomponentenVorschauKnoepfe();
+  });
+  v.overlay.addEventListener("change", (e) => {
+    if (e.target.dataset.kv !== "imSpiel") return;
+    einstellungen.grafik.neueDisplayModelle = e.target.checked;
+    speichereEinstellungen();
+    wendeKomponentenModelleAn();
+    kvMeldung(e.target.checked ? "Neue Display-Modelle sind jetzt im Spiel sichtbar (Bänder, Lager, Kuriere)." : "Im Spiel wieder die bisherige Platine.");
+  });
+  window.addEventListener("resize", () => { if (v.offen) kvGroesse(); });
+}
+function kvMeldung(text) { const v = komponentenVorschau(); v.meldung = text; const el = v.fenster?.querySelector(".kv-meldung"); if (el) el.textContent = text; }
+function zeichneKomponentenVorschauKnoepfe() {
+  const v = komponentenVorschau();
+  if (!v.fenster) return;
+  v.fenster.querySelectorAll("[data-kv-ansicht]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kvAnsicht === v.ansicht)));
+  v.fenster.querySelectorAll("[data-kv-licht]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.kvLicht === v.licht)));
+  v.fenster.querySelector('[data-kv="imSpiel"]').checked = !!einstellungen.grafik.neueDisplayModelle;
+}
+// Bühne: Boden und Himmel wie in der Halle, Licht umschaltbar, orthografische Kamera im Spielwinkel
+function kvBaueSzene() {
+  const v = komponentenVorschau(), M = kmZustand().module;
+  if (v.renderer) return;
+  v.renderer = new THREE.WebGLRenderer({ antialias: true });
+  v.renderer.setPixelRatio(pixelVerhaeltnis());
+  v.renderer.shadowMap.enabled = true;
+  v.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  v.buehne.append(v.renderer.domElement);
+  v.szene = new THREE.Scene();
+  v.szene.background = new THREE.Color(GRAFIK.farbeHimmel);
+  // Spiel-Licht: wie Abschnitt 3
+  v.spielLicht = new THREE.Group();
+  v.spielLicht.add(new THREE.HemisphereLight("#ffffff", "#b9c4b0", GRAFIK.lichtHimmel));
+  const sonne = new THREE.DirectionalLight("#fff4e2", GRAFIK.lichtSonne);
+  sonne.position.set(GRAFIK.sonnenRichtung.x, GRAFIK.sonnenRichtung.y, GRAFIK.sonnenRichtung.z).normalize().multiplyScalar(20);
+  sonne.castShadow = true; sonne.shadow.mapSize.set(2048, 2048); sonne.shadow.radius = 4; sonne.shadow.bias = -0.0005;
+  Object.assign(sonne.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 60 });
+  v.spielLicht.add(sonne);
+  // Studio-Licht: wie Display.html (Umgebungs-Spiegelung + Haupt-, Fülllicht und Grundlicht)
+  v.studioLicht = new THREE.Group();
+  const haupt = new THREE.DirectionalLight("#ffffff", 1.85);
+  haupt.position.set(5, 8, 4); haupt.castShadow = true; haupt.shadow.mapSize.set(2048, 2048);
+  Object.assign(haupt.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11 });
+  const fuell = new THREE.DirectionalLight("#cfe8ff", 0.4); fuell.position.set(-4, 2, 3);
+  v.studioLicht.add(haupt, fuell, new THREE.AmbientLight("#ffffff", 0.3));
+  const pmrem = new THREE.PMREMGenerator(v.renderer);
+  v.umgebung = pmrem.fromScene(new M.RoomEnvironment(), 0.04).texture;
+  v.szene.add(v.spielLicht, v.studioLicht);
+  const boden = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: GRAFIK.farbeKachel, roughness: 0.9 }));
+  boden.rotation.x = -Math.PI / 2; boden.receiveShadow = true;
+  v.szene.add(boden);
+  v.boden = boden;
+  v.kamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+  v.steuerung = new M.OrbitControls(v.kamera, v.renderer.domElement);
+  v.steuerung.enableDamping = true;
+  v.steuerung.minZoom = 0.5; v.steuerung.maxZoom = 6;
+  // Plätze: drei Reihen nach Tier, jedes Teil in drei Fassungen (Detail / im Spiel / bisher) und mit Namensschild
+  const reihen = { 1: [], 2: [], 3: [] };
+  for (const [name] of kmDisplayModelle()) {
+    const b = BAUTEILE.find((t) => t.kategorie === KOMPONENTEN_MODELLE.kategorie && t.name === name);
+    if (b) reihen[b.stufe].push(b);
+  }
+  const k = KOMPONENTEN_MODELLE.vorschauFaktor;
+  // Die Reihen laufen im Spielwinkel waagerecht durchs Bild, die Modelle schauen zur Kamera
+  const aufstellung = new THREE.Group();
+  aufstellung.rotation.y = THREE.MathUtils.degToRad(GRAFIK.kameraDrehung);
+  v.szene.add(aufstellung);
+  for (const tier of [1, 2, 3]) reihen[tier].forEach((b, i) => {
+    const platz = new THREE.Group();
+    platz.position.set((i - (reihen[tier].length - 1) / 2) * KOMPONENTEN_MODELLE.vorschauAbstand, 0, (tier - 2) * KOMPONENTEN_MODELLE.vorschauReihe);
+    const detail = kmBaue(b.typ, 1);
+    const neu = kmBacke(kmBaue(b.typ, KOMPONENTEN_MODELLE.backDetail));
+    const masse = kmSpielMasse(neu.ausmass, b.raster).map((m) => m * k);
+    const spiel = new THREE.Mesh(neu.geometrie, itemMaterial("#ffffff"));
+    spiel.scale.set(...masse); spiel.position.y = masse[1] / 2; spiel.castShadow = spiel.receiveShadow = true;
+    const farbe = new THREE.Color(kategorieNachId.get(b.kategorie)?.farbe || "#cccccc");
+    farbe.offsetHSL(0, 0, GRAFIK.itemTierHelligkeit[b.tier] || 0);
+    const alt = GRAFIK.itemRasterMasse[b.raster] || GRAFIK.itemRasterMasse["1x1"];
+    const bisher = new THREE.Mesh(ITEM_GEOMETRIEN.komponente, itemMaterial("#" + farbe.getHexString()));
+    bisher.scale.set(alt[0] * k, alt[1] * k, alt[2] * k); bisher.position.y = alt[1] * k / 2; bisher.castShadow = true;
+    detail.traverse((t) => { if (t.isMesh) t.castShadow = t.receiveShadow = true; });
+    const schild = kvNamensschild(b);
+    schild.position.y = 0.95;
+    platz.add(detail, spiel, bisher, schild);
+    aufstellung.add(platz);
+    v.plaetze.push({ detail, spiel, bisher });
+  });
+  kvSpielwinkel();
+}
+function kvNamensschild(b) {
+  const tier = b.stufe, cw = 460, ch = 130;
+  const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+  const ctx = c.getContext("2d");
+  kmRundRechteck(ctx, 4, 4, cw - 8, ch - 8, 24);
+  ctx.fillStyle = "rgba(30,34,42,0.88)"; ctx.fill();
+  ctx.fillStyle = KOMPONENTEN_MODELLE.tierFarben[tier];
+  ctx.beginPath(); ctx.arc(34, ch / 2, 13, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#fff"; ctx.font = "700 27px Nunito, Segoe UI, Arial"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+  ctx.fillText(b.name, 58, ch / 2 - 12);
+  ctx.font = "600 21px Nunito, Segoe UI, Arial"; ctx.fillStyle = KOMPONENTEN_MODELLE.tierFarben[tier];
+  ctx.fillText(`Tier ${tier} · ${b.raster.replace("x", " × ")} · ${b.nr}`, 58, ch / 2 + 20);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  s.scale.set(1.15, 0.325, 1); s.renderOrder = 999;
+  return s;
+}
+function kvZeigeAnsicht() {
+  const v = komponentenVorschau();
+  for (const p of v.plaetze) { p.detail.visible = v.ansicht === "detail"; p.spiel.visible = v.ansicht === "spiel"; p.bisher.visible = v.ansicht === "bisher"; }
+  if (!v.szene) return;
+  const studio = v.licht === "studio";
+  v.studioLicht.visible = studio; v.spielLicht.visible = !studio;
+  v.szene.environment = studio ? v.umgebung : null;
+  // Studio wie Display.html: Filmkurve (ACES), hellgrauer Hintergrund; Spiel wie die Halle (ohne Filmkurve)
+  v.renderer.toneMapping = studio ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+  v.renderer.toneMappingExposure = studio ? 1.05 : 1;
+  v.szene.background.set(studio ? "#eef1f4" : GRAFIK.farbeHimmel);
+  v.boden.material.color.set(studio ? "#f3f4f6" : GRAFIK.farbeKachel);
+}
+function kvGroesse() {
+  const v = komponentenVorschau();
+  if (!v.renderer) return;
+  const w = Math.max(200, v.buehne.clientWidth), h = Math.max(200, v.buehne.clientHeight);
+  v.renderer.setSize(w, h);
+  const hoehe = Math.max(5.8, 13 / (w / h)), breite = hoehe * w / h;
+  Object.assign(v.kamera, { left: -breite / 2, right: breite / 2, top: hoehe / 2, bottom: -hoehe / 2 });
+  v.kamera.updateProjectionMatrix();
+}
+// Kamera wie im Spiel: Drehung GRAFIK.kameraDrehung, Neigung GRAFIK.kameraNeigung (Isometrie)
+function kvSpielwinkel() {
+  const v = komponentenVorschau();
+  if (!v.kamera) return;
+  const dreh = THREE.MathUtils.degToRad(GRAFIK.kameraDrehung), neig = THREE.MathUtils.degToRad(GRAFIK.kameraNeigung);
+  v.steuerung.target.set(0, 0.3, 0);
+  v.kamera.position.set(Math.sin(dreh) * Math.cos(neig) * 40, 0.3 + Math.sin(neig) * 40, Math.cos(dreh) * Math.cos(neig) * 40);
+  v.kamera.zoom = 1; v.kamera.updateProjectionMatrix();
+  v.steuerung.update();
+}
+function oeffneKomponentenVorschau() {
+  if (designer.offen || dialogOffen || insolvenzOffen) return;
+  schliesseAndereFenster();
+  const v = komponentenVorschau();
+  kvBaueFenster();
+  v.offen = true; v.overlay.hidden = false;
+  aktualisiereSperre();
+  zeichneKomponentenVorschauKnoepfe();
+  v.fenster.focus({ preventScroll: true });
+  kvMeldung(kmZustand().module ? "" : "Modelle werden geladen …");
+  ladeKomponentenModule().then(() => {
+    if (!v.offen) return;
+    kvBaueSzene(); kvZeigeAnsicht(); kvGroesse(); kvMeldung(v.meldung === "Modelle werden geladen …" ? "" : v.meldung);
+    cancelAnimationFrame(v.schleife);
+    const bild = () => {
+      if (!v.offen) return;
+      v.steuerung.update();
+      v.renderer.render(v.szene, v.kamera);
+      v.schleife = requestAnimationFrame(bild);
+    };
+    bild();
+  }, () => kvMeldung(kmZustand().fehler));
+}
+function schliesseKomponentenVorschau() {
+  const v = komponentenVorschau();
+  if (!v.offen) return;
+  v.offen = false; v.overlay.hidden = true;
+  cancelAnimationFrame(v.schleife);
+  aktualisiereSperre();
+}
+// Beim Start: war der Schalter gespeichert an, die Module gleich laden (bis dahin gilt die bisherige Form)
+if (einstellungen.grafik.neueDisplayModelle) ladeKomponentenModule().then(wendeKomponentenModelleAn, () => {});
 
 /* ============================================================================
    ABSCHNITT 13: Baumenü, Info-, Lager- & Personal-Fenster (Phase 4) [UI/UX-Agent]
@@ -22077,6 +22836,7 @@ const GRAFIK_SCHALTER = [
   { schalter: "bandPfeile",     name: "Richtungspfeile auf Bändern", text: "Kleiner Pfeil auf jedem Bandstück, in Fahrtrichtung." },
   { schalter: "ioLinien",       name: "Import-/Exportlinien",     text: "Grüne (Import) und rote (Export) Bögen, solange ein Lager oder eine Station ausgewählt ist." },
   { schalter: "hoheAufloesung", name: "Hohe Auflösung",           text: "Volle Bildschirmauflösung. Aus = schneller auf schwachen Geräten." },
+  { schalter: "neueDisplayModelle", name: "Neue Display-Modelle (Vorschau)", text: "Display-Teile auf Bändern, in Lagern und bei Kurieren mit den neuen 3D-Modellen aus Display.html. Aus = bisherige Platine. Ansehen: Entwicklung → Komponenten-Vorschau." },
 ];
 
 function oeffneEinstellungen() {
@@ -22231,6 +22991,7 @@ function grafikGeaendert() {
   renderer.setPixelRatio(pixelVerhaeltnis());
   renderer.setSize(window.innerWidth, window.innerHeight);
   gleicheBandModelleAb();                          // Bandpfeile: Modelle mit neuem Schlüssel neu bauen
+  wendeKomponentenModelleAn();                     // 12c: neue Display-Modelle an/aus
   if (auswahlGebaeudeId) zeigeGebaeudeAuswahl(spiel.gebaeude.get(auswahlGebaeudeId));   // Import-/Exportlinien
 }
 ob.hudEinstellungen.addEventListener("click", () => (einstellungsFenster.offen ? schliesseEinstellungen() : oeffneEinstellungen()));
@@ -22247,7 +23008,7 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
   }
   if (e.target.closest("[data-spiel-aktion='neustart']")) { frageSpielNeuStarten(); return; }   // Phase 8
   const entwickler = e.target.closest("[data-entwicklung]");   // Phase 7a: Test-Werkzeuge
-  if (entwickler) { entwicklungAktion(entwickler.dataset.entwicklung); zeichneEinstellungen(); return; }
+  if (entwickler) { if (entwicklungAktion(entwickler.dataset.entwicklung) !== false) zeichneEinstellungen(); return; }
   const belegen = e.target.closest("[data-belegen]");
   if (belegen) {
     const aktion = belegen.dataset.belegen;
@@ -22291,6 +23052,11 @@ window.addEventListener("keydown", (e) => {
   if(kurierwegeAnsicht.offen) {
     if(e.key==='Escape') { e.preventDefault();e.stopImmediatePropagation();if(kurierwegeAnsicht.pick!==null)kwPickEnde();else schliesseKurierwege(); }
     else if(kurierwegeAnsicht.pick===null && !['Tab','Enter',' '].includes(e.key) && !e.target.matches('input,select,textarea')){e.preventDefault();e.stopImmediatePropagation();}
+    return;
+  }
+  if (komponentenVorschau().offen) {                    // 12c: Vorschau-Fenster – Esc schließt, sonst keine Spieltasten
+    if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); schliesseKomponentenVorschau(); }
+    else if (!["Tab", "Enter", " "].includes(e.key)) { e.preventDefault(); e.stopImmediatePropagation(); }
     return;
   }
   // Phase 7a: Esc schließt die Einstellungen auch, wenn gerade ein Schalter darin den Fokus hat
@@ -23839,6 +24605,8 @@ function entwicklungHtml() {
       <div class="grafik-zeile"><span><b>Alles freischalten</b><small>Alle Forschungen im Techtree (noch ${offen} offen), alle Gebäude, Komponenten, Gehäuse, Bandteile und Ausrüstungen.
         Reputation auf Level ${hoechste.level} „${hoechste.name}“, damit alle Produktklassen als Aufträge kommen.</small></span>
         <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="freischalten" ${offen || spiel.reputation < hoechste.ab || [...herstellbarNachTyp.values()].some((e) => !e.freigeschaltet) ? "" : "disabled"}>Freischalten</button></div>
+      <div class="grafik-zeile"><span><b>Komponenten-Vorschau</b><small>Die 25 neuen Display-Modelle (Display.html) im Licht und Winkel des Spiels prüfen – neben der bisherigen Form. Ersetzt nichts.</small></span>
+        <button class="lz-knopf lz-knopf-haupt" type="button" data-entwicklung="komponentenVorschau">Ansehen</button></div>
     </div>`;
 }
 function entwicklungAktion(aktion) {
@@ -23848,6 +24616,10 @@ function entwicklungAktion(aktion) {
   } else if (aktion === "freischalten") {
     const n = schalteAllesFrei();
     einstellungsFenster.hinweis = `Alles freigeschaltet (${n} Forschungen neu).`;
+  } else if (aktion === "komponentenVorschau") {
+    schliesseEinstellungen(false);
+    oeffneKomponentenVorschau();
+    return false;   // Einstellungen sind zu – nicht neu zeichnen
   }
 }
 // Erforscht alles (ohne Kosten), schaltet Gebäude und Bauteile frei und hebt die Reputation auf das höchste Level.
@@ -24873,6 +25645,7 @@ richteMenueSeitenEin();
 wendeSkalierungAn();
 window.tradeUp = {
   speichereKurierweg, setzeKurierwegAktiv, weiseKurierwegZu, loescheKurierweg, oeffneKurierwege, schliesseKurierwege, benenneGebaeude,
+  oeffneKomponentenVorschau, schliesseKomponentenVorschau, komponentenModellForm, ladeKomponentenModule,   // 12c: Display-Modelle
   szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse,
   figur, findePfad, setzeBlockade, schickeFigur,
   // Phase 3: Produkt-Layout-Designer

@@ -38,6 +38,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700&display=swap">
+<!-- Kurierwege-Fenster (Vorlage Kurierwege.html): Icons von Font Awesome und Karten-Sortieren mit SortableJS.
+     Versionen fest eingetragen; fehlt SortableJS, sortiert das Fenster per eingebautem Drag & Drop. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <style>
     /* ==========================================================================
@@ -3338,35 +3342,71 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 }
 #kurier-overlay { z-index:350; }
 #kurier-fenster { width:1240px; padding:20px; box-sizing:border-box; box-shadow:0 25px 65px #0006; }
-#kw-editor { overflow:auto; min-height:0; scrollbar-width:none; }
+#kurier-fenster { display:flex; flex-direction:column; overflow:hidden; }
+#kw-editor { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
 .modern-ui button, .modern-ui input, .modern-ui select, #info-panel.modern-import button, #info-panel.modern-import input {
   background:var(--mi-input); color:var(--mi-text); border:1px solid var(--mi-border); border-radius:6px; padding:8px 10px; font:inherit; box-sizing:border-box;
 }
 .modern-ui button { cursor:pointer; white-space:nowrap; }
 .modern-ui button:disabled { opacity:.4; cursor:default; }
 .modern-ui :focus-visible, #info-panel.modern-import :focus-visible { outline:2px solid var(--mi-blue); outline-offset:2px; }
-.kw-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:0 0 16px; }
-.kw-toolbar h2 { margin:0 auto 0 0; font-size:19px; color:var(--mi-muted); }
-.kw-toolbar .kw-add { background:var(--mi-green); color:var(--mi-input); font-size:22px; padding:3px 14px; }
-.kw-group { border-top:1px solid var(--mi-border); padding-top:16px; }
-.kw-group select { max-width:210px; }.kw-group input { flex:1; min-width:120px; }
-.kw-pipeline { display:flex; gap:12px; padding:4px 0 16px; }
-.kw-card { background:var(--mi-card); border:1px solid var(--mi-border); border-radius:8px; flex:1; min-width:0; max-width:390px; }
-.kw-card header { padding:10px; display:flex; align-items:center; justify-content:space-between; cursor:grab; background:var(--mi-input); border-radius:8px 8px 0 0; }
-.kw-card header button { padding:3px 6px; }
-.kw-card-body { display:flex; flex-direction:column; gap:8px; padding:12px; }
-.kw-card-body label { color:var(--mi-muted); font-size:11px; text-transform:uppercase; margin-top:3px; }
-.kw-card-body select { width:100%; min-width:0; }
-.kw-card-body .kw-target { border:1px dashed var(--mi-blue); color:var(--mi-blue); overflow:hidden; text-overflow:ellipsis; }
-.kw-actions { display:flex; }.kw-actions button { flex:1; font-size:20px; border-radius:0; padding:4px; }
-.kw-actions button[aria-pressed="true"] { color:var(--mi-blue); background:var(--mi-panel); border-color:var(--mi-blue); }
-.kw-actions button[data-wert="aufnehmen"][aria-pressed="true"] { color:#e85f62; }
-.kw-actions button[data-wert="abliefern"][aria-pressed="true"] { color:var(--mi-green); }
-.kw-resource { display:flex; gap:6px; }.kw-resource input { width:72px; min-width:0; }.kw-resource select { flex:1; }
-.kw-dragging { opacity:.4; border-style:dashed; }
-.kw-pages small { margin-right:auto; color:var(--mi-muted); }.kw-pages { padding-bottom:8px; }
-.kw-members { border-top:1px solid var(--mi-border); padding:10px 0; }.kw-members[hidden] { display:none; }
-.kw-mitglieder label { display:flex; align-items:center; gap:5px; padding:4px; }.kw-mitglieder input { accent-color:var(--mi-green); }
+/* Kurierwege-Fenster nach Tims Vorlage "Kurierwege.html" (2026-10-11):
+   Kopfleiste (Route, Name, Kuriere als Schilder, Start/Pause/Speichern/Leeren), Stopp-Karten nebeneinander
+   (waagerecht scrollbar, per Kopf ziehen), je Stopp mehrere Ressourcen mit Menge untereinander. */
+.kw-kopfzeile { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-bottom:15px; border-bottom:1px solid var(--mi-border); }
+.kw-gruppe { display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0; }
+.kw-gruppe h2 { margin:0 6px 0 0; font-size:19px; color:var(--mi-muted); }
+.kw-gruppe select[data-kw-auswahl] { max-width:200px; }
+.kw-gruppe input[data-kw-name] { width:170px; min-width:0; }
+.modern-ui .kw-gruppe button { display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:8px 12px; }
+.modern-ui .kw-gruppe button:hover:not(:disabled), .modern-ui .kw-card button:hover:not(:disabled) { background:color-mix(in srgb,var(--mi-text) 10%,var(--mi-input)); }
+.modern-ui .kw-play[aria-pressed="true"] { color:#4ade80; border-color:#4ade80; background:rgba(74,222,128,.1); }
+.modern-ui .kw-pause[aria-pressed="true"] { color:#facc15; border-color:#facc15; background:rgba(250,204,21,.1); }
+.modern-ui .kw-leeren:hover, .modern-ui .kw-route-weg:hover { color:#f87171; border-color:#f87171; }
+/* Kuriere: Schilder + Auswahl "+ Kurier zuweisen" */
+.kw-kuriere { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,.15); padding:4px 12px; border-radius:6px; border:1px solid var(--mi-border); min-height:36px; }
+.kw-kuriere > i { color:var(--mi-muted); }
+.kw-schilder { display:flex; gap:6px; flex-wrap:wrap; }
+.modern-ui .kw-schild { background:color-mix(in srgb,var(--mi-blue) 15%,transparent); border:1px solid var(--mi-blue); color:var(--mi-blue); padding:2px 8px; border-radius:12px; font-size:11px; display:flex; align-items:center; gap:6px; }
+.modern-ui .kw-schild:hover { background:var(--mi-blue); color:var(--mi-input); }
+.modern-ui .kw-kurier-wahl { background:transparent; border:none; color:var(--mi-blue); font-weight:600; padding:0; cursor:pointer; max-width:170px; }
+.modern-ui .kw-kurier-wahl option { background:var(--mi-panel); color:var(--mi-text); }
+/* Stopp-Karten */
+.kw-strecke { display:flex; align-items:flex-start; gap:10px; overflow:auto; padding:15px 0 10px; min-height:220px; flex:1 1 auto; }
+.kw-strecke::-webkit-scrollbar { height:6px; }.kw-strecke::-webkit-scrollbar-thumb { background:var(--mi-border); border-radius:4px; }
+.kw-pipeline { display:flex; gap:10px; align-items:flex-start; }
+.kw-leer { color:var(--mi-muted); margin:8px 4px; max-width:220px; }
+.kw-card { background:var(--mi-card); border:1px solid var(--mi-border); border-radius:6px; width:260px; flex-shrink:0; display:flex; flex-direction:column; }
+.kw-card header { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:rgba(0,0,0,.2); border-bottom:1px solid var(--mi-border); border-radius:6px 6px 0 0; font-weight:600; font-size:13px; cursor:grab; user-select:none; }
+.kw-card header:active { cursor:grabbing; }
+.kw-card header .fa-grip-vertical { color:#6b7280; margin-right:8px; }
+.modern-ui .kw-card header button { padding:4px 8px; font-size:11px; background:transparent; border-color:transparent; color:var(--mi-muted); }
+.modern-ui .kw-card header button:hover { color:#f87171; border-color:#f87171; }
+.kw-card-body { display:flex; flex-direction:column; gap:16px; padding:12px; }
+.kw-label { font-size:10px; text-transform:uppercase; color:var(--mi-muted); margin-bottom:6px; letter-spacing:.5px; font-weight:700; }
+.modern-ui .kw-target { width:100%; border:1px dashed var(--mi-blue); color:var(--mi-blue); background:color-mix(in srgb,var(--mi-blue) 5%,transparent); padding:10px; text-align:center; font-size:12px; overflow:hidden; text-overflow:ellipsis; }
+.modern-ui .kw-target:hover { background:color-mix(in srgb,var(--mi-blue) 15%,transparent); }
+.modern-ui .kw-target.zugewiesen { border-style:solid; border-color:var(--mi-border); background:color-mix(in srgb,var(--mi-blue) 10%,transparent); color:var(--mi-text); }
+.modern-ui .kw-liste { width:100%; margin-top:4px; padding:4px 6px; font-size:11px; color:var(--mi-muted); }
+.kw-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+.modern-ui .kw-actions button { padding:8px; color:var(--mi-muted); }
+.modern-ui .kw-actions button[aria-pressed="true"] { background:rgba(255,255,255,.1); border-color:var(--mi-text); color:var(--mi-text); }
+.modern-ui .kw-actions button[data-wert="aufnehmen"][aria-pressed="true"] { color:#f87171; border-color:rgba(248,113,113,.5); }
+.modern-ui .kw-actions button[data-wert="abliefern"][aria-pressed="true"] { color:#4ade80; border-color:rgba(74,222,128,.5); }
+.kw-ressourcen { display:flex; flex-direction:column; gap:8px; }
+.kw-ressource { background:rgba(0,0,0,.15); border:1px solid var(--mi-border); border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:8px; position:relative; }
+.kw-ressource small { display:block; font-size:10px; color:var(--mi-muted); margin-bottom:2px; }
+.modern-ui .kw-ressource select, .modern-ui .kw-ressource input { width:100%; padding:6px 8px; font-size:12px; }
+.modern-ui .kw-res-weg { position:absolute; top:4px; right:4px; background:none; border:none; color:var(--mi-muted); padding:2px 6px; font-size:10px; }
+.modern-ui .kw-res-weg:hover { color:#f87171; }
+.modern-ui .kw-res-dazu { background:transparent; border:1px dashed var(--mi-muted); color:var(--mi-muted); width:100%; padding:6px; font-size:11px; margin-top:4px; }
+.modern-ui .kw-res-dazu:hover { border-color:var(--mi-text); color:var(--mi-text); }
+.kw-warten-hinweis { font-size:11px; color:var(--mi-muted); }
+.modern-ui .kw-stopp-dazu { background:color-mix(in srgb,var(--mi-blue) 10%,transparent); border:1px dashed var(--mi-blue); color:var(--mi-blue); width:44px; min-height:200px; align-self:stretch; font-size:18px; flex-shrink:0; }
+.modern-ui .kw-stopp-dazu:hover { background:color-mix(in srgb,var(--mi-blue) 20%,transparent); }
+.kw-dragging, .kw-ghost { opacity:.3; }
+.kw-fuss { display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-top:1px solid var(--mi-border); padding-top:10px; }
+.kw-fuss small { margin-right:auto; color:var(--mi-muted); }
 .modern-ui small, .modern-ui .kw-status { color:var(--mi-muted); }.kw-status { max-height:65px; overflow:auto; scrollbar-width:none; margin:8px 0; line-height:1.5; }
 .modern-ui .kw-meldung { color:var(--mi-blue); min-height:18px; }
 #kw-pick-banner { position:fixed; top:75px; left:50%; transform:translateX(-50%); z-index:360; border:1px solid #38bdf8; border-radius:8px; background:#203448; color:white; padding:12px 20px; box-shadow:0 8px 20px #0005; }
@@ -3388,7 +3428,7 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 .iz-legacy { grid-column:2/-1; }.iz-orders>small { display:block; margin-top:8px; color:var(--mi-muted); font-size:11px; }.iz-message { color:var(--mi-green); font-size:11px; }
 #info-panel.modern-import .info-item, #info-panel.modern-import td, #info-panel.modern-import small, #info-panel.modern-import .info-leer { color:var(--mi-text); }
 #info-panel.modern-import details { margin-top:8px; }#info-panel.modern-import summary { cursor:pointer; color:var(--mi-muted); }
-@media(max-width:700px) { .iz-resource { grid-template-columns:18px 1fr 60px; }.iz-resource input { grid-column:1/2; }.iz-resource button { min-width:70px; }.kw-group input { width:100%; }.gebaeude-name-form { flex-wrap:wrap; } }
+@media(max-width:700px) { .iz-resource { grid-template-columns:18px 1fr 60px; }.iz-resource input { grid-column:1/2; }.iz-resource button { min-width:70px; }.kw-gruppe input[data-kw-name] { width:100%; }.gebaeude-name-form { flex-wrap:wrap; } }
 </style>
 </head>
 <body>
@@ -4247,7 +4287,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   18,    // 18: Gebäudenamen und Austausch-Stopps; ältere Stände bleiben lesbar.
+  spielstandVersion:   19,    // 19: Kurierwege mit mehreren Ressourcen je Stopp; 18: Gebäudenamen und Austausch-Stopps; ältere Stände bleiben lesbar.
   kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
   // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
   volumenRohstoff:     1,     // Rohstoff
@@ -10499,26 +10539,46 @@ function keinLagerFuer() {
 }
 
 /* KURIERWEGE: geordnete Rundläufe. Waren bleiben bei der Person, bis ein
-   erlaubtes Ablieferziel sie annimmt; keine automatische Disposition innerhalb einer Route. */
+   erlaubtes Ablieferziel sie annimmt; keine automatische Disposition innerhalb einer Route.
+   Kurierwege-Vorlage (2026-10-11): Ein Stopp kann MEHRERE Ressourcen mit je eigener Menge haben:
+     stopp = { gebaeudeId, aktion, ressourcen: [ { item, menge } ] }   (menge null = Auto: Traglast / Bedarf)
+   Alte Stopps mit nur einem "item"/"menge" werden beim Laden in diese Liste umgewandelt. */
+const KURIERWEG_AKTIONEN = ['aufnehmen','abliefern','besuchen','austauschen'];
 function kurierwegVon(p) { return spiel.kurierwege.find(r => r.id === p.kurierwegId); }
+// Menge eines Eintrags prüfen: null/leer = Auto, sonst positive ganze Zahl (undefined = ungültig)
+function kwMenge(wert) {
+  if (wert === null || wert === '' || wert === undefined) return null;
+  const n = Number(wert);
+  return Number.isSafeInteger(n) && n > 0 ? n : undefined;
+}
 function normalisiereKurierweg(d) {
   if (!d || typeof d.name !== 'string' || !d.name.trim() || !Array.isArray(d.stopps)) return null;
   const stopps = [];
   for (const s of d.stopps) {
-    if (!s || typeof s.gebaeudeId !== 'string' || !s.gebaeudeId || !['aufnehmen','abliefern','besuchen','austauschen'].includes(s.aktion)) return null;
-    const menge = s.menge === null || s.menge === '' || s.menge === undefined ? null : Number(s.menge);
-    if (menge !== null && (!Number.isSafeInteger(menge) || menge <= 0)) return null;
-    if (s.aktion !== 'besuchen' && (typeof s.item !== 'string' || !s.item)) return null;
-    stopps.push({gebaeudeId:s.gebaeudeId, aktion:s.aktion, item:s.aktion==='besuchen'?'':s.item, menge});
+    if (!s || typeof s.gebaeudeId !== 'string' || !s.gebaeudeId || !KURIERWEG_AKTIONEN.includes(s.aktion)) return null;
+    // Alte Form (ein Item je Stopp) → Liste mit einem Eintrag
+    const roh = Array.isArray(s.ressourcen) ? s.ressourcen : (s.item ? [{ item: s.item, menge: s.menge }] : []);
+    const ressourcen = [];
+    if (s.aktion !== 'besuchen') {
+      for (const e of roh) {
+        if (!e || typeof e.item !== 'string' || !e.item) return null;
+        const menge = kwMenge(e.menge);
+        if (menge === undefined) return null;
+        ressourcen.push({ item: e.item, menge });
+      }
+      if (!ressourcen.length) return null;
+    }
+    stopps.push({ gebaeudeId: s.gebaeudeId, aktion: s.aktion, ressourcen });
   }
   return {id:typeof d.id==='string'?d.id:'', name:d.name.trim().slice(0,60), aktiv:d.aktiv===true, stopps};
 }
 function speichereKurierweg(d) {
   const r = normalisiereKurierweg(d);
-  if (!r) return {ok:false, grund:'Bitte Name, Gebäude, Ressource und eine positive ganze Menge wählen.'};
+  if (!r) return {ok:false, grund:'Bitte Name, Gebäude, mindestens eine Ressource und positive ganze Mengen wählen.'};
   const i = spiel.kurierwege.findIndex(x=>x.id===r.id);
   if (i < 0) { r.id = 'kw'+spiel.naechsterKurierweg++; spiel.kurierwege.push(r); }
   else spiel.kurierwege[i] = r;
+  if (r.stopps.length < 2) r.aktiv = false;
   for (const p of mitarbeiter.filter(p=>p.kurierwegId===r.id)) {
     haltePersonAn(p); p.auftrag=null; p.kurierwegIndex=0; p.kurierwegAustausch=false; p.kurierwegPhase='bereit'; p.timer=0;
   }
@@ -10550,25 +10610,37 @@ function loescheKurierweg(id) {
   spiel.kurierwege=spiel.kurierwege.filter(r=>r.id!==id);
   meldeStruktur(); speichereSpielstand(); return true;
 }
+// Nächster Stopp (ab abIndex) im Rundlauf, der dieses Item abliefert. menge = Menge des Ressourcen-Eintrags dort.
 function kurierwegZiel(p,item,abIndex=p.kurierwegIndex||0) {
   const r=kurierwegVon(p); if(!r?.stopps.length)return null;
   for(let n=0;n<r.stopps.length;n++) {
     const index=(abIndex+n)%r.stopps.length, stopp=r.stopps[index];
     const g=spiel.gebaeude.get(stopp.gebaeudeId);
-    if(g && ['abliefern','austauschen'].includes(stopp.aktion) && stopp.item===item && !(index===p.kurierwegIndex && p.kurierwegAustausch)) return {g,stopp,index,fach:istStation(g)?'eingang':'bestand'};
+    if(!g || !['abliefern','austauschen'].includes(stopp.aktion) || (index===p.kurierwegIndex && p.kurierwegAustausch))continue;
+    const e=stopp.ressourcen.find(e=>e.item===item);
+    if(e)return {g,stopp,index,menge:e.menge,fach:istStation(g)?'eingang':'bestand'};
   }
   return null;
 }
+// Ziel eines Items aus dem laufenden Abholauftrag (mehrere Ressourcen können verschiedene Ziele haben)
+function kwAuftragsZiel(a,item) { return a.ziele?.[item] || {zielId:a.zielId,zielFach:a.zielFach}; }
 function kurierwegReservierungen(p,dazu,raus,rein) {
   for(const [item,n] of Object.entries(p.traegt||{})) {
     const z=kurierwegZiel(p,item);
-    if(z)dazu(rein,fachSchluessel(z.g.id,z.fach),item,Math.min(n,z.stopp.menge??Infinity));
+    if(z)dazu(rein,fachSchluessel(z.g.id,z.fach),item,Math.min(n,z.menge??Infinity));
   }
   const a=p.auftrag;
   if(a?.art==='kurierweg' && !a.abgeholt) for(const [item,n] of Object.entries(a.items||{})) {
+    const z=kwAuftragsZiel(a,item);
     dazu(raus,fachSchluessel(a.quelleId,'bestand'),item,n);
-    dazu(rein,fachSchluessel(a.zielId,a.zielFach),item,n);
+    dazu(rein,fachSchluessel(z.zielId,z.zielFach),item,n);
   }
+}
+// Eine eben verplante Menge sofort in den Reservierungen vermerken (für die nächste Ressource desselben Stopps)
+function kwVormerken(res,art,schluessel,item,n) {
+  if(n<=0)return;
+  const map=res[art],e=map.get(schluessel)||{};
+  e[item]=(e[item]||0)+n; map.set(schluessel,e);
 }
 function kurierwegAufnahme(g,item,res) {
   if(!darfKurierAbholen(g,item,'bestand'))return 0;
@@ -10576,12 +10648,14 @@ function kurierwegAufnahme(g,item,res) {
   if(istStation(g) && (g.bestand[item]||0)<exportPegel(g,item) && summe(g.bestand)<kapazitaetVon(g))return 0;
   return Math.max(0,verfuegbar(g,item,res));
 }
-function kurierwegAbgabe(g,item,res) {
+// fest = am Stopp ist eine feste Menge eingetragen: dann zählt nur der freie Platz (nicht der Bedarf/Sollbestand).
+// Leere Menge („Bedarf (Auto)“) liefert wie bisher nur, was Station, Zwischenlager oder Exportzone brauchen.
+function kurierwegAbgabe(g,item,res,fest=false) {
   const fach=istStation(g)?'eingang':'bestand';
   if(!darfKurierLiefern(g,item,fach))return 0;
   if(istHauptlager(g))return hlAufnahme(g,item,res);
-  if(istExportzone(g))return Math.min(platzFuer(g,item,res),exportBedarf(g,res)[item]||0);
-  if(istStation(g)||istZwischenlager(g))return Math.min(platzFuer(g,item,res,fach),bedarf(g,res)[item]||0);
+  if(istExportzone(g))return fest?platzFuer(g,item,res):Math.min(platzFuer(g,item,res),exportBedarf(g,res)[item]||0);
+  if(istStation(g)||istZwischenlager(g))return fest?platzFuer(g,item,res,fach):Math.min(platzFuer(g,item,res,fach),bedarf(g,res)[item]||0);
   return platzFuer(g,item,res,fach);
 }
 function kurierwegWeiter(p,hinweis='') {
@@ -10595,6 +10669,29 @@ function kurierwegWeiter(p,hinweis='') {
   if(p.kurierwegIndex===0)p.kurierwegRunden=(p.kurierwegRunden||0)+1;
   p.kurierwegPhase='bereit'; p.auftrag=null; p.timer=0.35;
   haltePersonAn(p);
+}
+// Plant die Aufnahme aller Ressourcen eines Stopps: {item: Menge} und das Ziel je Item.
+// pruefeAuftrag: beim Laden nur bis zur geplanten Menge des Auftrags.
+function kwPlaneAufnahme(p,r,index,s,g,res,auftrag=null) {
+  let frei=Math.max(0,traglastVon(p)-summe(p.traegt));
+  const items={},ziele={};
+  for(const {item,menge} of s.ressourcen) {
+    const z=kurierwegZiel(p,item,(index+1)%r.stopps.length);
+    if(!z || zugangGesperrt(z.g) || frei<=0)continue;
+    if(auftrag && !(auftrag.items?.[item]>0))continue;
+    const schon=items[item]||0;
+    const m=Math.min(traglastFuerItem(item,frei),
+      (menge??Infinity)-schon,
+      auftrag ? auftrag.items[item]-schon : Infinity,
+      kurierwegAufnahme(g,item,res),
+      kurierwegAbgabe(z.g,item,res,z.menge!=null),
+      Math.max(0,(z.menge??Infinity)-(p.traegt[item]||0)-schon));
+    if(!(m>0))continue;
+    items[item]=schon+m; ziele[item]={zielId:z.g.id,zielFach:z.fach}; frei-=m;
+    kwVormerken(res,'raus',fachSchluessel(g.id,'bestand'),item,m);
+    kwVormerken(res,'rein',fachSchluessel(z.g.id,z.fach),item,m);
+  }
+  return {items,ziele};
 }
 function schrittKurierweg(p,dt) {
   const r=kurierwegVon(p);
@@ -10612,10 +10709,9 @@ function schrittKurierweg(p,dt) {
     if((p.timer-=dt)>0)return;
     p.auftrag=null;
     if(aktion==='aufnehmen') {
-      const z=kurierwegZiel(p,s.item,(index+1)%r.stopps.length),res=reservierungen();
-      const rest=traglastFuerItem(s.item,Math.max(0,traglastVon(p)-summe(p.traegt)));
-      const m=z&&!zugangGesperrt(z.g)?Math.min(rest,s.menge??Infinity,kurierwegAufnahme(g,s.item,res),kurierwegAbgabe(z.g,s.item,res),Math.max(0,(z.stopp.menge??Infinity)-(p.traegt[s.item]||0))):0;
-      if(m>0)p.auftrag={art:'kurierweg',quelleId:g.id,quelleFach:'bestand',zielId:z.g.id,zielFach:z.fach,items:{[s.item]:m},abgeholt:false};
+      const plan=kwPlaneAufnahme(p,r,index,s,g,reservierungen());
+      const erstes=Object.keys(plan.items)[0];
+      if(erstes)p.auftrag={art:'kurierweg',quelleId:g.id,quelleFach:'bestand',zielId:plan.ziele[erstes].zielId,zielFach:plan.ziele[erstes].zielFach,ziele:plan.ziele,items:plan.items,abgeholt:false};
     }
     p.kurierwegPhase='geht'; geheZu(p,g.zugang); return;
   }
@@ -10628,30 +10724,33 @@ function schrittKurierweg(p,dt) {
   // Wurde ein Gebäude während des Ladens versetzt, erst zu seinem neuen Zugang laufen.
   if(!istAngekommen(p,g.zugang)){p.kurierwegPhase='geht';geheZu(p,g.zugang);return;}
   if((p.timer-=dt)>0)return;
-  const res=reservierungen(p); let m=0,hinweis='';
+  const res=reservierungen(p); let bewegt=0,hinweis='';
   if(aktion==='aufnehmen') {
-    const a=p.auftrag,z=kurierwegZiel(p,s.item,(index+1)%r.stopps.length);
-    if(a?.art==='kurierweg' && z && !zugangGesperrt(z.g)) {
+    const a=p.auftrag;
+    if(a?.art==='kurierweg') {
       // Eigene Ladung weiter reservieren, nur den aktuellen Abholauftrag ausnehmen.
       for(const [item,n] of Object.entries(p.traegt||{})) {
         const ziel=kurierwegZiel(p,item);
-        if(!ziel)continue;
-        const key=fachSchluessel(ziel.g.id,ziel.fach),belegt=res.rein.get(key)||{};
-        belegt[item]=(belegt[item]||0)+Math.min(n,ziel.stopp.menge??Infinity);
-        res.rein.set(key,belegt);
+        if(ziel)kwVormerken(res,'rein',fachSchluessel(ziel.g.id,ziel.fach),item,Math.min(n,ziel.menge??Infinity));
       }
-      m=Math.min(a.items[s.item]||0,kurierwegAufnahme(g,s.item,res),kurierwegAbgabe(z.g,s.item,res),traglastFuerItem(s.item,Math.max(0,traglastVon(p)-summe(p.traegt))));
+      const plan=kwPlaneAufnahme(p,r,index,s,g,res,a);
+      for(const [item,m] of Object.entries(plan.items)){aendereFach(g,'bestand',item,-m);bucheItems(p.traegt,{[item]:m});bewegt+=m;}
     }
-    if(m>0){aendereFach(g,'bestand',s.item,-m);bucheItems(p.traegt,{[s.item]:m});}
-    else hinweis='Aufnahme übersprungen: Quelle leer, Regel gesperrt, Traglast erreicht oder Ziel voll/fehlend.';
+    if(!bewegt)hinweis='Aufnahme übersprungen: Quelle leer, Regel gesperrt, Traglast erreicht oder Ziel voll/fehlend.';
   } else if(aktion==='abliefern') {
-    m=Math.min(p.traegt[s.item]||0,s.menge??Infinity,kurierwegAbgabe(g,s.item,res));
-    if(m>0){aendereFach(g,istStation(g)?'eingang':'bestand',s.item,m);bucheItems(p.traegt,{[s.item]:m},-1);g.zuletztBeliefert=spiel.zeit;
+    let rest=false;
+    for(const {item,menge} of s.ressourcen) {
+      const m=Math.min(p.traegt[item]||0,menge??Infinity,kurierwegAbgabe(g,item,res,menge!=null));
+      if(m>0){aendereFach(g,istStation(g)?'eingang':'bestand',item,m);bucheItems(p.traegt,{[item]:m},-1);bewegt+=m;}
+      else if(p.traegt[item])rest=true;
+    }
+    if(bewegt){
+      g.zuletztBeliefert=spiel.zeit;
       if(typVon(g).art==='muell')vernichteImMuell(g);
       gibForschungspunkte(FORSCHUNG_WERTE.fpKurierGang);gibErfahrung(p,FORSCHUNG_WERTE.epKurierGang);
-    } else if(p.traegt[s.item])hinweis='Abgabe übersprungen: Ziel voll oder Annahme gesperrt. Ladung bleibt beim Kurier.';
+    } else if(rest)hinweis='Abgabe übersprungen: Ziel voll oder Annahme gesperrt. Ladung bleibt beim Kurier.';
   }
-  if(m>0){p.kurierwegHinweis='';spiel.version++;}
+  if(bewegt>0){p.kurierwegHinweis='';spiel.version++;}
   kurierwegWeiter(p,hinweis);
 }
 function kurierwegPersonDaten(p) {
@@ -10679,8 +10778,19 @@ function ladeKurierwegPerson(p,d) {
   p.kurierwegAustausch=!!d.austausch;
   if(p.kurierwegPhase==='laedt' && d.auftrag?.art==='kurierweg') {
     const a=d.auftrag,s=r.stopps[p.kurierwegIndex];
-    if((s?.aktion==='aufnehmen'||s?.aktion==='austauschen'&&p.kurierwegAustausch) && s.gebaeudeId===a.quelleId && Number.isSafeInteger(a.items?.[s.item]) && a.items[s.item]>0)
-      p.auftrag={art:'kurierweg',quelleId:s.gebaeudeId,quelleFach:'bestand',zielId:a.zielId,zielFach:a.zielFach==='eingang'?'eingang':'bestand',items:{[s.item]:a.items[s.item]},abgeholt:false};
+    if((s?.aktion==='aufnehmen'||s?.aktion==='austauschen'&&p.kurierwegAustausch) && s.gebaeudeId===a.quelleId) {
+      // Nur Items übernehmen, die dieser Stopp wirklich aufnimmt (gültige, positive ganze Mengen)
+      const items={},ziele={};
+      for(const {item} of s.ressourcen) {
+        const n=a.items?.[item];
+        if(!Number.isSafeInteger(n)||n<=0)continue;
+        const z=a.ziele?.[item]||{zielId:a.zielId,zielFach:a.zielFach};
+        if(typeof z?.zielId!=='string')continue;
+        items[item]=n;ziele[item]={zielId:z.zielId,zielFach:z.zielFach==='eingang'?'eingang':'bestand'};
+      }
+      const erstes=Object.keys(items)[0];
+      if(erstes)p.auftrag={art:'kurierweg',quelleId:s.gebaeudeId,quelleFach:'bestand',zielId:ziele[erstes].zielId,zielFach:ziele[erstes].zielFach,ziele,items,abgeholt:false};
+    }
   }
   if(p.istDu)p.flexibel=false;
 }
@@ -11510,7 +11620,7 @@ function leseSpielstand() {
     // W1: version 10 wird gelesen (Mitarbeiter ohne Gefahrenzulage starten mit 0)
     // W2: version 11 wird gelesen (Blaupausen starten ohne QA-Prüfung)
     // W2b: version 12 wird gelesen (produktQa true/false → Prüfquote { g, m })
-    return daten && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -19173,8 +19283,11 @@ function bauKartenWerte(t) {
   return t.art === "hauptlager" || t.art === "zwischenlager" ? `${t.kapazitaet} Items` : t.art === "forschung" ? "Teile → FP" : `Fach ${t.kapazitaet}`;
 }
 
-// Eigenes Kurierfenster, auf Basis der gelieferten Karten-Vorlage.
-const kurierwegeAnsicht={offen:false,auswahl:null,entwurf:null,meldung:'',seite:0,personal:false,pick:null};
+// Eigenes Kurierfenster nach Tims Vorlage "Kurierwege.html" (2026-10-11): Kopfleiste mit Route, Name,
+// Kurier-Schildern und Start/Pause/Speichern/Leeren; Stopp-Karten nebeneinander (ziehen zum Umsortieren),
+// je Stopp mehrere Ressourcen mit eigener Menge. Icons: Font Awesome 6.4.0, Ziehen: SortableJS 1.15.2 (beide per CDN;
+// fehlt SortableJS, gilt das eingebaute Ziehen per Drag & Drop).
+const kurierwegeAnsicht={offen:false,auswahl:null,entwurf:null,meldung:'',pick:null,vormerk:[]};
 const kwOverlay=document.createElement('div');
 kwOverlay.id='kurier-overlay';kwOverlay.className='modal-schleier';kwOverlay.hidden=true;
 kwOverlay.innerHTML='<section id="kurier-fenster" class="modal-fenster modern-ui" role="dialog" aria-modal="true" aria-label="Kurierwege" tabindex="-1"></section>';
@@ -19183,10 +19296,11 @@ const kwFenster=kwOverlay.firstElementChild;
 const kwPickBanner=document.createElement('div');kwPickBanner.id='kw-pick-banner';kwPickBanner.hidden=true;
 kwPickBanner.innerHTML='<span>Gebäude für den Stopp anklicken</span><button type="button">Abbrechen (Esc)</button>';
 document.body.append(kwPickBanner);
+const kwIcon=(name,stil='')=>'<i class="fa-solid fa-'+name+'" aria-hidden="true"'+(stil?' style="'+stil+'"':'')+'></i>';
 function kurierwegEntwurf(id) {
   const r=spiel.kurierwege.find(r=>r.id===id);
-  kurierwegeAnsicht.auswahl=r?.id||null;kurierwegeAnsicht.seite=0;
-  kurierwegeAnsicht.entwurf=r?JSON.parse(JSON.stringify(r)):{name:'Kurierfahrt '+spiel.naechsterKurierweg,aktiv:false,stopps:[]};
+  kurierwegeAnsicht.auswahl=r?.id||null;kurierwegeAnsicht.vormerk=[];
+  kurierwegeAnsicht.entwurf=r?JSON.parse(JSON.stringify(r)):{name:'Kurierfahrt '+spiel.naechsterKurierweg,aktiv:true,stopps:[]};
 }
 function oeffneKurierwege() {
   if(dialogOffen||insolvenzOffen)return;
@@ -19217,48 +19331,81 @@ function kwAktiveItems() {
   for(const p of mitarbeiter)Object.keys(p.traegt||{}).forEach(i=>ids.add(i));
   return [...ids].sort((a,b)=>itemInfo(a).name.localeCompare(itemInfo(b).name));
 }
-function kwSeitenGroesse() { return Math.max(1,Math.min(4,Math.floor((Math.min(1240,window.innerWidth/(einstellungen.skalierung||1)-60)-40)/280))); }
 function kwVerschiebe(von,nach) {
   const d=kurierwegeAnsicht.entwurf;
   if(!Number.isInteger(von)||!Number.isInteger(nach)||von<0||nach<0||von>=d.stopps.length||nach>=d.stopps.length)return;
-  d.stopps.splice(nach,0,d.stopps.splice(von,1)[0]);kurierwegeAnsicht.seite=Math.floor(nach/kwSeitenGroesse());zeichneKurierwege();
+  d.stopps.splice(nach,0,d.stopps.splice(von,1)[0]);zeichneKurierwege();
 }
+// Kuriere der gezeigten Route: gespeicherte Route → echte Zuordnung, Entwurf → vorgemerkt (gilt beim Speichern)
+function kwKuriere(r) {
+  return r?mitarbeiter.filter(p=>p.kurierwegId===r.id):kurierwegeAnsicht.vormerk.map(id=>mitarbeiter.find(p=>p.id===id)).filter(Boolean);
+}
+function kwKarte(s,i,anzahl,items,gebaeude) {
+  const g=spiel.gebaeude.get(s.gebaeudeId),nr=i+1,warten=s.aktion==='besuchen';
+  const ressourcen=Array.isArray(s.ressourcen)?s.ressourcen:[];
+  return '<article class="kw-card" data-kw-stopp="'+i+'"><header data-kw-drag="'+i+'"><span>'+kwIcon('grip-vertical')+'<span>Stopp '+nr+'</span></span>'+
+    '<button type="button" data-kw="entfernen" data-index="'+i+'" title="Stopp entfernen" aria-label="Stopp '+nr+' entfernen">'+kwIcon('xmark')+'</button></header>'+
+    '<div class="kw-card-body"><div><div class="kw-label">Gebäude / Zone</div>'+
+      '<button type="button" class="kw-target'+(g?' zugewiesen':'')+'" data-kw="pick" data-index="'+i+'" title="Im Spiel anklicken">'+
+        (g?kwIcon('warehouse')+' '+htmlSicher(gebaeudeName(g))+' ('+g.x+', '+g.z+')':(s.gebaeudeId?'⚠ Gebäude entfernt – neu wählen':kwIcon('crosshairs')+' Ziel auswählen...'))+'</button>'+
+      '<select class="kw-liste" data-kw-feld="gebaeudeId" aria-label="Gebäude für Stopp '+nr+' aus Liste"><option value="">… oder aus Liste wählen</option>'+
+        gebaeude.map(x=>'<option value="'+x.id+'" '+(x.id===s.gebaeudeId?'selected':'')+'>'+htmlSicher(gebaeudeName(x))+' ('+x.x+', '+x.z+')</option>').join('')+'</select></div>'+
+    '<div><div class="kw-label">Aktion</div><div class="kw-actions" role="group" aria-label="Aktion für Stopp '+nr+'">'+
+      [['aufnehmen','arrow-up','Aufnehmen'],['abliefern','arrow-down','Abliefern'],['austauschen','arrows-up-down','Austausch: erst abliefern, dann aufnehmen'],['besuchen','circle','Warten: nur anfahren']].map(([a,icon,name])=>
+        '<button type="button" data-kw="aktion" data-wert="'+a+'" data-index="'+i+'" title="'+name+'" aria-label="'+name+' für Stopp '+nr+'" aria-pressed="'+(s.aktion===a)+'">'+kwIcon(icon,a==='besuchen'?'font-size:8px':'')+'</button>').join('')+'</div></div>'+
+    '<div><div class="kw-label">Ressourcen &amp; Menge</div>'+(warten?'<div class="kw-warten-hinweis">Warten: Der Kurier fährt nur an, ohne Ware zu bewegen.</div>':
+      '<div class="kw-ressourcen">'+ressourcen.map((e,j)=>
+        '<div class="kw-ressource" data-kw-res="'+j+'"><button type="button" class="kw-res-weg" data-kw="res-weg" data-index="'+i+'" data-res="'+j+'" title="Entfernen" aria-label="Ressource '+(j+1)+' von Stopp '+nr+' entfernen">'+kwIcon('xmark')+'</button>'+
+        '<div><small>Ressource</small><select data-kw-rfeld="item" aria-label="Ressource '+(j+1)+' für Stopp '+nr+'"><option value="">Ressource wählen</option>'+
+          [...new Set([...items,...(e.item?[e.item]:[])])].map(item=>'<option value="'+htmlSicher(item)+'" '+(e.item===item?'selected':'')+'>'+htmlSicher(itemInfo(item).name)+'</option>').join('')+'</select></div>'+
+        '<div><small>Menge</small><input data-kw-rfeld="menge" type="number" min="1" step="1" placeholder="Bedarf (Auto)" aria-label="Menge je Besuch, Ressource '+(j+1)+' für Stopp '+nr+'" value="'+(e.menge??'')+'"></div></div>').join('')+'</div>'+
+      '<button type="button" class="kw-res-dazu" data-kw="res-dazu" data-index="'+i+'">'+kwIcon('plus')+' Ressource hinzufügen</button>')+'</div>'+
+    '</div></article>';
+}
+let kwSortierer=null;
 function zeichneKurierwege() {
   const v=kurierwegeAnsicht;
   if(!v.entwurf)kurierwegEntwurf(v.auswahl);
   const d=v.entwurf,r=spiel.kurierwege.find(r=>r.id===v.auswahl);
-  const ps=mitarbeiter.filter(p=>r&&p.kurierwegId===r.id),groesse=kwSeitenGroesse(),seiten=Math.max(1,Math.ceil(d.stopps.length/groesse));
-  v.seite=Math.max(0,Math.min(v.seite,seiten-1));
+  const aktiv=r?r.aktiv:d.aktiv!==false,ps=kwKuriere(r);
   const items=kwAktiveItems(),gebaeude=gebaeudeListe(kwGebaeudeErlaubt);
-  const karten=d.stopps.slice(v.seite*groesse,(v.seite+1)*groesse).map((s,n)=>{
-    const i=v.seite*groesse+n,g=spiel.gebaeude.get(s.gebaeudeId);
-    return '<article class="kw-card" data-kw-stopp="'+i+'"><header draggable="true" data-kw-drag="'+i+'"><b>⠿ Stopp '+(i+1)+'</b><span>'+
-      '<button data-kw="hoch" data-index="'+i+'" aria-label="Stopp '+(i+1)+' nach links" '+(i===0?'disabled':'')+'>←</button>'+
-      '<button data-kw="runter" data-index="'+i+'" aria-label="Stopp '+(i+1)+' nach rechts" '+(i===d.stopps.length-1?'disabled':'')+'>→</button>'+
-      '<button data-kw="entfernen" data-index="'+i+'" aria-label="Stopp '+(i+1)+' entfernen">×</button></span></header><div class="kw-card-body">'+
-      '<label>Gebäude / Zone</label><button class="kw-target" data-kw="pick" data-index="'+i+'">⌖ '+(g?htmlSicher(gebaeudeName(g)):'Gebäude anklicken …')+'</button>'+
-      '<select data-kw-feld="gebaeudeId" aria-label="Gebäude für Stopp '+(i+1)+'"><option value="">Aus Liste wählen</option>'+
-      (!g&&s.gebaeudeId?'<option selected value="'+htmlSicher(s.gebaeudeId)+'">⚠ Gebäude entfernt</option>':'')+
-      gebaeude.map(g=>'<option value="'+g.id+'" '+(g.id===s.gebaeudeId?'selected':'')+'>'+htmlSicher(gebaeudeName(g))+' ('+g.x+', '+g.z+')</option>').join('')+'</select>'+
-      '<label>Aktion</label><div class="kw-actions" role="group" aria-label="Aktion für Stopp '+(i+1)+'">'+
-      [['aufnehmen','↑','Aufnehmen'],['abliefern','↓','Abliefern'],['austauschen','⇅','Beides: erst abliefern, dann aufnehmen'],['besuchen','•','Nur besuchen']].map(([a,icon,name])=>
-        '<button type="button" data-kw="aktion" data-wert="'+a+'" data-index="'+i+'" title="'+name+'" aria-label="'+name+' für Stopp '+(i+1)+'" aria-pressed="'+(s.aktion===a)+'">'+icon+'</button>').join('')+'</div>'+
-      '<label>Ressource & Menge</label><div class="kw-resource"><select data-kw-feld="item" aria-label="Ressource für Stopp '+(i+1)+'" '+(s.aktion==='besuchen'?'disabled':'')+'><option value="">Ressource wählen</option>'+
-      [...new Set([...items,...(s.item?[s.item]:[])])].map(item=>'<option value="'+htmlSicher(item)+'" '+(s.item===item?'selected':'')+'>'+htmlSicher(itemInfo(item).name)+'</option>').join('')+
-      '</select><input data-kw-feld="menge" type="number" min="1" step="1" placeholder="Auto" aria-label="Menge je Besuch für Stopp '+(i+1)+'" value="'+(s.menge??'')+'" '+(s.aktion==='besuchen'?'disabled':'')+'></div></div></article>';
-  }).join('');
-  kwFenster.innerHTML='<div id="kw-editor"><header class="kw-toolbar"><h2>♧ Kurierwege</h2><button data-kw="personal">♙ Kuriere: '+ps.length+'</button><button class="kw-add" data-kw="stopp" title="Stopp hinzufügen" aria-label="Stopp hinzufügen">+</button><button data-kw="schliessen" aria-label="Kurierwege schließen">×</button></header>'+
-    '<div class="kw-toolbar kw-group"><select data-kw-auswahl aria-label="Kuriergruppe"><option value="">Neuer Entwurf</option>'+spiel.kurierwege.map(x=>'<option value="'+x.id+'" '+(r?.id===x.id?'selected':'')+'>'+htmlSicher(x.name)+'</option>').join('')+'</select>'+
-    '<input data-kw-name aria-label="Name der Kuriergruppe" maxlength="60" value="'+htmlSicher(d.name)+'"><button data-kw="neu">+ Gruppe</button><button data-kw="speichern">Speichern</button><button data-kw="aktiv" '+(!r?'disabled':'')+'>'+(r?.aktiv?'Pause':'Start')+'</button><button data-kw="loeschen" '+(!r?'disabled':'')+'>Gruppe löschen</button></div>'+
-    '<div class="kw-pipeline">'+(karten||'<p>Mit + den ersten Stopp hinzufügen.</p>')+'</div>'+
-    '<div class="kw-toolbar kw-pages"><small>Rundlauf · Karten ziehen oder Pfeile nutzen · Auto = Traglast / Bedarf</small><button data-kw="vorher" '+(v.seite===0?'disabled':'')+' aria-label="Vorherige Stopps">←</button><span>Seite '+(v.seite+1)+' / '+seiten+'</span><button data-kw="weiter" '+(v.seite===seiten-1?'disabled':'')+' aria-label="Weitere Stopps">→</button></div>'+
-    '<section class="kw-members" '+(!v.personal?'hidden':'')+'><b>Kuriere zuordnen</b><div class="kw-mitglieder">'+mitarbeiter.filter(p=>p.rolle==='kurier').map(p=>'<label><input type="checkbox" data-kw-mitglied="'+p.id+'" '+(r&&p.kurierwegId===r.id?'checked':'')+' '+(!r?'disabled':'')+'>'+htmlSicher(p.name)+(p.kurierwegId&&p.kurierwegId!==r?.id?' · '+htmlSicher(kurierwegVon(p)?.name||'anderer Weg'):'')+'</label>').join('')+'</div><small>Zuordnung gilt sofort. Gruppenwechsel gibt getragene Ware ins Lager/Depot zurück.</small></section>'+
+  const freie=mitarbeiter.filter(p=>p.rolle==='kurier'&&!ps.includes(p));
+  const karten=d.stopps.map((s,i)=>kwKarte(s,i,d.stopps.length,items,gebaeude)).join('');
+  kwFenster.innerHTML='<div id="kw-editor"><div class="kw-kopfzeile"><div class="kw-gruppe"><h2>♧ Kurierwege</h2>'+
+      '<select data-kw-auswahl aria-label="Route wählen">'+spiel.kurierwege.map(x=>'<option value="'+x.id+'" '+(r?.id===x.id?'selected':'')+'>'+htmlSicher(x.name)+'</option>').join('')+
+        '<option value="" '+(!r?'selected':'')+'>'+(r?'Neue Route...':'Neue Route (Entwurf)')+'</option></select>'+
+      '<input data-kw-name aria-label="Name der Route" maxlength="60" value="'+htmlSicher(d.name)+'">'+
+      '<div class="kw-kuriere">'+kwIcon('users')+'<div class="kw-schilder">'+ps.map(p=>'<button type="button" class="kw-schild" data-kw="kurier-weg" data-person="'+p.id+'" title="Kurier entfernen">'+kwIcon('user')+' '+htmlSicher(p.name)+' '+kwIcon('xmark','margin-left:4px')+'</button>').join('')+'</div>'+
+        '<select class="kw-kurier-wahl" data-kw-kurier aria-label="Kurier zuweisen"><option value="" selected>+ Kurier zuweisen</option>'+
+          freie.map(p=>'<option value="'+p.id+'">'+htmlSicher(p.name)+' ('+(p.kurierwegId?htmlSicher(kurierwegVon(p)?.name||'andere Route'):'Frei')+')</option>').join('')+
+          (!freie.length?'<option value="" disabled>Keine weiteren Kuriere – im Personal-Reiter einstellen</option>':'')+'</select></div></div>'+
+    '<div class="kw-gruppe">'+
+      '<button type="button" class="kw-play" data-kw="start" aria-pressed="'+aktiv+'" title="Route starten" aria-label="Route starten">'+kwIcon('play')+'</button>'+
+      '<button type="button" class="kw-pause" data-kw="pause" aria-pressed="'+!aktiv+'" title="Route pausieren" aria-label="Route pausieren">'+kwIcon('pause')+'</button>'+
+      '<button type="button" data-kw="speichern">'+kwIcon('floppy-disk')+' Speichern</button>'+
+      '<button type="button" class="kw-leeren" data-kw="leeren" title="Alle Stopps löschen" aria-label="Alle Stopps löschen">'+kwIcon('trash')+'</button>'+
+      '<button type="button" data-kw="schliessen" title="Schließen (Esc)" aria-label="Kurierwege schließen">'+kwIcon('xmark')+'</button></div></div>'+
+    '<div class="kw-strecke"><div class="kw-pipeline">'+(karten||'<p class="kw-leer">Mit + den ersten Stopp anfügen.</p>')+'</div>'+
+      '<button type="button" class="kw-stopp-dazu" data-kw="stopp" title="Neuen Stopp anfügen" aria-label="Neuen Stopp anfügen">'+kwIcon('plus')+'</button></div>'+
+    '<div class="kw-fuss"><small>Rundlauf · Stopp-Kopf ziehen zum Umsortieren · Menge leer = Auto (Traglast / Bedarf) · Ändern gilt nach „Speichern“</small>'+
+      '<button type="button" class="kw-route-weg" data-kw="loeschen" '+(!r?'disabled':'')+'>'+kwIcon('trash-can')+' Route löschen</button></div>'+
     '<div class="kw-status" aria-live="off"></div><div class="kw-meldung" role="status">'+htmlSicher(v.meldung)+'</div></div>';
+  kwRichteSortierungEin();
   kwStatusAktualisieren();
+}
+// Karten umsortieren: SortableJS (auch Touch) – sonst eingebautes Drag & Drop am Karten-Kopf
+function kwRichteSortierungEin() {
+  const liste=kwFenster.querySelector('.kw-pipeline');
+  if(kwSortierer){kwSortierer.destroy();kwSortierer=null;}
+  if(!liste)return;
+  if(window.Sortable) {
+    kwSortierer=new window.Sortable(liste,{animation:150,handle:'.kw-card header',draggable:'.kw-card',filter:'button',preventOnFilter:false,ghostClass:'kw-ghost',
+      onEnd:e=>{if(e.oldIndex!==e.newIndex)kwVerschiebe(e.oldIndex,e.newIndex);}});
+  } else liste.querySelectorAll('[data-kw-drag]').forEach(h=>h.setAttribute('draggable','true'));
 }
 function kwStatusAktualisieren() {
   if(!kurierwegeAnsicht.offen||kwOverlay.hidden)return;
-  const ps=mitarbeiter.filter(p=>p.kurierwegId===kurierwegeAnsicht.auswahl);
+  const ps=mitarbeiter.filter(p=>p.kurierwegId&&p.kurierwegId===kurierwegeAnsicht.auswahl);
   const el=kwFenster.querySelector('.kw-status');if(el)el.textContent=ps.map(p=>p.name+': '+personZustandText(p)).join(' · ');
 }
 setInterval(kwStatusAktualisieren,650);
@@ -19270,47 +19417,71 @@ kwOverlay.addEventListener('click',e=>{if(e.target===kwOverlay)schliesseKurierwe
 kwOverlay.addEventListener('input',e=>{
   const d=kurierwegeAnsicht.entwurf;if(!d)return;
   if(e.target.matches('[data-kw-name]'))d.name=e.target.value;
-  const tr=e.target.closest('[data-kw-stopp]'),feld=e.target.dataset.kwFeld;
-  if(tr&&feld&&d.stopps[Number(tr.dataset.kwStopp)])d.stopps[Number(tr.dataset.kwStopp)][feld]=e.target.value;
+  const karte=e.target.closest('[data-kw-stopp]'),s=karte&&d.stopps[Number(karte.dataset.kwStopp)];
+  if(!s)return;
+  const feld=e.target.dataset.kwFeld,rfeld=e.target.dataset.kwRfeld,block=e.target.closest('[data-kw-res]');
+  if(feld)s[feld]=e.target.value;
+  if(rfeld&&block&&s.ressourcen?.[Number(block.dataset.kwRes)])s.ressourcen[Number(block.dataset.kwRes)][rfeld]=rfeld==='menge'&&e.target.value===''?null:e.target.value;
 });
 kwOverlay.addEventListener('change',e=>{
-  const t=e.target;
-  if(t.matches('[data-kw-auswahl]')){kurierwegEntwurf(t.value);kurierwegeAnsicht.meldung='';zeichneKurierwege();}
-  if(t.matches('[data-kw-mitglied]')){weiseKurierwegZu(t.dataset.kwMitglied,t.checked?kurierwegeAnsicht.auswahl:null);zeichneKurierwege();}
+  const t=e.target,v=kurierwegeAnsicht;
+  if(t.matches('[data-kw-auswahl]')){kurierwegEntwurf(t.value);v.meldung='';zeichneKurierwege();}
+  if(t.matches('[data-kw-kurier]')&&t.value){
+    if(v.auswahl)weiseKurierwegZu(t.value,v.auswahl);
+    else if(!v.vormerk.includes(t.value)){v.vormerk.push(t.value);v.meldung='Kurier vorgemerkt – gilt nach „Speichern“.';}
+    zeichneKurierwege();
+  }
   if(t.dataset.kwFeld==='gebaeudeId')zeichneKurierwege();
 });
 kwOverlay.addEventListener('click',e=>{
-  const b=e.target.closest('[data-kw]');if(!b)return;
+  const b=e.target.closest('[data-kw]');if(!b||!kwFenster.contains(b))return;
   const a=b.dataset.kw,d=kurierwegeAnsicht.entwurf,i=Number(b.dataset.index),v=kurierwegeAnsicht;
+  const r=spiel.kurierwege.find(r=>r.id===v.auswahl);
   if(a==='schliessen'){schliesseKurierwege();return;}
   v.meldung='';
-  if(a==='neu')kurierwegEntwurf(null);
-  if(a==='personal')v.personal=!v.personal;
-  if(a==='vorher')v.seite--;
-  if(a==='weiter')v.seite++;
   if(a==='pick'){v.pick=i;kwOverlay.hidden=true;kwPickBanner.hidden=false;aktualisiereSperre();return;}
-  if(a==='stopp'){d.stopps.push({gebaeudeId:'',aktion:d.stopps.length?'abliefern':'aufnehmen',item:d.stopps.at(-1)?.item||'holz',menge:null});v.seite=Math.floor((d.stopps.length-1)/kwSeitenGroesse());}
+  if(a==='stopp'){
+    const vorher=d.stopps.at(-1)?.ressourcen?.at(-1)?.item||'holz';
+    d.stopps.push({gebaeudeId:'',aktion:d.stopps.length?'abliefern':'aufnehmen',ressourcen:[{item:vorher,menge:null}]});
+    zeichneKurierwege();kwFenster.querySelector('.kw-strecke')?.scrollTo({left:1e6,behavior:'smooth'});return;
+  }
   if(a==='entfernen')d.stopps.splice(i,1);
-  if(a==='hoch'||a==='runter'){kwVerschiebe(i,i+(a==='hoch'?-1:1));return;}
-  if(a==='aktion'){d.stopps[i].aktion=b.dataset.wert;if(!d.stopps[i].item)d.stopps[i].item='holz';}
+  if(a==='aktion'){d.stopps[i].aktion=b.dataset.wert;if(!d.stopps[i].ressourcen?.length)d.stopps[i].ressourcen=[{item:'holz',menge:null}];}
+  if(a==='res-dazu'){const s=d.stopps[i];s.ressourcen=s.ressourcen||[];s.ressourcen.push({item:'',menge:null});}
+  if(a==='res-weg'){d.stopps[i]?.ressourcen?.splice(Number(b.dataset.res),1);}
+  if(a==='kurier-weg'){
+    if(r)weiseKurierwegZu(b.dataset.person,null);else v.vormerk=v.vormerk.filter(id=>id!==b.dataset.person);
+  }
+  if(a==='leeren'){
+    if(!d.stopps.length)return;
+    if(b.dataset.bestaetigt!=='1'){b.dataset.bestaetigt='1';b.title='Nochmal klicken: wirklich alle Stopps löschen?';v.meldung='Nochmal auf den Papierkorb klicken, um alle Stopps zu löschen.';kwFenster.querySelector('.kw-meldung').textContent=v.meldung;return;}
+    d.stopps=[];v.meldung='Alle Stopps gelöscht – mit „Speichern“ übernehmen.';
+  }
   if(a==='speichern'){
+    if(!r)d.aktiv=d.aktiv!==false;
     const result=speichereKurierweg(d);
-    if(result.ok){const seite=v.seite;kurierwegEntwurf(result.route.id);v.seite=seite;v.meldung='Gespeichert. Runde beginnt neu; Ladung bleibt erhalten.';}
+    if(result.ok){
+      const vorgemerkt=v.vormerk;kurierwegEntwurf(result.route.id);
+      for(const id of vorgemerkt)weiseKurierwegZu(id,result.route.id);
+      v.meldung='Route „'+result.route.name+'“ mit '+result.route.stopps.length+' Stopps gespeichert. Runde beginnt neu; Ladung bleibt erhalten.'+(result.route.stopps.length<2?' Zum Starten mindestens zwei Stopps.':'');
+    }
     else v.meldung=result.grund;
   }
-  if(a==='aktiv'){
-    const r=spiel.kurierwege.find(r=>r.id===v.auswahl);
-    if(r){if(setzeKurierwegAktiv(r.id,!r.aktiv)){d.aktiv=r.aktiv;v.meldung=r.aktiv?'Gespeicherte Route läuft.':'Route pausiert.';}else v.meldung='Zuerst mindestens zwei Stopps speichern.';}
+  if(a==='start'||a==='pause'){
+    const an=a==='start';
+    if(r){if(setzeKurierwegAktiv(r.id,an)){d.aktiv=r.aktiv;v.meldung=r.aktiv?'Route läuft.':'Route pausiert.';}else v.meldung='Zuerst mindestens zwei Stopps speichern.';}
+    else {d.aktiv=an;v.meldung=an?'Startet nach dem Speichern.':'Bleibt nach dem Speichern pausiert.';}
   }
-  if(a==='loeschen'){
-    if(b.dataset.bestaetigt!==v.auswahl){b.dataset.bestaetigt=v.auswahl;b.textContent='Wirklich löschen?';return;}
-    loescheKurierweg(v.auswahl);kurierwegEntwurf(spiel.kurierwege[0]?.id);
+  if(a==='loeschen'&&r){
+    if(b.dataset.bestaetigt!==r.id){b.dataset.bestaetigt=r.id;b.innerHTML=kwIcon('trash-can')+' Wirklich löschen?';return;}
+    loescheKurierweg(r.id);kurierwegEntwurf(spiel.kurierwege[0]?.id);v.meldung='Route gelöscht.';
   }
   zeichneKurierwege();
 });
+// Eingebautes Drag & Drop (nur ohne SortableJS)
 let kwZiehen=null;
 kwOverlay.addEventListener('dragstart',e=>{
-  const h=e.target.closest('[data-kw-drag]');if(!h)return;
+  const h=e.target.closest('[data-kw-drag]');if(!h||window.Sortable)return;
   kwZiehen=Number(h.dataset.kwDrag);e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(kwZiehen));h.closest('.kw-card').classList.add('kw-dragging');
 });
 kwOverlay.addEventListener('dragover',e=>{if(kwZiehen!==null&&e.target.closest('[data-kw-stopp]')){e.preventDefault();e.dataTransfer.dropEffect='move';}});

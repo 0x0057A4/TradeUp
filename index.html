@@ -38,9 +38,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@500;700&display=swap">
-<!-- Kurierwege-Fenster (Vorlage Kurierwege.html): Icons von Font Awesome und Karten-Sortieren mit SortableJS.
-     Versionen fest eingetragen; fehlt SortableJS, sortiert das Fenster per eingebautem Drag & Drop. -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- Kurierwege-Fenster (Vorlage Kurierwege.html): Karten-Sortieren mit SortableJS (Version fest eingetragen).
+     Fehlt SortableJS, sortiert das Fenster per eingebautem Drag & Drop. Die Icons sind eingebettete SVGs. -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <style>
@@ -3379,7 +3378,8 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 .kw-card { background:var(--mi-card); border:1px solid var(--mi-border); border-radius:6px; width:260px; flex-shrink:0; display:flex; flex-direction:column; }
 .kw-card header { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:rgba(0,0,0,.2); border-bottom:1px solid var(--mi-border); border-radius:6px 6px 0 0; font-weight:600; font-size:13px; cursor:grab; user-select:none; }
 .kw-card header:active { cursor:grabbing; }
-.kw-card header .fa-grip-vertical { color:#6b7280; margin-right:8px; }
+.kw-ico { width:1em; height:1em; vertical-align:-.15em; flex-shrink:0; }
+.kw-card header .kw-ico-grip-vertical { color:#6b7280; margin-right:8px; }
 .modern-ui .kw-card header button { padding:4px 8px; font-size:11px; background:transparent; border-color:transparent; color:var(--mi-muted); }
 .modern-ui .kw-card header button:hover { color:#f87171; border-color:#f87171; }
 .kw-card-body { display:flex; flex-direction:column; gap:16px; padding:12px; }
@@ -8180,7 +8180,7 @@ lz.blaupausen.addEventListener("click", (e) => {
     case "umbenennen": {
       // Name direkt in der Liste bearbeiten (Enter = übernehmen, Esc = abbrechen)
       const laden = eintrag.querySelector(".lz-bp-laden");
-      const alterName = laden.querySelector("span").textContent.replace("⚠", "").trim();
+      const alterName = (laden.querySelector(".lz-bp-text b")?.textContent || "").replace("⚠", "").trim();   // erstes span = Mini-Vorschau
       const eingabe = document.createElement("input");
       eingabe.className = "lz-bp-name-eingabe";
       eingabe.maxLength = 40;
@@ -10753,7 +10753,7 @@ function schrittKurierweg(p,dt) {
       const plan=kwPlaneAufnahme(p,r,index,s,g,res,a);
       for(const [item,m] of Object.entries(plan.items)){aendereFach(g,'bestand',item,-m);bucheItems(p.traegt,{[item]:m});bewegt+=m;}
     }
-    if(!bewegt)hinweis='Aufnahme übersprungen: Quelle leer, Regel gesperrt, Traglast erreicht oder Ziel voll/fehlend.';
+    if(!bewegt)hinweis='Aufnahme übersprungen: Quelle leer, Traglast erreicht, Ziel voll/fehlend oder Regel gesperrt (am Ziel-Lager Import ⇣ einschalten).';
   } else if(aktion==='abliefern') {
     let rest=false;
     for(const {item,menge} of s.ressourcen) {
@@ -11432,7 +11432,7 @@ function halleBereinigen() {
   const nummer = new Map(liste.map((g, i) => [g.id, i]));
   spiel.schnappschuss = {
     gebaeude: liste.map((g) => ({
-      typ: g.typ, x: g.x, z: g.z, drehung: g.drehung, rezept: g.rezept, pausiert: g.pausiert,
+      id: g.id, name: g.name, typ: g.typ, x: g.x, z: g.z, drehung: g.drehung, rezept: g.rezept, pausiert: g.pausiert,   // id/name: Kurierwege und Gebäudenamen überstehen das Wiederherstellen
       verknuepft: g.verknuepft.map((id) => nummer.get(id)).filter((i) => i !== undefined),
       importVon: g.importVon.map((id) => nummer.get(id)).filter((i) => i !== undefined),     // Phase 7a (Nachtrag 2)
       exportNach: g.exportNach.map((id) => nummer.get(id)).filter((i) => i !== undefined),
@@ -11483,6 +11483,7 @@ function stelleAufbauWiederHer() {
     const ergebnis = baueGebaeude(e.typ, e.x, e.z, e.drehung, { autoVerknuepfen: false });
     if (!ergebnis.ok) { uebersprungen++; continue; }
     neueIds[i] = ergebnis.gebaeude.id;
+    if (typeof e.name === "string" && e.name) ergebnis.gebaeude.name = e.name;
     ergebnis.gebaeude.rezept = e.rezept;
     ergebnis.gebaeude.pausiert = e.pausiert;
     ergebnis.gebaeude.regeln = e.regeln ? JSON.parse(JSON.stringify(e.regeln)) : regelnAusFixierung(e.modus, e.fixiert);
@@ -11502,6 +11503,11 @@ function stelleAufbauWiederHer() {
     if (p && !p.stationId) weiseZu(p.id, neueIds[i]);
   });
   aktualisiereVerknuepft();
+  // Kurierwege (und ein offener Entwurf) zeigen auf die alten Gebäude-Ids → auf die neuen umschreiben
+  const idNeu = new Map(schnappschuss.gebaeude.map((e, i) => [e.id, neueIds[i]]).filter(([alt, neu]) => alt && neu));
+  for (const r of [...spiel.kurierwege, kurierwegeAnsicht.entwurf].filter(Boolean)) {
+    for (const st of r.stopps || []) if (idNeu.has(st.gebaeudeId)) st.gebaeudeId = idNeu.get(st.gebaeudeId);
+  }
   // Phase 6: Bänder und Greifarme wieder hinlegen (aus dem Depot, sonst gekauft)
   for (const e of schnappschuss.baender || []) {
     const ergebnis = baueBandteil(e.typ, e.x, e.z, e.richtung, { daten: e, ohnePruefungDerPersonen: true });
@@ -19044,6 +19050,8 @@ function clearHalle() {
 spielEreignisse.addEventListener("spielZurueckgesetzt", () => {
   clearHalle();
   kameraFlugZiel = null;
+  // Kurierwege-Entwurf gehört zum alten Spiel (Gebäude-Ids wären sonst fremd)
+  kurierwegeAnsicht.entwurf = null; kurierwegeAnsicht.auswahl = null; kurierwegeAnsicht.vormerk = [];
 });
 // Nach dem Neuaufbau: Halle ganz ins Bild (Startansicht wie beim ersten Laden)
 spielEreignisse.addEventListener("spielNeuGestartet", () => {
@@ -19907,6 +19915,7 @@ const textVon = (items) => Object.entries(items).map(([id, n]) => `${n} × ${ite
 
 function oeffneBau() {
   if (bau.offen) return;
+  if (kurierwegeAnsicht.offen) schliesseKurierwege();   // nicht beide gleichzeitig offen
   bau.offen = true;
   ob.bauLeiste.hidden = false;
   ob.hilfe.hidden = true;
@@ -20044,8 +20053,8 @@ function bauKartenWerte(t) {
 
 // Eigenes Kurierfenster nach Tims Vorlage "Kurierwege.html" (2026-10-11): Kopfleiste mit Route, Name,
 // Kurier-Schildern und Start/Pause/Speichern/Leeren; Stopp-Karten nebeneinander (ziehen zum Umsortieren),
-// je Stopp mehrere Ressourcen mit eigener Menge. Icons: Font Awesome 6.4.0, Ziehen: SortableJS 1.15.2 (beide per CDN;
-// fehlt SortableJS, gilt das eingebaute Ziehen per Drag & Drop).
+// je Stopp mehrere Ressourcen mit eigener Menge. Icons: eigene SVGs (nach den Font-Awesome-Symbolen der Vorlage),
+// Ziehen: SortableJS 1.15.2 per CDN (fehlt es, gilt das eingebaute Ziehen per Drag & Drop).
 const kurierwegeAnsicht={offen:false,auswahl:null,entwurf:null,meldung:'',pick:null,vormerk:[]};
 const kwOverlay=document.createElement('div');
 kwOverlay.id='kurier-overlay';kwOverlay.className='modal-schleier';kwOverlay.hidden=true;
@@ -20055,7 +20064,29 @@ const kwFenster=kwOverlay.firstElementChild;
 const kwPickBanner=document.createElement('div');kwPickBanner.id='kw-pick-banner';kwPickBanner.hidden=true;
 kwPickBanner.innerHTML='<span>Gebäude für den Stopp anklicken</span><button type="button">Abbrechen (Esc)</button>';
 document.body.append(kwPickBanner);
-const kwIcon=(name,stil='')=>'<i class="fa-solid fa-'+name+'" aria-hidden="true"'+(stil?' style="'+stil+'"':'')+'></i>';
+// Kleine Strich-Icons (24 × 24, Farbe = Textfarbe); "f:" am Anfang = gefüllte Fläche statt Strich
+const KW_ICONS={
+  'grip-vertical':'f:<circle cx="9" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="15" cy="19" r="1.6"/>',
+  'xmark':'<path d="M6 6l12 12M18 6L6 18"/>',
+  'warehouse':'<path d="M3 21V8l9-5 9 5v13M7 21v-8h10v8M7 17h10"/>',
+  'crosshairs':'<circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
+  'arrow-up':'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  'arrow-down':'<path d="M12 5v14M19 12l-7 7-7-7"/>',
+  'arrows-up-down':'<path d="M8 20V4M4 8l4-4 4 4M16 4v16M12 16l4 4 4-4"/>',
+  'circle':'f:<circle cx="12" cy="12" r="5"/>',
+  'plus':'<path d="M12 5v14M5 12h14"/>',
+  'users':'<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.6 3.1-6 7-6s7 2.4 7 6M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2c2.4.6 4 2.8 4 5.8"/>',
+  'user':'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+  'play':'f:<path d="M7 4l13 8-13 8z"/>',
+  'pause':'f:<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+  'floppy-disk':'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-7H7v7M7 3v5h8"/>',
+  'trash':'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+  'trash-can':'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>',
+};
+const kwIcon=(name,stil='')=>{
+  const d=KW_ICONS[name]||'',voll=d.startsWith('f:');
+  return '<svg class="kw-ico kw-ico-'+name+'" viewBox="0 0 24 24" aria-hidden="true" focusable="false" '+(voll?'fill="currentColor" stroke="none"':'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"')+(stil?' style="'+stil+'"':'')+'>'+(voll?d.slice(2):d)+'</svg>';
+};
 function kurierwegEntwurf(id) {
   const r=spiel.kurierwege.find(r=>r.id===id);
   kurierwegeAnsicht.auswahl=r?.id||null;kurierwegeAnsicht.vormerk=[];
@@ -20111,7 +20142,7 @@ function kwKarte(s,i,anzahl,items,gebaeude) {
         gebaeude.map(x=>'<option value="'+x.id+'" '+(x.id===s.gebaeudeId?'selected':'')+'>'+htmlSicher(gebaeudeName(x))+' ('+x.x+', '+x.z+')</option>').join('')+'</select></div>'+
     '<div><div class="kw-label">Aktion</div><div class="kw-actions" role="group" aria-label="Aktion für Stopp '+nr+'">'+
       [['aufnehmen','arrow-up','Aufnehmen'],['abliefern','arrow-down','Abliefern'],['austauschen','arrows-up-down','Austausch: erst abliefern, dann aufnehmen'],['besuchen','circle','Warten: nur anfahren']].map(([a,icon,name])=>
-        '<button type="button" data-kw="aktion" data-wert="'+a+'" data-index="'+i+'" title="'+name+'" aria-label="'+name+' für Stopp '+nr+'" aria-pressed="'+(s.aktion===a)+'">'+kwIcon(icon,a==='besuchen'?'font-size:8px':'')+'</button>').join('')+'</div></div>'+
+        '<button type="button" data-kw="aktion" data-wert="'+a+'" data-index="'+i+'" title="'+name+'" aria-label="'+name+' für Stopp '+nr+'" aria-pressed="'+(s.aktion===a)+'">'+kwIcon(icon,a==='besuchen'?'width:.55em;height:.55em':'')+'</button>').join('')+'</div></div>'+
     '<div><div class="kw-label">Ressourcen &amp; Menge</div>'+(warten?'<div class="kw-warten-hinweis">Warten: Der Kurier fährt nur an, ohne Ware zu bewegen.</div>':
       '<div class="kw-ressourcen">'+ressourcen.map((e,j)=>
         '<div class="kw-ressource" data-kw-res="'+j+'"><button type="button" class="kw-res-weg" data-kw="res-weg" data-index="'+i+'" data-res="'+j+'" title="Entfernen" aria-label="Ressource '+(j+1)+' von Stopp '+nr+' entfernen">'+kwIcon('xmark')+'</button>'+
@@ -25646,6 +25677,7 @@ wendeSkalierungAn();
 window.tradeUp = {
   speichereKurierweg, setzeKurierwegAktiv, weiseKurierwegZu, loescheKurierweg, oeffneKurierwege, schliesseKurierwege, benenneGebaeude,
   oeffneKomponentenVorschau, schliesseKomponentenVorschau, komponentenModellForm, ladeKomponentenModule,   // 12c: Display-Modelle
+  schliesseLager,   // für den HUD-Knopf „Übersicht“
   szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse,
   figur, findePfad, setzeBlockade, schickeFigur,
   // Phase 3: Produkt-Layout-Designer
@@ -26058,6 +26090,8 @@ const HUD_MARKUP = "<header class=\"topbar\" aria-label=\"Trade Up Spielstatus\"
     if (!game) return;
     try { game.schliesseBau(); } catch (_) {}
     try { game.schliesseLager(); } catch (_) {}
+    try { game.schliesseKurierwege(); } catch (_) {}
+    try { game.schliesseKomponentenVorschau(); } catch (_) {}
     try { game.schliesseKontor(false); } catch (_) {}
     try { game.schliesseForschung(false); } catch (_) {}
     try { game.schliesseEinstellungen(false); } catch (_) {}

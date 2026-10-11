@@ -59,6 +59,11 @@ Isometrisches Wirtschafts- und Fabrikaufbau-Spiel im Browser (Three.js, WebGL).
   - **6 Auftrags-Slots**: Höchstens 6 Aufträge gleichzeitig. Slot 1 und 2 sind ab Start frei, Slot 3 bis 6 öffnen sich mit den Reputations-Meilensteinen (100 / 300 / 700 / 1.500 Punkte). Im Kontor sind gesperrte Slots mit 🔒, der fehlenden Stufe und einem Fortschrittsbalken markiert.
   - **Rohstoffe 20 % billiger**: Metall 4,80 €, Kunststoff 3,20 €, Silizium 9,60 €, Holz 2,40 €. Der Wert von Bauteilen und Produkten (und damit Aufträge und Verkäufe) richtet sich weiter nach dem Grundpreis (`grundpreis` in `ROHSTOFFE`, Faktor `EINKAUF_FAKTOR`).
 
+- **2026-10-11 · Neue Arbeitsbasis `index_new.html`** (ersetzt `index.html`):
+  - **Kurierwege nach Vorlage** (`Kurierwege.html`): Route wählen/benennen, Kuriere als Schilder zuweisen, Start/Pause/Speichern/Alle Stopps löschen; Stopp-Karten nebeneinander, per Kopf ziehen (SortableJS); **je Stopp mehrere Ressourcen** mit eigener Menge (leer = Bedarf/Auto, feste Zahl = bis zum freien Platz). Alte Routen werden umgewandelt (Spielstand Version 19).
+  - **Display-Modelle (Vorschau)**: Die 25 Modelle aus `Display.html` lassen sich unter Einstellungen → Entwicklung → **Komponenten-Vorschau** im Licht und Winkel des Spiels prüfen (Neu · Detail / Neu · im Spiel / Bisher, Spiel- oder Studio-Licht). Der Schalter **Neue Display-Modelle (Vorschau)** unter Einstellungen → Grafik zeigt sie testweise auf Bändern, in Lagern und bei Kurieren (Standard: aus, nichts wird ersetzt).
+  - Fehler behoben: Kurierwege und Gebäudenamen nach „Aufbau wiederherstellen“, HUD-„Übersicht“ schließt Lager und Kurierwege, Umbenennen einer Blaupause, Kurierwege-Entwurf nach Neustart, Baumenü und Kurierwege nicht mehr gleichzeitig offen.
+
 ## Spiel starten
 
 **Lokal:** `index.html` per Doppelklick im Browser öffnen. Es wird eine Internetverbindung benötigt, weil Three.js von `unpkg.com` geladen wird.

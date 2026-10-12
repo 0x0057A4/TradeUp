@@ -3926,6 +3926,10 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-matrix .wb-leer { border-radius: 8px; border: 1px dashed rgba(255, 255, 255, 0.08); }
 .wb-liste, .wb-treffer { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 3px; }
 .wb-hinweis { opacity: 0.7; font-size: 10px; }
+.ez-wahl { margin-top: 8px; }
+.ez-wahl-titel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.ez-kachel.aktiv { background: rgba(245, 197, 24, 0.16); border-color: rgba(245, 197, 24, 0.6); }
+.ez-haken { position: absolute; top: 2px; right: 4px; font-size: 11px; font-weight: 700; color: var(--schiene, #f5c518); }
 .wb-kachel {
   position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; gap: 1px 4px;
   min-width: 0; min-height: 50px; padding: 3px 4px 3px 5px; cursor: pointer; text-align: left;
@@ -25872,7 +25876,7 @@ function werkbankRezeptHtml(g) {
       return `<button type="button" role="tab" class="wb-kat${hatRezept ? " hat-rezept" : ""}${suche && !treffer ? " leer" : ""}" data-aktion="wb-kat" data-kat="${gr.id}"
         style="--kat-farbe:${kategorieGrafikFarbe(gr.id)}" aria-selected="${gewaehlt}"
         title="${htmlSicher(`${gr.name}: ${frei} von ${liste.length} frei${suche ? ` · ${treffer} Treffer` : ""}${hatRezept ? " · eingestelltes Rezept" : ""}`)}">
-        ${kategorieGrafik(gr.id, 26)}<small>${suche ? treffer : frei}</small></button>`;
+        ${kategorieGrafik(gr.id, 26)}</button>`;
     }).join("") + `</div>`;
   }
   // 3. Suche: Treffer aus allen Gruppen · sonst die gewählte Gruppe
@@ -26256,10 +26260,65 @@ function exportzoneHtml(g) {
   const zuletzt = l ? ` Zuletzt: ${l.auftraege ? `${l.auftraege} Auftrag geliefert, ` : ""}${l.verkauft} verkauft${l.erloes ? ` (+${euro(l.erloes)})` : ""}.` : "";
   return `<div class="info-block"><h3>Ware</h3>${items.length ? `<table class="regel-tabelle"><thead><tr><th>Ware</th><th class="zahl">Ist</th><th>Geht</th><th></th></tr></thead>
       <tbody>${zeilen}</tbody></table>` : `<p class="info-leer">leer – Kuriere bringen passende Fertigware für angenommene Aufträge von selbst.</p>`}
-      <label class="info-feld">Ware herbringen <select data-aktion="export-ware">${itemOptionen("", "– auswählen –")}</select></label></div>
+      ${exportWahlHtml(g)}</div>
     <div class="info-block"><h3>Aufträge</h3>${auftraege ? `<ul class="zonen-liste">${auftraege}</ul>` : `<p class="info-leer">Kein angenommener Auftrag (Kontor, Taste K).</p>`}</div>
     <div class="info-block"><h3>🚚 Abholwagen</h3><p>kommt in ${dauerSek(g.abholTimer)}.${zuletzt}</p></div>`;
 }
+// 2026-10-12 (Tim): Ware herbringen im Layout der Werkbank – Kategorie-Kacheln oben, darunter Matrix bzw. Liste.
+const exportWahl = { kategorie: "produkte" };
+function exportWahlGruppen() {
+  return [{ id: "produkte", name: "Produkte", bild: wareHtml("produkt", 24, "Produkte"), farbe: "#f5c518", eintraege: bekannteProdukte() },
+    { id: "rohstoffe", name: "Rohstoffe", bild: wareHtml(ROHSTOFFE[0].id, 24, "Rohstoffe"), farbe: "#b9a07a", eintraege: ROHSTOFFE.map((r) => r.id) },
+    ...werkbankGruppen().map((gr) => ({ id: gr.id, name: gr.name, bild: kategorieGrafik(gr.id, 26), farbe: kategorieGrafikFarbe(gr.id),
+      eintraege: gr.eintraege.map((b) => b.typ || b.id) }))];
+}
+function exportKachelHtml(g, item) {
+  const an = !!(g.regeln[item] && g.regeln[item].imp === true), info = itemInfo(item);
+  const b = herstellbarNachTyp.get(item), tier = (b && (b.stufe || Number(String(b.tier || "T1").slice(1)))) || 1;
+  return `<button type="button" class="wb-kachel ez-kachel${an ? " aktiv" : ""}" data-aktion="ez-ware" data-item="${htmlSicher(item)}" aria-pressed="${an}"
+      style="--tier-farbe:${b ? KOMPONENTEN_MODELLE.tierFarben[tier] || "#8a94a3" : info.farbe || "#8a94a3"}"
+      title="${htmlSicher(info.name + (an ? " – wird hergebracht (Klick: nicht mehr)" : " – Klick: Kuriere bringen es her"))}">
+      <span class="wb-k-bild">${wareHtml(item, 28, info.name)}</span><span class="wb-k-name">${htmlSicher(info.name)}</span>${an ? '<span class="ez-haken" aria-hidden="true">✓</span>' : ""}</button>`;
+}
+function exportWahlHtml(g) {
+  const gruppen = exportWahlGruppen().filter((gr) => gr.eintraege.length);
+  if (!gruppen.some((gr) => gr.id === exportWahl.kategorie)) exportWahl.kategorie = gruppen[0]?.id || "";
+  const gr = gruppen.find((x) => x.id === exportWahl.kategorie);
+  let html = `<div class="wb-menue ez-wahl"><small class="ez-wahl-titel">Ware herbringen</small><div class="wb-kats" role="tablist" aria-label="Warengruppen">` + gruppen.map((x) => {
+    const an = x.eintraege.some((i) => g.regeln[i] && g.regeln[i].imp === true);
+    return `<button type="button" role="tab" class="wb-kat${an ? " hat-rezept" : ""}" data-aktion="ez-kat" data-kat="${x.id}" style="--kat-farbe:${x.farbe}"
+      aria-selected="${x.id === exportWahl.kategorie}" title="${htmlSicher(x.name)}">${x.bild}</button>`;
+  }).join("") + `</div>`;
+  if (!gr) return html + `</div>`;
+  html += `<div class="wb-titel">${gr.bild}<b>${htmlSicher(gr.name)}</b></div>`;
+  const kat = kategorieNachId.get(gr.id);
+  if (kat) {
+    html += `<div class="wb-matrix" style="--kat-farbe:${kat.farbe}"><span></span>` + KOMPONENTEN.muster.map((m, s) => `<span class="wb-kopf">S${s + 1}</span>`).join("");
+    kat.linien.forEach((linie, l) => {
+      html += `<span class="wb-linie" title="${htmlSicher(`Linie ${l + 1}: ${linie.namen.join(" → ")}`)}">L${l + 1}</span>`;
+      for (let s = 0; s < linie.namen.length; s++) {
+        const b = BAUTEILE.find((x) => x.kategorie === kat.id && x.linie === l + 1 && x.stufeInLinie === s + 1);
+        html += b ? exportKachelHtml(g, b.typ) : `<span class="wb-leer"></span>`;
+      }
+    });
+    html += `</div>`;
+  } else html += `<div class="wb-liste">${gr.eintraege.map((i) => exportKachelHtml(g, i)).join("")}</div>`;
+  return html + `</div>`;
+}
+ob.infoInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-aktion='ez-kat'], button[data-aktion='ez-ware']");
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!knopf || !g || !istExportzone(g)) return;
+  if (knopf.dataset.aktion === "ez-kat") exportWahl.kategorie = knopf.dataset.kat;
+  else {
+    const item = knopf.dataset.item, an = !(g.regeln[item] && g.regeln[item].imp === true);
+    setzeExportWare(g.id, item, an);
+    zeigeMeldung(an ? `${gebaeudeName(g)}: Kuriere bringen jetzt ${itemInfo(item).name} (${exportModusVon(g, item) === "auftrag" ? "für Aufträge" : "zum Verkaufen"}).`
+      : `${gebaeudeName(g)}: ${itemInfo(item).name} wird nicht mehr hergebracht.`);
+  }
+  zeichneInfo();
+  sofortAktualisieren();
+});
 // Phase 7b: Füllstand in Volumen mit Warnfarbe (ab 80 % gelb, voll rot)
 function warnStufe(g) {
   const f = fuellgrad(g);

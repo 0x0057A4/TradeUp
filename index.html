@@ -3497,6 +3497,40 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 #info-panel.modern-import details { margin-top:8px; }#info-panel.modern-import summary { cursor:pointer; color:var(--mi-muted); }
 @media(max-width:700px) { .iz-resource { grid-template-columns:18px 1fr 60px; }.iz-stepper { grid-column:1/3; }.iz-resource button[data-iz-modus] { min-width:70px; }.kw-gruppe input[data-kw-name] { width:100%; }.gebaeude-name-form { flex-wrap:wrap; } }
 </style>
+<style id="leitstand-frei">
+/* === Leitstand-UI: Menüfenster sperren das Spiel nicht (Tim, 2026-10-12) ======================
+   Lager, Kontor, Forschung, Einstellungen, Rezepte, Designer und Kurierwege schweben links über der
+   Halle: kein Schleier, keine Unschärfe, Klicks neben dem Fenster gehen in die Halle. Das Fenster
+   lässt sich am Kopf verschieben und mit − einklappen. Modal bleiben nur Bestätigung und Insolvenz. */
+.modal-schleier.frei, #layout-overlay.frei {
+  background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  pointer-events: none !important; overflow: visible !important;
+  display: flex !important; justify-content: flex-start !important; align-items: flex-start !important;
+  padding: calc(70px + env(safe-area-inset-top, 0px)) 16px 24px !important;
+}
+.modal-schleier.frei[hidden], #layout-overlay.frei[hidden] { display: none !important; }
+.modal-schleier.frei > section, #layout-overlay.frei > section {
+  pointer-events: auto; margin: 0 !important; max-height: calc(100dvh - 96px) !important;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, .35), 0 18px 40px rgba(0, 0, 0, .45) !important;
+}
+#lager-fenster, #kontor-fenster, #forschung-fenster, #rezepte-fenster, #einstellungen-fenster, #lz-fenster, #kurier-fenster { margin: 0 !important; }
+#lager-fenster, #kontor-fenster, #forschung-fenster, #rezepte-fenster { width: min(1080px, calc(100vw - 32px)) !important; }
+#einstellungen-fenster { width: min(940px, calc(100vw - 32px)) !important; }
+#lz-fenster { width: min(1480px, calc(100vw - 32px)) !important; height: auto !important; max-height: calc(100dvh - 96px) !important; }
+#kurier-overlay.frei:not(.kw-bearbeiten) #kurier-fenster { width: min(980px, calc(100vw - 32px)) !important; }
+#kurier-overlay.frei.kw-bearbeiten { justify-content: center !important; align-items: flex-end !important; }
+.frei-griff { cursor: grab; touch-action: none; user-select: none; }
+.frei-griff.zieht { cursor: grabbing; }
+.lz-einklappen { flex: 0 0 auto; width: 30px; height: 30px; padding: 0 !important; display: inline-grid; place-items: center; border-radius: 999px !important; font-weight: 700; line-height: 1; }
+.lz-einklappen + .lz-knopf-rund { margin-left: 6px !important; }
+.lz-kopf > .lz-einklappen { margin-left: auto; }
+.frei-fenster.eingeklappt > :not(header) { display: none !important; }
+.frei-fenster.eingeklappt { height: auto !important; min-height: 0 !important; }
+@media (max-width: 700px) {
+  .modal-schleier.frei, #layout-overlay.frei { padding: calc(60px + env(safe-area-inset-top, 0px)) 8px 8px !important; }
+  .modal-schleier.frei > section, #layout-overlay.frei > section { max-height: 58dvh !important; width: calc(100vw - 16px) !important; }
+}
+</style>
 </head>
 <body>
 
@@ -3574,8 +3608,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 <!-- ================== PRODUKT-LAYOUT-DESIGNER (Phase 3) ================== -->
 <!-- Liegt als 2D-Fenster über der 3D-Szene. Inhalte (Bauteile, Raster, Listen)
      baut das Skript in Abschnitt 9 auf. -->
-<div id="layout-overlay" hidden>
-  <section id="lz-fenster" role="dialog" aria-modal="true" aria-labelledby="lz-titel" tabindex="-1">
+<div id="layout-overlay" class="frei" hidden>
+  <section id="lz-fenster" role="dialog" aria-modal="false" aria-labelledby="lz-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="lz-titel">Produktdesigner</h2>
       <label class="lz-name">Name <input id="lz-name" type="text" maxlength="40" autocomplete="off" spellcheck="false"></label>
@@ -3687,8 +3721,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 </aside>
 
 <!-- ================== LAGER-FENSTER (Phase 4) ================== -->
-<div id="lager-overlay" class="modal-schleier" hidden>
-  <section id="lager-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="lager-titel" tabindex="-1">
+<div id="lager-overlay" class="modal-schleier frei" hidden>
+  <section id="lager-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="lager-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="lager-titel">Lager</h2>
       <span class="lz-platz" style="flex:1"></span>
@@ -3723,8 +3757,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 
 <!-- ================== KONTOR (Phase 5) ================== -->
 <!-- Aufträge, Verkauf, Einkauf, Konkurrenz, Kassenbuch. Den Inhalt baut das Skript in Abschnitt 13b. -->
-<div id="kontor-overlay" class="modal-schleier" hidden>
-  <section id="kontor-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="kontor-titel" tabindex="-1">
+<div id="kontor-overlay" class="modal-schleier frei" hidden>
+  <section id="kontor-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="kontor-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="kontor-titel">Kontor</h2>
       <span id="kontor-konto" class="lz-name" style="text-transform:none;letter-spacing:normal"></span>
@@ -3742,8 +3776,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 </div>
 
 <!-- ================== FORSCHUNG / TECHTREE (Phase 5) ================== -->
-<div id="forschung-overlay" class="modal-schleier" hidden>
-  <section id="forschung-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="forschung-titel" tabindex="-1">
+<div id="forschung-overlay" class="modal-schleier frei" hidden>
+  <section id="forschung-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="forschung-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="forschung-titel">Forschung</h2>
       <!-- Phase 7d: Suche über alle drei Bäume -->
@@ -3761,8 +3795,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 
 <!-- ================== EINSTELLUNGEN (Phase 7a) ================== -->
 <!-- Tastenkürzel neu belegen und Grafik schalten. Den Inhalt baut das Skript in Abschnitt 13d. -->
-<div id="einstellungen-overlay" class="modal-schleier" hidden>
-  <section id="einstellungen-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="einstellungen-titel" tabindex="-1">
+<div id="einstellungen-overlay" class="modal-schleier frei" hidden>
+  <section id="einstellungen-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="einstellungen-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="einstellungen-titel">Einstellungen</h2>
       <span class="lz-platz" style="flex:1"></span>
@@ -3784,8 +3818,8 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 </div>
 
 <!-- ================== REZEPTE (Phase 7a, Nachtrag 2) ================== -->
-<div id="rezepte-overlay" class="modal-schleier" hidden>
-  <section id="rezepte-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="rezepte-titel" tabindex="-1">
+<div id="rezepte-overlay" class="modal-schleier frei" hidden>
+  <section id="rezepte-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="rezepte-titel" tabindex="-1">
     <header class="lz-kopf">
       <h2 id="rezepte-titel">Rezepte</h2>
       <span class="lz-platz" style="flex:1"></span>
@@ -6597,10 +6631,29 @@ function zoomeWeich(sekunden) {
   setzeHover(kachelUnterMaus(zoomAnker.x, zoomAnker.y));
 }
 
+// Leitstand-UI: Menüfenster sperren das Spiel nicht. Fenster mit eigenen Tasten (Designer, Kurierwege)
+// bekommen die Tastatur nur, solange zuletzt in sie geklickt wurde (oder sie gerade geöffnet wurden).
+const TASTATUR_FENSTER = "#lz-fenster, #kurier-fenster";
+let tastaturFenster = null;
+document.addEventListener("pointerdown", (e) => {
+  tastaturFenster = e.target instanceof Element ? e.target.closest(TASTATUR_FENSTER) : null;
+  // Klick in die Halle: Ein Suchfeld im offenen Menüfenster gibt die Tastatur wieder an das Spiel ab
+  const aktiv = document.activeElement;
+  if (e.target instanceof HTMLCanvasElement && aktiv instanceof HTMLElement && aktiv.closest(".frei")) aktiv.blur();
+}, true);
+document.addEventListener("focusin", (e) => {
+  const f = e.target instanceof Element ? e.target.closest(TASTATUR_FENSTER) : null;
+  if (f) tastaturFenster = f;
+});
+function fensterHatTastatur() {
+  return !!tastaturFenster && tastaturFenster.isConnected && !tastaturFenster.closest("[hidden]");
+}
+
 // Tastatur: W A S D / Pfeiltasten bewegen die Kamera, Esc hebt die Auswahl auf.
 const gedrueckteTasten = new Set();
 window.addEventListener("keydown", (e) => {
-  if (eingaben3dGesperrt) return;    // Layout-Designer offen: 3D-Steuerung ruht
+  if (eingaben3dGesperrt) return;    // modaler Dialog offen: 3D-Steuerung ruht
+  if (fensterHatTastatur()) return;  // Leitstand-UI: Tasten gehen an das zuletzt angeklickte Menüfenster (Designer, Kurierwege)
   if (e.target instanceof Element && (e.target.isContentEditable || e.target.closest("input, select, textarea, button, a, [role='button']"))) return;
   if (e.key === "Escape") { setzeAuswahl(null); return; }
   gedrueckteTasten.add(e.key.toLowerCase());
@@ -8571,7 +8624,8 @@ document.getElementById("lz-speichern").addEventListener("click", () => {
 function oberstesModal() {
   const bestaetigung = document.getElementById("dialog-overlay");
   if (!bestaetigung.hidden) return bestaetigung;
-  return [...document.querySelectorAll(".modal-schleier, #layout-overlay")].reverse().find((e) => !e.hidden) || null;
+  // Leitstand-UI: Menüfenster (Klasse "frei") sperren das Spiel nicht – nur Dialoge sind modal
+  return [...document.querySelectorAll(".modal-schleier:not(.frei), #layout-overlay:not(.frei)")].reverse().find((e) => !e.hidden) || null;
 }
 function synchronisiereModalFokus() {
   const modal = oberstesModal();
@@ -8643,6 +8697,14 @@ window.addEventListener("keydown", (e) => {
       e.preventDefault();
       e.stopImmediatePropagation();
       oeffneDesigner();
+    }
+    return;
+  }
+  // Leitstand-UI: Der Designer sperrt das Spiel nicht. Seine Tasten gelten nur, solange zuletzt in ihn
+  // geklickt wurde; nach einem Klick in die Halle steuern die Tasten wieder das Spiel (L schließt ihn).
+  if (!fensterHatTastatur()) {
+    if (taste === tasteFuer("designer") && !imEingabefeld && !e.ctrlKey && !e.metaKey && !e.altKey && !eingaben3dGesperrt) {
+      e.preventDefault(); e.stopImmediatePropagation(); schliesseDesigner();
     }
     return;
   }
@@ -22273,8 +22335,8 @@ function bauKartenWerte(t) {
 // Ziehen: SortableJS 1.15.2 per CDN (fehlt es, gilt das eingebaute Ziehen per Drag & Drop).
 const kurierwegeAnsicht={offen:false,modus:'liste',auswahl:null,entwurf:null,meldung:'',pick:null,vormerk:[]};   // modus: 'liste' (Übersicht) | 'bearbeiten'
 const kwOverlay=document.createElement('div');
-kwOverlay.id='kurier-overlay';kwOverlay.className='modal-schleier';kwOverlay.hidden=true;
-kwOverlay.innerHTML='<section id="kurier-fenster" class="modal-fenster modern-ui" role="dialog" aria-modal="true" aria-label="Kurierwege" tabindex="-1"></section>';
+kwOverlay.id='kurier-overlay';kwOverlay.className='modal-schleier frei';kwOverlay.hidden=true;
+kwOverlay.innerHTML='<section id="kurier-fenster" class="modal-fenster modern-ui" role="dialog" aria-modal="false" aria-label="Kurierwege" tabindex="-1"></section>';
 document.body.append(kwOverlay);
 const kwFenster=kwOverlay.firstElementChild;
 const kwPickBanner=document.createElement('div');kwPickBanner.id='kw-pick-banner';kwPickBanner.hidden=true;
@@ -24220,7 +24282,7 @@ function aktualisiereSperre() {
   aktualisiereAbrissMarke();
 }
 function oeffneLager() {
-  if (lagerOffen || designer.offen || insolvenzOffen) return;
+  if (lagerOffen || dialogOffen || insolvenzOffen) return;
   schliesseAndereFenster();
   lagerOffen = true;
   ob.lagerOverlay.hidden = false;
@@ -24409,6 +24471,7 @@ function aktualisiereWirtschaftsLeiste() {
 
 /* --- Kontor-Fenster --- */
 function schliesseAndereFenster() {
+  if (designer.offen) schliesseDesigner();                         // Leitstand-UI: immer nur ein Menüfenster
   if(kurierwegeAnsicht.offen)schliesseKurierwege();
   if (lagerOffen) schliesseLager();
   if (kontor.offen) schliesseKontor(false);
@@ -24417,7 +24480,7 @@ function schliesseAndereFenster() {
   if (rezeptFenster.offen) schliesseRezepte(false);               // Phase 7a (Nachtrag 2)
 }
 function oeffneKontor(reiter = kontor.reiter) {
-  if (designer.offen || dialogOffen || insolvenzOffen) return;
+  if (dialogOffen || insolvenzOffen) return;
   if (!kontor.offen) schliesseAndereFenster();
   kontor.reiter = reiter;
   if (!kontor.offen) {
@@ -25122,7 +25185,7 @@ function forschungKopfHtml() {
 }
 let forschungMerker = "";   // (Phase 5) bleibt für ältere Aufrufe
 function oeffneForschung() {
-  if (designer.offen || dialogOffen || insolvenzOffen) return;
+  if (dialogOffen || insolvenzOffen) return;
   if (forschungOffen) return;
   schliesseAndereFenster();
   forschungOffen = true;
@@ -25389,7 +25452,7 @@ const GRAFIK_SCHALTER = [
 ];
 
 function oeffneEinstellungen() {
-  if (designer.offen || dialogOffen || insolvenzOffen) return;
+  if (dialogOffen || insolvenzOffen) return;
   if (einstellungsFenster.offen) return;
   schliesseAndereFenster();
   einstellungsFenster.offen = true;
@@ -25612,11 +25675,14 @@ tastenGeaendert();   // gespeicherte Belegung gleich beim Start in die Schildche
 
 /* --- Tastatur (Capture-Phase, läuft vor der 3D-Steuerung) --- */
 window.addEventListener("keydown", (e) => {
-  if (designer.offen) return;                           // der Layout-Designer hat seine eigenen Tasten
+  if (designer.offen && fensterHatTastatur()) return;   // der Layout-Designer hat seine eigenen Tasten
   if(kurierwegeAnsicht.offen) {
-    if(e.key==='Escape') { e.preventDefault();e.stopImmediatePropagation();if(kurierwegeAnsicht.pick!==null)kwPickEnde();else schliesseKurierwege(); }
-    else if(kurierwegeAnsicht.pick===null && !['Tab','Enter',' '].includes(e.key) && !e.target.matches('input,select,textarea')){e.preventDefault();e.stopImmediatePropagation();}
-    return;
+    if(e.key==='Escape') { e.preventDefault();e.stopImmediatePropagation();if(kurierwegeAnsicht.pick!==null)kwPickEnde();else schliesseKurierwege(); return; }
+    // Leitstand-UI: Kurierwege sperren das Spiel nicht – nur solange zuletzt ins Fenster geklickt wurde, bleiben die Tasten dort
+    if(fensterHatTastatur()) {
+      if(kurierwegeAnsicht.pick===null && !['Tab','Enter',' '].includes(e.key) && !e.target.matches('input,select,textarea')){e.preventDefault();e.stopImmediatePropagation();}
+      return;
+    }
   }
   if (komponentenVorschau().offen) {                    // 12c: Vorschau-Fenster – Esc schließt, sonst keine Spieltasten
     if (e.key === "Escape") { e.preventDefault(); e.stopImmediatePropagation(); schliesseKomponentenVorschau(); }
@@ -25633,7 +25699,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === " " && !einstellungsFenster.wartetAuf && e.composedPath().some((node) => node instanceof Element && node.matches("button, a, [role='button']"))) return;
   // Phase 7a (Nachtrag 3): Strg + C / Strg + V – Auswahl kopieren und einfügen (feste Tasten)
   if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && ["c", "v"].includes(e.key.toLowerCase())) {
-    if (dialogOffen || insolvenzOffen || einstellungsFenster.offen || rezeptFenster.offen || lagerOffen || kontor.offen || forschungOffen) return;
+    if (dialogOffen || insolvenzOffen) return;              // Leitstand-UI: Menüfenster sperren Strg+C/V nicht mehr
     if (e.key.toLowerCase() === "c" && window.getSelection && String(window.getSelection())) return;   // markierter Text: normal kopieren
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.key.toLowerCase() === "c") kopierenAktion(); else einfuegenAktion();
@@ -25656,34 +25722,23 @@ window.addEventListener("keydown", (e) => {
     if (einstellungsFenster.wartetAuf || taste === "escape" || taste === tasteFuer("einstellungen")) {
       erledigt();
       einstellungsTaste(taste);
+      return;
     }
-    return;
+    if (["enter", " ", "tab"].includes(taste)) return;
+    // Leitstand-UI: sonst gelten die Spieltasten weiter (Fenster sperrt das Spiel nicht)
   }
   // Phase 7a: Die Taste wird über die Belegung aus dem Einstellungsmenü in eine Aktion übersetzt
   const aktion = aktionFuerTaste(taste);
-  if (rezeptFenster.offen) {                            // Phase 7a (Nachtrag 2): Rezepte
-    if (taste === "escape" || aktion === "rezepte") { erledigt(); schliesseRezepte(); }
-    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
-    return;
-  }
+  // Leitstand-UI: Menüfenster sperren das Spiel nicht. Esc oder die eigene Taste schließt das Fenster,
+  // alle anderen Tasten wirken weiter in der Halle (ein anderes Fenster öffnen ersetzt das offene).
+  if (einstellungsFenster.offen && taste === "escape") { erledigt(); schliesseEinstellungen(); return; }
+  if (rezeptFenster.offen && (taste === "escape" || aktion === "rezepte")) { erledigt(); schliesseRezepte(); return; }
   if (lagerOffen) {
-    if (taste === "escape" || aktion === "lager") { erledigt(); schliesseLager(); }
-    else if (aktion === "kontor") { erledigt(); oeffneKontor("einkauf"); }
-    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
-    return;
+    if (taste === "escape" || aktion === "lager") { erledigt(); schliesseLager(); return; }
+    if (aktion === "kontor") { erledigt(); oeffneKontor("einkauf"); return; }
   }
-  if (kontor.offen) {
-    if (taste === "escape" || aktion === "kontor") { erledigt(); schliesseKontor(); }
-    else if (aktion === "forschung") { erledigt(); oeffneForschung(); }
-    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
-    return;
-  }
-  if (forschungOffen) {
-    if (taste === "escape" || aktion === "forschung") { erledigt(); schliesseForschung(); }
-    else if (aktion === "kontor") { erledigt(); oeffneKontor(); }
-    else if (aktion === "einstellungen") { erledigt(); oeffneEinstellungen(); }
-    return;
-  }
+  if (kontor.offen && (taste === "escape" || aktion === "kontor")) { erledigt(); schliesseKontor(); return; }
+  if (forschungOffen && (taste === "escape" || aktion === "forschung")) { erledigt(); schliesseForschung(); return; }
   if (taste === "escape") {
     if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
     else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
@@ -27273,7 +27328,7 @@ function schalteRezeptPin(schluessel) {
 
 /* --- Das Fenster --- */
 function oeffneRezepte() {
-  if (designer.offen || dialogOffen || insolvenzOffen || rezeptFenster.offen) return;
+  if (dialogOffen || insolvenzOffen || rezeptFenster.offen) return;
   schliesseAndereFenster();
   rezeptFenster.offen = true;
   ob.rezepteOverlay.hidden = false;
@@ -28072,6 +28127,49 @@ window.addEventListener("keydown", (e) => {
   objektZiehenBewegt(objektZug.zuletzt);
   zeigeMeldung(`Gedreht: ${objektZug.drehung}°. Loslassen zum Übernehmen.`);
 }, true);
+
+
+/* --- Leitstand-UI: Menüfenster verschieben und einklappen ------------------------------------
+   Die Fenster sperren das Spiel nicht (siehe CSS "leitstand-frei"). Am Kopf lässt sich jedes
+   Fenster verschieben, der Knopf − klappt es auf den Kopf zusammen. Position bleibt bis zum Neuladen. */
+(function richteFreieFensterEin() {
+  const fenster = [...document.querySelectorAll(".modal-schleier.frei > section, #layout-overlay.frei > section")]
+    .filter((f) => f.id !== "kurier-fenster");                 // Kurierwege zeichnen ihren Kopf selbst neu
+  for (const f of fenster) {
+    const kopf = f.querySelector(":scope > header");
+    if (!kopf) continue;
+    f.classList.add("frei-fenster");
+    kopf.classList.add("frei-griff");
+    const zu = kopf.querySelector(".lz-knopf-rund");
+    const ein = document.createElement("button");
+    ein.type = "button"; ein.className = "lz-knopf lz-einklappen"; ein.textContent = "−";
+    ein.title = "Einklappen"; ein.setAttribute("aria-label", "Fenster einklappen"); ein.setAttribute("aria-pressed", "false");
+    ein.addEventListener("click", () => {
+      const an = f.classList.toggle("eingeklappt");
+      ein.textContent = an ? "+" : "−"; ein.title = an ? "Ausklappen" : "Einklappen";
+      ein.setAttribute("aria-label", an ? "Fenster ausklappen" : "Fenster einklappen"); ein.setAttribute("aria-pressed", String(an));
+    });
+    if (zu) kopf.insertBefore(ein, zu); else kopf.append(ein);
+    let zug = null, dx = 0, dy = 0;
+    kopf.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target.closest("button, input, select, textarea, label, a")) return;
+      zug = { id: e.pointerId, x: e.clientX - dx, y: e.clientY - dy };
+      kopf.setPointerCapture(e.pointerId); kopf.classList.add("zieht");
+    });
+    kopf.addEventListener("pointermove", (e) => {
+      if (!zug || e.pointerId !== zug.id) return;
+      const r = f.getBoundingClientRect();
+      // Kopf bleibt immer greifbar im Bild
+      const nx = e.clientX - zug.x, ny = e.clientY - zug.y;
+      const minX = dx - r.left - r.width + 120, maxX = dx + (innerWidth - r.left) - 120;
+      const minY = dy - r.top + 4, maxY = dy + (innerHeight - r.top) - 48;
+      dx = Math.min(maxX, Math.max(minX, nx)); dy = Math.min(maxY, Math.max(minY, ny));
+      f.style.translate = `${dx}px ${dy}px`;
+    });
+    const ende = (e) => { if (zug && e.pointerId === zug.id) { zug = null; kopf.classList.remove("zieht"); } };
+    kopf.addEventListener("pointerup", ende); kopf.addEventListener("pointercancel", ende);
+  }
+})();
 
 /* ============================================================================
    ABSCHNITT 10: Spielschleife (Render-Loop)                        [3D-Agent]

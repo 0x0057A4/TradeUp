@@ -17974,6 +17974,44 @@ function modellAssembler(m) {
   });
 }
 
+// Fließband-Mechanik neu (2026-10-12): Lage eines Tors aus typ.tore im Modell (Drehung 0, Mitte im Ursprung).
+// x, z = Mitte der Torkante, d = Richtung nach außen. Gilt für das alte und das neue Modell (12e).
+function torLageModell(B, T, tor) {
+  const tx = -B / 2 + 0.5 + tor.k, tz = -T / 2 + 0.5 + tor.k;
+  switch (tor.seite) {
+    case "hinten": return { x: tx, z: -T / 2, d: { x: 0, z: -1 } };
+    case "vorn":   return { x: tx, z: T / 2, d: { x: 0, z: 1 } };
+    case "links":  return { x: -B / 2, z: tz, d: { x: -1, z: 0 } };
+    default:       return { x: B / 2, z: tz, d: { x: 1, z: 0 } };
+  }
+}
+// Kategorie-Maschine (B × T, schlichtes Modell): Kasten in der Kategoriefarbe, an den Torkanten ein grüner
+// (Eingang) bzw. roter (Ausgang) Rahmen mit dunkler Öffnung; die Fächer liegen auf dem Kasten hinter dem Tor
+function modellKatMaschine(m, t) {
+  const g = new THREE.Group(), B = t.breite, T = t.tiefe, D = GRAFIK.farbeMetallDunkel;
+  const kat = kategorieNachId.get(t.katMaschine), F = kat ? kat.farbe : GRAFIK.farbeMetall, H = 0.75;
+  maschinenSockel(g, m, B, T);
+  quader(g, B - 0.5, H - 0.08, T - 0.5, F, 0, 0.08, 0, m);
+  quader(g, B - 0.46, 0.06, T - 0.46, D, 0, H, 0, m);
+  const fach = (tor, rand) => {
+    const l = torLageModell(B, T, tor), farbe = rand === "ein" ? GRAFIK.farbeEingangsfach : GRAFIK.farbeAusgabefach;
+    const s = new THREE.Group();
+    s.position.set(l.x, 0, l.z);
+    s.rotation.y = Math.atan2(l.d.x, l.d.z);
+    quader(s, 0.7, 0.42, 0.06, farbe, 0, 0.08, -0.02, m);                 // Torrahmen
+    quader(s, 0.5, 0.3, 0.02, GRAFIK.farbeTunnel, 0, 0.1, 0.02, m);
+    quader(s, 0.6, 0.01, 0.12, farbe, 0, 0, 0.07, m);                     // Markierung auf der Kachelkante
+    g.add(s);
+    const innen = Math.min(0.46, (l.d.x ? B : T) / 2);                      // Fach auf dem Kasten, hinter dem Tor
+    return maschinenFach(g, m, l.x - l.d.x * innen, H + 0.06, l.z - l.d.z * innen, 0.42, 0.42, farbe, MASCHINEN_WUERFEL, false);
+  };
+  const eingangPlaetze = fach(t.tore.ein, "ein"), plaetze = fach(t.tore.aus, "aus");
+  const lampe = signalSaeule(g, m, -(B - 0.5) / 2 + 0.1, H + 0.06, -(T - 0.5) / 2 + 0.1, 0.25);
+  return maschinenErgebnis(g, { plaetze, eingangPlaetze, lampe, statusHoehe: H + 0.9,
+    warnPunkt: new THREE.Vector3(-(B - 0.5) / 2 + 0.1, H + 0.55, -(T - 0.5) / 2 + 0.1) });
+}
+for (const t of GEBAEUDE_TYPEN) if (t.katMaschine) MODELLE[t.typ] = (m) => modellKatMaschine(m, t);
+
 // Metall-Kiste (1 × 1): Stahlkiste mit Sicken, gelbem Griff und Etikett vorn
 function modellMetallKiste(m) {
   const g = new THREE.Group(), plaetze = [], F = GRAFIK.farbeMetallKiste, D = GRAFIK.farbeMetallDunkel;
@@ -19686,6 +19724,29 @@ function nbAnzeige(g, x, z, farbe, y0) {
   nbBox(schirm, 0.18, 0.11, 0.01, nbLeucht(farbe, 1.1), 0, -0.055, 0.021, 0);
   g.add(schirm);
 }
+// Flacher Leuchtschirm im Dach (Smart-Verteiler): dunkler Rahmen, darin Bedarfsbalken; y = Oberkante des Dachs
+let nbSchirmMaterial = null;
+function nbDachSchirm(g, x, z, w, d, y) {
+  if (!nbSchirmMaterial) {
+    const c = document.createElement("canvas");
+    c.width = 96; c.height = 64;
+    const k = c.getContext("2d");
+    k.fillStyle = "#0e1a21"; k.fillRect(0, 0, 96, 64);
+    k.fillStyle = "#1d8a87"; k.fillRect(0, 0, 96, 9);
+    [0.8, 0.45, 0.65].forEach((a, i) => {
+      k.fillStyle = "rgba(255,255,255,0.12)"; k.fillRect(6, 16 + i * 16, 84, 9);
+      k.fillStyle = a > 0.5 ? "#3fe07a" : "#ffc23a"; k.fillRect(6, 16 + i * 16, 84 * a, 9);
+    });
+    const tx = new THREE.CanvasTexture(c);
+    tx.colorSpace = THREE.SRGBColorSpace;
+    nbSchirmMaterial = new THREE.MeshStandardMaterial({ map: tx, emissive: "#ffffff", emissiveMap: tx, emissiveIntensity: 0.85, roughness: 0.3 });
+  }
+  nbBox(g, w + 0.04, 0.012, d + 0.04, nbMat(GRAFIK.farbeArmGelenk, { r: 0.5 }), x, y, z, 0.005);
+  const schirm = new THREE.Mesh(new THREE.PlaneGeometry(w, d), nbSchirmMaterial);
+  schirm.rotation.x = -Math.PI / 2;
+  schirm.position.set(x, y + 0.013, z);
+  g.add(schirm);
+}
 // Füllstandsrohr: Glasröhre, darin eine Leuchtsäule, die mit dem Puffer wächst (ersetzt die Puffer-Würfel)
 function nbFuellRohr(g, x, y, z, farbe) {
   nbZyl(g, 0.055, 0.055, 0.025, nbMat(NB.farben.stahlDunkel), x, y + 0.012, z, "y", 14);
@@ -19726,7 +19787,7 @@ function nbKnotenKopf(g, art) {
     fuell = nbFuellRohr(g, 0.27, T + 0.04, 0.27, akzent);
     for (const d of [NB_SEITEN.links, NB_SEITEN.vorn, NB_SEITEN.rechts]) nbPfeil(g, d.x * 0.17, T + 0.043, d.z * 0.17, nbWinkel(d.x, d.z), 0.75);
     for (const d of Object.values(NB_SEITEN)) { nbMaul(g, d, 0.492); nbKnoepfe(g, d, 0.492, H + 0.275, 0.26, akzent); }
-    nbAnzeige(g, -0.2, -0.2, akzent, T + 0.04);
+    nbDachSchirm(g, 0, -0.14, 0.22, 0.15, T + 0.04);   // Tim 2026-10-12: Anzeige flach im Dach statt auf dem Ständer
   } else if (art === "ventil") {
     const T = H + 0.37, akzent = GRAFIK.farbeVentil, orange = nbMat(akzent, { r: 0.45 });
     nbZyl(g, 0.45, 0.47, 0.4, weiss, 0, H + 0.17, 0, "y", 36);
@@ -21371,6 +21432,664 @@ const MASCHINEN_LOOK = (() => {
     return form;
   }
 
+  /* ==========================================================================
+     Kategorie-Maschinen (Fließband-Mechanik neu, Vorlage kategorie-maschinen.html, von Tim abgenommen 2026-10-12)
+     Je Komponenten-Kategorie eine Maschine, Lack und Leuchtkante in der Kategoriefarbe, Symbolschild,
+     Signalsäule. Tor-Gehäuse (Eingang GRÜN, Ausgang ROT, Bürstenvorhang, Pfeil auf dem Dach) sitzen genau an
+     den Kachelkanten aus typ.tore (torLageModell); die Fächer liegen sichtbar nahe am jeweiligen Tor.
+     Dauerbewegungen der Vorlage laufen hier über animiere(p): p 0 … 1 = ein Arbeitstakt, 0 = Ruhe.
+     ========================================================================== */
+  const VOLL = Math.PI * 2;
+  function textMat(text, grund) {
+    return ersatz || merke("text:" + text + grund, () => {
+      const t = textur(128, 48, (k, w, h) => {
+        k.fillStyle = grund; k.beginPath(); k.roundRect(0, 0, w, h, 8); k.fill();
+        k.fillStyle = "#ffffff"; k.font = "700 30px 'Arial Narrow', 'Nunito', sans-serif";
+        k.textAlign = "center"; k.textBaseline = "middle"; k.fillText(text, w / 2, h / 2 + 2);
+      }, false);
+      return new THREE.MeshStandardMaterial({ map: t, emissive: "#ffffff", emissiveMap: t, emissiveIntensity: 0.35, roughness: 0.5 });
+    });
+  }
+  function pfeil(g, x, y, z, winkel, s, farbe) {
+    const p = nbPfeil(g, x, y, z, winkel, s, farbe);
+    if (ersatz) p.material = ersatz;
+    return p;
+  }
+  // Leuchtschild mit dem Symbol der Kategorie; (x, y, z) = Mitte
+  function symbolSchild(g, x, y, z, katId, gross = 0.2) {
+    const kat = kategorieNachId.get(katId);
+    const m = ersatz || merke("symbol:" + katId, () => new THREE.MeshStandardMaterial({ roughness: 0.5, map: textur(128, 128, (k, w, h) => {
+      k.fillStyle = "#fbfaf6"; k.beginPath(); k.roundRect(4, 4, w - 8, h - 8, 18); k.fill();
+      maleSymbol(k, katId, w / 2, h / 2, 76, dunkler(kat.farbe, 0.25), "#fbfaf6");
+    }, false) }));
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(gross, gross), m);
+    s.position.set(x, y, z);
+    g.add(s);
+    return s;
+  }
+  // Tor: Tunnelgehäuse an der Kante mit Leuchtrahmen, Bürstenvorhang, EIN/AUS-Schild und Pfeil auf dem Dach.
+  // Lokal zeigt +z nach außen; das Gehäuse reicht 0,42 in die Maschine hinein.
+  function tor(g, lage, istEin) {
+    const farbe = istEin ? GRUEN : ROT, f = new THREE.Group(), y0 = 0.07, rahmen = mat(farbe, { r: 0.45 });
+    f.position.set(lage.x, 0, lage.z);
+    f.rotation.y = winkelVon(lage.d.x, lage.d.z);
+    box(f, 0.76, 0.5, 0.44, null, 0, y0, -0.2, 0.03, WEISS());
+    box(f, 0.7, 0.04, 0.4, null, 0, y0 + 0.5, -0.2, 0.012, rahmen);
+    box(f, 0.62, 0.012, 0.3, C.feld, 0, y0 + 0.54, -0.2, 0.004);
+    pfeil(f, 0, y0 + 0.556, -0.2, istEin ? Math.PI : 0, 1.35, farbe);
+    for (const sx of [-1, 1]) box(f, 0.06, 0.4, 0.04, null, sx * 0.32, y0, 0, 0.01, rahmen);
+    box(f, 0.7, 0.06, 0.04, null, 0, y0 + 0.34, 0, 0.01, rahmen);
+    box(f, 0.58, 0.012, 0.012, null, 0, y0 + 0.395, 0.022, 0, leucht(farbe, 1.8));
+    box(f, 0.56, 0.32, 0.02, C.dunkel, 0, y0 - 0.002, -0.005, 0);
+    for (let i = 0; i < 9; i++) box(f, 0.05, 0.22, 0.008, "#23282d", -0.24 + i * 0.06, y0 + 0.1, 0.012, 0);
+    const schild = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.11), textMat(istEin ? "EIN" : "AUS", farbe));
+    schild.position.set(0, y0 + 0.44, 0.022);
+    f.add(schild);
+    box(f, 0.8, 0.008, 0.05, null, 0, 0, 0.07, 0, leucht(farbe, 0.9)).castShadow = false;
+    g.add(f);
+  }
+  function leuchtKante(g, w, d, x, y, z, m) {
+    box(g, w + 0.01, 0.022, 0.02, null, x, y, z + d / 2, 0, m);
+    box(g, w + 0.01, 0.022, 0.02, null, x, y, z - d / 2, 0, m);
+    box(g, 0.02, 0.022, d, null, x + w / 2, y, z, 0, m);
+    box(g, 0.02, 0.022, d, null, x - w / 2, y, z, 0, m);
+  }
+  // Zahnrad als Scheibe (Achse = lokale z), r = Außenradius
+  function zahnrad(g, r, zaehne, dicke, m) {
+    const pkt = [], n = zaehne * 4;
+    for (let i = 0; i < n; i++) {
+      const w = i / n * VOLL, zahn = (i % 4) < 2;
+      pkt.push(new THREE.Vector2(Math.cos(w) * (zahn ? r : r * 0.84), Math.sin(w) * (zahn ? r : r * 0.84)));
+    }
+    const form = new THREE.Shape(pkt), loch = new THREE.Path();
+    loch.absarc(0, 0, r * 0.18, 0, VOLL, true); form.holes.push(loch);
+    const geo = new THREE.ExtrudeGeometry(form, { depth: dicke, bevelEnabled: true, bevelThickness: 0.008, bevelSize: 0.008, bevelSegments: 1 });
+    geo.translate(0, 0, -dicke / 2);
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.castShadow = mesh.receiveShadow = true;
+    g.add(mesh);
+    return mesh;
+  }
+  // Messuhr (Zifferblatt mit Zeiger). Rückgabe: Zeiger zum Drehen
+  function messuhr(g, x, y, z, r, farbe) {
+    const u = new THREE.Group(); u.position.set(x, y, z); g.add(u);
+    zyl(u, r + 0.02, r + 0.02, 0.04, C.armGelenk, 0, 0, 0, "z", 28);
+    const blatt = ersatz || merke("messuhr:" + farbe, () => new THREE.MeshStandardMaterial({ roughness: 0.4, map: textur(128, 128, (k) => {
+      k.fillStyle = "#f5f7f6"; k.beginPath(); k.arc(64, 64, 62, 0, VOLL); k.fill();
+      k.strokeStyle = "#2a3036"; k.lineWidth = 4;
+      for (let i = 0; i <= 10; i++) { const a = Math.PI * (0.8 + i * 0.14); k.beginPath(); k.moveTo(64 + Math.cos(a) * 46, 64 + Math.sin(a) * 46); k.lineTo(64 + Math.cos(a) * 56, 64 + Math.sin(a) * 56); k.stroke(); }
+      k.strokeStyle = farbe; k.lineWidth = 8; k.beginPath(); k.arc(64, 64, 51, Math.PI * 1.9, Math.PI * 2.2); k.stroke();
+    }, false) }));
+    const f = new THREE.Mesh(new THREE.CircleGeometry(r, 28), blatt);
+    f.position.z = 0.022; u.add(f);
+    const zeiger = new THREE.Group(); zeiger.position.z = 0.03; u.add(zeiger);
+    box(zeiger, 0.012, r * 0.8, 0.006, C.rot, 0, 0, 0, 0);
+    return zeiger;
+  }
+  // Eigenes Material je Maschine (wird animiert); einzeln = nicht verschmelzen
+  const eigen = (bauen) => ersatz || bauen();
+  const einzeln = (mesh) => { mesh.userData.einzeln = true; return mesh; };
+  const stillBahn = () => ersatz || nbStillBahn;
+  const waferMat = () => ersatz || merke("wafer", () => {
+    const t = textur(256, 256, (k, w, h) => {
+      k.fillStyle = "#9aa6b8"; k.fillRect(0, 0, w, h);
+      k.save(); k.beginPath(); k.arc(w / 2, h / 2, w / 2 - 4, 0, VOLL); k.clip();
+      const gr = k.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "#c7b6e8"); gr.addColorStop(0.5, "#8fa3d8"); gr.addColorStop(1, "#d6b8e8");
+      k.fillStyle = gr; k.fillRect(0, 0, w, h);
+      for (let x = 6; x < w; x += 22) for (let y = 6; y < h; y += 22) {
+        k.fillStyle = "rgba(40,30,80,0.35)"; k.fillRect(x, y, 18, 18);
+        k.fillStyle = "rgba(255,215,120,0.55)"; k.fillRect(x + 6, y + 6, 6, 6);
+      }
+      k.restore();
+    }, false);
+    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.25, metalness: 0.5 });
+  });
+  const panelMat = () => ersatz || merke("panel", () => {
+    const t = textur(256, 160, (k, w, h) => {
+      const gr = k.createLinearGradient(0, 0, w, h); gr.addColorStop(0, "#1b4f8a"); gr.addColorStop(0.5, "#6fa8dc"); gr.addColorStop(1, "#b9e3ff");
+      k.fillStyle = gr; k.fillRect(0, 0, w, h);
+      k.fillStyle = "rgba(255,255,255,0.18)";
+      for (let i = 0; i < 6; i++) k.fillRect(16 + i * 40, 110 - i * 12, 26, 30 + i * 12);
+      k.strokeStyle = "rgba(255,255,255,0.8)"; k.lineWidth = 4; k.beginPath();
+      for (let x = 0; x <= w; x += 8) { const y = 50 + Math.sin(x / 22) * 18; x ? k.lineTo(x, y) : k.moveTo(x, y); }
+      k.stroke();
+    }, false);
+    return new THREE.MeshStandardMaterial({ map: t, emissive: "#ffffff", emissiveMap: t, emissiveIntensity: 0.9, roughness: 0.3 });
+  });
+  // Lebenslauf eines Teils auf einer Strecke: 0 … 1, am Rand ein- und ausblenden
+  const rand = (s, b = 0.08) => Math.max(0.001, Math.min(1, s / b, (1 - s) / b));
+
+  // Gemeinsamer Aufbau: Platte, beide Tore aus typ.tore, Körper (aufbau) und Ergebnis
+  function katMaschine(t) {
+    const aufbau = KAT_KOERPER[t.katMaschine], kat = kategorieNachId.get(t.katMaschine);
+    if (!aufbau || !kat || !t.tore) return null;
+    const g = new THREE.Group(), B = t.breite, T = t.tiefe;
+    maschinenPlatte(g, B - 0.04, T - 0.04, kat.farbe);
+    const ein = torLageModell(B, T, t.tore.ein), aus = torLageModell(B, T, t.tore.aus);
+    tor(g, ein, true);
+    tor(g, aus, false);
+    const k = {
+      B, T, y0: 0.07, kat, farbe: kat.farbe, ein, aus,
+      lack: mat(kat.farbe, { r: 0.42 }), tief: mat(dunkler(kat.farbe, 0.25), { r: 0.5 }), glow: leucht(kat.farbe, 1.5),
+    };
+    return fertig(g, { wuerfel: MW, ...aufbau(g, k) });
+  }
+  // Signalsäule mit Warnpunkt darüber
+  const saeule = (g, x, y, z) => ({ lampe: signalTurm(g, x, y, z), warnPunkt: V(x, y + 0.42, z) });
+
+  const KAT_KOERPER = {
+    /* --- Prozessoren & Logik: Wafer-Belichter (2 × 4) – Reinraum-Kabine, Wafer dreht, UV-Belichter pulsiert --- */
+    prozessoren(g, k) {
+      const y0 = k.y0, z0 = -1.5, z1 = 1.55, zm = (z0 + z1) / 2, Bk = 1.8, glasM = glas("#bfe9f2");
+      box(g, Bk, 0.4, z1 - z0, null, 0, y0, zm, 0.04, WEISS());
+      box(g, Bk + 0.01, 0.05, 0.03, null, 0, y0 + 0.38, z1 + 0.005, 0.01, k.lack);
+      for (const sx of [-1, 1]) for (const sz of [z0, z1]) box(g, 0.06, 0.95, 0.06, null, sx * (Bk / 2 - 0.03), y0 + 0.4, sz + (sz < 0 ? 0.03 : -0.03), 0.01, WEISS());
+      const glasWand = (w, d, x, z) => { box(g, w, 0.95, d, null, x, y0 + 0.4, z, 0, glasM).castShadow = false; };
+      glasWand(Bk - 0.1, 0.01, 0, z1 - 0.03); glasWand(0.01, z1 - z0 - 0.1, Bk / 2 - 0.03, zm); glasWand(0.01, z1 - z0 - 0.1, -Bk / 2 + 0.03, zm);
+      box(g, Bk, 0.12, z1 - z0, null, 0, y0 + 1.35, zm, 0.04, WEISS());
+      leuchtKante(g, Bk, z1 - z0, 0, y0 + 1.44, zm, k.glow);
+      for (const sz of [-0.7, 0.5]) {
+        box(g, 0.9, 0.18, 0.55, "#dde3e6", 0, y0 + 1.47, sz, 0.03);
+        for (let i = 0; i < 6; i++) box(g, 0.8, 0.012, 0.02, "#8c979e", 0, y0 + 1.652, sz - 0.2 + i * 0.08, 0);
+      }
+      box(g, 0.8, 0.08, 0.8, null, 0, y0 + 0.4, 0.15, 0.02, mat(C.stahlDunkel, { m: 0.3 }));
+      const randM = mat("#8e98a6", { m: 0.6 });
+      const wafer = einzeln(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.025, 48), ersatz || [randM, waferMat(), randM]));
+      wafer.position.set(0, y0 + 0.5, 0.15); wafer.castShadow = true; g.add(wafer);
+      // Belichter: Portal mit Kopf und violettem Lichtkegel
+      const portal = new THREE.Group(); g.add(portal);
+      box(portal, Bk - 0.2, 0.08, 0.12, null, 0, y0 + 1.15, 0, 0.02, mat(C.stahlDunkel, { m: 0.3 }));
+      const kopf = new THREE.Group(); portal.add(kopf);
+      box(kopf, 0.22, 0.32, 0.22, null, 0, y0 + 0.85, 0, 0.03, k.lack);
+      zyl(kopf, 0.06, 0.08, 0.06, C.armGelenk, 0, y0 + 0.82, 0, "y", 18);
+      const kegelM = eigen(() => new THREE.MeshBasicMaterial({ color: "#c49bff", transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false }));
+      const kegel = einzeln(new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.3, 24, 1, true), kegelM));
+      kegel.position.y = y0 + 0.65; kopf.add(kegel);
+      bildschirm(g, -0.45, y0 + 0.36, z1 + 0.012, 0.36, 0.22, "graph");
+      symbolSchild(g, Bk / 2 + 0.003, y0 + 0.2, 0.3, k.kat.id, 0.28).rotation.y = Math.PI / 2;
+      knoepfe(g, { x: 1, z: 0 }, Bk / 2 + 0.003, y0 + 0.04, 0.3, k.farbe).position.z = -0.6;
+      // Fächer drinnen in der Kabine, hinter den Toren (durch das Glas zu sehen)
+      const eingangPlaetze = fach(g, -0.5, y0 + 0.4, -1.0, 0.5, 0.5, GRUEN, MW);
+      const plaetze = fach(g, 0.5, y0 + 0.4, 1.1, 0.5, 0.5, ROT, MW);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.75, y0 + 1.47, -1.3), takt: 2.4, statusHoehe: 2.45,
+        animiere(p) {
+          wafer.rotation.y = p * VOLL;
+          portal.position.z = 0.15 + Math.sin(p * VOLL) * 0.18;
+          kopf.position.x = Math.sin(p * VOLL * 2) * 0.18;
+          if (!ersatz) kegelM.opacity = p > 0 ? 0.2 + 0.25 * (0.5 + 0.5 * Math.sin(p * VOLL * 8)) : 0.1;
+        } };
+    },
+
+    /* --- Displays: Panel-Laminierstraße (2 × 4) – Glasplatten fahren unter der Walze durch und leuchten danach --- */
+    displays(g, k) {
+      const y0 = k.y0, z0 = -1.55, z1 = 1.55, sx0 = 0.38;
+      box(g, 1.0, 0.45, z1 - z0, null, sx0, y0, 0, 0.04, WEISS());
+      box(g, 1.01, 0.04, z1 - z0, null, sx0, y0 + 0.43, 0, 0.01, k.lack);
+      nbBahn(g, 0.8, z1 - z0 - 0.2, stillBahn(), sx0, y0 + 0.475, 0);
+      const panels = [];
+      for (let i = 0; i < 2; i++) {
+        const p = new THREE.Group(); g.add(p);
+        const roh = einzeln(box(p, 0.7, 0.025, 0.62, null, 0, 0, 0, 0.006, mat("#a8d8e8", { t: true, o: 0.55, r: 0.05 })));
+        const fertigM = einzeln(box(p, 0.7, 0.03, 0.62, null, 0, 0, 0, 0.006, mat(C.armGelenk)));
+        const schirm = einzeln(new THREE.Mesh(new THREE.PlaneGeometry(0.64, 0.56), panelMat()));
+        schirm.rotation.x = -Math.PI / 2; schirm.position.y = 0.032; p.add(schirm);
+        panels.push({ p, roh, fertigM, schirm });
+      }
+      for (const sx of [-1, 1]) box(g, 0.1, 0.55, 0.22, null, sx0 + sx * 0.48, y0 + 0.45, 0, 0.02, WEISS());
+      box(g, 1.06, 0.14, 0.26, null, sx0, y0 + 1.0, 0, 0.03, WEISS());
+      box(g, 1.07, 0.02, 0.02, null, sx0, y0 + 1.07, 0.131, 0, k.glow);
+      const walze = einzeln(zyl(g, 0.11, 0.11, 0.86, "#2a3036", sx0, y0 + 0.63, 0, "x", 24));
+      zyl(g, 0.05, 0.05, 0.9, null, sx0, y0 + 0.86, 0, "x", 16, chrom());
+      // Links: Schaltschrank und Vorführ-Bildschirm auf Standfuß
+      box(g, 0.7, 0.55, 0.9, null, -0.55, y0, -0.9, 0.04, WEISS());
+      symbolSchild(g, -0.55, y0 + 0.3, -0.449, k.kat.id, 0.3);
+      box(g, 0.08, 0.6, 0.08, C.armGelenk, -0.55, y0, 0.7, 0.02);
+      const schirmG = new THREE.Group(); schirmG.position.set(-0.55, y0 + 1.05, 0.7); schirmG.rotation.y = Math.PI / 2 - 0.35; g.add(schirmG);
+      box(schirmG, 1.1, 0.68, 0.05, C.armGelenk, 0, -0.34, 0, 0.02);
+      const gross = new THREE.Mesh(new THREE.PlaneGeometry(1.02, 0.6), panelMat()); gross.position.set(0, 0, 0.027); schirmG.add(gross);
+      knoepfe(g, { x: -1, z: 0 }, 0.9, y0 + 0.2, 0.3, k.farbe).position.z = -0.9;
+      // Fächer an den Enden der Straße (genau hinter den Toren)
+      const yb = y0 + 0.475;
+      const eingangPlaetze = fach(g, sx0, yb, -1.27, 0.66, 0.36, GRUEN, MW);
+      const plaetze = fach(g, sx0, yb, 1.27, 0.66, 0.36, ROT, MW);
+      const setze = (p) => panels.forEach((q, i) => {
+        const s = (p + i / 2) % 1, z = -0.75 + s * 1.5;
+        q.p.position.set(sx0, y0 + 0.49, z);
+        const fertig = z > 0;
+        q.roh.visible = !fertig; q.fertigM.visible = fertig; q.schirm.visible = fertig;
+        q.p.scale.setScalar(rand(s, 0.12));
+      });
+      setze(0.25);
+      return { eingangPlaetze, plaetze, ...saeule(g, -0.75, y0 + 0.55, -1.2), takt: 3, statusHoehe: 2.0,
+        animiere(p) { walze.rotation.x = -p * VOLL * 3; setze(p + 0.25); } };
+    },
+
+    /* --- Mechanik & Aktuatoren: Getriebe-Werk (2 × 4) – zwei Zahnräder greifen ineinander, Portalkran hebt um --- */
+    mechanik(g, k) {
+      const y0 = k.y0;
+      box(g, 1.6, 0.35, 2.4, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 1.61, 0.04, 2.41, null, 0, y0 + 0.33, 0, 0.01, k.lack);
+      const wand = new THREE.Group(); wand.position.set(-0.15, 0, 0); g.add(wand);
+      box(wand, 0.1, 1.2, 2.0, "#dfe5e8", -0.12, y0 + 0.35, 0, 0.02);
+      const radA = einzeln(zahnrad(wand, 0.48, 14, 0.09, k.lack)); radA.position.set(0, y0 + 0.95, -0.42); radA.rotation.y = Math.PI / 2;
+      const radB = einzeln(zahnrad(wand, 0.34, 10, 0.09, mat(C.stahl, { m: 0.5, r: 0.35 }))); radB.position.set(0, y0 + 0.82, 0.37); radB.rotation.y = Math.PI / 2;
+      for (const [r, z, y] of [[0.1, -0.42, 0.95], [0.08, 0.37, 0.82]]) zyl(wand, r, r, 0.16, null, 0, y0 + y, z, "x", 18, chrom());
+      // Portalkran oben
+      for (const sz of [-1.05, 1.05]) for (const sx of [-0.7, 0.7]) box(g, 0.08, 1.55, 0.08, C.armGelenk, sx, y0 + 0.35, sz, 0.015);
+      for (const sx of [-0.7, 0.7]) box(g, 0.1, 0.1, 2.4, null, sx, y0 + 1.9, 0, 0.02, mat(C.gelb, { r: 0.5 }));
+      const kran = new THREE.Group(); g.add(kran);
+      box(kran, 1.5, 0.12, 0.16, null, 0, y0 + 1.86, 0, 0.02, k.lack);
+      box(kran, 0.18, 0.14, 0.2, C.armGelenk, 0.3, y0 + 1.72, 0, 0.02);
+      const seil = einzeln(box(kran, 0.012, 0.6, 0.012, "#1d2226", 0.3, y0 + 1.12, 0, 0));
+      const haken = new THREE.Group(); kran.add(haken);
+      box(haken, 0.16, 0.05, 0.16, C.armGelenk, 0.3, 0, 0, 0.01);
+      const last = einzeln(zahnrad(haken, 0.12, 8, 0.04, mat(C.stahl, { m: 0.5 }))); last.position.set(0.3, -0.08, 0); last.rotation.x = Math.PI / 2;
+      // Hydraulik-Leitungen und Bedienpult
+      for (let i = 0; i < 3; i++) zyl(g, 0.02, 0.02, 1.6, i === 1 ? k.farbe : "#2a3036", 0.6, y0 + 0.5 + i * 0.07, 0, "z", 8);
+      box(g, 0.35, 0.6, 0.3, null, 0.55, y0 + 0.35, 0.9, 0.03, WEISS());
+      bildschirm(g, 0.55, y0 + 0.88, 1.052, 0.24, 0.16, "balken");
+      symbolSchild(g, -0.4, y0 + 0.18, 1.205, k.kat.id, 0.26);
+      const top = y0 + 0.37;
+      const eingangPlaetze = fach(g, -0.56, top, -0.75, 0.4, 0.5, GRUEN, MW);
+      const plaetze = fach(g, 0.12, top, 0.85, 0.4, 0.4, ROT, MW);
+      const setze = (p) => {
+        radA.rotation.z = p * VOLL; radB.rotation.z = -p * VOLL * 14 / 10 + 0.15;
+        kran.position.z = Math.sin(p * VOLL) * 0.85;
+        haken.position.y = y0 + 0.8 + (0.5 + 0.5 * Math.cos(p * VOLL * 2)) * 0.25;
+        seil.scale.y = Math.max(0.2, (y0 + 1.72 - haken.position.y) / 0.6);
+        seil.position.y = haken.position.y + 0.02;
+        last.rotation.z = p * VOLL;
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.55, y0 + 0.95, 0.8), takt: 4, statusHoehe: 2.55, animiere: setze };
+    },
+
+    /* --- Energie: Zellen-Wickler (2 × 3) – Kupfertrommel wickelt, Folienrollen speisen, Zellen rücken weiter --- */
+    energie(g, k) {
+      const y0 = k.y0;
+      box(g, 1.7, 0.55, 2.1, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 1.71, 0.05, 2.11, null, 0, y0 + 0.5, 0, 0.01, k.lack);
+      box(g, 1.72, 0.015, 0.015, null, 0, y0 + 0.47, 1.06, 0, k.glow);
+      for (const sx of [-1, 1]) box(g, 0.12, 0.62, 0.42, null, sx * 0.68, y0 + 0.55, -0.45, 0.03, WEISS());
+      const trommel = new THREE.Group(); trommel.position.set(0, y0 + 0.98, -0.45); g.add(trommel);
+      zyl(trommel, 0.26, 0.26, 1.2, "#c47a4a", 0, 0, 0, "x", 32, mat("#c47a4a", { m: 0.65, r: 0.3 }));
+      for (const sx of [-0.62, 0.62]) zyl(trommel, 0.3, 0.3, 0.03, C.armGelenk, sx, 0, 0, "x", 32);
+      for (let i = 0; i < 5; i++) zyl(trommel, 0.262, 0.262, 0.04, null, -0.4 + i * 0.2, 0, 0, "x", 32, mat("#a8613a", { m: 0.6, r: 0.35 }));
+      box(trommel, 0.5, 0.02, 0.02, C.armGelenk, 0, 0.255, 0, 0);   // Markierung: man sieht die Trommel drehen
+      const rollen = [];
+      for (const sx of [-0.35, 0.35]) {
+        const r = new THREE.Group(); r.position.set(sx, y0 + 0.78, 0.15); g.add(r);
+        zyl(r, 0.13, 0.13, 0.26, "#e9eef0", 0, 0, 0, "x", 24);
+        zyl(r, 0.04, 0.04, 0.3, C.armGelenk, 0, 0, 0, "x", 12);
+        box(r, 0.27, 0.02, 0.02, k.farbe, 0, 0.125, 0, 0);
+        rollen.push(r);
+        box(g, 0.24, 0.006, 0.55, null, sx, y0 + 0.86, -0.15, 0, mat("#d9b26a", { m: 0.5, r: 0.3 })).rotation.x = 0.35;
+      }
+      const zellen = [];
+      for (let i = 0; i < 6; i++) {
+        const c = new THREE.Group(); g.add(c);
+        zyl(c, 0.07, 0.07, 0.2, null, 0, 0.1, 0, "y", 18, k.lack);
+        zyl(c, 0.071, 0.071, 0.05, C.armGelenk, 0, 0.18, 0, "y", 18);
+        zyl(c, 0.025, 0.025, 0.03, null, 0, 0.215, 0, "y", 10, chrom());
+        zellen.push(c);
+      }
+      symbolSchild(g, -0.45, y0 + 0.28, 1.052, k.kat.id, 0.34);
+      knoepfe(g, { x: -1, z: 0 }, 0.852, y0 + 0.12, 0.3, k.farbe).position.z = 0.3;
+      const top = y0 + 0.55;
+      const eingangPlaetze = fach(g, -0.45, top, -0.9, 0.56, 0.26, GRUEN, MW);
+      const plaetze = fach(g, 0.22, top, 0.9, 0.56, 0.26, ROT, MW);
+      const setze = (p) => {
+        trommel.rotation.x = -p * VOLL * 2;
+        rollen.forEach((r) => (r.rotation.x = p * VOLL * 3));
+        zellen.forEach((c, i) => {
+          const s = (p + i / 6) % 1;
+          c.position.set(-0.65 + s * 1.15, y0 + 0.55, 0.62);
+          c.scale.setScalar(rand(s));
+        });
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.72, top, 0.85), takt: 3, statusHoehe: 1.9, animiere: setze };
+    },
+
+    /* --- Optik & Kamera: Linsen-Schleifer (2 × 3) – Objektiv auf dem Dach, Polierköpfe senken sich auf Linsen --- */
+    optik(g, k) {
+      const y0 = k.y0;
+      box(g, 1.8, 0.75, 1.75, null, 0, y0, -0.55, 0.05, WEISS());
+      box(g, 1.81, 0.05, 1.76, null, 0, y0 + 0.72, -0.55, 0.01, k.lack);
+      box(g, 1.82, 0.015, 0.015, null, 0, y0 + 0.69, 0.33, 0, k.glow);
+      box(g, 0.5, 0.45, 0.5, null, 0, y0, 0.8, 0.03, WEISS());
+      box(g, 0.48, 0.3, 0.48, null, 0, y0 + 0.45, 0.8, 0.04, glas("#bfe9f2")).castShadow = false;
+      const obj = new THREE.Group(); obj.position.set(0, y0 + 0.77, -0.6); g.add(obj);
+      zyl(obj, 0.42, 0.45, 0.2, null, 0, 0.1, 0, "y", 40, mat("#2a3036", { r: 0.4 }));
+      const ring = new THREE.Group(); ring.position.y = 0.26; obj.add(ring);
+      zyl(ring, 0.4, 0.4, 0.12, null, 0, 0, 0, "y", 40, k.lack);
+      for (let i = 0; i < 18; i++) { const w = i / 18 * VOLL; box(ring, 0.03, 0.1, 0.03, C.armGelenk, Math.cos(w) * 0.405, -0.05, Math.sin(w) * 0.405, 0.005); }
+      zyl(obj, 0.34, 0.36, 0.14, null, 0, 0.39, 0, "y", 40, mat("#2a3036", { r: 0.35 }));
+      const linse = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16, 0, VOLL, 0, Math.PI / 2.6), mat("#9fc8ff", { r: 0.02, m: 0.6, t: true, o: 0.85 }));
+      linse.position.y = 0.4; linse.scale.y = 0.6; obj.add(linse);
+      box(obj, 0.02, 0.012, 0.6, null, 0, 0.47, 0, 0, leucht("#bfe0ff", 1.2)).rotation.y = 0.6;
+      // Polierköpfe an einem Ausleger über dem Polierplatz
+      box(g, 0.1, 0.65, 0.1, C.armGelenk, 0, y0 + 0.75, 0.42, 0.02);
+      box(g, 0.12, 0.1, 0.5, null, 0, y0 + 1.3, 0.62, 0.02, k.lack);
+      const koepfe = [];
+      for (const sx of [-0.12, 0.12]) {
+        const kp = new THREE.Group(); g.add(kp);
+        zyl(kp, 0.03, 0.03, 0.3, null, 0, 0.15, 0, "y", 10, chrom());
+        zyl(kp, 0.08, 0.08, 0.03, "#e2e6e8", 0, 0, 0, "y", 24);
+        box(kp, 0.14, 0.012, 0.02, C.armGelenk, 0, 0.016, 0, 0);
+        kp.userData.x = sx; koepfe.push(kp);
+      }
+      for (const sx of [-0.12, 0.12]) {
+        const l = new THREE.Mesh(new THREE.SphereGeometry(0.07, 20, 10, 0, VOLL, 0, Math.PI / 2), mat("#bfe9f2", { r: 0.05, t: true, o: 0.7 }));
+        l.position.set(sx, y0 + 0.46, 0.8); l.scale.y = 0.5; g.add(l);
+      }
+      symbolSchild(g, 0.6, y0 + 0.6, 0.333, k.kat.id, 0.24);
+      knoepfe(g, { x: -1, z: 0 }, 0.902, y0 + 0.3, 0.28, k.farbe).position.z = -0.6;
+      box(g, 0.6, 0.5, 0.06, null, 0, y0 + 0.75, -1.43, 0.02, mat("#7fb3d9", { t: true, o: 0.7 }));
+      // Fächer vorn neben dem Polierplatz, je hinter seinem Tor
+      fachStaender(g, -0.6, 0.72, 0.3); fachStaender(g, 0.6, 0.72, 0.3);
+      const eingangPlaetze = fach(g, -0.6, 0.3, 0.72, 0.5, 0.42, GRUEN, MW);
+      const plaetze = fach(g, 0.6, 0.3, 0.72, 0.5, 0.42, ROT, MW);
+      const setze = (p) => {
+        ring.rotation.y = p * VOLL;
+        koepfe.forEach((kp, i) => {
+          const hub = 0.5 + 0.5 * Math.cos(p * VOLL * 2 + i * Math.PI);
+          kp.position.set(kp.userData.x, y0 + 0.53 + hub * 0.12, 0.8);
+          kp.rotation.y = p * VOLL * 6;
+        });
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.75, y0 + 0.77, -1.25), takt: 2, statusHoehe: 2.1, animiere: setze };
+    },
+
+    /* --- Eingabe & Interface: Tasten-Spritzguss (2 × 3) – Form öffnet sich im Takt, ein Tastenfeld springt heraus --- */
+    eingabe(g, k) {
+      const y0 = k.y0;
+      box(g, 1.75, 0.4, 2.3, null, 0, y0, -0.05, 0.04, WEISS());
+      box(g, 1.76, 0.04, 2.31, null, 0, y0 + 0.38, -0.05, 0.01, k.lack);
+      zyl(g, 0.13, 0.13, 1.1, null, 0.45, y0 + 0.62, -0.5, "z", 24, mat(C.stahl, { m: 0.55, r: 0.3 }));
+      for (let i = 0; i < 4; i++) zyl(g, 0.15, 0.15, 0.08, null, 0.45, y0 + 0.62, -0.9 + i * 0.25, "z", 24, mat(i % 2 ? "#d8473c" : "#ef7d2d", { e: "#ff5a2a", ei: 0.25 }));
+      zyl(g, 0.22, 0.06, 0.32, null, 0.45, y0 + 0.98, -0.9, "y", 20, k.lack);
+      zyl(g, 0.21, 0.21, 0.02, "#f4f1ea", 0.45, y0 + 1.14, -0.9, "y", 20);
+      box(g, 0.2, 0.36, 0.3, null, 0.45, y0 + 0.4, -0.9, 0.02, WEISS());
+      // Schließeinheit: feste und bewegliche Platte mit Holmen
+      box(g, 0.75, 0.6, 0.1, null, -0.35, y0 + 0.4, -0.15, 0.02, k.tief);
+      for (const sx of [-0.65, -0.05]) for (const sy of [0.5, 0.92]) zyl(g, 0.025, 0.025, 1.2, null, sx, y0 + sy, 0.4, "z", 10, chrom());
+      box(g, 0.75, 0.6, 0.1, null, -0.35, y0 + 0.4, 0.95, 0.02, k.tief);
+      const platte = einzeln(box(g, 0.7, 0.55, 0.12, null, -0.35, y0 + 0.42, 0.3, 0.02, k.lack));
+      const feld = new THREE.Group(); g.add(feld);
+      box(feld, 0.5, 0.03, 0.3, "#3a3f47", 0, 0, 0, 0.006);
+      const tasten = [];
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) tasten.push(einzeln(box(feld, 0.07, 0.04, 0.07, null, -0.2 + c * 0.1, 0.03, -0.1 + r * 0.1, 0.012, mat(r === 1 && c === 2 ? k.farbe : "#f2f0ea", { r: 0.5 }))));
+      feld.rotation.x = -Math.PI / 2;
+      // Schrank mit Bildschirm und Schild
+      box(g, 0.6, 0.55, 0.32, null, 0.45, y0 + 0.4, 0.8, 0.03, WEISS());
+      bildschirm(g, 0.45, y0 + 0.88, 0.962, 0.26, 0.16, "balken");
+      symbolSchild(g, 0.45, y0 + 0.6, 0.962, k.kat.id, 0.22);
+      const eingangPlaetze = fach(g, -0.4, y0 + 0.4, -0.62, 0.5, 0.5, GRUEN, MW);
+      const plaetze = fach(g, 0.42, 0.1, 1.3, 0.5, 0.34, ROT, MW);
+      const setze = (p) => {
+        const auf = p < 0.4 ? 0 : p < 0.55 ? sanftAb(0.4, 0.55, p) : p < 0.85 ? 1 : 1 - sanftAb(0.85, 1, p);
+        platte.position.z = 0.3 + auf * 0.42;
+        feld.position.set(-0.35, y0 + 0.7, 0.24 + auf * 0.06);
+        feld.visible = auf > 0.3;
+        const sprung = auf > 0.3 ? Math.min(1, (auf - 0.3) / 0.3) : 0;
+        tasten.forEach((ts, i) => { ts.scale.y = Math.max(0.05, 0.3 + 0.7 * Math.min(1, sprung * 1.2 - (i % 5) * 0.04)); });
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.78, y0 + 0.95, 0.75), takt: 2, statusHoehe: 1.85, animiere: setze };
+    },
+
+    /* --- Umwelt-Sensorik: Klima-Prüfkammer (2 × 3) – Kammer mit Bullauge, Wetterstation auf dem Dach --- */
+    umwelt(g, k) {
+      const y0 = k.y0;
+      box(g, 1.5, 0.35, 2.2, null, 0, y0, 0, 0.04, WEISS());
+      zyl(g, 0.55, 0.55, 1.3, null, 0, y0 + 0.85, -0.1, "x", 40, WEISS());
+      for (const sx of [-0.66, 0.66]) zyl(g, 0.57, 0.57, 0.05, null, sx, y0 + 0.85, -0.1, "x", 40, k.lack);
+      const bullM = eigen(() => nbLeucht(k.farbe, 0.8).clone()), nebelM = eigen(() => nbMat("#ffffff", { t: true, o: 0.3, e: "#ffffff", ei: 0.4 }).clone());
+      einzeln(zyl(g, 0.24, 0.24, 0.04, null, 0, y0 + 0.85, 0.44, "z", 32, bullM));
+      einzeln(zyl(g, 0.2, 0.2, 0.045, null, 0, y0 + 0.85, 0.445, "z", 32, nebelM));
+      zyl(g, 0.27, 0.27, 0.03, C.armGelenk, 0, y0 + 0.85, 0.43, "z", 32);
+      for (const sx of [-0.45, 0.45]) box(g, 0.14, 0.32, 0.9, C.armGelenk, sx, y0 + 0.33, -0.1, 0.02);
+      // Wetterstation auf dem Dach
+      box(g, 0.04, 0.55, 0.04, C.stahlDunkel, 0.2, y0 + 1.38, -0.3, 0.01);
+      const schalen = new THREE.Group(); schalen.position.set(0.2, y0 + 1.95, -0.3); g.add(schalen);
+      for (let i = 0; i < 3; i++) {
+        const w = i / 3 * VOLL;
+        strebe(schalen, V(0, 0, 0), V(Math.cos(w) * 0.2, 0, Math.sin(w) * 0.2), 0.015, C.stahlDunkel);
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8, 0, Math.PI), k.lack);
+        s.position.set(Math.cos(w) * 0.2, 0, Math.sin(w) * 0.2); s.rotation.y = -w; schalen.add(s);
+      }
+      const fahne = new THREE.Group(); fahne.position.set(-0.25, y0 + 1.6, -0.3); g.add(fahne);
+      box(g, 0.03, 0.25, 0.03, C.stahlDunkel, -0.25, y0 + 1.35, -0.3, 0.01);
+      box(fahne, 0.3, 0.015, 0.015, C.armGelenk, 0, 0, 0, 0);
+      const blattGeo = new THREE.BufferGeometry().setFromPoints([V(-0.15, 0, 0), V(-0.15, 0.1, 0), V(-0.05, 0, 0)]);
+      blattGeo.computeVertexNormals();
+      fahne.add(new THREE.Mesh(blattGeo, mat(k.farbe, { doppelt: true })));
+      box(g, 0.42, 0.02, 0.3, null, 0, y0 + 1.45, 0.25, 0.005, mat("#1f3f73", { m: 0.4, r: 0.3 })).rotation.x = 0.4;
+      box(g, 0.03, 0.12, 0.03, C.stahlDunkel, 0, y0 + 1.36, 0.22, 0.005);
+      // Messuhren, Schild
+      const z1 = messuhr(g, -0.45, y0 + 0.62, 1.03, 0.11, k.farbe);
+      const z2 = messuhr(g, -0.15, y0 + 0.62, 1.03, 0.11, "#ffc23a");
+      box(g, 0.75, 0.6, 0.14, null, -0.3, y0 + 0.3, 0.95, 0.03, WEISS());
+      symbolSchild(g, 0.45, y0 + 0.2, 1.105, k.kat.id, 0.26);
+      const top = y0 + 0.35;
+      const eingangPlaetze = fach(g, -0.15, top, -0.88, 0.5, 0.36, GRUEN, MW);
+      const plaetze = fach(g, 0.3, top, 0.66, 0.4, 0.32, ROT, MW);
+      const setze = (p) => {
+        const puls = 0.5 + 0.5 * Math.sin(p * VOLL * 2);
+        schalen.rotation.y = -p * VOLL * 4;
+        fahne.rotation.y = Math.sin(p * VOLL) * 0.6;
+        z1.rotation.z = -0.6 + Math.sin(p * VOLL) * 0.5;
+        z2.rotation.z = 0.3 + Math.sin(p * VOLL * 2 + 1) * 0.4;
+        if (!ersatz) { nebelM.opacity = 0.2 + 0.2 * puls; bullM.emissiveIntensity = 0.6 + 0.4 * puls; }
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.6, top, -0.95), takt: 4, statusHoehe: 2.6, animiere: setze };
+    },
+
+    /* --- Speicher: Chip-Bestücker (1 × 4) – Riegel fahren durch, der Bestückkopf setzt im Takt Chips --- */
+    speicher(g, k) {
+      const y0 = k.y0, yb = y0 + 0.445;
+      box(g, 0.86, 0.42, 3.1, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 0.87, 0.04, 3.11, null, 0, y0 + 0.4, 0, 0.01, k.lack);
+      nbBahn(g, 0.5, 2.9, stillBahn(), 0, yb, 0);
+      for (const sx of [-1, 1]) box(g, 0.05, 0.08, 2.9, C.stahlDunkel, sx * 0.29, y0 + 0.42, 0, 0.01);
+      const riegel = [];
+      for (let i = 0; i < 4; i++) {
+        const r = new THREE.Group(); g.add(r);
+        box(r, 0.42, 0.018, 0.13, "#2f8f4e", 0, 0, 0, 0.004);
+        for (let c = 0; c < 4; c++) box(r, 0.07, 0.022, 0.07, "#1d2226", -0.15 + c * 0.1, 0.018, -0.01, 0.004);
+        box(r, 0.4, 0.006, 0.018, null, 0, 0.012, 0.058, 0, mat("#d4af37", { m: 0.7, r: 0.3 }));
+        riegel.push(r);
+      }
+      for (const sx of [-1, 1]) box(g, 0.08, 0.75, 0.12, null, sx * 0.39, y0 + 0.42, 0.2, 0.02, WEISS());
+      box(g, 0.86, 0.12, 0.16, null, 0, y0 + 1.15, 0.2, 0.02, WEISS());
+      box(g, 0.87, 0.02, 0.02, null, 0, y0 + 1.22, 0.285, 0, k.glow);
+      const kopf = new THREE.Group(); g.add(kopf);
+      box(kopf, 0.14, 0.2, 0.14, null, 0, 0, 0, 0.02, k.lack);
+      zyl(kopf, 0.02, 0.02, 0.14, null, 0, -0.07, 0, "y", 10, chrom());
+      const chip = einzeln(box(kopf, 0.07, 0.02, 0.07, "#1d2226", 0, -0.16, 0, 0.004));
+      const rolle = new THREE.Group(); rolle.position.set(0.47, y0 + 0.75, -0.6); g.add(rolle);
+      zyl(rolle, 0.22, 0.22, 0.05, null, 0, 0, 0, "x", 32, k.lack);
+      zyl(rolle, 0.06, 0.06, 0.07, C.armGelenk, 0, 0, 0, "x", 16);
+      box(rolle, 0.06, 0.03, 0.3, C.armGelenk, 0, 0, 0, 0);
+      symbolSchild(g, 0.432, y0 + 0.22, 0.95, k.kat.id, 0.22).rotation.y = Math.PI / 2;
+      knoepfe(g, { x: 1, z: 0 }, 0.432, y0 + 0.08, 0.24, k.farbe).position.z = -0.95;
+      // Fächer an beiden Enden der Bahn, hinter den Toren
+      const eingangPlaetze = fach(g, 0, yb, -1.22, 0.46, 0.4, GRUEN, MW);
+      const plaetze = fach(g, 0, yb, 1.22, 0.46, 0.4, ROT, MW);
+      const setze = (p) => {
+        riegel.forEach((r, i) => {
+          const s = (p + i / 4) % 1;
+          r.position.set(0, yb + 0.01, -0.85 + s * 1.7);
+          r.scale.setScalar(rand(s));
+        });
+        const q = (p * 2) % 1, tief = q < 0.3 ? sanft(q / 0.3) : q < 0.45 ? 1 : 1 - sanftAb(0.45, 0.8, q);
+        kopf.position.set(Math.sin(p * VOLL) * 0.15, y0 + 0.98 - tief * 0.33, 0.2);
+        chip.visible = q < 0.4;
+        rolle.rotation.x = p * VOLL * 0.5;
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, -0.3, y0 + 1.27, 0.2), takt: 2.2, statusHoehe: 2.1, animiere: setze };
+    },
+
+    /* --- Kühlung & Thermik: Lamellen-Extruder (1 × 4) – glühender Extruder hinten, Kühltunnel mit Lüftern vorn --- */
+    kuehlung(g, k) {
+      const y0 = k.y0, top = y0 + 0.38;
+      box(g, 0.86, 0.38, 3.1, null, 0, y0, 0, 0.04, WEISS());
+      zyl(g, 0.2, 0.2, 1.1, null, 0, y0 + 0.65, -0.85, "z", 28, mat(C.stahl, { m: 0.55, r: 0.3 }));
+      const heizM = eigen(() => nbMat("#d8473c", { e: "#ff5a2a", ei: 0.5 }).clone());
+      for (let i = 0; i < 4; i++) einzeln(zyl(g, 0.22, 0.22, 0.09, null, 0, y0 + 0.65, -1.25 + i * 0.26, "z", 28, heizM));
+      zyl(g, 0.24, 0.08, 0.34, null, 0, y0 + 1.03, -1.2, "y", 20, k.lack);
+      box(g, 0.2, 0.3, 0.3, null, 0, top, -0.85, 0.02, WEISS());
+      box(g, 0.5, 0.5, 0.12, C.armGelenk, 0, top, -0.25, 0.02);
+      box(g, 0.78, 0.55, 1.4, null, 0, top, 0.55, 0.05, k.lack);
+      box(g, 0.6, 0.3, 1.42, C.dunkel, 0, y0 + 0.4, 0.55, 0.01);
+      box(g, 0.79, 0.03, 1.41, "#e9f7fb", 0, y0 + 0.92, 0.55, 0.01);
+      const luefter = [];
+      for (let i = 0; i < 3; i++) {
+        const z = 0.08 + i * 0.47;
+        zyl(g, 0.17, 0.17, 0.05, C.armGelenk, 0, y0 + 0.97, z, "y", 28);
+        const f = new THREE.Group(); f.position.set(0, y0 + 1.0, z); g.add(f);
+        for (let b = 0; b < 5; b++) {
+          const h = new THREE.Group(); h.rotation.y = b / 5 * VOLL; f.add(h);
+          box(h, 0.13, 0.006, 0.05, null, 0.07, 0, 0, 0.004, mat("#dfe5e9", { m: 0.4 })).rotation.x = 0.4;
+        }
+        luefter.push(f);
+      }
+      const profil = new THREE.Group(); g.add(profil);
+      const profilM = mat("#c9d1d8", { m: 0.6, r: 0.3 });
+      box(profil, 0.34, 0.03, 0.7, null, 0, 0, 0, 0.004, profilM);
+      for (let i = 0; i < 7; i++) box(profil, 0.015, 0.14, 0.7, null, -0.15 + i * 0.05, 0.03, 0, 0.003, profilM);
+      symbolSchild(g, -0.432, y0 + 0.2, 0, k.kat.id, 0.22).rotation.y = -Math.PI / 2;
+      knoepfe(g, { x: -1, z: 0 }, 0.432, y0 + 0.06, 0.24, k.farbe).position.z = -0.9;
+      // Eingang: schmales Fach neben dem Extruder; Ausgang: vorn am Tunnelende
+      const eingangPlaetze = fach(g, 0.32, top, -0.85, 0.2, 0.8, GRUEN, MW);
+      const plaetze = fach(g, 0, top, 1.4, 0.62, 0.26, ROT, MW);
+      const setze = (p) => {
+        luefter.forEach((f, i) => (f.rotation.y = p * VOLL * (6 + i)));
+        if (!ersatz) heizM.emissiveIntensity = 0.35 + 0.25 * (0.5 + 0.5 * Math.sin(p * VOLL * 2));
+        profil.position.set(0, y0 + 0.42, -0.1 + p * 1.1);
+        profil.visible = p > 0.02 && p < 0.85;
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.3, top, -0.35), takt: 3, statusHoehe: 1.75, animiere: setze };
+    },
+
+    /* --- Konnektivität: Antennen-Prüfturm (1 × 3) – Gittermast mit Blinklicht, Funkringe, drehende Schüssel --- */
+    konnektivitaet(g, k) {
+      const y0 = k.y0, top = y0 + 0.52;
+      box(g, 0.86, 0.5, 2.1, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 0.87, 0.04, 2.11, null, 0, y0 + 0.48, 0, 0.01, k.lack);
+      box(g, 0.88, 0.015, 0.015, null, 0, y0 + 0.45, 1.06, 0, k.glow);
+      const b = 0.18, unten = top, oben = y0 + 1.95, mz = -0.2;
+      const ecke = (sx, sz, y) => V(sx * b * (1 - (y - unten) / 3.2), y, mz + sz * b * (1 - (y - unten) / 3.2));
+      for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) strebe(g, ecke(sx, sz, unten), ecke(sx, sz, oben), 0.03, C.stahlDunkel);
+      for (let i = 0; i < 5; i++) {
+        const y1 = unten + i * 0.28, y2 = y1 + 0.28;
+        strebe(g, ecke(-1, 1, y1), ecke(1, 1, y2), 0.015, C.stahl); strebe(g, ecke(1, -1, y1), ecke(-1, -1, y2), 0.015, C.stahl);
+        strebe(g, ecke(1, 1, y1), ecke(1, -1, y2), 0.015, C.stahl); strebe(g, ecke(-1, -1, y1), ecke(-1, 1, y2), 0.015, C.stahl);
+      }
+      box(g, 0.28, 0.04, 0.28, null, 0, oben, mz, 0.01, k.lack);
+      for (const sx of [-0.09, 0, 0.09]) zyl(g, 0.012, 0.012, 0.42, "#e9eef0", sx, oben + 0.25, mz, "y", 8);
+      const blinkM = eigen(() => nbLeucht("#ff4a3a", 2).clone());
+      einzeln(zyl(g, 0.035, 0.035, 0.04, null, 0, oben + 0.48, mz, "y", 12, blinkM));
+      const ringe = [];
+      for (let i = 0; i < 3; i++) {
+        const m = eigen(() => new THREE.MeshBasicMaterial({ color: k.farbe, transparent: true, opacity: 0.5, depthWrite: false }));
+        const r = einzeln(new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 6, 40), m));
+        r.rotation.x = Math.PI / 2; r.position.set(0, oben + 0.2, mz); g.add(r); ringe.push(r);
+      }
+      const schuessel = new THREE.Group(); schuessel.position.set(0, top, 0.5); g.add(schuessel);
+      zyl(schuessel, 0.04, 0.05, 0.16, C.stahlDunkel, 0, 0.08, 0, "y", 12);
+      const schale = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 10, 0, VOLL, 0, Math.PI / 2.4), mat("#f3f6f7", { doppelt: true, r: 0.4 }));
+      schale.rotation.x = -Math.PI / 2 - 0.5; schale.position.y = 0.2; schuessel.add(schale);
+      symbolSchild(g, -0.432, y0 + 0.25, 0.55, k.kat.id, 0.22).rotation.y = -Math.PI / 2;
+      knoepfe(g, { x: 1, z: 0 }, 0.432, y0 + 0.12, 0.26, k.farbe).position.z = 0.4;
+      const eingangPlaetze = fach(g, -0.15, top, -0.75, 0.42, 0.4, GRUEN, MW);
+      const plaetze = fach(g, 0, top, 0.9, 0.7, 0.26, ROT, MW);
+      const setze = (p) => {
+        ringe.forEach((r, i) => {
+          const s = (p * 2 + i / 3) % 1;
+          r.visible = p > 0;
+          r.scale.setScalar(0.4 + s * 2.2);
+          if (!ersatz) r.material.opacity = 0.55 * (1 - s);
+        });
+        if (!ersatz) blinkM.emissiveIntensity = p > 0 && (p * 4) % 1 < 0.5 ? 2.2 : 0.2;
+        schuessel.rotation.y = p * VOLL;
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.3, top, -0.85), takt: 3, statusHoehe: 2.85, animiere: setze };
+    },
+
+    /* --- Audio: Membran-Presse (1 × 3) – Stempel formt die Membran, der Prüf-Lautsprecher schwingt --- */
+    audio(g, k) {
+      const y0 = k.y0, top = y0 + 0.45;
+      box(g, 0.86, 0.45, 2.1, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 0.87, 0.04, 2.11, null, 0, y0 + 0.43, 0, 0.01, k.lack);
+      box(g, 0.6, 1.0, 0.18, null, 0, top, -0.75, 0.03, WEISS());
+      box(g, 0.6, 0.18, 0.55, null, 0, y0 + 1.3, -0.55, 0.03, WEISS());
+      box(g, 0.61, 0.04, 0.56, null, 0, y0 + 1.26, -0.55, 0.01, k.lack);
+      const stempel = new THREE.Group(); g.add(stempel);
+      zyl(stempel, 0.04, 0.04, 0.3, null, 0, 0.15, 0, "y", 12, chrom());
+      zyl(stempel, 0.16, 0.16, 0.06, null, 0, 0, 0, "y", 24, mat(C.stahlDunkel, { m: 0.3 }));
+      const membran = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.08, 28, 1, true), mat("#2a3036", { doppelt: true, r: 0.7 }));
+      membran.rotation.x = Math.PI; membran.position.set(0, y0 + 0.5, -0.4); g.add(membran);
+      zyl(g, 0.19, 0.19, 0.02, null, 0, top + 0.005, -0.4, "y", 28, k.lack);
+      box(g, 0.6, 0.75, 0.4, null, 0, top, 0.4, 0.05, mat("#2a3036", { r: 0.6 }));
+      const woofer = new THREE.Group(); woofer.position.set(0, y0 + 0.75, 0.605); g.add(woofer);
+      zyl(woofer, 0.2, 0.2, 0.02, null, 0, 0, 0, "z", 32, k.lack);
+      const konus = einzeln(new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.06, 32, 1, true), mat("#1b1f23", { doppelt: true, r: 0.8 })));
+      konus.rotation.x = -Math.PI / 2; woofer.add(konus);
+      zyl(woofer, 0.05, 0.05, 0.03, C.armGelenk, 0, 0, 0.01, "z", 16);
+      zyl(g, 0.07, 0.07, 0.02, null, 0, y0 + 1.05, 0.605, "z", 20, k.lack);
+      zyl(g, 0.045, 0.045, 0.025, null, 0, y0 + 1.05, 0.61, "z", 16, chrom());
+      const wellen = [];
+      for (let i = 0; i < 9; i++) wellen.push(einzeln(box(g, 0.012, 0.1, 0.04, null, -0.432, y0 + 0.2, i * 0.0825, 0.004, k.glow)));
+      symbolSchild(g, 0.432, y0 + 0.25, -0.2, k.kat.id, 0.22).rotation.y = Math.PI / 2;
+      const eingangPlaetze = fach(g, 0, top, -0.95, 0.7, 0.2, GRUEN, MW);
+      const plaetze = fach(g, 0, top, 0.85, 0.6, 0.3, ROT, MW);
+      const setze = (p) => {
+        const hub = p < 0.3 ? sanft(p / 0.3) : p < 0.4 ? 1 : 1 - sanftAb(0.4, 0.8, p);
+        stempel.position.set(0, y0 + 1.05 - hub * 0.42, -0.4);
+        konus.position.z = p > 0 ? 0.02 * Math.sin(p * VOLL * 24) : 0;
+        wellen.forEach((w, i) => { w.scale.y = p > 0 ? 0.4 + 0.6 * Math.abs(Math.sin(p * VOLL * 3 + i * 0.7)) : 0.4; });
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, -0.3, y0 + 1.48, -0.55), takt: 1.6, statusHoehe: 2.3, animiere: setze };
+    },
+
+    /* --- Bewegungs-Sensorik: Gyro-Prüfstand (1 × 3) – kardanischer Kreisel, drei Ringe auf verschiedenen Achsen --- */
+    bewegung(g, k) {
+      const y0 = k.y0, top = y0 + 0.4;
+      box(g, 0.86, 0.4, 2.1, null, 0, y0, 0, 0.04, WEISS());
+      box(g, 0.87, 0.04, 2.11, null, 0, y0 + 0.38, 0, 0.01, k.lack);
+      for (const sz of [-0.5, 0.5]) box(g, 0.14, 0.62, 0.1, null, 0, top, sz, 0.02, WEISS());
+      const aussen = new THREE.Group(); aussen.position.set(0, y0 + 1.05, 0); g.add(aussen);
+      const ring = (r, m) => { const o = new THREE.Mesh(new THREE.TorusGeometry(r, 0.025, 10, 48), m); o.castShadow = true; return o; };
+      const r1 = ring(0.44, k.lack); r1.rotation.y = Math.PI / 2; aussen.add(r1);
+      zyl(aussen, 0.025, 0.025, 0.1, null, 0, 0, -0.47, "z", 10, chrom()); zyl(aussen, 0.025, 0.025, 0.1, null, 0, 0, 0.47, "z", 10, chrom());
+      const mitte = new THREE.Group(); aussen.add(mitte);
+      mitte.add(ring(0.34, mat(C.stahl, { m: 0.5, r: 0.3 })));
+      const innen = new THREE.Group(); mitte.add(innen);
+      const r3 = ring(0.24, k.tief); r3.rotation.x = Math.PI / 2; innen.add(r3);
+      innen.add(new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 16), mat("#e9eef0", { r: 0.3, m: 0.3 })));
+      const punkt = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), leucht(k.farbe, 2)); punkt.position.set(0, 0, 0.1); innen.add(punkt);
+      symbolSchild(g, 0.432, y0 + 0.22, -0.3, k.kat.id, 0.2).rotation.y = Math.PI / 2;
+      knoepfe(g, { x: 0, z: 1 }, 1.051, y0 + 0.08, 0.26, k.farbe);
+      const eingangPlaetze = fach(g, 0.18, top, -0.8, 0.4, 0.36, GRUEN, MW);
+      const plaetze = fach(g, -0.18, top, 0.8, 0.4, 0.36, ROT, MW);
+      const setze = (p) => {
+        aussen.rotation.z = Math.sin(p * VOLL) * 0.6;
+        mitte.rotation.x = p * VOLL * 2;
+        innen.rotation.y = p * VOLL * 4;
+      };
+      setze(0);
+      return { eingangPlaetze, plaetze, ...saeule(g, 0.3, top, -0.35), takt: 3, statusHoehe: 2.1, animiere: setze };
+    },
+  };
+
   const BAUER = {
     importzone: () => zone(3, GRUEN, "IMPORT", false), exportzone: () => zone(2, ROT, "EXPORT", true),   // 2026-10-12
     werkbank, montagetisch, forschungsstation,
@@ -21379,6 +22098,8 @@ const MASCHINEN_LOOK = (() => {
     schrank: () => regal("regal"), metallSchrank: () => regal("metall"),
     industrieSchrank: () => regal("industrie"), smartSchrank: () => regal("smart"),
     endlosSilo, muelltonne,
+    // Kategorie-Maschinen (kat_energie … kat_mechanik): Körper je Kategorie, Tore aus typ.tore
+    ...Object.fromEntries(GEBAEUDE_TYPEN.filter((t) => t.katMaschine).map((t) => [t.typ, () => katMaschine(t)])),
   };
   // Neues Modell für einen Gebäudetyp bauen (null = Typ hat keinen neuen Look). m = Ersatzmaterial der Vorschau
   function baue(typ, m) {
@@ -21529,6 +22250,7 @@ function zeichneBandItems() {
         bandItemPunkt(t, it, bandHilfsVektor);
         if (untergrund && !untergrundItem(t, it, bandHilfsVektor)) continue;     // Phase 7d: im Tunnel unsichtbar
         if (t.typ === "uebergang" && neuerBandLook()) bandHilfsVektor.y += uebergangHub(it.pos);   // 12d: Portalkran hebt über den Gehweg
+        if (it.hub > 0) bandHilfsVektor.y += Math.sin(it.hub * Math.PI) * 0.32;   // Umsortieren: das wartende Item wird angehoben
         // Phase 7c: längliche Items zeigen in Laufrichtung (in Kurven zwischen Ein- und Austritt gemischt)
         const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung], ziel = aus || ein;
         const dx = ein.x * (1 - it.pos) + ziel.x * it.pos, dz = ein.z * (1 - it.pos) + ziel.z * it.pos;

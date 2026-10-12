@@ -3526,6 +3526,11 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 .lz-kopf > .lz-einklappen { margin-left: auto; }
 .frei-fenster.eingeklappt > :not(header) { display: none !important; }
 .frei-fenster.eingeklappt { height: auto !important; min-height: 0 !important; }
+#pause-fenster { width: min(380px, calc(100vw - 32px)) !important; height: auto !important; }
+#pause-fenster .pause-liste { display: grid; gap: 8px; padding: 16px 18px 4px; }
+#pause-fenster .pause-liste .lz-knopf { justify-content: flex-start; min-height: 42px; padding: 0 14px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+#pause-fenster .pause-liste kbd { margin-left: auto; }
+#pause-fenster .pause-hinweis { font-size: 12px; opacity: .75; padding: 6px 18px 16px; }
 @media (max-width: 700px) {
   .modal-schleier.frei, #layout-overlay.frei { padding: calc(60px + env(safe-area-inset-top, 0px)) 8px 8px !important; }
   .modal-schleier.frei > section, #layout-overlay.frei > section { max-height: 58dvh !important; width: calc(100vw - 16px) !important; }
@@ -4070,6 +4075,20 @@ html.leitstand #kurier-fenster { background: var(--emaille) !important; }
 <div id="rezept-stapel" aria-label="Angeheftete Rezepte"></div>
 
 <!-- ================== INSOLVENZ (Phase 5) ================== -->
+<!-- Leitstand-UI: Pausenmenü (Esc, wenn nichts offen und nichts gewählt ist) – hält das Spiel an -->
+<div id="pause-overlay" class="modal-schleier" hidden>
+  <section id="pause-fenster" class="modal-fenster" role="dialog" aria-modal="true" aria-labelledby="pause-titel" tabindex="-1">
+    <header class="lz-kopf"><h2 id="pause-titel">Pause</h2><span class="lz-platz" style="flex:1"></span>
+      <button id="pause-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Weiterspielen">✕</button></header>
+    <div class="pause-liste">
+      <button class="lz-knopf lz-knopf-haupt" type="button" data-pause="weiter">▶ Weiterspielen <kbd>Esc</kbd></button>
+      <button class="lz-knopf" type="button" data-pause="optionen">⚙ Optionen</button>
+      <button class="lz-knopf" type="button" data-pause="tasten">⌨ Tastenkürzel</button>
+      <button class="lz-knopf bau-gefahr" type="button" data-pause="neustart">⟲ Neues Spiel …</button>
+    </div>
+    <p class="dialog-text pause-hinweis">Das Spiel ist angehalten. Weiterspielen setzt das vorige Tempo fort.</p>
+  </section>
+</div>
 <div id="insolvenz-overlay" class="modal-schleier" hidden>
   <section id="insolvenz-fenster" class="modal-fenster" role="alertdialog" aria-modal="true" aria-labelledby="insolvenz-titel" tabindex="-1">
     <header class="lz-kopf"><h2 id="insolvenz-titel">Insolvenz</h2></header>
@@ -25944,6 +25963,11 @@ window.addEventListener("keydown", (e) => {
   const taste = e.key.toLowerCase();
   const erledigt = () => { e.preventDefault(); e.stopImmediatePropagation(); };
 
+  if (pauseOffen) {                                     // Leitstand-UI: Pausenmenü – Esc spielt weiter
+    if (taste === "escape") { erledigt(); schliessePausenmenue(); }
+    else if (!["tab", "enter", " "].includes(taste)) erledigt();
+    return;
+  }
   if (dialogOffen) {                                    // Bestätigungsfenster: nur Esc (Enter löst den fokussierten Knopf aus)
     if (taste === "escape") { erledigt(); schliesseDialog(false); }
     return;
@@ -25979,6 +26003,8 @@ window.addEventListener("keydown", (e) => {
     else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
     else if (bau.offen) { erledigt(); schliesseBau(); }
     else if (auswahlGebaeudeId || mehrfachAktiv()) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
+    else if (designer.offen) { erledigt(); schliesseDesigner(); }                   // Leitstand-UI: Designer ohne Tastatur-Fokus
+    else if (!escHatteAuswahl) { erledigt(); oeffnePausenmenue(); }                 // Leitstand-UI: Pausenmenü
     return;
   }
   switch (aktion) {
@@ -28363,6 +28389,44 @@ window.addEventListener("keydown", (e) => {
   zeigeMeldung(`Gedreht: ${objektZug.drehung}°. Loslassen zum Übernehmen.`);
 }, true);
 
+
+/* --- Leitstand-UI: Pausenmenü --------------------------------------------------------------
+   Esc öffnet es, wenn kein Fenster offen und nichts ausgewählt ist. Es hält das Spiel an (Tempo 0)
+   und setzt beim Weiterspielen das vorige Tempo fort. Modal wie Bestätigung und Insolvenz. */
+let pauseOffen = false, pauseTempo = 1;
+const pauseOverlay = document.getElementById("pause-overlay");
+function oeffnePausenmenue() {
+  if (pauseOffen || dialogOffen || insolvenzOffen) return;
+  pauseOffen = true;
+  pauseTempo = spiel.tempo;
+  setzeTempo(0);
+  pauseOverlay.hidden = false;
+  aktualisiereSperre();
+  pauseOverlay.querySelector('[data-pause="weiter"]').focus({ preventScroll: true });
+}
+function schliessePausenmenue(weiter = true) {
+  if (!pauseOffen) return;
+  pauseOffen = false;
+  pauseOverlay.hidden = true;
+  if (weiter && pauseTempo > 0) setzeTempo(pauseTempo);
+  aktualisiereSperre();
+}
+pauseOverlay.addEventListener("click", (e) => {
+  if (e.target === pauseOverlay || e.target.closest("#pause-schliessen")) { schliessePausenmenue(); return; }
+  const aktion = e.target.closest("[data-pause]")?.dataset.pause;
+  if (!aktion) return;
+  schliessePausenmenue(aktion !== "neustart");
+  if (aktion === "optionen" || aktion === "tasten") {
+    einstellungsFenster.reiter = aktion === "tasten" ? "tasten" : "spiel";
+    oeffneEinstellungen();
+    zeichneEinstellungen();
+  } else if (aktion === "neustart") frageSpielNeuStarten();
+});
+// Stand vor dem Tastendruck merken: Esc soll zuerst eine Auswahl aufheben, erst danach pausieren
+let escHatteAuswahl = false;
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") escHatteAuswahl = !!(auswahlKachel || auswahlBandId || auswahlGebaeudeId || mehrfachAktiv() || objektZug);
+}, true);
 
 /* --- Leitstand-UI: Menüfenster verschieben und einklappen ------------------------------------
    Die Fenster sperren das Spiel nicht (siehe CSS "leitstand-frei"). Am Kopf lässt sich jedes

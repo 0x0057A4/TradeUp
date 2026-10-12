@@ -1091,6 +1091,7 @@
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
   }
   .info-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+  .info-grund { margin: 6px 0 0; color: #f5b041; font-weight: 600; }   /* 2026-10-12: konkreter Wartegrund */
   .info-status::before { content: ""; width: 0.7em; height: 0.7em; border-radius: 50%; background: currentColor; }
   .info-status.gruen { color: var(--lz-ampel-gruen); }
   .info-status.gelb { color: var(--lz-ampel-gelb); }
@@ -3885,7 +3886,10 @@ const GRAFIK = {
   kameraNeigung:  35.264,   // Grad, mit dem die Kamera nach unten schaut (35.264 = echte Isometrie)
   zoomMin:        0.4,      // Wie weit man maximal herauszoomen kann
   zoomMax:        4.0,      // Wie weit man maximal hineinzoomen kann
-  zoomSchritt:    1.12,     // Wie stark ein Mausrad-Schritt zoomt
+  zoomSchritt:    1.12,     // (alt) fester Faktor pro Mausrad-Schritt – ersetzt durch zoomProPixel
+  zoomProPixel:   0.0011,   // 2026-10-12: Zoom folgt dem Ausschlag des Rads (deltaY in Pixel); Klick ≈ 100 px ≈ 11 %
+  zoomMaxSchritt: 1.25,     // Deckel pro Rad-Ereignis (Touchpad-Spitzen)
+  zoomWeich:      14,       // wie schnell die Kamera dem Zielzoom folgt (1/s)
   startRand:      0.84,     // Anteil der Ansicht für Halle einschließlich Außenbereich
   tastaturTempo:  18,       // Kacheln pro Sekunde beim Bewegen mit W A S D (bei Zoom 1)
   randUmGarage:   6,        // Wie weit (in Kacheln) die Kamera über die Garage hinaus darf
@@ -5533,11 +5537,12 @@ function standardTasten() {
   for (const t of TASTEN_STANDARD) tasten[t.aktion] = t.taste;
   return tasten;
 }
-const einstellungen = { tasten: standardTasten(), grafik: { ...GRAFIK_STANDARD }, skalierung: 1, tastenVersion: 2 };
+const einstellungen = { tasten: standardTasten(), grafik: { ...GRAFIK_STANDARD }, skalierung: 1, zoomStaerke: 1, tastenVersion: 2 };
 try {
   const gespeichert = JSON.parse(localStorage.getItem(EINSTELLUNGEN_SCHLUESSEL) || "null");
   if (gespeichert) {
     if (Number.isFinite(gespeichert.skalierung)) einstellungen.skalierung = Math.min(1.3, Math.max(0.75, gespeichert.skalierung));
+    if (Number.isFinite(gespeichert.zoomStaerke)) einstellungen.zoomStaerke = Math.min(2, Math.max(0.25, gespeichert.zoomStaerke));
     // Nur bekannte Aktionen und Schalter übernehmen (alte oder kaputte Einträge ignorieren)
     for (const aktion in einstellungen.tasten) {
       if (typeof gespeichert.tasten?.[aktion] === "string") einstellungen.tasten[aktion] = gespeichert.tasten[aktion];
@@ -6562,21 +6567,35 @@ zeichenflaeche.addEventListener("pointerleave", () => {
 zeichenflaeche.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // Mausrad: Zoomen zur Mausposition hin (der Punkt unter der Maus bleibt stehen).
+// 2026-10-12 (Tim): Die Stärke folgt dem Ausschlag (Touchpad = viele kleine Schritte, Mausrad = wenige große),
+// das Rad setzt nur einen Zielzoom; die Kamera zieht jedes Bild weich nach (zoomeWeich).
+let zoomZiel = null;                              // null = kein Zoom unterwegs
+const zoomAnker = { x: 0, y: 0 };
 zeichenflaeche.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (eingaben3dGesperrt) return;
-  const vorher = punktUnterMaus(e.clientX, e.clientY);
-  const faktor = e.deltaY < 0 ? GRAFIK.zoomSchritt : 1 / GRAFIK.zoomSchritt;
-  kamera.zoom = THREE.MathUtils.clamp(kamera.zoom * faktor, GRAFIK.zoomMin, GRAFIK.zoomMax);
+  const pixel = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+  const roh = Math.exp(-pixel * GRAFIK.zoomProPixel * (einstellungen.zoomStaerke || 1));
+  const faktor = THREE.MathUtils.clamp(roh, 1 / GRAFIK.zoomMaxSchritt, GRAFIK.zoomMaxSchritt);
+  zoomZiel = THREE.MathUtils.clamp((zoomZiel ?? kamera.zoom) * faktor, GRAFIK.zoomMin, GRAFIK.zoomMax);
+  zoomAnker.x = e.clientX; zoomAnker.y = e.clientY;
+}, { passive: false });
+// Ein Bild weiter Richtung Zielzoom; der Punkt unter der Maus bleibt dabei stehen.
+function zoomeWeich(sekunden) {
+  if (zoomZiel === null) return;
+  const vorher = punktUnterMaus(zoomAnker.x, zoomAnker.y);
+  const k = 1 - Math.exp(-sekunden * GRAFIK.zoomWeich);
+  kamera.zoom += (zoomZiel - kamera.zoom) * k;
+  if (Math.abs(zoomZiel - kamera.zoom) < 0.002 * zoomZiel) { kamera.zoom = zoomZiel; zoomZiel = null; }
   kamera.updateProjectionMatrix();
-  const nachher = punktUnterMaus(e.clientX, e.clientY);
+  const nachher = punktUnterMaus(zoomAnker.x, zoomAnker.y);
   if (vorher && nachher) {
     kameraZiel.add(vorher.sub(nachher));
     begrenzeKameraZiel();
   }
   aktualisiereKamera();
-  setzeHover(kachelUnterMaus(e.clientX, e.clientY));
-}, { passive: false });
+  setzeHover(kachelUnterMaus(zoomAnker.x, zoomAnker.y));
+}
 
 // Tastatur: W A S D / Pfeiltasten bewegen die Kamera, Esc hebt die Auswahl auf.
 const gedrueckteTasten = new Set();
@@ -6631,6 +6650,7 @@ function bewegeMitTastatur(sekunden) {
 
 // Startansicht: Zoom so wählen, dass die ganze Garage ins Bild passt.
 function zoomeAufGarage() {
+  zoomZiel = null;
   const mitte = hallenMitte();
   kameraZiel.copy(mitte);
   aktualisiereKamera();
@@ -9063,7 +9083,34 @@ function zugangsHindernis(g) {
   if (!k.begehbar) return "eine nicht begehbare Kachel";
   return "ein Hindernis";
 }
+/* --- 2026-10-12 (Tim): Maschinen ohne Personal brauchen keinen festen Pfeil ---
+   Kuriere bedienen eine Maschine von irgendeiner freien Nachbarkachel. Ist die Standard-Kachel vorn belegt,
+   wandert der Zugang (g.zugang) an die nächste freie Seite; wird vorn wieder frei, kehrt er zurück. */
+function istFreieZugangsKachel(x, z, zusatzBelegt = null, erlaubtId = null) {
+  const k = holeKachel(x, z);
+  const objektFrei = !k?.objekt || (!!erlaubtId && k.objekt === erlaubtId);
+  return !!k && (k.begehbar || objektFrei && !!erlaubtId && k.objekt === erlaubtId) && objektFrei && !k.band && !k.hochband && !(zusatzBelegt && zusatzBelegt.has(x + "," + z));
+}
+// Freie Nachbarkachel für eine Maschine (zuerst die Standard-Kachel vorn). geo = { zellen, zugang }
+function maschinenZugangFrei(geo, zusatzBelegt = null, erlaubtId = null) {
+  const eigen = new Set(geo.zellen.map((c) => c.x + "," + c.z));
+  const kandidaten = [geo.zugang];
+  for (const c of geo.zellen) for (const [dx, dz] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
+    const n = { x: c.x + dx, z: c.z + dz };
+    if (!eigen.has(n.x + "," + n.z)) kandidaten.push(n);
+  }
+  return kandidaten.find((n) => istFreieZugangsKachel(n.x, n.z, zusatzBelegt, erlaubtId)) || null;
+}
+function richteMaschinenZugaengeEin() {
+  for (const g of spiel.gebaeude.values()) {
+    if (!istMaschine(g)) continue;
+    const standard = gebaeudeGeometrie(g.typ, g.x, g.z, g.drehung).zugang;
+    const neu = maschinenZugangFrei({ zellen: g.zellen, zugang: standard });
+    if (neu && (neu.x !== g.zugang.x || neu.z !== g.zugang.z)) { g.zugang = neu; g.version = (g.version || 0) + 1; }
+  }
+}
 function pruefeZugangsWarnungen() {
+  richteMaschinenZugaengeEin();
   const blockiert = [], freigegeben = [];
   for (const g of spiel.gebaeude.values()) {
     const istBlockiert = zugangGesperrt(g);
@@ -9224,7 +9271,9 @@ function bleibtAllesErreichbar(geo, eigenes = null) {
     const k = personKachel(p);
     if (istBegehbar(k.x, k.z)) ziele.push(k);   // wer (warum auch immer) auf einer Blockade steht, zählt nicht
   }
-  const start = zugangZaehlt ? geo.zugang : ziele.find((k) => frei[k.x * T + k.z]);
+  // 2026-10-12: Maschinen starten an ihrer freien Seite (die Standard-Kachel vorn darf belegt sein)
+  const maschinenStart = gebaeudeTypNach.get(geo.typ)?.maschine ? maschinenZugangFrei(geo, null, eigenes?.id) : null;
+  const start = maschinenStart || (zugangZaehlt ? geo.zugang : ziele.find((k) => frei[k.x * T + k.z]));
   if (!start) return true;
 
   const erreicht = new Uint8Array(B * T);
@@ -9259,9 +9308,23 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
     else if (allePersonen().some((p) => personBeruehrtKachel(p, c))) gruende.push("Hier steht gerade jemand.");
   }
   // Der neue Zugang eines Gebäudes wird beim Aufstellen weiterhin auf Freiheit geprüft.
+  // 2026-10-12: Maschinen (ohne Personal) brauchen nur irgendeine freie Seite für Kuriere.
   const zugangKachel = holeKachel(geo.zugang.x, geo.zugang.z);
-  if (!zugangKachel || ((!zugangKachel.begehbar || zugangKachel.objekt) && !istEigen(geo.zugang))) gruende.push("Der Arbeitszugang (Pfeil) ist versperrt.");
-  if (zugangKachel?.band || zugangKachel?.hochband) gruende.push("Der Arbeitszugang (Pfeil) muss auch oberhalb frei bleiben.");
+  if (t.maschine) {
+    if (!maschinenZugangFrei(geo, null, ignoriereId)) gruende.push("Die Maschine braucht eine freie Seite, an die Kuriere herankommen.");
+  } else {
+    if (!zugangKachel || ((!zugangKachel.begehbar || zugangKachel.objekt) && !istEigen(geo.zugang))) gruende.push("Der Arbeitszugang (Pfeil) ist versperrt.");
+    if (zugangKachel?.band || zugangKachel?.hochband) gruende.push("Der Arbeitszugang (Pfeil) muss auch oberhalb frei bleiben.");
+  }
+  // 2026-10-12: Fremde Pfeil-Kacheln nicht überbauen (Maschinen weichen auf eine andere freie Seite aus)
+  const neueZellen = new Set(geo.zellen.map((c) => c.x + "," + c.z));
+  for (const anderes of spiel.gebaeude.values()) {
+    if (anderes.id === ignoriereId || !neueZellen.has(anderes.zugang.x + "," + anderes.zugang.z)) continue;
+    if (istMaschine(anderes)) {
+      const standard = gebaeudeGeometrie(anderes.typ, anderes.x, anderes.z, anderes.drehung).zugang;
+      if (!maschinenZugangFrei({ zellen: anderes.zellen, zugang: standard }, neueZellen)) gruende.push(`${gebaeudeName(anderes)} hätte dann keine freie Seite mehr.`);
+    } else gruende.push(`Hier ist der Arbeitszugang (Pfeil) von ${gebaeudeName(anderes)}.`);
+  }
   if (t.maxAnzahl && anzahlTyp(typ) - (eigenes ? 1 : 0) >= t.maxAnzahl) gruende.push(`Es gibt schon ein ${t.name}.`);
   if (t.wand && !stehtAnWand(geo)) gruende.push(`${t.name} muss mit der Rückseite an einer Hallenwand stehen (dort ist das Rolltor).`);   // Phase 7b
   if (!t.freigeschaltet) gruende.push(`${t.name} ist noch nicht freigeschaltet.`);
@@ -9588,7 +9651,8 @@ function fachGroesse(g, fach) {
   // Phase 7c: Ein Durchgang muss immer ins Eingangsfach passen (T3-Rezepte, große Gehäuse mit vielen Teilen)
   if (!grund || !g.rezept) return grund;
   const r = rezeptVon(g);
-  return r ? Math.max(grund, summe(r.eingaben)) : grund;
+  // 2026-10-12: Maschinen ohne Personal halten 2 Durchgänge vor, damit Material schon während der Arbeit nachkommt
+  return r ? Math.max(grund, summe(r.eingaben) * (laeuftOhnePersonal(g) || g.automatik ? 2 : 1)) : grund;
 }
 // Ändert den Inhalt eines Fachs und merkt sich, dass neu gezeichnet werden muss.
 function aendereFach(g, fach, item, delta) {
@@ -9646,6 +9710,9 @@ function erzeugteItems(lager) {
 // Hat die Station ein Import-Lager, aus dem ihr Arbeiter Material nehmen darf?
 function versorgtDurchLager(s) {
   if (laeuftOhnePersonal(s)) return false;       // Phase 7d: ohne Arbeiter nimmt niemand aus dem Lager – Kuriere liefern direkt
+  // 2026-10-12: Auch eine Station im Band-Automatikbetrieb hat keinen Arbeiter mehr. Vorher blieb der Import auf
+  // „Lager versorgt“ stehen: Kuriere lieferten nichts, das Band brachte nichts – die Station stand für immer.
+  if (s.automatik) return false;
   return verknuepfteLager(s, "import").some((g) => darfArbeiterEntnehmen(g));
 }
 // Die Automatik: welche Pfeile gelten, solange der Spieler nichts von Hand setzt?
@@ -11410,6 +11477,51 @@ function stationsStatus(s) {
   return "holtMaterial";
 }
 
+/* --- 2026-10-12 (Tim): Warum geht es nicht weiter? Konkreter Grund zum Status ---
+   Steht über der Maschine unter dem Status-Schild und im Infofenster. Kurze Wartezeiten zwischen zwei Stücken
+   zeigen nichts an: der Grund erscheint erst, wenn die Station länger als GRUND_VERZOEGERUNG Sekunden wartet. */
+const GRUND_VERZOEGERUNG = 3;
+const WARTE_STATUS = new Set(["wartetAufBand", "wartetAufMaterial", "ausgabeVoll", "keinLager", "keinArbeiter", "rezeptFehlt"]);
+// So viel liegt von einem Item in Lagern, Zonen und Fächern der Halle (ohne das Eingangsfach der Station selbst)
+function vorratImBetrieb(item, ausser = null) {
+  let n = 0;
+  for (const g of spiel.gebaeude.values()) {
+    if (g === ausser) continue;
+    n += g.bestand[item] || 0;
+  }
+  for (const t of spiel.baender.values()) n += bandInventar(t).bestand?.[item] || 0;
+  return n;
+}
+function stationsGrund(s, art) {
+  const r = rezeptVon(s);
+  if (art === "rezeptFehlt") return "Blaupause veraltet oder gelöscht – im Designer neu speichern";
+  if (art === "keinArbeiter") return laeuftOhnePersonal(s) ? null : "Kein Mitarbeiter zugewiesen";
+  if (art === "keinLager") return "Kein Lager mit ⇣ Import verknüpft";
+  if (!r) return null;
+  if (art === "ausgabeVoll") {
+    if (produktionsAusgangVoll(s)) return `Ausgabe voll: Abnehmer nimmt ${itemInfo(r.ausgabe).name} nicht mehr an`;
+    return "Ausgabefach voll – niemand holt ab (Kurier, Band oder Greifarm fehlt)";
+  }
+  const fehlt = [];
+  for (const [item, n] of Object.entries(r.eingaben)) {
+    const hat = s.eingang[item] || 0;
+    if (hat >= n) continue;
+    const vorrat = vorratImBetrieb(item, s);
+    fehlt.push(`${n - hat}× ${itemInfo(item).name}${vorrat ? "" : " (nicht vorrätig)"}`);
+  }
+  if (fehlt.length) {
+    const ohneKurier = !mitarbeiter.some((p) => p.rolle === "kurier") && !s.bandZulauf;
+    return "Fehlt: " + fehlt.join(", ") + (ohneKurier ? " – kein Kurier" : "");
+  }
+  if (zugangGesperrt(s)) return `Zugang blockiert durch ${zugangsHindernis(s)}`;
+  return null;
+}
+function aktualisiereStationsGrund(s) {
+  if (!WARTE_STATUS.has(s.status)) { s.wartetSeit = null; s.grund = null; return; }
+  if (s.wartetSeit == null) s.wartetSeit = spiel.zeit;
+  s.grund = spiel.zeit - s.wartetSeit >= GRUND_VERZOEGERUNG ? stationsGrund(s, s.status) : null;
+}
+
 /* --- Simulation --- */
 
 let simRest = 0;            // noch nicht verbrauchte Spielzeit (Sekunden)
@@ -11434,7 +11546,7 @@ function simSchritt(dt) {
   for (const s of gebaeudeListe(istStation)) if (s.automatik) schrittStationAutomatik(s, dt);   // Phase 6
   serviceDrohnenSchritt(dt);                    // W4 (M8/PROD-065)
   waechterSchritt(dt);                          // Phase 6: niemand bleibt stecken
-  for (const s of gebaeudeListe(istStation)) s.status = stationsStatus(s);
+  for (const s of gebaeudeListe(istStation)) { s.status = stationsStatus(s); aktualisiereStationsGrund(s); }
   // "Überschuss zurückschicken" ist erledigt, sobald nichts mehr abzuholen ist
   for (const g of gebaeudeListe((x) => x.rueckgabe)) {
     if (!summe(abholbar(g, reservierungen()))) { g.rueckgabe = false; meldeStruktur(); }
@@ -12458,6 +12570,30 @@ function bestelle(g, item, n) {
   if (!w) { w = { items: {}, ankunft: spiel.zeit + ZONEN.lieferzeit, abgeladen: false }; g.lieferwagen.push(w); }
   w.items[item] = (w.items[item] || 0) + n;
   spiel.version++;
+  return w;
+}
+// 2026-10-12 (Tim): „Einmalig“ bleibt aktiv, bis der Wagen ablädt; so lange lässt sich die Menge noch ändern.
+// w.einmal merkt sich pro Rohstoff, wie viel des Wagens aus „Einmalig“ stammt (Rest kann von „Bis Soll“ kommen).
+function einmalWagen(g, item) {
+  return g.lieferwagen.find((w) => !w.abgeladen && w.einmal && w.einmal[item] > 0 && w.ankunft - spiel.zeit > ZONEN.fahrzeit) || null;
+}
+function bestelleEinmal(g, item, n) {
+  const w = bestelle(g, item, n);
+  w.einmal = { ...(w.einmal || {}), [item]: ((w.einmal && w.einmal[item]) || 0) + n };
+  return w;
+}
+// Neue Menge für eine laufende „Einmalig“-Lieferung (0 = abbestellen). false: kein passender Wagen mehr unterwegs.
+function aendereEinmal(g, item, n) {
+  const w = einmalWagen(g, item);
+  if (!w) return false;
+  n = Math.max(0, Math.min(9999, Math.round(Number(n)) || 0));
+  const rest = Math.max(0, (w.items[item] || 0) - w.einmal[item]) + n;
+  if (rest > 0) w.items[item] = rest; else delete w.items[item];
+  if (n > 0) w.einmal[item] = n; else delete w.einmal[item];
+  if (!Object.keys(w.items).length) g.lieferwagen.splice(g.lieferwagen.indexOf(w), 1);
+  spiel.version++;
+  meldeStruktur();
+  return true;
 }
 // Der Wagen ist da: abladen, soweit Platz und Geld reichen; bezahlt wird nur, was abgeladen wurde
 function ladeLieferwagenAb(g, w) {
@@ -14682,12 +14818,14 @@ function produktionsAusgangVoll(s) {
 }
 function bedarfFehlt(g, item, res) {
   const r = rezeptVon(g);
-  if (!r || g.pausiert || g.autoRezept || produktionsAusgangVoll(g) || !(r.eingaben[item] > 0)) return 0;
+  // 2026-10-12: Auch während der Arbeit (autoRezept) Material anfordern – bis zum Import-Pegel (bandSoll,
+  // Standard 2 Durchgänge). Vorher kam der Nachschub erst nach jedem fertigen Stück: Takt = Weg + Arbeitszeit.
+  if (!r || g.pausiert || produktionsAusgangVoll(g) || !(r.eingaben[item] > 0)) return 0;
   if (r.ausgabe && summe(g.bestand) >= kapazitaetVon(g)) return 0;
-  if (mitarbeiter.some((p) => p.stationId === g.id && p.auftrag?.rezept)) return 0;
+  if (!g.autoRezept && mitarbeiter.some((p) => p.stationId === g.id && p.auftrag?.rezept)) return 0;
   const unterwegs = res.rein.get(fachSchluessel(g.id, "eingang")) || {};
   const platz = fachGroesse(g, "eingang") - summe(g.eingang) - summe(unterwegs);
-  return Math.max(0, Math.min(platz, r.eingaben[item] - (g.eingang[item] || 0) - (unterwegs[item] || 0)));
+  return Math.max(0, Math.min(platz, bandSoll(g, item, r) - (g.eingang[item] || 0) - (unterwegs[item] || 0)));
 }
 // Reihum zuerst Maschinen, innerhalb jeder Maschine die Ressourcen bedienen.
 function bedarfWaehle(t, kandidaten, start = bedarfStart(t)) {
@@ -16160,6 +16298,7 @@ function baueZonenTor(gruppe, m, gitter, z) {
 // offen: 0 = geschlossen, 1 = ganz hochgefahren (nur noch die Bodenleiste schaut unter dem Kasten hervor)
 function setzeTorOffen(tor, offen) {
   tor.offen = offen;
+  if (tor.ampel) tor.ampel(offen > 0.9);           // 2026-10-12: Torampel (neuer Look) grün, solange offen
   const hub = offen * offen * (3 - 2 * offen) * (tor.oben - 0.07);   // weich anfahren und abbremsen
   for (const t of tor.teile) {
     const y = t.y + hub;
@@ -16235,7 +16374,11 @@ function aktualisiereWagen() {
     if (!z) continue;
     zonen.add(g.id);
     let w = wagen3d.get(g.id);
-    if (!w) { w = baueWagen(istImportzone(g) ? "#3c6fb5" : "#c94b3a"); szene.add(w); wagen3d.set(g.id, w); }
+    if (!w) {
+      const farbe = istImportzone(g) ? (neuerMaschinenLook() ? "#3fa65c" : "#3c6fb5") : (neuerMaschinenLook() ? "#d8473c" : "#c94b3a");
+      w = neuerMaschinenLook() ? MASCHINEN_LOOK.wagen(farbe) : baueWagen(farbe);   // 2026-10-12: neuer Wagen
+      szene.add(w); wagen3d.set(g.id, w);
+    }
     // Phase 7b Nachtrag: seitlich vorfahren, wenden und rückwärts ans Tor setzen (wagenPose)
     const pose = wagenPose(wagenPlatz(g), z);
     w.position.set(pose.x, rasterHoehe - 0.1, pose.z);
@@ -17247,10 +17390,39 @@ function baueStatusAnzeige() {
   ring.rotation.z = -Math.PI / 2;
   ring.scale.x = -1;
   ring.renderOrder = 22;
-  anzeige.add(hintergrund, schild, ring);
+  // 2026-10-12: Textschild mit dem konkreten Grund unter dem Status-Symbol
+  const text = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, depthTest: false }));
+  text.renderOrder = 23;
+  text.visible = false;
+  anzeige.add(hintergrund, schild, ring, text);
   anzeige.scale.setScalar(0.85);
   szene.add(anzeige);
-  return { anzeige, schild, ring, hintergrund, art: "" };
+  return { anzeige, schild, ring, hintergrund, text, grund: null, art: "" };
+}
+// Text als Bild für das Grund-Schild (je Text einmal gezeichnet)
+const grundTexturen = new Map();
+function grundTextur(text) {
+  if (grundTexturen.has(text)) return grundTexturen.get(text);
+  if (grundTexturen.size > 200) { for (const t of grundTexturen.values()) t.textur.dispose(); grundTexturen.clear(); }
+  const c = document.createElement("canvas"), k = c.getContext("2d");
+  const schrift = "600 30px Nunito, 'Segoe UI', sans-serif";
+  k.font = schrift;
+  const zeilen = [];
+  for (const wort of text.split(" ")) {   // Umbruch nach ca. 34 Zeichen
+    const z = zeilen[zeilen.length - 1];
+    if (z && (z + " " + wort).length <= 34) zeilen[zeilen.length - 1] = z + " " + wort; else zeilen.push(wort);
+  }
+  const breite = Math.ceil(Math.max(...zeilen.map((z) => k.measureText(z).width))) + 28, hoehe = zeilen.length * 38 + 18;
+  c.width = breite; c.height = hoehe;
+  k.fillStyle = "rgba(27,35,38,0.88)";
+  k.beginPath(); k.roundRect(0, 0, breite, hoehe, 14); k.fill();
+  k.fillStyle = "#ffd36b"; k.font = schrift; k.textBaseline = "top";
+  zeilen.forEach((z, i) => k.fillText(z, 14, 12 + i * 38));
+  const textur = new THREE.CanvasTexture(c);
+  textur.colorSpace = THREE.SRGBColorSpace;
+  const eintrag = { textur, b: breite / 170, h: hoehe / 170 };
+  grundTexturen.set(text, eintrag);
+  return eintrag;
 }
 
 /* --- Füllstand: kleine farbige Würfel in Lagern und Ausgabefächern --- */
@@ -17319,6 +17491,11 @@ function itemForm(id) {
   if (info.art === "bauteil" && neuerMaschinenLook()) {
     const karton = MASCHINEN_LOOK.kartonForm(info);
     if (karton) { itemFormen.set(id, karton); return karton; }
+  }
+  // 2026-10-12: Rohstoffe mit eigener Form (Bretter, Spulen, Barren, Sack …) im neuen Look
+  if (info.art === "rohstoff" && neuerMaschinenLook()) {
+    const roh = MASCHINEN_LOOK.rohstoffForm(info);
+    if (roh) { itemFormen.set(id, roh); return roh; }
   }
   const farbe = new THREE.Color(info.farbe || "#cccccc");
   let geo = "wuerfel", masse = [1, 1, 1];
@@ -17506,6 +17683,16 @@ function aktualisiereGebaeude3d(sekunden, zeit) {
     if (st) {
       const art = g.status || stationsStatus(g);
       if (st.art !== art) { st.art = art; st.schild.material.map = statusTexturen[art]; st.schild.material.needsUpdate = true; }
+      if (st.grund !== (g.grund || null)) {
+        st.grund = g.grund || null;
+        st.text.visible = !!st.grund;
+        if (st.grund) {
+          const gt = grundTextur(st.grund);
+          st.text.material.map = gt.textur; st.text.material.needsUpdate = true;
+          st.text.scale.set(gt.b, gt.h, 1);
+          st.text.position.set(0, -0.36 - gt.h / 2, 0);
+        }
+      }
       const schweben = wenigerAnimation ? 0 : Math.sin(zeit * 2 + g.mitte.x) * 0.05;
       const mitte = gebaeudeMitteWelt(g);
       const hoehe = (eintrag.bau7d && eintrag.bau7d.statusHoehe) || GRAFIK.statusHoehe;   // Phase 7d: über hohen Maschinen
@@ -20092,7 +20279,210 @@ const MASCHINEN_LOOK = (() => {
     return fertig(g, { plaetze: [], wuerfel: 0.1 });
   }
 
+  /* ==========================================================================
+     2026-10-12 (Tim): Import- und Exportzone im neuen Look (Baukasten „Zonen-Baukasten“)
+     Hallenwand zeichnet das Spiel selbst; die Zone bringt Tor, Abdichtung, Puffer, Ampel, Bodenrahmen
+     mit Schrift und Paletten mit. Das Tor hat dieselbe Form wie baueZonenTor (setzeTorOffen bewegt es).
+     ========================================================================== */
+  function zonenSchrift(g, wort, farbe, B, T) {
+    if (ersatz) return;
+    const t = textur(256, 64, (k, w, h) => {
+      k.clearRect(0, 0, w, h);
+      k.fillStyle = farbe; k.font = "800 44px Nunito, 'Arial Narrow', sans-serif"; k.textAlign = "center"; k.textBaseline = "middle";
+      k.fillText(wort, w / 2, h / 2 + 2);
+    }, false);
+    const schrift = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.25), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+    schrift.rotation.x = -Math.PI / 2; schrift.position.set(0, 0.024, T / 2 - 0.22); schrift.userData.einzeln = true;
+    g.add(schrift);
+  }
+  function zonenPfeil(g, x, z, winkel, farbe) {
+    const p = nbPlatte(g, [[-0.05, -0.1], [0.05, -0.1], [0.05, 0], [0.11, 0], [0, 0.12], [-0.11, 0], [-0.05, 0]], 0.01, 0.012, mat(farbe, { r: 0.6 }), 0);
+    p.position.x = x; p.position.z = z; p.rotation.y = winkel;
+    return p;
+  }
+  function neuesZonenTor(g, z, gitter) {
+    const oben = 1.4, B = 1.4, kasten = mat("#3a4148", { r: 0.5, m: 0.3 });
+    box(g, B + 0.3, 0.22, 0.26, null, 0, oben, z - 0.02, 0.02, kasten);
+    for (const s of [-1, 1]) {
+      box(g, 0.08, oben, 0.18, null, s * (B / 2 + 0.06), 0, z, 0.01, kasten);                 // Führungsschienen
+      box(g, 0.1, oben, 0.05, null, s * (B / 2 + 0.15), 0, z + 0.1, 0.02, mat("#23282d", { r: 0.95 }));   // Torabdichtung
+      box(g, 0.13, 0.22, 0.1, null, s * (B / 2 - 0.12), 0.08, z + 0.1, 0.02, warnMat(1));    // Anfahrpuffer
+    }
+    const teile = [], staebe = [];
+    if (gitter) {
+      for (let i = 0; i < 7; i++) {
+        const y = 0.2 + i * 0.19, m = box(g, B, 0.03, 0.04, null, 0, y, z, 0.008, mat("#aab3b9", { m: 0.5, r: 0.35 }));
+        m.userData.einzeln = true; teile.push({ mesh: m, y, h: 0.03 });
+      }
+      for (let i = 0; i < 12; i++) {
+        const m = box(g, 0.02, oben, 0.02, null, -B / 2 + 0.06 + i * (B - 0.12) / 11, 0, z + 0.01, 0, mat("#aab3b9", { m: 0.5, r: 0.35 }));
+        m.userData.einzeln = true; staebe.push(m);
+      }
+    } else {
+      const n = 5, h = (oben - 0.06) / n;
+      for (let i = 0; i < n; i++) {
+        const y = 0.06 + i * h;
+        const m = box(g, B, h - 0.02, 0.05, null, 0, y, z, 0.01, mat("#eef1f2", { r: 0.45 }));
+        m.userData.einzeln = true; teile.push({ mesh: m, y, h: h - 0.02 });
+        if (i === 3) {
+          const f = box(g, B - 0.2, (h - 0.02) * 0.5, 0.056, null, 0, y + h * 0.2, z, 0.01, mat("#9fc6dc", { r: 0.1, m: 0.2 }));
+          f.userData.einzeln = true; teile.push({ mesh: f, y: y + h * 0.2, h: (h - 0.02) * 0.5 });
+        }
+      }
+    }
+    const leiste = box(g, B, 0.06, 0.07, null, 0, 0, z, 0.01, mat("#23282d", { r: 0.95 }));
+    leiste.userData.einzeln = true; teile.push({ mesh: leiste, y: 0, h: 0.06 });
+    // Torampel rechts neben dem Tor: rot = zu, grün = Wagen steht am Tor
+    box(g, 0.12, 0.3, 0.07, null, B / 2 + 0.32, 1.0, z + 0.06, 0.02, mat(C.armGelenk));
+    const rot = zyl(g, 0.04, 0.04, 0.02, null, B / 2 + 0.32, 1.22, z + 0.1, "z", 16, mat("#5a2620"));
+    const gruen = zyl(g, 0.04, 0.04, 0.02, null, B / 2 + 0.32, 1.08, z + 0.1, "z", 16, mat("#1f4a2c"));
+    rot.userData.einzeln = gruen.userData.einzeln = true;
+    const ampel = ersatz ? null : (frei) => {
+      rot.material = frei ? mat("#5a2620") : leucht("#ff4a3a", 2);
+      gruen.material = frei ? leucht("#3fe07a", 2) : mat("#1f4a2c");
+    };
+    const tor = { teile, staebe, oben, offen: 0, ampel };
+    setzeTorOffen(tor, 0);
+    return tor;
+  }
+  function zone(breite, farbe, wort, gitter) {
+    const g = new THREE.Group(), plaetze = [];
+    const B = breite - 0.08, T = 1.92;
+    box(g, B, 0.012, T, null, 0, 0, 0, 0.004, mat("#c5c9c3", { r: 0.9 }));
+    for (const s of [-1, 1]) {
+      box(g, B, 0.016, 0.08, null, 0, 0.004, s * (T / 2 - 0.04), 0, mat(farbe, { r: 0.6 }));
+      box(g, 0.08, 0.016, T, null, s * (B / 2 - 0.04), 0.004, 0, 0, mat(farbe, { r: 0.6 }));
+    }
+    const ladebruecke = box(g, 1.3, 0.02, 0.26, null, 0, 0.006, -T / 2 + 0.2, 0.006, warnMat(6));
+    ladebruecke.castShadow = false;
+    zonenSchrift(g, wort, farbe, B, T);
+    for (const x of [-B / 3, B / 3]) zonenPfeil(g, x, T / 2 - 0.22, gitter ? Math.PI : 0, farbe);
+    const paletten = breite === 3 ? [-0.95, 0, 0.95] : [-0.48, 0.48];
+    for (const px of paletten) for (const pz of [-0.45, 0.35]) {
+      palette(g, px, 0.02, pz, 0.78, 0.62);
+      for (let ix = 0; ix < 3; ix++) for (let iz = 0; iz < 2; iz++) for (let lage = 0; lage < 2; lage++) {
+        plaetze.push(V(px - 0.24 + ix * 0.24, 0.1 + 0.11 + lage * 0.22, pz - 0.13 + iz * 0.26));
+      }
+    }
+    // Scanner-Terminal an der vorderen rechten Ecke
+    box(g, 0.05, 0.85, 0.05, C.armGelenk, B / 2 - 0.08, 0, T / 2 - 0.1, 0.01);
+    bildschirm(g, B / 2 - 0.08, 0.92, T / 2 - 0.07, 0.18, 0.12, "balken", 0, 0.25);
+    const tor = neuesZonenTor(g, -T / 2 - 0.02, gitter);
+    return fertig(g, { plaetze, wuerfel: 0.2, tor });
+  }
+  // Liefer- bzw. Abholwagen: Kofferaufbau mit Aufdruck, Fahrerhaus in Zonenfarbe (Fahrerhaus +z, Heck −z)
+  function wagen(farbe) {
+    const w = new THREE.Group();
+    box(w, 0.86, 0.12, 2.3, "#2b3036", 0, 0.16, 0.05, 0.02);
+    for (const z of [-0.7, -0.4, 0.8]) for (const s of [-1, 1]) {
+      zyl(w, 0.17, 0.17, 0.13, "#23282d", s * 0.43, 0.17, z, "x", 18);
+      zyl(w, 0.08, 0.08, 0.135, null, s * 0.43, 0.17, z, "x", 12, alu());
+    }
+    box(w, 1.0, 1.0, 1.6, "#f1f3f4", 0, 0.28, -0.3, 0.03);
+    box(w, 1.01, 0.14, 1.61, farbe, 0, 0.32, -0.3, 0.01);
+    if (!ersatz) {
+      const logo = textur(256, 96, (k, wb, h) => {
+        k.fillStyle = "#f1f3f4"; k.fillRect(0, 0, wb, h);
+        k.fillStyle = farbe; k.font = "800 50px Nunito, 'Arial Narrow', sans-serif"; k.textAlign = "center"; k.textBaseline = "middle";
+        k.fillText("TRADE UP", wb / 2, h / 2 + 3);
+      }, false);
+      for (const s of [-1, 1]) {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.45), new THREE.MeshStandardMaterial({ map: logo, roughness: 0.5 }));
+        p.position.set(s * 0.505, 0.85, -0.3); p.rotation.y = s * Math.PI / 2; w.add(p);
+      }
+    }
+    box(w, 0.9, 0.92, 0.02, "#dfe3e6", 0, 0.32, -1.11, 0.01);
+    for (const s of [-1, 1]) box(w, 0.12, 0.06, 0.02, null, s * 0.38, 0.3, -1.12, 0.01, leucht("#ff4a3a", 0.8));
+    box(w, 0.92, 0.72, 0.62, farbe, 0, 0.28, 0.82, 0.08);
+    box(w, 0.8, 0.3, 0.02, "#2b3a46", 0, 0.66, 1.135, 0.02);
+    for (const s of [-1, 1]) box(w, 0.02, 0.26, 0.36, "#2b3a46", s * 0.465, 0.64, 0.84, 0.01);
+    for (const s of [-1, 1]) box(w, 0.16, 0.07, 0.02, null, s * 0.32, 0.4, 1.14, 0.01, leucht("#fff6d8", 1.2));
+    verschmelzeTeile(w);
+    return w;
+  }
+
+  /* ==========================================================================
+     2026-10-12 (Tim): Rohstoffe mit eigener Form statt Würfel (Baukasten „Zonen-Baukasten“).
+     Gebaut wie im Baukasten (Kante eines Items = 0,24), dann zu EINER Geometrie mit Farben je Teil gebacken.
+     ========================================================================== */
+  const ROH_ITEM = 0.24, RU = -ROH_ITEM / 2;
+  const rohMaterialArt = { gold: { m: 0.35, r: 0.28 }, kupfer: { m: 0.4, r: 0.3 }, aluminium: { m: 0.45, r: 0.3 }, eisen: { m: 0.35, r: 0.4 }, silizium: { m: 0.3, r: 0.3 } };
+  function rohGruppe(id, f) {
+    const r = new THREE.Group(), band = "#1d2226";
+    if (id === "holz") {
+      for (let lage = 0; lage < 3; lage++) for (const s of [-1, 1]) box(r, 0.24, 0.058, 0.108, (lage + (s > 0 ? 1 : 0)) % 2 ? "#b8834a" : f, 0, RU + lage * 0.06, s * 0.057, 0.008);
+      for (const x of [-0.07, 0.07]) {
+        box(r, 0.018, 0.005, 0.232, band, x, RU + 0.18, 0, 0.002);
+        for (const s of [-1, 1]) box(r, 0.018, 0.182, 0.005, band, x, RU, s * 0.116, 0.002);
+      }
+    } else if (id === "kupfer") {
+      box(r, 0.22, 0.03, 0.22, "#b8834a", 0, RU, 0, 0.01);
+      for (let i = 0; i < 2; i++) {
+        const spule = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.034, 8, 20), mat("#d27f4a"));
+        spule.rotation.x = Math.PI / 2; spule.position.y = RU + 0.064 + i * 0.066; r.add(spule);
+      }
+      zyl(r, 0.034, 0.034, 0.15, "#8a6a45", 0, RU + 0.1, 0, "y", 12);
+    } else if (id === "eisen") {
+      for (const [x, y] of [[-0.058, 0], [0.058, 0], [0, 0.1]]) {
+        box(r, 0.1, 0.1, 0.23, f, x, RU + y, 0, 0.02);
+        box(r, 0.06, 0.06, 0.004, "#2f6fd0", x, RU + y + 0.02, 0.116, 0.003);
+      }
+    } else if (id === "kunststoff") {
+      box(r, 0.21, 0.16, 0.18, f, 0, RU, 0, 0.06);
+      box(r, 0.2, 0.035, 0.004, "#2f6fd0", 0, RU + 0.05, 0.091, 0.002);
+      box(r, 0.07, 0.04, 0.05, f, 0, RU + 0.15, 0, 0.015);
+    } else if (id === "glas") {
+      box(r, 0.24, 0.025, 0.12, C.stahlDunkel, 0, RU, 0, 0.006);
+      for (const s of [-1, 1]) strebe(r, V(s * 0.11, RU + 0.02, -0.05), V(s * 0.11, RU + 0.21, 0.0), 0.016, C.stahlDunkel);
+      for (let i = 0; i < 4; i++) { const sch = box(r, 0.21, 0.19, 0.012, f, 0, RU + 0.025, -0.035 + i * 0.024, 0.003); sch.rotation.x = -0.22; }
+    } else if (id === "aluminium") {
+      for (const [x, y] of [[-0.056, 0], [0.056, 0], [-0.056, 0.106], [0.056, 0.106]]) {
+        box(r, 0.1, 0.1, 0.23, f, x, RU + y, 0, 0.01);
+        for (const s of [-1, 1]) box(r, 0.07, 0.07, 0.006, "#4a5258", x, RU + y + 0.015, s * 0.113, 0);
+      }
+      box(r, 0.226, 0.214, 0.018, band, 0, RU - 0.002, 0.04, 0.003);
+    } else if (id === "silizium") {
+      box(r, 0.23, 0.03, 0.23, "#3a4148", 0, RU, 0, 0.012);
+      for (let i = 0; i < 6; i++) zyl(r, 0.095, 0.095, 0.012, i === 5 ? "#8fb0ef" : f, 0, RU + 0.04 + i * 0.022, 0, "y", 20);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(r, 0.016, 0.15, 0.016, "#c7d2dc", sx * 0.105, RU + 0.03, sz * 0.105, 0.004);
+    } else if (id === "lithium") {
+      zyl(r, 0.1, 0.1, 0.21, f, 0, RU + 0.105, 0, "y", 20);
+      for (const y of [0.05, 0.16]) zyl(r, 0.104, 0.104, 0.014, "#9b9bc0", 0, RU + y, 0, "y", 20);
+      zyl(r, 0.08, 0.08, 0.01, "#9b9bc0", 0, RU + 0.215, 0, "y", 16);
+      const raute = box(r, 0.07, 0.07, 0.006, "#e0402f", 0, RU + 0.07, 0.1, 0.002);
+      raute.rotation.z = Math.PI / 4;
+    } else if (id === "gold") {
+      const m = mat("#e8b931");
+      for (const [x, y] of [[-0.056, 0], [0.056, 0], [0, 0.07]]) { const b = nbPlatte(r, [[-0.05, -0.11], [0.05, -0.11], [0.05, 0.11], [-0.05, 0.11]], 0.07, RU + y, m, 0.018); b.position.x = x; }
+    } else if (id === "carbonfaser") {
+      zyl(r, 0.085, 0.085, 0.22, "#3a3b42", 0, RU + 0.085, 0, "x", 20);
+      for (let i = 0; i < 5; i++) zyl(r, 0.0865, 0.0865, 0.012, "#55575f", -0.088 + i * 0.044, RU + 0.085, 0, "x", 20);
+      zyl(r, 0.03, 0.03, 0.24, "#a8875f", 0, RU + 0.085, 0, "x", 10);
+      for (const s of [-1, 1]) box(r, 0.03, 0.03, 0.2, "#b8834a", s * 0.08, RU, 0, 0.01);
+    } else return null;
+    return r;
+  }
+  const rohFormen = new Map();
+  function rohstoffForm(info) {
+    if (rohFormen.has(info.id)) return rohFormen.get(info.id);
+    const gruppe = rohGruppe(info.id, info.farbe);
+    let form = null;
+    if (gruppe) {
+      const { geometrie, ausmass } = kmBacke(gruppe);
+      const geo = "roh:" + info.id, art = rohMaterialArt[info.id] || {};
+      ITEM_GEOMETRIEN[geo] = geometrie;
+      ITEM_NETZ_MATERIAL[geo] = new THREE.MeshStandardMaterial({ color: "#ffffff", vertexColors: true, roughness: art.r ?? 0.7, metalness: art.m ?? 0.05 });
+      const farbe = new THREE.Color(info.farbe);
+      // Maße relativ zur Würfelkante: das Modell ist für eine Kante von 0,24 gebaut
+      form = { geo, geometrie, masse: ausmass.map((a) => a / ROH_ITEM), farbe, hex: "#" + farbe.getHexString(),
+        instanzFarbe: new THREE.Color("#ffffff"), material: ITEM_NETZ_MATERIAL[geo], neu: true };
+    }
+    rohFormen.set(info.id, form);
+    return form;
+  }
+
   const BAUER = {
+    importzone: () => zone(3, GRUEN, "IMPORT", false), exportzone: () => zone(2, ROT, "EXPORT", true),   // 2026-10-12
     werkbank, montagetisch, forschungsstation,
     gehaeuseStanzer: stanzer, cncFraese, roboterArm, t2Presse, assembler,
     hauptlager, kiste, metallKiste,
@@ -20107,7 +20497,7 @@ const MASCHINEN_LOOK = (() => {
     ersatz = m || null;
     try { return bauen(); } finally { ersatz = null; }
   }
-  return { baue, hat: (typ) => !!BAUER[typ], kartonForm, maleSymbol };
+  return { baue, hat: (typ) => !!BAUER[typ], kartonForm, maleSymbol, rohstoffForm, wagen: (farbe) => { ersatz = null; return wagen(farbe); } };
 })();
 
 // Die alten Modelle bleiben erreichbar: Ist der neue Look an, baut MODELLE[typ] das neue Modell
@@ -20126,7 +20516,7 @@ function baueGebaeudeModelleNeu() {
     bau.gruppe.add(e.fuellung);
     e.huelle.add(bau.gruppe);
     Object.assign(e, {
-      modell: bau.gruppe, plaetze: bau.plaetze, wuerfel: bau.wuerfel, version: -1,
+      modell: bau.gruppe, plaetze: bau.plaetze, wuerfel: bau.wuerfel, version: -1, tor: bau.tor || null,
       bau7d: bau.lampe || bau.animiere || bau.eingangPlaetze || bau.silo || bau.smart ? bau : null,
       warnPunkt: bau.warnPunkt || warnPunktVon(bau.gruppe),
       eingangVersion: undefined, siloVersion: undefined, smartZustand: undefined, arbeitsPhase: undefined,
@@ -23212,12 +23602,18 @@ const KURZER_RHYTHMUS = { einmal: "1×", "1min": "1min", "2min": "2min", "5min":
 const IZ_SCHRITT=10;
 const izEntwurf=new Map();   // Zonen-ID → { item: menge } (eingetippt, noch nicht bestellt)
 function izZeile(g,item) {
-  const b=g.bestellungen.find(b=>b.item===item),e=izEntwurf.get(g.id)?.[item];
-  return {b,menge:e!==undefined?e:(b?.menge||0),entwurf:e!==undefined};
+  const b=g.bestellungen.find(b=>b.item===item),e=izEntwurf.get(g.id)?.[item],w=einmalWagen(g,item);
+  return {b,w,menge:e!==undefined?e:(b?.menge||w?.einmal[item]||0),entwurf:e!==undefined};
+}
+// Läuft für diesen Rohstoff gerade ein Modus? „einmal“ (Wagen noch nicht abgeladen) oder der Rhythmus der Bestellung
+function izModus(g,item) {
+  const {b,w}=izZeile(g,item);
+  if(b&&bestellungAktiv(b))return b.rhythmus;
+  return w?'einmal':null;
 }
 function importzoneHtml(g) {
   const zeilen=ROHSTOFFE.map(r=>{
-    const {b,menge,entwurf}=izZeile(g,r.id),aktiv=b&&bestellungAktiv(b)?b.rhythmus:null;
+    const {menge,entwurf}=izZeile(g,r.id),aktiv=izModus(g,r.id);
     const alt=aktiv&&!['einmal','bisSoll'].includes(aktiv);
     return '<div class="iz-resource'+(entwurf?' iz-geaendert':'')+'" data-iz-item="'+r.id+'"><span class="iz-icon" style="color:'+r.farbe+'">◆</span><b>'+htmlSicher(r.name)+'</b><span class="iz-price">'+euroStueck(rohstoffPreis(r.id))+'</span>'+
       '<span class="iz-stepper"><button type="button" class="iz-minus" data-iz-schritt="-1" data-item="'+r.id+'" title="−'+IZ_SCHRITT+'" aria-label="'+r.name+' −'+IZ_SCHRITT+'">−</button>'+
@@ -23257,9 +23653,23 @@ function izSetzeMenge(item,wert) {
   const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
   const n=Math.max(0,Math.min(9999,Math.round(Number(wert))||0)),b=g.bestellungen.find(b=>b.item===item);
   const ent=izEntwurf.get(g.id)||{};
+  // 2026-10-12 (Tim): Läuft „Einmalig“ oder „Bis Soll“, gilt die neue Menge sofort (0 lässt die laufende Bestellung stehen)
+  const modus=izModus(g,item),zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');
+  if(modus&&n>0){
+    delete ent[item];izEntwurf.set(g.id,ent);
+    const name=itemInfo(item).name;let text;
+    if(modus==='einmal'){aendereEinmal(g,item,n);text=name+': Lieferung auf '+n+'× geändert.';}
+    else {setzeBestellung(g.id,item,n,modus);text=name+(modus==='bisSoll'?': Soll jetzt '+n+'.':': Menge jetzt '+n+'.');}
+    speichereSpielstand();
+    if(!zeile)return;
+    zeile.classList.remove('iz-geaendert');
+    const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=n;
+    const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=text;
+    return;
+  }
   if(b?n===b.menge:!n)delete ent[item];else ent[item]=n;
   izEntwurf.set(g.id,ent);
-  const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');if(!zeile)return;
+  if(!zeile)return;
   zeile.classList.toggle('iz-geaendert',item in ent);
   const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=n||'';
   if(item in ent)izBlinke(zeile);
@@ -23276,6 +23686,13 @@ function izBestelle(item,modus) {
   const {b,menge,entwurf}=izZeile(g,item),name=itemInfo(item).name,laeuft=b&&bestellungAktiv(b)&&b.rhythmus!=='einmal';
   let text;
   if(laeuft&&modus==='bisSoll'&&!entwurf){setzeBestellung(g.id,item,0,null);text=name+': Nachbestellung gestoppt.';}
+  else if(modus==='einmal'&&menge&&!entwurf&&einmalWagen(g,item)){text=name+': '+menge+'× sind schon unterwegs. Menge ändern passt die Lieferung an.';}
+  else if(modus==='einmal'&&menge&&!zoneAktiv(g)){zeigeMeldung('Die Zone steht nicht an einer Wand – keine Lieferung möglich.',true);return;}
+  else if(modus==='einmal'&&menge){
+    if(laeuft)setzeBestellung(g.id,item,0,null);   // „Einmalig“ ersetzt einen laufenden Rhythmus
+    bestelleEinmal(g,item,menge);
+    text=menge+'× '+name+' bestellt – Lieferung in '+ZONEN.lieferzeit+' s.';
+  }
   else if(!menge){if(feld){feld.focus();feld.classList.remove('iz-blinkt');void feld.offsetWidth;feld.classList.add('iz-blinkt');}text='Erst eine Menge eintragen.';}
   else {
     const r=setzeBestellung(g.id,item,menge,modus);
@@ -23373,6 +23790,7 @@ function infoZahlenHtml(g) {
     const r = projekt ? null : rezeptVon(g);
     if (istForschungsstation(g)) html += projektInfoHtml(g);
     html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
+    if (g.grund) html += `<p class="info-grund">${htmlSicher(g.grund)}</p>`;   // 2026-10-12: konkreter Grund
     if (art === "arbeitet" || art === "automatik") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
     // Worauf wartet der Arbeiter genau? (und ob das Lager überhaupt etwas davon hat)
     const wartender = art === "wartetAufMaterial" && mitarbeiter.find((m) => m.id === g.arbeiterId);
@@ -25021,6 +25439,11 @@ function zeichneEinstellungen() {
       <output id="spiel-skalierung-wert" for="spiel-skalierung">${Math.round(einstellungen.skalierung*100)} %</output>
       <input id="spiel-skalierung" type="range" min="75" max="130" step="5" value="${Math.round(einstellungen.skalierung*100)}">
       <small>75 % · mehr Übersicht</small><small>130 % · größere Darstellung</small>
+    </div><div class="skalierung-feld">
+      <label for="zoom-staerke">Zoom-Stärke (Mausrad)</label>
+      <output id="zoom-staerke-wert" for="zoom-staerke">${Math.round((einstellungen.zoomStaerke || 1)*100)} %</output>
+      <input id="zoom-staerke" type="range" min="25" max="200" step="5" value="${Math.round((einstellungen.zoomStaerke || 1)*100)}">
+      <small>25 % · feiner</small><small>200 % · schneller</small>
     </div><div class="grafik-liste">`;
     for (const s of GRAFIK_SCHALTER) {
       html += `<label class="grafik-zeile">
@@ -25155,6 +25578,7 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
     einstellungen.tasten = standardTasten();
     Object.assign(einstellungen.grafik, GRAFIK_STANDARD);
     einstellungen.skalierung = 1;
+    einstellungen.zoomStaerke = 1;
     wendeSkalierungAn();
     einstellungsFenster.wartetAuf = null;
     einstellungsFenster.hinweis = "Alle Tasten und Grafik-Schalter stehen wieder auf Standard.";
@@ -25165,6 +25589,12 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
   }
 });
 ob.einstellungenInhalt.addEventListener("input", (e) => {
+  if (e.target.id === 'zoom-staerke') {
+    einstellungen.zoomStaerke = Math.max(.25, Math.min(2, Number(e.target.value)/100));
+    $("zoom-staerke-wert").value = `${Math.round(einstellungen.zoomStaerke*100)} %`;
+    speichereEinstellungen();
+    return;
+  }
   if (e.target.id !== 'spiel-skalierung') return;
   einstellungen.skalierung = Math.max(.75, Math.min(1.3, Number(e.target.value)/100));
   $("spiel-skalierung-wert").value = `${Math.round(einstellungen.skalierung*100)} %`;
@@ -27653,6 +28083,7 @@ function spielschleife() {
   const zeit = uhr.elapsedTime;
 
   bewegeMitTastatur(sekunden);
+  zoomeWeich(sekunden);                         // 2026-10-12: weicher Mausrad-Zoom
   fliegeKamera(sekunden);
   if (!figur.istDu) bewegeFigur(sekunden);       // "Du" läuft als Mitarbeiter in Spielzeit (simuliere)
   aktualisiereFigur3d(sekunden, zeit);

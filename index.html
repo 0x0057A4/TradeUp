@@ -3832,6 +3832,46 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 }
 #rezept-stapel .rezept-symbole .rezept-item.stapel .anzahl { position: absolute; top: -4px; right: -4px; min-width: 15px; font-size: 9px; line-height: 15px; padding: 0 3px; }
 </style>
+<style id="paket-menues">
+/* === Paket Bandbau/Baumenü 2026-10-12 – Menüs/Importzone ======================================
+   Personal und „Halle & Ausbau“ sind eigene schwebende Fenster (früher Reiter im Baumenü), die
+   Importzone kennt pro Rohstoff nur noch ein Soll (Zeile: Ist · unterwegs · Soll, dann − Feld +). */
+#personal-fenster { width: min(1120px, calc(100vw - 32px)) !important; margin: 0 !important; display: flex; flex-direction: column; }
+#halle-fenster { width: min(640px, calc(100vw - 32px)) !important; margin: 0 !important; display: flex; flex-direction: column; }
+.menue-fenster-inhalt { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px 18px 18px; }
+#personal-fenster .personal-tabelle-huelle { max-height: none; }
+.halle-fenster { display: grid; gap: 14px; }
+.halle-karten { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.halle-karte { display: grid; gap: 6px; align-content: start; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--hud-linie, rgba(255, 255, 255, .16)); background: rgba(255, 255, 255, .04); }
+.halle-karte > small:first-child { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.halle-karte > b { font-size: 16px; }
+.halle-karte.naechste { border-color: var(--hud-gelb, #ffd93d); }
+.halle-karte dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 13px; }
+.halle-karte dt { opacity: .7; }
+.halle-karte dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.halle-karte .lz-knopf { justify-self: stretch; justify-content: center; }
+.halle-karte .leise { font-size: 11px; opacity: .75; }
+.halle-fuss { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.halle-tabelle tr.du td { font-weight: 700; }
+@media (max-width: 700px) { .halle-karten { grid-template-columns: 1fr; } }
+/* Importzone: Soll pro Rohstoff */
+#info-panel.modern-import .iz-soll-zeile, .iz-kopfzeile { grid-template-columns: 22px minmax(64px, 1fr) 54px minmax(104px, auto) 126px; }
+.iz-kopfzeile { display: grid; gap: 4px 7px; padding: 0 9px 3px; font-size: 10px; color: var(--mi-muted); text-transform: uppercase; letter-spacing: .05em; }
+.iz-kopfzeile span:first-child { grid-column: 1 / 4; }
+.iz-kopfzeile span:nth-child(2) { text-align: right; }
+.iz-stand { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12px; color: var(--mi-muted); white-space: nowrap; text-align: right; }
+.iz-stand b { color: var(--mi-text); }
+.iz-stand .iz-unterwegs { color: var(--mi-blue); }
+.iz-stand .iz-fehlt { color: #fbbf24; }
+.iz-stand.iz-aus { opacity: .6; }
+#info-panel.modern-import .iz-soll-zeile.iz-aktiv { border-color: color-mix(in srgb, var(--mi-green) 55%, transparent); }
+@media (max-width: 700px) {
+  #info-panel.modern-import .iz-soll-zeile { grid-template-columns: 18px 1fr auto; }
+  #info-panel.modern-import .iz-soll-zeile .iz-stepper { grid-column: 1 / -1; }
+  .iz-kopfzeile { display: none; }
+}
+</style>
 </head>
 <body>
 
@@ -3904,6 +3944,7 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
     <button id="hud-rezepte" class="hud-knopf hud-knopf-leise" type="button">Rezepte <kbd data-taste="rezepte">Z</kbd></button>
     <button id="hud-einstellungen" class="hud-knopf hud-knopf-leise hud-knopf-breit" type="button" aria-label="Einstellungen">⚙ Optionen <kbd data-taste="einstellungen">O</kbd></button>
   </div>
+  <kbd data-taste="personal" hidden>P</kbd><!-- 2026-10-12: Kürzel fürs Personal-Fenster (das Dock liest es von hier) -->
 </section>
 
 <!-- ================== PRODUKT-LAYOUT-DESIGNER (Phase 3) ================== -->
@@ -3994,8 +4035,7 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
       <button type="button" role="tab" data-reiter="stationen" aria-selected="false">Stationen</button>
       <button type="button" role="tab" data-reiter="maschinen" aria-selected="false">Maschinen</button><!-- Phase 7d -->
       <button type="button" role="tab" data-reiter="baender" aria-selected="false">Bänder</button>
-      <button type="button" role="tab" data-reiter="personal" aria-selected="false">Personal</button>
-      <button type="button" role="tab" data-reiter="halle" aria-selected="false">Halle</button>
+      <!-- 2026-10-12: Personal und Halle sind eigene Fenster (Topbar-Modul „Personal“, Firmenschild) -->
     </div>
     <span class="bau-platz"></span>
     <button id="bau-verschieben" class="lz-knopf" type="button" aria-pressed="false">Verschieben <kbd data-taste="verschieben">M</kbd></button>
@@ -4040,6 +4080,30 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
       <span class="lz-platz"></span>
       <button id="lager-zuruecksetzen" class="lz-knopf bau-gefahr" type="button">Spielstand zurücksetzen</button>
     </footer>
+  </section>
+</div>
+
+<!-- ================== PERSONAL & HALLE (Paket Bandbau/Baumenü 2026-10-12) ================== -->
+<!-- Früher Reiter im Baumenü, jetzt eigene schwebende Fenster: Personal (Topbar-Modul, Dock, Taste P)
+     und „Halle & Ausbau“ (Klick aufs Firmenschild oben links). Den Inhalt baut das Skript in Abschnitt 13c. -->
+<div id="personal-overlay" class="modal-schleier frei" hidden>
+  <section id="personal-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="personal-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="personal-titel">Personal</h2>
+      <span class="lz-platz" style="flex:1"></span>
+      <button id="personal-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Personal schließen">✕</button>
+    </header>
+    <div id="personal-inhalt" class="menue-fenster-inhalt"></div>
+  </section>
+</div>
+<div id="halle-overlay" class="modal-schleier frei" hidden>
+  <section id="halle-fenster" class="modal-fenster" role="dialog" aria-modal="false" aria-labelledby="halle-titel" tabindex="-1">
+    <header class="lz-kopf">
+      <h2 id="halle-titel">Halle &amp; Ausbau</h2>
+      <span class="lz-platz" style="flex:1"></span>
+      <button id="halle-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Halle &amp; Ausbau schließen">✕</button>
+    </header>
+    <div id="halle-inhalt" class="menue-fenster-inhalt"></div>
   </section>
 </div>
 
@@ -4434,7 +4498,8 @@ const GRAFIK = {
 const LEVELS = [
   // Startlevel: 16 Kacheln breit, 8 tief (Phase 5: von 48 auf 8 verkleinert).
   // Phase 6: Die Halle kann durch Kauf nach vorn wachsen, höchstens bis "maxTiefe" (Ausbaustufen: HALLE_STUFEN).
-  { name: "Garage", breite: 16, tiefe: 8, maxTiefe: 48 },
+  // 2026-10-12 (Tim): Ab der „Fabrik“ wächst sie auch nach rechts (+x), höchstens bis "maxBreite".
+  { name: "Garage", breite: 16, tiefe: 8, maxBreite: 32, maxTiefe: 64 },
 ];
 const START_LEVEL = 0;      // Welches Level beim Start geladen wird (0 = erstes in der Liste)
 const KACHEL_GROESSE = 1;   // Kantenlänge einer Kachel in 3D-Einheiten
@@ -4703,8 +4768,8 @@ const PRODUKTION = {
   verknuepfRadius:     6,     // Stationen und Zwischenlager in höchstens so vielen Kacheln Laufweg werden automatisch verknüpft
   vorratDurchgaenge:   2,     // Zwischenlager halten Material für so viele Durchgänge jeder verknüpften Station bereit
   maxMitarbeiter:      8,     // höchstens so viele Kuriere + Arbeiter pro Halle
-  startKuriere:        1,     // Mitarbeiter beim allerersten Start
-  startArbeiter:       2,
+  startKuriere:        0,     // Mitarbeiter beim allerersten Start (2026-10-12 Tim: nur „Du“, alle anderen stellt man selbst ein)
+  startArbeiter:       0,
   startBestand: { eisen: 40, kunststoff: 40, silizium: 20, holz: 30, kupfer: 20, glas: 10, aluminium: 10 }, // Lager beim allerersten Start (Phase 7c: + Holz · P1: + Kupfer/Glas/Aluminium für die neuen Rezepte)
   startHauptlager: { x: 6, z: 1, drehung: 0 },                // wo das Lager beim allerersten Start steht
   montageGrundzeit:    4,     // Sekunden für ein Produkt am Montagetisch ...
@@ -5867,15 +5932,20 @@ const DU = {
 };
 
 // Ausbaustufen der Halle (Phase 6). Die Halle wächst nach vorn (+z); Gebautes bleibt an seinem Platz.
-//   tiefe – Reihen nach dem Ausbau (Breite bleibt 16), preis – Kaufpreis, miete – Euro pro Tag,
+// 2026-10-12 (Tim): Nach der „Großen Halle“ wächst sie in die Breite nach rechts (+x), zuletzt noch einmal nach vorn.
+//   breite – Spalten nach dem Ausbau, tiefe – Reihen nach dem Ausbau, preis – Kaufpreis, miete – Euro pro Tag,
 //   maxMitarbeiter – so viele Kuriere + Arbeiter passen in diese Halle
+//   Höchstwerte von breite und tiefe stehen in LEVELS (maxBreite, maxTiefe).
 const HALLE_STUFEN = [
-  { name: "Garage",       tiefe: 8,  preis: 0,     miete: 100, maxMitarbeiter: 8  },
-  { name: "Große Garage", tiefe: 12, preis: 6000,  miete: 150, maxMitarbeiter: 10 },
-  { name: "Werkstatt",    tiefe: 16, preis: 10000, miete: 200, maxMitarbeiter: 12 },
-  { name: "Kleine Halle", tiefe: 24, preis: 16000, miete: 300, maxMitarbeiter: 14 },
-  { name: "Halle",        tiefe: 32, preis: 24000, miete: 400, maxMitarbeiter: 16 },
-  { name: "Große Halle",  tiefe: 48, preis: 40000, miete: 600, maxMitarbeiter: 18 },
+  { name: "Garage",       breite: 16, tiefe: 8,  preis: 0,      miete: 100,  maxMitarbeiter: 8  },
+  { name: "Große Garage", breite: 16, tiefe: 12, preis: 6000,   miete: 150,  maxMitarbeiter: 10 },
+  { name: "Werkstatt",    breite: 16, tiefe: 16, preis: 10000,  miete: 200,  maxMitarbeiter: 12 },
+  { name: "Kleine Halle", breite: 16, tiefe: 24, preis: 16000,  miete: 300,  maxMitarbeiter: 14 },
+  { name: "Halle",        breite: 16, tiefe: 32, preis: 24000,  miete: 400,  maxMitarbeiter: 16 },
+  { name: "Große Halle",  breite: 16, tiefe: 48, preis: 40000,  miete: 600,  maxMitarbeiter: 18 },
+  { name: "Fabrik",       breite: 24, tiefe: 48, preis: 60000,  miete: 800,  maxMitarbeiter: 20 },
+  { name: "Großfabrik",   breite: 32, tiefe: 48, preis: 90000,  miete: 1000, maxMitarbeiter: 24 },
+  { name: "Werk",         breite: 32, tiefe: 64, preis: 130000, miete: 1300, maxMitarbeiter: 28 },
 ];
 
 /* ============================================================================
@@ -5894,6 +5964,7 @@ const TASTEN_STANDARD = [
   { aktion: "forschung",    name: "Forschung",                         taste: "t", gruppe: "Fenster" },
   { aktion: "designer",     name: "Layout-Designer",                   taste: "l", gruppe: "Fenster" },
   { aktion: "rezepte",      name: "Rezepte",                           taste: "z", gruppe: "Fenster" },
+  { aktion: "personal",     name: "Personal",                          taste: "p", gruppe: "Fenster" },   // 2026-10-12: eigenes Fenster
   { aktion: "einstellungen", name: "Einstellungen",                    taste: "o", gruppe: "Fenster" },
   { aktion: "band",         name: "Fließband in die Hand",             taste: "f", gruppe: "Bauen" },
   { aktion: "weiterbauen",  name: "Gewähltes Band weiterbauen",        taste: "e", gruppe: "Bauen" },
@@ -5954,6 +6025,9 @@ try {
     }
     // Alt gespeicherte Standardbelegung P einmalig auf den neuen Pause-Standard umstellen.
     if ((gespeichert.tastenVersion || 1) < 2 && gespeichert.tasten?.pause === "p") einstellungen.tasten.pause = " ";
+    // 2026-10-12: Neue Taste „Personal“ (P) – hat der Spieler P schon anders belegt, bleibt sie unbelegt
+    if (typeof gespeichert.tasten?.personal !== "string" &&
+        Object.entries(einstellungen.tasten).some(([a, t]) => a !== "personal" && t === einstellungen.tasten.personal)) einstellungen.tasten.personal = "";
   }
 } catch (fehler) { /* privates Fenster o. ä.: dann gelten einfach die Standardwerte */ }
 wendeBandLookAn();   // 12d: Bahnhöhe passend zum gewählten Band-Look
@@ -6076,13 +6150,15 @@ szene.add(sonne);
    ============================================================================ */
 // Phase 6: "level" ist eine Kopie, weil die Halle durch Kauf wachsen kann (level.tiefe ändert sich).
 // basisTiefe bleibt fest: Daran hängen die 3D-Koordinaten, damit beim Ausbau nichts verrutscht.
-const level = { ...LEVELS[START_LEVEL], basisTiefe: LEVELS[START_LEVEL].tiefe };
+// 2026-10-12 (Tim): Ebenso basisBreite – ab der „Fabrik“ ändert sich auch level.breite (Wachstum nach +x).
+const level = { ...LEVELS[START_LEVEL], basisTiefe: LEVELS[START_LEVEL].tiefe, basisBreite: LEVELS[START_LEVEL].breite };
 level.maxTiefe = Math.max(level.tiefe, level.maxTiefe || level.tiefe);
+level.maxBreite = Math.max(level.breite, level.maxBreite || level.breite);
 
 // rasterDaten[x][z] = Zustand einer Kachel. Angelegt wird gleich die größte Ausbaustufe,
-// gültig ist aber nur, was innerhalb von level.tiefe liegt (siehe istImRaster).
+// gültig ist aber nur, was innerhalb von level.breite × level.tiefe liegt (siehe istImRaster).
 const rasterDaten = [];
-for (let x = 0; x < level.breite; x++) {
+for (let x = 0; x < level.maxBreite; x++) {
   rasterDaten[x] = [];
   for (let z = 0; z < level.maxTiefe; z++) {
     rasterDaten[x][z] = {
@@ -6114,7 +6190,7 @@ function holeKachel(x, z) {
 // Mittelpunkt einer Kachel in der 3D-Welt. Die Garage liegt mittig um den Nullpunkt.
 function kachelZuWelt(x, z) {
   return new THREE.Vector3(
-    (x - level.breite / 2 + 0.5) * KACHEL_GROESSE,
+    (x - level.basisBreite / 2 + 0.5) * KACHEL_GROESSE,   // 2026-10-12: fester Bezug wie bei der Tiefe
     0,
     (z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE   // Phase 6: fester Bezug, damit beim Hallenausbau nichts verrutscht
   );
@@ -6123,7 +6199,7 @@ function kachelZuWelt(x, z) {
 // Rechnet einen 3D-Punkt auf dem Boden in Kachel-Koordinaten um.
 function weltZuKachel(punkt) {
   return {
-    x: Math.floor(punkt.x / KACHEL_GROESSE + level.breite / 2),
+    x: Math.floor(punkt.x / KACHEL_GROESSE + level.basisBreite / 2),
     z: Math.floor(punkt.z / KACHEL_GROESSE + level.basisTiefe / 2),
   };
 }
@@ -6331,9 +6407,9 @@ function glaettePfad(pfad) {
 // Phase 6: Breite und Tiefe der Halle in 3D-Einheiten (die Tiefe wächst beim Ausbau mit)
 let breiteWelt = level.breite * KACHEL_GROESSE;
 let tiefeWelt = level.tiefe * KACHEL_GROESSE;
-// Mitte der Halle in der 3D-Welt (verschiebt sich beim Ausbau nach vorn)
+// Mitte der Halle in der 3D-Welt (verschiebt sich beim Ausbau nach vorn bzw. ab der „Fabrik“ nach rechts)
 function hallenMitte() {
-  return new THREE.Vector3(0, 0, (level.tiefe - level.basisTiefe) / 2 * KACHEL_GROESSE);
+  return new THREE.Vector3((level.breite - level.basisBreite) / 2 * KACHEL_GROESSE, 0, (level.tiefe - level.basisTiefe) / 2 * KACHEL_GROESSE);
 }
 const rasterHoehe = GRAFIK.sockelHoehe + GRAFIK.kachelDicke; // Oberkante der Kacheln
 
@@ -6356,6 +6432,7 @@ const sockel = new THREE.Mesh(
   new THREE.MeshStandardMaterial({ color: GRAFIK.farbeGarageKante, roughness: 0.9 })
 );
 sockel.position.y = GRAFIK.sockelHoehe / 2;
+sockel.position.x = hallenMitte().x;
 sockel.position.z = hallenMitte().z;
 sockel.castShadow = true;
 sockel.receiveShadow = true;
@@ -6363,7 +6440,7 @@ szene.add(sockel);
 
 // Alle Kacheln als EIN Objekt (InstancedMesh) – sehr schnell, auch bei tausenden Kacheln.
 // Phase 6: Platz für die größte Ausbaustufe; Kacheln außerhalb der Halle sind unsichtbar (Größe 0).
-const kachelAnzahl = level.breite * level.maxTiefe;
+const kachelAnzahl = level.maxBreite * level.maxTiefe;
 const kachelMass = KACHEL_GROESSE - GRAFIK.fugenBreite;
 const kacheln = new THREE.InstancedMesh(
   new THREE.BoxGeometry(kachelMass, GRAFIK.kachelDicke, kachelMass),
@@ -6378,9 +6455,9 @@ const hilfsMatrix = new THREE.Matrix4();
 const nullMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
 // Setzt alle Bodenkacheln: innerhalb der Halle sichtbar, dahinter (noch nicht gekauft) unsichtbar.
 function setzeKachelMatrizen() {
-  for (let x = 0; x < level.breite; x++) {
+  for (let x = 0; x < level.maxBreite; x++) {
     for (let z = 0; z < level.maxTiefe; z++) {
-      if (z < level.tiefe) {
+      if (x < level.breite && z < level.tiefe) {
         const mitte = kachelZuWelt(x, z);
         hilfsMatrix.makeTranslation(mitte.x, GRAFIK.sockelHoehe + GRAFIK.kachelDicke / 2, mitte.z);
         kacheln.setMatrixAt(kachelNummer(x, z), hilfsMatrix);
@@ -6418,6 +6495,7 @@ function passeHalleAn3d() {
   tiefeWelt = level.tiefe * KACHEL_GROESSE;
   sockel.geometry.dispose();
   sockel.geometry = new THREE.BoxGeometry(breiteWelt + GRAFIK.sockelUeberstand * 2, GRAFIK.sockelHoehe, tiefeWelt + GRAFIK.sockelUeberstand * 2);
+  sockel.position.x = hallenMitte().x;
   sockel.position.z = hallenMitte().z;
   setzeKachelMatrizen();
   for (let x = 0; x < level.breite; x++) for (let z = 0; z < level.tiefe; z++) faerbeKachel(x, z);
@@ -6453,17 +6531,19 @@ function baueFabrikUmgebung() {
     mesh.castShadow = true; fabrikUmgebung.add(mesh); return mesh;
   }
   const v = (x,y,z) => new THREE.Vector3(x,y,z);
-  const links = -breiteWelt/2, rechts = breiteWelt/2;
-  const hinten = hallenMitte().z-tiefeWelt/2, vorne = hinten+tiefeWelt;
+  // 2026-10-12: Ab der „Fabrik“ wächst die Halle nach rechts – alles hängt an der Hallenmitte (mx, mz)
+  const mx = hallenMitte().x, mz = hallenMitte().z;
+  const links = mx-breiteWelt/2, rechts = mx+breiteWelt/2;
+  const hinten = mz-tiefeWelt/2, vorne = hinten+tiefeWelt;
   const y = rasterHoehe, wandH = 3.1;
-  box(breiteWelt+5,0.1,tiefeWelt+5,0,0.04,hallenMitte().z,beton);
+  box(breiteWelt+5,0.1,tiefeWelt+5,mx,0.04,mz,beton);
   // Offene Vorderseiten halten das gesamte Spielfeld sichtbar und anklickbar.
-  box(breiteWelt+0.6,wandH,0.25,0,y+wandH/2,hinten-0.38,putz);
-  box(0.25,wandH,tiefeWelt+0.6,links-0.38,y+wandH/2,hallenMitte().z,putz);
-  box(breiteWelt+0.6,1.1,0.07,0,y+0.55,hinten-0.21,mint);
-  box(0.07,1.1,tiefeWelt+0.6,links-0.21,y+0.55,hallenMitte().z,mint);
-  box(breiteWelt+0.8,0.15,0.42,0,y+wandH,hinten-0.38,holz);
-  box(0.42,0.15,tiefeWelt+0.8,links-0.38,y+wandH,hallenMitte().z,holz);
+  box(breiteWelt+0.6,wandH,0.25,mx,y+wandH/2,hinten-0.38,putz);
+  box(0.25,wandH,tiefeWelt+0.6,links-0.38,y+wandH/2,mz,putz);
+  box(breiteWelt+0.6,1.1,0.07,mx,y+0.55,hinten-0.21,mint);
+  box(0.07,1.1,tiefeWelt+0.6,links-0.21,y+0.55,mz,mint);
+  box(breiteWelt+0.8,0.15,0.42,mx,y+wandH,hinten-0.38,holz);
+  box(0.42,0.15,tiefeWelt+0.8,links-0.38,y+wandH,mz,holz);
   for(let x=links+1; x<rechts-0.3; x+=2.8) {
     box(2,0.92,0.09,x,y+2.32,hinten-0.21,dunkel);
     box(1.82,0.76,0.06,x,y+2.32,hinten-0.15,glas);
@@ -6481,8 +6561,8 @@ function baueFabrikUmgebung() {
   rohr(v(links+0.02,y+1.55,hinten+0.03),v(links+0.02,y+1.55,vorne-0.5),0.105,stahl);
   rohr(v(rechts-0.5,y+1.55,hinten+0.03),v(rechts-0.5,y+0.15,hinten+0.03),0.105,stahl);
   // Markierungen liegen auf dem äußeren Betonrand, nicht auf Arbeitszugängen.
-  box(breiteWelt+0.5,0.018,0.09,0,0.105,vorne+0.7,gelb);
-  box(0.09,0.018,tiefeWelt+0.5,rechts+0.7,0.105,hallenMitte().z,gelb);
+  box(breiteWelt+0.5,0.018,0.09,mx,0.105,vorne+0.7,gelb);
+  box(0.09,0.018,tiefeWelt+0.5,rechts+0.7,0.105,mz,gelb);
   for(let x=links+0.4;x<rechts;x+=0.85) box(0.38,0.018,0.3,x,0.11,vorne+1.8,gelb);
   // Waren auf Paletten neben dem Gebäude geben dem Gelände einen Maßstab.
   for(let n=0;n<3;n++) {
@@ -12800,7 +12880,7 @@ function wendeSpielstandAn(d) {
   if (alteVersion) meldeKomponentenUmstellung(true);   // Phase 7c
 }
 
-// Allererster Start: Lager mit Startbestand, Kuriere und Arbeiter davor.
+// Allererster Start: Lager mit Startbestand, Import- und Exportzone und „Du“ (Startpersonal: PRODUKTION.startKuriere/startArbeiter, 2026-10-12: 0).
 function starteNeuesSpiel() {
   const st = PRODUKTION.startHauptlager;
   const ergebnis = baueGebaeude("hauptlager", st.x, st.z, st.drehung);
@@ -12824,7 +12904,7 @@ function starteSpiel() {
   // Phase 7c: Alte Blaupausen liegen jetzt im Kunststoffgehäuse – damit sie weiter gebaut werden können,
   // ist es bei alten Spielständen (und frisch umgestellten Blaupausen) gleich freigeschaltet.
   if (blaupausenUmstellung.umgestellt || (gespeichert && gespeichert.version < 8)) setzeFreigeschaltet([LAYOUT.altGehaeuse]);
-  if (level.tiefe !== level.basisTiefe) zoomeAufGarage();   // Phase 6: ausgebaute Halle ganz zeigen
+  if (level.tiefe !== level.basisTiefe || level.breite !== level.basisBreite) zoomeAufGarage();   // Phase 6: ausgebaute Halle ganz zeigen
   spielstandAktiv = true;
   meldeStruktur();
   if (gespeichert) pruefeAlteZugaenge();
@@ -13318,7 +13398,7 @@ const ZONEN = {
     { id: "2min",     name: "alle 2 Minuten",              sek: 120 },
     { id: "5min",     name: "alle 5 Minuten",              sek: 300 },
     { id: "taeglich", name: "täglich 8:00",                sek: 0   },
-    { id: "bisSoll",  name: "jede Minute bis Sollmenge",   sek: 60  },   // ersetzt "automatisch nachkaufen"
+    { id: "bisSoll",  name: "laufend bis Sollmenge",       sek: 5   },   // ersetzt "automatisch nachkaufen" (2026-10-12: Prüfung alle 5 s)
   ],
   // Beim Neustart: Importzone an der Rückwand, Exportzone daneben (Rückwand = z 0, Vorderseite zeigt nach +z)
   startImport: { x: 10, z: 0, drehung: 0 },
@@ -13358,7 +13438,10 @@ function setzeAnWand(g) {
 // Alle Felder einer Zone, die beim Laden/Bauen fehlen könnten
 function richteZoneEin(g, extra = {}) {
   if (istImportzone(g)) {
-    g.bestellungen = Array.isArray(extra.bestellungen) ? extra.bestellungen.map((b) => ({ ...b })) : [];
+    // 2026-10-12 (Tim): Die Importzone kennt nur noch „bis Soll“. Bestellungen mit anderem Rhythmus (alte
+    // Spielstände, auch „einmalig“) fallen weg; Lieferwagen, die schon unterwegs sind, kommen noch an.
+    g.bestellungen = Array.isArray(extra.bestellungen)
+      ? extra.bestellungen.filter((b) => b && b.rhythmus === "bisSoll" && b.menge > 0).map((b) => ({ ...b })) : [];
     g.lieferwagen = Array.isArray(extra.lieferwagen) ? extra.lieferwagen.map((w) => ({ ...w, items: { ...w.items } })) : [];
   }
   if (istExportzone(g)) {
@@ -13383,7 +13466,8 @@ function setzeBestellung(id, item, menge, rhythmus) {
   if (n > 0 || rhythmus) {
     const warAktiv = alt && bestellungAktiv(alt);
     // Rhythmus unverändert: der Takt läuft weiter; neu: gleich die erste Lieferung (täglich: um 8:00)
-    const naechste = warAktiv && alt.rhythmus === rhythmus && rhythmus !== "einmal" ? alt.naechste
+    // 2026-10-12: „bis Soll“ prüft nach jeder Änderung sofort (bestellt ohnehin nur, was bis zum Soll fehlt)
+    const naechste = warAktiv && alt.rhythmus === rhythmus && rhythmus !== "einmal" && rhythmus !== "bisSoll" ? alt.naechste
       : rhythmus === "taeglich" ? naechsterTagesbeginn() : spiel.zeit;
     g.bestellungen.push({ item, menge: n, rhythmus: rhythmus || null, naechste });
   }
@@ -13413,28 +13497,20 @@ function bestelle(g, item, n) {
   spiel.version++;
   return w;
 }
-// 2026-10-12 (Tim): „Einmalig“ bleibt aktiv, bis der Wagen ablädt; so lange lässt sich die Menge noch ändern.
-// w.einmal merkt sich pro Rohstoff, wie viel des Wagens aus „Einmalig“ stammt (Rest kann von „Bis Soll“ kommen).
-function einmalWagen(g, item) {
-  return g.lieferwagen.find((w) => !w.abgeladen && w.einmal && w.einmal[item] > 0 && w.ankunft - spiel.zeit > ZONEN.fahrzeit) || null;
-}
-function bestelleEinmal(g, item, n) {
-  const w = bestelle(g, item, n);
-  w.einmal = { ...(w.einmal || {}), [item]: ((w.einmal && w.einmal[item]) || 0) + n };
-  return w;
-}
-// Neue Menge für eine laufende „Einmalig“-Lieferung (0 = abbestellen). false: kein passender Wagen mehr unterwegs.
-function aendereEinmal(g, item, n) {
-  const w = einmalWagen(g, item);
-  if (!w) return false;
-  n = Math.max(0, Math.min(9999, Math.round(Number(n)) || 0));
-  const rest = Math.max(0, (w.items[item] || 0) - w.einmal[item]) + n;
-  if (rest > 0) w.items[item] = rest; else delete w.items[item];
-  if (n > 0) w.einmal[item] = n; else delete w.einmal[item];
-  if (!Object.keys(w.items).length) g.lieferwagen.splice(g.lieferwagen.indexOf(w), 1);
-  spiel.version++;
-  meldeStruktur();
-  return true;
+// 2026-10-12 (Tim): Was zählt für „bis Soll“? Rückgabe { ist, unterwegs } für einen Rohstoff.
+//   ist       – liegt schon in der Halle: alle Lager, alle Importzonen und alle Zwischenlager (Regale, Kisten …)
+//   unterwegs – Kuriere tragen es gerade bzw. Lieferwagen bringen es (noch nicht abgeladen)
+// Eine Zone mit Band-Ablauf versorgt ihr Band direkt – dann zählt nur diese Zone und ihre eigenen Wagen.
+// Bisher fehlten Zwischenlager und Kuriere: Ware auf dem Weg ins Regal wurde ein zweites Mal bestellt.
+function importzonenStand(g, item) {
+  if (g && g.bandAblauf) {
+    return { ist: g.bestand[item] || 0, unterwegs: g.lieferwagen.reduce((s, w) => s + (w.abgeladen ? 0 : w.items[item] || 0), 0) };
+  }
+  let ist = hlMenge(item) + zonenMenge("importzone", item);
+  for (const z of gebaeudeListe(istZwischenlager)) ist += z.bestand[item] || 0;
+  let unterwegs = wagenUnterwegs(item);
+  for (const p of mitarbeiter) if (p.rolle === "kurier" && p.traegt) unterwegs += p.traegt[item] || 0;
+  return { ist, unterwegs };
 }
 // Der Wagen ist da: abladen, soweit Platz und Geld reichen; bezahlt wird nur, was abgeladen wurde
 function ladeLieferwagenAb(g, w) {
@@ -13471,11 +13547,20 @@ function importzonenSchritt() {
     for (const b of [...g.bestellungen]) {
       if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
       let n = b.menge;
-      // "bis Sollmenge": nur so viel, dass Lager + Importzonen + Wagen die Menge erreichen.
+      // "bis Sollmenge": nur so viel, dass Bestand + Unterwegs die Menge erreichen (was zählt: importzonenStand).
       // 2026-10-12 (Tim): Zone mit Band-Ablauf versorgt das Band direkt – dann zählt nur diese Zone (+ ihre Wagen).
-      if (b.rhythmus === "bisSoll") n = Math.max(0, g.bandAblauf
-        ? b.menge - (g.bestand[b.item] || 0) - g.lieferwagen.reduce((s, w) => s + (w.abgeladen ? 0 : w.items[b.item] || 0), 0)
-        : b.menge - hlMenge(b.item) - zonenMenge("importzone", b.item) - wagenUnterwegs(b.item));
+      if (b.rhythmus === "bisSoll") {
+        const st = importzonenStand(g, b.item);
+        n = Math.max(0, b.menge - st.ist - st.unterwegs);
+        // Geprüft wird alle 5 s: nur bestellen, was in die Zone passt und bezahlbar ist – sonst käme alle
+        // paar Sekunden ein Wagen, der wieder abgewiesen wird
+        if (n > 0) {
+          const kommt = g.lieferwagen.reduce((v, w) => v + (w.abgeladen ? 0 : volumen(w.items)), 0);
+          const platz = Math.floor(Math.max(0, kapazitaetVon(g) - belegt(g) - kommt) / itemVolumen(b.item));
+          const preis = rohstoffPreis(b.item);
+          n = Math.min(n, platz, preis > 0 ? Math.max(0, Math.floor(spiel.konto / preis)) : n);
+        }
+      }
       if (n > 0) bestelle(g, b.item, n);
       const r = rhythmusNach.get(b.rhythmus);
       if (!r || b.rhythmus === "einmal") g.bestellungen.splice(g.bestellungen.indexOf(b), 1);
@@ -17084,7 +17169,7 @@ function waechterSchritt(dt) {
 
 /* ============================================================================
    ABSCHNITT 11j: Hallenausbau (Phase 6)                          [Logik-Agent]
-   Die Halle wächst nach vorn (+z). Alles Gebaute bleibt, wo es ist.
+   Die Halle wächst nach vorn (+z), ab der „Fabrik“ auch nach rechts (+x). Alles Gebaute bleibt, wo es ist.
    Ereignis: halleGewachsen
    ============================================================================ */
 function halleStufe() { return HALLE_STUFEN[spiel.halleStufe] || HALLE_STUFEN[0]; }
@@ -17093,12 +17178,13 @@ function aktuelleMiete() { return halleStufe().miete ?? WIRTSCHAFT.miete; }
 // Setzt die Ausbaustufe ohne Kosten (beim Laden). Die neuen Reihen sind leer und begehbar.
 function setzeHallenStufe(stufe) {
   stufe = Math.max(0, Math.min(HALLE_STUFEN.length - 1, Math.round(stufe || 0)));
-  const alt = level.tiefe;
+  const alt = level.tiefe, altBreite = level.breite;
   spiel.halleStufe = stufe;
   level.tiefe = Math.min(level.maxTiefe, HALLE_STUFEN[stufe].tiefe);
+  level.breite = Math.min(level.maxBreite, HALLE_STUFEN[stufe].breite || level.basisBreite);   // 2026-10-12: Breite wächst ab „Fabrik“
   level.name = HALLE_STUFEN[stufe].name;
-  if (level.tiefe !== alt) {
-    meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt });
+  if (level.tiefe !== alt || level.breite !== altBreite) {
+    meldeEreignis("halleGewachsen", { stufe: HALLE_STUFEN[stufe], alt, altBreite });
     const inaktiv = gebaeudeListe((g) => typVon(g).wand && !stehtAnWand(g));   // Phase 7b Nachtrag 2
     if (inaktiv.length) meldeEreignis("hinweis", { text: `${inaktiv.map(gebaeudeName).join(", ")} steht nicht mehr an einer Wand und ist inaktiv. Mit M an eine Wand verschieben.`, warnung: true });
   }
@@ -22274,7 +22360,7 @@ const bahnHoehe = (ebene) => ebene ? GRAFIK.brueckenHoehe + GRAFIK.bandHoehe : G
 
 // Weltposition eines Items: Bogen von der Eintrittskante über die Mitte zur Austrittskante
 function bandItemPunkt(t, it, ziel) {
-  const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
+  const mx = (t.x - level.basisBreite / 2 + 0.5) * KACHEL_GROESSE;
   const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
   const ein = RICHTUNGEN[it.von] || RICHTUNGEN[t.richtung];
   const aus = istVerteiler(t) ? { x: 0, z: 0 } : RICHTUNGEN[t.richtung];
@@ -22313,7 +22399,7 @@ function zeichnePufferItems() {
   for (const t of spiel.baender.values()) {
     const puffer = t.puffer;
     if (!puffer || !puffer.length || !hatPuffer(t)) continue;   // 7d: auch Omni-Merger
-    const mx = (t.x - level.breite / 2 + 0.5) * KACHEL_GROESSE;
+    const mx = (t.x - level.basisBreite / 2 + 0.5) * KACHEL_GROESSE;
     const mz = (t.z - level.basisTiefe / 2 + 0.5) * KACHEL_GROESSE;
     if (t.typ === "omniMerger") {                // Phase 7d: der Puffer liegt im Trichter
       for (let i = 0; i < puffer.length && i < OMNI_PLAETZE.length; i++) {
@@ -22946,10 +23032,12 @@ window.tradeUp3d = { gebaeude3d, bandModelle, warnleuchten, OMNI_PLAETZE, mitarb
   gefahrenFeld, ringFeld, dampfFeld, ausrufFeld, blitzFeld, kreuzFeld };   // W1b/W2-3D
 
 // Hallenausbau: Boden, Sockel und Schatten mitwachsen lassen, Anzeige oben links erneuern
+// 2026-10-12: danach die ganze (gewachsene) Halle ins Bild holen – ab der „Fabrik“ wächst sie auch nach rechts
 spielEreignisse.addEventListener("halleGewachsen", () => {
   passeHalleAn3d();
   document.getElementById("hud-level").textContent = level.name;
   document.getElementById("hud-masse").textContent = `${level.breite} × ${level.tiefe} Kacheln`;
+  zoomeAufGarage();
   begrenzeKameraZiel();
   aktualisiereKamera();
 });
@@ -23909,7 +23997,7 @@ const ob = {
 
 const bau = {
   offen: false,
-  reiter: "lager",          // "lager", "stationen" oder "personal"
+  reiter: "lager",          // "lager", "stationen", "maschinen" oder "baender" (Personal/Halle: eigene Fenster, 2026-10-12)
   werkzeug: null,           // { art: "bauen", typ, drehung }, { art: "abriss" },
                             // { art: "verschieben", id (null = noch keins gewählt), drehung } oder null
   letzteDrehung: {},        // je Gebäudetyp die zuletzt benutzte Drehung
@@ -24106,10 +24194,7 @@ function zeichneBauInhalt() {
   for (const knopf of ob.bauReiter) knopf.setAttribute("aria-selected", String(knopf.dataset.reiter === bau.reiter));
   ob.bauWiederherstellen.hidden = !spiel.schnappschuss;
   ob.bauBereinigen.disabled = spiel.gebaeude.size === 0;
-  ob.bauLeiste.classList.toggle("personal-breit", bau.reiter === "personal");   // 7e-5: Liste braucht mehr Breite
-  if (bau.reiter === "personal") { zeichnePersonal(); return; }
   if (bau.reiter === "baender") { zeichneBaender(); return; }   // Phase 6
-  if (bau.reiter === "halle") { zeichneHalle(); return; }       // Phase 6
   const kategorie = bau.reiter === "lager" ? "lager" : bau.reiter === "maschinen" ? "maschine" : "station";   // Phase 7d: Maschinen
   ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet && !t.nichtImMenue).map((t) => {
     const imDepot = spiel.depot.gebaeude[t.typ] || 0;
@@ -24289,7 +24374,7 @@ function zeichneKurierwege() {
     '<div class="kw-kuriere">'+kwIcon('users')+'<div class="kw-schilder">'+ps.map(p=>'<button type="button" class="kw-schild" data-kw="kurier-weg" data-person="'+p.id+'" title="Kurier entfernen">'+kwIcon('user')+' '+htmlSicher(p.name)+' '+kwIcon('xmark','margin-left:4px')+'</button>').join('')+'</div>'+
         '<select class="kw-kurier-wahl" data-kw-kurier aria-label="Kurier zuweisen"><option value="" selected>+ Kurier zuweisen</option>'+
           freie.map(p=>'<option value="'+p.id+'">'+htmlSicher(p.name)+' ('+(p.kurierwegId?htmlSicher(kurierwegVon(p)?.name||'andere Route'):'Frei')+')</option>').join('')+
-          (!freie.length?'<option value="" disabled>Keine weiteren Kuriere – im Personal-Reiter einstellen</option>':'')+'</select></div>'+
+          (!freie.length?'<option value="" disabled>Keine weiteren Kuriere – im Personal-Fenster (P) einstellen</option>':'')+'</select></div>'+
     '<div class="kw-fuss"><small>Rundlauf · orange Linie in der Halle = Laufweg, Kreis anklicken springt zum Stopp · Stopp-Kopf ziehen zum Umsortieren · Menge leer = Auto · Ändern gilt nach „Speichern“</small>'+
       '<button type="button" class="kw-route-weg" data-kw="loeschen" '+(!r?'disabled':'')+'>'+kwIcon('trash-can')+' Route löschen</button></div>'+
     '<div class="kw-status" aria-live="off"></div><div class="kw-meldung" role="status">'+htmlSicher(v.meldung)+'</div></div>';
@@ -24534,8 +24619,8 @@ kwOverlay.addEventListener('dragstart',e=>{
 kwOverlay.addEventListener('dragover',e=>{if(kwZiehen!==null&&e.target.closest('[data-kw-stopp]')){e.preventDefault();e.dataTransfer.dropEffect='move';}});
 kwOverlay.addEventListener('drop',e=>{const c=e.target.closest('[data-kw-stopp]');if(kwZiehen!==null&&c){e.preventDefault();const von=kwZiehen;kwZiehen=null;kwVerschiebe(von,Number(c.dataset.kwStopp));}});
 kwOverlay.addEventListener('dragend',()=>{kwZiehen=null;kwFenster.querySelectorAll('.kw-dragging').forEach(e=>e.classList.remove('kw-dragging'));});
-ob.bauInhalt.addEventListener('click',e=>{if(e.target.closest('[data-kw="oeffnen"]'))oeffneKurierwege();});
-ob.bauInhalt.addEventListener('change',e=>{if(e.target.matches('[data-kw-person]')){weiseKurierwegZu(e.target.dataset.kwPerson,e.target.value);zeichnePersonal();}});
+$("personal-inhalt").addEventListener('click',e=>{if(e.target.closest('[data-kw="oeffnen"]'))oeffneKurierwege();});   // 2026-10-12: Personal-Fenster
+$("personal-inhalt").addEventListener('change',e=>{if(e.target.matches('[data-kw-person]')){weiseKurierwegZu(e.target.dataset.kwPerson,e.target.value);zeichnePersonal();}});
 function benenneGebaeude(id,name) {
   const g=spiel.gebaeude.get(id);if(!g||typeof name!=='string')return false;
   g.name=name.trim().slice(0,60);g.version++;meldeStruktur();speichereSpielstand();return true;
@@ -24592,9 +24677,9 @@ let entlassFrage = { id: null, bis: 0 };
 function entlassFrageOffen(id) { return id != null && entlassFrage.id === id && performance.now() < entlassFrage.bis; }
 function stelleEntlassFrage(id) {
   entlassFrage = { id, bis: performance.now() + 3000 };
-  if (bau.offen && bau.reiter === "personal") zeichneBauInhalt();
+  if (personalOffen) zeichnePersonal();             // 2026-10-12: eigenes Fenster statt Baumenü-Reiter
   clearTimeout(entlassFrage.timer);
-  entlassFrage.timer = setTimeout(() => { if (bau.offen && bau.reiter === "personal") zeichneBauInhalt(); }, 3100);
+  entlassFrage.timer = setTimeout(() => { if (personalOffen) zeichnePersonal(); }, 3100);
 }
 function zeichnePersonal() {
   const anzahl = angestellte().length, max = maxMitarbeiter();   // Phase 7a (Nachtrag 2): "Du" zählt nicht mit
@@ -24647,7 +24732,8 @@ function zeichnePersonal() {
             : `<button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>`)}</td>
       </tr>`;
   }).join("");
-  ob.bauInhalt.innerHTML = `<div class="personal"><div class="kw-kopf"><b>Personal</b><button class="lz-knopf" type="button" data-kw="oeffnen">Kurierwege</button></div>
+  // 2026-10-12: eigenes Fenster (früher Baumenü-Reiter); morphen statt ersetzen, damit Klicks und Auswahlfelder bleiben
+  setzeHtml(ob.personalInhalt, `<div class="personal"><div class="kw-kopf"><b>Mitarbeiter</b><button class="lz-knopf" type="button" data-kw="oeffnen">Kurierwege</button></div>
       <div class="personal-kopf">
         <span class="personal-chip" title="Angestellte ohne dich">👥 Mitarbeiter <b>${anzahl} / ${max}</b></span>
         <span class="personal-chip lohn" title="Summe aller Tageslöhne">💶 Löhne <b>${euro(lohnSumme())}</b> / Tag</span>
@@ -24667,7 +24753,7 @@ function zeichnePersonal() {
         <thead><tr><th>Name</th><th>Rolle</th><th>Einsatzort</th><th>Status</th><th>Lohn</th><th>Ausrüstung · Tätigkeit</th><th></th></tr></thead>
         <tbody>${zeilen || `<tr><td colspan="7" class="info-leer">Noch niemand eingestellt.</td></tr>`}</tbody>
       </table></div>
-    </div>`;
+    </div>`);
 }
 // Phase 7d: HR-071 – mehrere auf einmal einstellen (so viele, wie die Forschung erlaubt und Platz ist)
 function mehrereEinstellenHtml(anzahl, max) {
@@ -24685,7 +24771,7 @@ function klonKnopf(p, stufe, voll) {
     title="${grund || `Klont ${htmlSicher(p.name)} mit allen Erfahrungspunkten`}">⧉ Klonen · ${euro(FORSCHUNG_NEU.klonPreis)}</button>`;
 }
 function aktualisierePersonalStatus() {
-  for (const el of ob.bauInhalt.querySelectorAll("[data-status-id]")) {
+  for (const el of ob.personalInhalt.querySelectorAll("[data-status-id]")) {
     const p = mitarbeiter.find((m) => m.id === el.dataset.statusId);
     const text = p ? personZustandText(p) : "";
     if (el.textContent !== text) el.textContent = text;
@@ -24737,10 +24823,6 @@ function aktualisiereBauTipp() {
     html = "Abriss: Gebäude anklicken – es kommt ins Depot, der Inhalt ins Lager · Bänder anklicken oder über mehrere ziehen (Preis wird erstattet) · Rechtsklick / <kbd>Esc</kbd> abbrechen";
   } else if (bau.reiter === "baender") {
     html = `Bänder verbinden Gebäude: Ein Band, das in ein Gebäude zeigt, ist ein Zulauf; eins, das von ihm weg zeigt, ein Ablauf. Mit beidem läuft eine Station automatisch. Lager können von allen Seiten per Band angebunden werden; Kuriere entnehmen an der Vorderseite. ${kbd("band")} Fließband`;   // Phase 7b Nachtrag
-  } else if (bau.reiter === "halle") {
-    html = "Ein Ausbau verlängert die Halle nach vorn. Alles Gebaute bleibt stehen; Miete und Platz für Personal steigen.";
-  } else if (bau.reiter === "personal") {
-    html = "Kuriere tragen Material, Arbeiter produzieren an ihrer Station.";
   } else if (bau.reiter === "maschinen") {         // Phase 7d
     html = "Maschinen arbeiten ohne Personal: Kuriere oder Bänder bringen Material ins Eingangsfach und holen das Erzeugnis ab. Sie kosten Laufkosten pro Tag. 🔒 = noch nicht erforscht (Klick zeigt den Eintrag).";
   } else {
@@ -24977,6 +25059,9 @@ ob.bauLeiste.addEventListener("click", (e) => {
   if (karte) { waehleBauTyp(karte.dataset.typ); aktualisiereBauTipp(); return; }
   const bandKarte = e.target.closest("[data-bandtyp]");                         // Phase 6
   if (bandKarte) { waehleBandTyp(bandKarte.dataset.bandtyp); aktualisiereBauTipp(); return; }
+});
+// 2026-10-12: Klicks im Personal-Fenster (früher Reiter „Personal“ im Baumenü)
+function behandlePersonalKlick(e) {
   const knopf = e.target.closest("[data-aktion]");
   if (!knopf || knopf.tagName === "SELECT" || knopf.tagName === "INPUT") return;
   if (personalAktion(knopf)) return;                                            // Phase 6
@@ -25004,10 +25089,10 @@ ob.bauLeiste.addEventListener("click", (e) => {
     const abfindung = p ? abfindungVon(p) : 0;
     if (p && entlasse(p.id)) {
       zeigeMeldung(`${p.name} wurde entlassen${abfindung ? ` (Abfindung −${euro(abfindung)})` : ""}.`);
-      if (bau.reiter === "personal") zeichneBauInhalt();   // 7e-5: Zeile sofort aus der Liste nehmen
+      zeichnePersonal();                                 // 7e-5: Zeile sofort aus der Liste nehmen
     }
   }
-});
+}
 ob.bauAbriss.addEventListener("click", schalteAbriss);
 ob.bauVerschieben.addEventListener("click", () => { schalteVerschieben(); aktualisiereBauTipp(); });
 $("bau-schliessen").addEventListener("click", schliesseBau);
@@ -25509,34 +25594,36 @@ function aktualisiereInfoZahlen() {
 // Kurze Beschriftungen für die Rhythmus-Combobox der Importzone (Anzeige; Werte bleiben gleich)
 // 7e-3d: Spaltenköpfe der Rhythmus-Matrix (Tooltip = Langname aus ZONEN.rhythmen)
 const KURZER_RHYTHMUS = { einmal: "1×", "1min": "1min", "2min": "2min", "5min": "5min", taeglich: "8:00", bisSoll: "bis Soll" };
-// 2026-10-11 (Tim): Menge mit −/+ in 10er-Schritten oder eintippen; bestellt wird sofort mit Klick auf „Einmalig“
-// oder „Bis Soll“. Steht eine Menge da, die noch nicht bestellt ist, blinken die beiden Knöpfe kurz auf.
+// 2026-10-12 (Tim): Pro Rohstoff nur noch ein Soll – mit −/+ in 10er-Schritten oder eintippen (Enter bzw. Feld
+// verlassen). Jede Änderung gilt sofort als „bis Soll“-Bestellung, 0 = keine Bestellung. Die Zeile zeigt, was die
+// Zone erkennt: Ist (Lager, Importzonen, Zwischenlager) · unterwegs (Kuriere, Lieferwagen) · Soll.
 // Das Fenster bekommt nie einen Scrollbalken: passt der Inhalt nicht, wird er verkleinert (izEinpassen).
 const IZ_SCHRITT=10;
-const izEntwurf=new Map();   // Zonen-ID → { item: menge } (eingetippt, noch nicht bestellt)
-function izZeile(g,item) {
-  const b=g.bestellungen.find(b=>b.item===item),e=izEntwurf.get(g.id)?.[item],w=einmalWagen(g,item);
-  return {b,w,menge:e!==undefined?e:(b?.menge||w?.einmal[item]||0),entwurf:e!==undefined};
+const izMeldung=new Map();   // Zonen-ID → { text, bis } – letzte Rückmeldung, übersteht das Neuzeichnen ein paar Sekunden
+function izSoll(g,item) {
+  const b=g.bestellungen.find(b=>b.item===item&&b.rhythmus==='bisSoll');
+  return b?b.menge:0;
 }
-// Läuft für diesen Rohstoff gerade ein Modus? „einmal“ (Wagen noch nicht abgeladen) oder der Rhythmus der Bestellung
-function izModus(g,item) {
-  const {b,w}=izZeile(g,item);
-  if(b&&bestellungAktiv(b))return b.rhythmus;
-  return w?'einmal':null;
+function izStandHtml(g,item) {
+  const {ist,unterwegs}=importzonenStand(g,item),soll=izSoll(g,item);
+  const fehlt=soll>0&&ist+unterwegs<soll;
+  return '<span class="iz-stand'+(soll?'':' iz-aus')+'" title="Ist: in Lagern, Importzonen und Zwischenlagern'+(g.bandAblauf?' (Zone mit Band-Ablauf: nur diese Zone)':'')+
+    ' · unterwegs: Kuriere und Lieferwagen · Soll: bis zu dieser Menge wird nachbestellt"><b>'+ist+'</b> · <span class="iz-unterwegs">'+unterwegs+'</span> · <b class="'+(fehlt?'iz-fehlt':'')+'">'+(soll||'–')+'</b></span>';
 }
 function importzoneHtml(g) {
   const zeilen=ROHSTOFFE.map(r=>{
-    const {menge,entwurf}=izZeile(g,r.id),aktiv=izModus(g,r.id);
-    const alt=aktiv&&!['einmal','bisSoll'].includes(aktiv);
-    return '<div class="iz-resource'+(entwurf?' iz-geaendert':'')+'" data-iz-item="'+r.id+'"><span class="iz-icon" style="color:'+r.farbe+'">'+wareHtml(r.id,24)+'</span><b>'+htmlSicher(r.name)+'</b><span class="iz-price">'+euroStueck(rohstoffPreis(r.id))+'</span>'+
-      '<span class="iz-stepper"><button type="button" class="iz-minus" data-iz-schritt="-1" data-item="'+r.id+'" title="−'+IZ_SCHRITT+'" aria-label="'+r.name+' −'+IZ_SCHRITT+'">−</button>'+
-      '<input type="number" class="iz-amount" min="0" max="9999" step="1" placeholder="0" data-iz-menge="'+r.id+'" aria-label="Menge '+r.name+'" value="'+(menge||'')+'">'+
-      '<button type="button" class="iz-plus" data-iz-schritt="1" data-item="'+r.id+'" title="+'+IZ_SCHRITT+'" aria-label="'+r.name+' +'+IZ_SCHRITT+'">+</button></span>'+
-      ['einmal','bisSoll'].map(m=>'<button type="button" data-iz-modus="'+m+'" data-item="'+r.id+'" aria-pressed="'+(aktiv===m||alt&&m==='bisSoll')+'" title="'+(m==='einmal'?'Menge jetzt einmal bestellen':(g.bandAblauf?'Jede Minute diese Zone bis zur Menge auffüllen – sie versorgt das Band (nochmal klicken: stoppen)':'Jede Minute Hauptlager + Importzonen bis zur Menge auffüllen (nochmal klicken: stoppen)'))+(alt&&m==='bisSoll'?' – läuft: '+htmlSicher(rhythmusNach.get(aktiv)?.name||aktiv):'')+'">'+(m==='einmal'?'Einmalig':'Bis Soll')+'</button>').join('')+'</div>';
+    const soll=izSoll(g,r.id);
+    return '<div class="iz-resource iz-soll-zeile'+(soll?' iz-aktiv':'')+'" data-iz-item="'+r.id+'"><span class="iz-icon" style="color:'+r.farbe+'">'+wareHtml(r.id,24)+'</span><b>'+htmlSicher(r.name)+'</b><span class="iz-price">'+euroStueck(rohstoffPreis(r.id))+'</span>'+
+      izStandHtml(g,r.id)+
+      '<span class="iz-stepper"><button type="button" class="iz-minus" data-iz-schritt="-1" data-item="'+r.id+'" title="Soll −'+IZ_SCHRITT+'" aria-label="'+r.name+' Soll −'+IZ_SCHRITT+'">−</button>'+
+      '<input type="number" class="iz-amount" min="0" max="9999" step="1" placeholder="0" data-iz-menge="'+r.id+'" aria-label="Soll '+r.name+'" title="Soll eintippen, Enter: gilt sofort (0 = keine Bestellung)" value="'+(soll||'')+'">'+
+      '<button type="button" class="iz-plus" data-iz-schritt="1" data-item="'+r.id+'" title="Soll +'+IZ_SCHRITT+'" aria-label="'+r.name+' Soll +'+IZ_SCHRITT+'">+</button></span></div>';
   }).join('');
   const wagen=g.lieferwagen.filter(w=>!w.abgeladen).map(w=>'<p>🚚 '+(w.ankunft>spiel.zeit?'in '+dauerSek(w.ankunft-spiel.zeit):'wartet auf Platz / Geld')+': '+Object.entries(w.items).map(([i,n])=>n+'× '+htmlSicher(itemInfo(i).name)).join(', ')+'</p>').join('');
-  return '<section class="iz-orders"><h3>Ressourcen bestellen</h3><div class="iz-order-list">'+zeilen+'</div>'+
-    '<div class="iz-message" role="status"></div></section>'+(wagen?'<section class="iz-deliveries"><h3>Unterwegs</h3>'+wagen+'</section>':'');
+  const m=izMeldung.get(g.id),meldung=m&&performance.now()<m.bis?m.text:'';
+  return '<section class="iz-orders"><h3>Ressourcen · Soll</h3><div class="iz-kopfzeile"><span>Rohstoff</span><span>Ist · unterwegs · Soll</span><span>Soll setzen</span></div><div class="iz-order-list">'+zeilen+'</div>'+
+    '<small>'+(g.bandAblauf?'Zone mit Band-Ablauf: füllt nur sich selbst bis zum Soll auf.':'Alle '+rhythmusNach.get('bisSoll').sek+' s wird nachbestellt, was bis zum Soll fehlt.')+' 0 = keine Bestellung.</small>'+
+    '<div class="iz-message" role="status">'+htmlSicher(meldung)+'</div></section>'+(wagen?'<section class="iz-deliveries"><h3>Unterwegs</h3>'+wagen+'</section>':'');
 }
 function moderneImportzoneHtml(g) {
   const menge=belegt(g),max=kapazitaetVon(g),prozent=max?Math.min(100,Math.max(0,menge/max*100)):0;
@@ -25561,79 +25648,51 @@ function izEinpassen() {
 }
 setInterval(izEinpassen,400);
 window.addEventListener('resize',()=>izEinpassen());
-// Eingetippte, noch nicht bestellte Menge merken; Einmalig / Bis Soll blinken kurz als Hinweis
-function izSetzeMenge(item,wert) {
+// 2026-10-12 (Tim): Neues Soll setzen – gilt sofort als „bis Soll“-Bestellung (0 löscht die Bestellung)
+function izSetzeSoll(item,wert) {
   const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
-  const n=Math.max(0,Math.min(9999,Math.round(Number(wert))||0)),b=g.bestellungen.find(b=>b.item===item);
-  const ent=izEntwurf.get(g.id)||{};
-  // 2026-10-12 (Tim): Läuft „Einmalig“ oder „Bis Soll“, gilt die neue Menge sofort (0 lässt die laufende Bestellung stehen)
-  const modus=izModus(g,item),zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');
-  if(modus&&n>0){
-    delete ent[item];izEntwurf.set(g.id,ent);
-    const name=itemInfo(item).name;let text;
-    if(modus==='einmal'){aendereEinmal(g,item,n);text=name+': Lieferung auf '+n+'× geändert.';}
-    else {setzeBestellung(g.id,item,n,modus);text=name+(modus==='bisSoll'?': Soll jetzt '+n+'.':': Menge jetzt '+n+'.');}
-    speichereSpielstand();
-    if(!zeile)return;
-    zeile.classList.remove('iz-geaendert');
-    const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=n;
-    const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=text;
-    return;
-  }
-  if(b?n===b.menge:!n)delete ent[item];else ent[item]=n;
-  izEntwurf.set(g.id,ent);
-  if(!zeile)return;
-  zeile.classList.toggle('iz-geaendert',item in ent);
-  const feld=zeile.querySelector('[data-iz-menge]');if(feld!==document.activeElement)feld.value=n||'';
-  if(item in ent)izBlinke(zeile);
-}
-function izBlinke(zeile) {
-  zeile.querySelectorAll('[data-iz-modus]').forEach(k=>{k.classList.remove('iz-blinkt');void k.offsetWidth;k.classList.add('iz-blinkt');});
-}
-// Klick auf Einmalig / Bis Soll: sofort bestellen (bei laufendem „Bis Soll“ ohne neue Menge: stoppen)
-function izBestelle(item,modus) {
-  const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
-  const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');
-  const feld=zeile?.querySelector('[data-iz-menge]');
-  if(feld&&feld===document.activeElement)izSetzeMenge(item,feld.value);
-  const {b,menge,entwurf}=izZeile(g,item),name=itemInfo(item).name,laeuft=b&&bestellungAktiv(b)&&b.rhythmus!=='einmal';
+  const n=Math.max(0,Math.min(9999,Math.round(Number(wert))||0)),name=itemInfo(item).name;
+  if(n===izSoll(g,item))return;
+  const r=setzeBestellung(g.id,item,n,n>0?'bisSoll':null);
+  if(!r.ok){zeigeMeldung(r.grund,true);return;}
   let text;
-  if(laeuft&&modus==='bisSoll'&&!entwurf){setzeBestellung(g.id,item,0,null);text=name+': Nachbestellung gestoppt.';}
-  else if(modus==='einmal'&&menge&&!entwurf&&einmalWagen(g,item)){text=name+': '+menge+'× sind schon unterwegs. Menge ändern passt die Lieferung an.';}
-  else if(modus==='einmal'&&menge&&!zoneAktiv(g)){zeigeMeldung('Die Zone steht nicht an einer Wand – keine Lieferung möglich.',true);return;}
-  else if(modus==='einmal'&&menge){
-    if(laeuft)setzeBestellung(g.id,item,0,null);   // „Einmalig“ ersetzt einen laufenden Rhythmus
-    bestelleEinmal(g,item,menge);
-    text=menge+'× '+name+' bestellt – Lieferung in '+ZONEN.lieferzeit+' s.';
-  }
-  else if(!menge){if(feld){feld.focus();feld.classList.remove('iz-blinkt');void feld.offsetWidth;feld.classList.add('iz-blinkt');}text='Erst eine Menge eintragen.';}
+  if(!n)text=name+': keine Nachbestellung mehr.';
   else {
-    const r=setzeBestellung(g.id,item,menge,modus);
-    if(!r.ok){zeigeMeldung(r.grund,true);return;}
-    if(modus==='einmal')text=menge+'× '+name+' bestellt – Lieferung in '+ZONEN.lieferzeit+' s.';
-    else {const hat=hlMenge(item)+zonenMenge('importzone',item)+wagenUnterwegs(item);
-      text=name+' bis Soll '+menge+': '+(hat>=menge?'gerade nichts nötig ('+hat+' vorhanden).':'+'+(menge-hat)+' kommen.');}
+    const {ist,unterwegs}=importzonenStand(g,item),fehlt=n-ist-unterwegs;
+    text=name+': Soll '+n+' – '+(fehlt>0?'+'+fehlt+' werden bestellt.':'gerade nichts nötig ('+(ist+unterwegs)+' da bzw. unterwegs).');
+    if(!zoneAktiv(g))text=name+': Soll '+n+' – die Zone steht nicht an einer Wand, Bestellungen ruhen.';
   }
-  const ent=izEntwurf.get(g.id);if(ent)delete ent[item];
-  speichereSpielstand();infoKlickSperre=0;
-  if(ob.infoInhalt.contains(document.activeElement))document.activeElement.blur();
-  zeichneInfo();
-  const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=text||'';
+  izMeldung.set(g.id,{text,bis:performance.now()+6000});
+  speichereSpielstand();
+  // Sofort sichtbar machen, ohne ein Feld zu stören, in dem gerade getippt wird
+  const zeile=ob.infoInhalt.querySelector('[data-iz-item="'+item+'"]');
+  if(zeile){
+    zeile.classList.toggle('iz-aktiv',n>0);
+    const feld=zeile.querySelector('[data-iz-menge]');if(feld&&feld!==document.activeElement)feld.value=n||'';
+    const stand=zeile.querySelector('.iz-stand');if(stand)stand.outerHTML=izStandHtml(g,item);
+  }
+  const msg=ob.infoInhalt.querySelector('.iz-message');if(msg)msg.textContent=text;
 }
 ob.infoInhalt.addEventListener('submit',e=>{
   if(!e.target.matches('.gebaeude-name-form'))return;
   e.preventDefault();benenneGebaeude(auswahlGebaeudeId,e.target.querySelector('input').value);
   e.target.querySelector('input').blur();zeichneInfo();
 });
-ob.infoInhalt.addEventListener('input',e=>{if(e.target.dataset.izMenge)izSetzeMenge(e.target.dataset.izMenge,e.target.value);});
-ob.infoInhalt.addEventListener('pointerdown',e=>{if(e.target.closest('[data-iz-modus],[data-iz-schritt]'))e.preventDefault();});
-ob.infoInhalt.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.izMenge){e.preventDefault();e.target.blur();}});
+// Eingetipptes Soll gilt mit Enter oder beim Verlassen des Feldes; Enter nimmt den Fokus weg, damit das
+// Fenster danach wieder mitlaufen darf (infoFormularAktiv). izSetzeSoll ignoriert unveränderte Werte.
+ob.infoInhalt.addEventListener('change',e=>{if(e.target.dataset.izMenge)izSetzeSoll(e.target.dataset.izMenge,e.target.value);});
+ob.infoInhalt.addEventListener('focusout',e=>{if(e.target.dataset.izMenge)izSetzeSoll(e.target.dataset.izMenge,e.target.value);});
+ob.infoInhalt.addEventListener('pointerdown',e=>{if(e.target.closest('[data-iz-schritt]'))e.preventDefault();});
+ob.infoInhalt.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset.izMenge){e.preventDefault();izSetzeSoll(e.target.dataset.izMenge,e.target.value);e.target.blur();}});
 ob.infoInhalt.addEventListener('click',e=>{
-  const m=e.target.closest('[data-iz-modus]');if(m){izBestelle(m.dataset.item,m.dataset.izModus);return;}
   const s=e.target.closest('[data-iz-schritt]');
   if(s){const g=spiel.gebaeude.get(auswahlGebaeudeId);if(!istImportzone(g))return;
-    const alt=izZeile(g,s.dataset.item).menge,d=Number(s.dataset.izSchritt)*IZ_SCHRITT;
-    izSetzeMenge(s.dataset.item,d>0?Math.floor(alt/IZ_SCHRITT)*IZ_SCHRITT+d:Math.ceil(alt/IZ_SCHRITT)*IZ_SCHRITT+d);}
+    // Hat das Feld der Zeile noch den Fokus, zählt die eingetippte Zahl als Ausgangswert
+    const feld=s.closest('[data-iz-item]')?.querySelector('[data-iz-menge]');
+    const alt=feld&&feld===document.activeElement?Math.max(0,Math.round(Number(feld.value))||0):izSoll(g,s.dataset.item),d=Number(s.dataset.izSchritt)*IZ_SCHRITT;
+    const neu=Math.max(0,d>0?Math.floor(alt/IZ_SCHRITT)*IZ_SCHRITT+d:Math.ceil(alt/IZ_SCHRITT)*IZ_SCHRITT+d);
+    if(feld&&feld===document.activeElement)feld.value=neu||'';
+    izSetzeSoll(s.dataset.item,neu);}
 });
 function dauerSek(s) { return `${Math.max(0, Math.ceil(s))} s`; }
 // Phase 7b: Exportzone – Ware mit Modus, Aufträge und Abholwagen
@@ -26329,6 +26388,8 @@ function schliesseAndereFenster() {
   if (forschungOffen) schliesseForschung(false);
   if (einstellungsFenster.offen) schliesseEinstellungen(false);   // Phase 7a
   if (rezeptFenster.offen) schliesseRezepte(false);               // Phase 7a (Nachtrag 2)
+  if (personalOffen) schliessePersonal(false);                     // 2026-10-12: Personal und Halle & Ausbau
+  if (halleOffen) schliesseHalle(false);
 }
 function oeffneKontor(reiter = kontor.reiter) {
   if (dialogOffen || insolvenzOffen) return;
@@ -26507,12 +26568,12 @@ function kontorVerkauf() {
 function kontorEinkauf() {
   const zonen = zonenListe("importzone");
   const zeilen = ROHSTOFFE.map((r) => {
-    const bestellt = zonen.flatMap((g) => g.bestellungen.filter((b) => b.item === r.id).map((b) => `${b.menge}× ${rhythmusNach.get(b.rhythmus)?.name || ""}`));
+    const bestellt = zonen.flatMap((g) => g.bestellungen.filter((b) => b.item === r.id).map((b) => `Soll ${b.menge}`));   // 2026-10-12: nur noch „bis Soll“
     return `<tr><td><span class="info-item mit-ware" style="--item-farbe:${r.farbe}">${wareHtml(r.id, 22)}${r.name}</span></td>
       <td class="zahl">${euroStueck(r.preis)}</td><td class="zahl">${hlMenge(r.id)}</td><td class="zahl">${zonenMenge("importzone", r.id)}</td>
       <td class="zahl">${wagenUnterwegs(r.id)}</td><td><small class="leise">${bestellt.join(", ") || "–"}</small></td></tr>`;
   }).join("");
-  return `${kontorKiMarktHtml()}<p class="kontor-hinweis">Rohstoffe bestellst du in der <b>Importzone</b> (anklicken): Menge und Rhythmus pro Rohstoff.
+  return `${kontorKiMarktHtml()}<p class="kontor-hinweis">Rohstoffe bestellst du in der <b>Importzone</b> (anklicken): ein Soll pro Rohstoff – nachbestellt wird, was bis dahin fehlt.
       Der Lieferwagen kommt nach ${ZONEN.lieferzeit} s und wird beim Abladen bezahlt.</p>
     ${zonen.length ? `<p><button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="zurImportzone">Zur Importzone</button></p>`
       : `<p class="info-warnung">Keine Importzone – Baumenü (B) → Lager → Importzone (an einer Hallenwand).</p>`}
@@ -27208,7 +27269,7 @@ ob.insolvenzNeu.addEventListener("click", starteSpielNeu);   // Phase 8: ohne Ne
    Beim Zurücksetzen (setzeSpielZurueck) schließen alle Fenster, Auswahl und Werkzeuge werden aufgehoben;
    nach dem Neuaufbau zeigen HUD und Tempo-Knöpfe den neuen Stand. */
 spielEreignisse.addEventListener("spielZurueckgesetzt", () => {
-  izEntwurf.clear();   // offene Importzonen-Eingaben gehören zum alten Spiel
+  izMeldung.clear();   // Importzonen-Rückmeldungen gehören zum alten Spiel
   if (dialogOffen) schliesseDialog(false);
   if (designer.offen) schliesseDesigner();
   schliesseAndereFenster();
@@ -27258,7 +27319,7 @@ spielEreignisse.addEventListener("reputationsStufe", (e) => {
 });
 spielEreignisse.addEventListener("erforscht", (e) => {
   const eintrag = e.detail.eintrag;
-  zeigeMeldung(`Erforscht: ${eintrag.symbol} ${eintrag.name}${eintrag.wirkung === "ausruestung" ? " – jetzt im Personal-Reiter kaufen" : ""}`);
+  zeigeMeldung(`Erforscht: ${eintrag.symbol} ${eintrag.name}${eintrag.wirkung === "ausruestung" ? " – jetzt im Personal-Fenster kaufen" : ""}`);
 });
 spielEreignisse.addEventListener("erfahrungAufstieg", (e) =>
   zeigeMeldung(`${e.detail.person.name} erreicht Erfahrungsstufe ${e.detail.stufe}: arbeitet schneller, Lohn steigt leicht.`));
@@ -27399,7 +27460,7 @@ function spielReiterHtml() {
     </section>
     <section class="neustart-box">
       <h3 class="einstellungen-gruppe">Spiel neu starten</h3>
-      <p>Setzt alles auf den Anfang zurück: Kontostand ${euro(WIRTSCHAFT.startKapital)}, Garage ${level.breite} × ${HALLE_STUFEN[0].tiefe},
+      <p>Setzt alles auf den Anfang zurück: Kontostand ${euro(WIRTSCHAFT.startKapital)}, Garage ${HALLE_STUFEN[0].breite} × ${HALLE_STUFEN[0].tiefe},
         nur Lager mit Startbestand, Import- und Exportzone, Reputation „${REPUTATION_STUFEN[0].name}“, Tag 1.
         Gebäude, Bänder, Inventar, Depot, Mitarbeiter, Aufträge und Forschung gehen verloren.</p>
       <p class="leise">Erhalten bleiben deine Blaupausen und diese Einstellungen.</p>
@@ -27616,6 +27677,8 @@ window.addEventListener("keydown", (e) => {
   if (taste === "enter" && knotenWerkzeug(bau.offen && bau.werkzeug) && bau.werkzeug.knoten?.length) {   // Paket Bandbau
     erledigt(); baueKnotenStrasse(bau.werkzeug); return;
   }
+  if (personalOffen && (taste === "escape" || aktion === "personal")) { erledigt(); schliessePersonal(); return; }   // 2026-10-12
+  if (halleOffen && taste === "escape") { erledigt(); schliesseHalle(); return; }                                   // 2026-10-12
   if (taste === "escape") {
     if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
     else if (verwirfKnoten()) erledigt();            // Paket Bandbau: erst die abgesteckte Strecke verwerfen
@@ -27633,6 +27696,7 @@ window.addEventListener("keydown", (e) => {
     case "forschung": erledigt(); oeffneForschung(); break;
     case "einstellungen": erledigt(); oeffneEinstellungen(); break;
     case "rezepte": erledigt(); oeffneRezepte(); break;   // Phase 7a (Nachtrag 2)
+    case "personal": erledigt(); oeffnePersonal(); break; // 2026-10-12: eigenes Fenster (Taste P)
     case "verschieben": erledigt(); schalteVerschieben(); aktualisiereBauTipp(); break;
     case "abriss": erledigt(); schalteAbriss(); aktualisiereBauTipp(); break;
     case "band": erledigt(); schalteBandWerkzeug(); break;   // Phase 6: Fließband
@@ -27702,7 +27766,7 @@ function aktualisiereOberflaeche(sekunden) {
     zeichneInfo();
   }
   if (auswahlGebaeudeId) aktualisiereInfoZahlen();
-  if (bau.offen && bau.reiter === "personal") aktualisierePersonalStatus();
+  aktualisiereMenueFenster();                    // 2026-10-12: Personal- und Hallenfenster mitführen
   if (anzeige.version !== spiel.version) {
     anzeige.version = spiel.version;
     if (lagerOffen) zeichneLager();
@@ -27774,28 +27838,58 @@ function zeichneBaender() {
     <small>Laufkosten ${euro(kosten)}/Tag</small></div>`;
 }
 
-/* --- Baumenü: Reiter "Halle" --- */
+/* --- Fenster „Halle & Ausbau“ (2026-10-12, früher Baumenü-Reiter "Halle") ---
+   Öffnet per Klick aufs Firmenschild oben links. Zeigt die jetzige Stufe, die nächste mit Preis, Miete und
+   Personal-Höchstzahl (Kaufen) und alle Stufen als Tabelle; dazu „Halle bereinigen“. */
+function halleWachstumText(von, nach) {
+  const teile = [];
+  if (nach.breite > von.breite) teile.push(`${nach.breite - von.breite} Spalten nach rechts`);
+  if (nach.tiefe > von.tiefe) teile.push(`${nach.tiefe - von.tiefe} Reihen nach vorn`);
+  return teile.join(" und ");
+}
 function zeichneHalle() {
   const jetzt = halleStufe(), naechste = naechsteHallenStufe();
   const zeilen = HALLE_STUFEN.map((st, i) => {
     const klasse = i === spiel.halleStufe ? "du" : "";
     const status = i < spiel.halleStufe ? "✓" : i === spiel.halleStufe ? "jetzt" : euro(st.preis);
-    return `<tr class="${klasse}"><td>${st.name}</td><td class="zahl">${level.breite} × ${st.tiefe}</td>
+    return `<tr class="${klasse}"><td>${st.name}</td><td class="zahl">${st.breite} × ${st.tiefe}</td>
       <td class="zahl">${euro(st.miete)}/Tag</td><td class="zahl">${st.maxMitarbeiter}</td><td class="zahl">${status}</td></tr>`;
   }).join("");
-  ob.bauInhalt.innerHTML = `<div class="halle-ausbau">
-      <div class="halle-jetzt">
-        <b>${jetzt.name} · ${level.breite} × ${level.tiefe} Kacheln</b>
-        <small>Miete ${euro(aktuelleMiete())}/Tag · bis ${maxMitarbeiter()} Mitarbeiter</small>
-        ${naechste ? `<button class="lz-knopf lz-knopf-haupt" type="button" data-aktion="ausbauen" ${kannBezahlen(naechste.preis) ? "" : "disabled"}
-            title="Die Halle wächst nach vorn um ${naechste.tiefe - level.tiefe} Reihen. Alles Gebaute bleibt stehen.">
-            Ausbauen zu ${naechste.name} (${level.breite} × ${naechste.tiefe}) · ${euro(naechste.preis)}</button>
-          <small>danach Miete ${euro(naechste.miete)}/Tag · bis ${naechste.maxMitarbeiter} Mitarbeiter</small>`
-          : `<small>Die Halle hat ihre größte Ausbaustufe erreicht.</small>`}
+  const wachstum = naechste ? halleWachstumText({ breite: level.breite, tiefe: level.tiefe }, naechste) : "";
+  const geld = naechste && kannBezahlen(naechste.preis);
+  setzeHtml(ob.halleInhalt, `<div class="halle-fenster">
+      <div class="halle-karten">
+        <div class="halle-karte jetzt">
+          <small>Jetzt</small>
+          <b>${jetzt.name}</b>
+          <dl>
+            <dt>Größe</dt><dd>${level.breite} × ${level.tiefe} Kacheln</dd>
+            <dt>Miete</dt><dd>${euro(aktuelleMiete())}/Tag</dd>
+            <dt>Personal</dt><dd>${angestellte().length} / ${maxMitarbeiter()} <small>(ohne dich)</small></dd>
+          </dl>
+        </div>
+        ${naechste ? `<div class="halle-karte naechste">
+          <small>Nächste Stufe</small>
+          <b>${naechste.name}</b>
+          <dl>
+            <dt>Größe</dt><dd>${naechste.breite} × ${naechste.tiefe} Kacheln</dd>
+            <dt>Miete</dt><dd>${euro(naechste.miete)}/Tag</dd>
+            <dt>Personal</dt><dd>bis ${naechste.maxMitarbeiter}</dd>
+            <dt>Preis</dt><dd class="${geld ? "bau-preis" : "bau-teuer"}">${euro(naechste.preis)}</dd>
+          </dl>
+          <button class="lz-knopf lz-knopf-haupt" type="button" data-halle-aktion="ausbauen" ${geld ? "" : "disabled"}
+            title="${htmlSicher(geld ? `Die Halle wächst um ${wachstum}. Alles Gebaute bleibt stehen.` : geldGrund(naechste.preis))}">Ausbauen · ${euro(naechste.preis)}</button>
+          <small class="leise">wächst um ${wachstum}. Alles Gebaute bleibt stehen; Zonen an einer Wand, die dann innen liegt, werden inaktiv.</small>
+        </div>` : `<div class="halle-karte naechste"><small>Nächste Stufe</small><b>—</b><p class="leise">Die Halle hat ihre größte Ausbaustufe erreicht.</p></div>`}
       </div>
       <table class="kontor-tabelle halle-tabelle"><thead><tr><th>Stufe</th><th class="zahl">Größe</th><th class="zahl">Miete</th>
         <th class="zahl">Personal</th><th class="zahl">Preis</th></tr></thead><tbody>${zeilen}</tbody></table>
-    </div>`;
+      <div class="halle-fuss">
+        <button class="lz-knopf bau-gefahr" type="button" data-halle-aktion="bereinigen" ${spiel.gebaeude.size ? "" : "disabled"}
+          title="Alle Gebäude und Items kommen ins Depot – mit „Aufbau wiederherstellen“ stellst du alles wieder hin">Halle bereinigen</button>
+        ${spiel.schnappschuss ? `<button class="lz-knopf" type="button" data-halle-aktion="wiederherstellen">Aufbau wiederherstellen</button>` : ""}
+      </div>
+    </div>`);
 }
 
 /* --- Band-Werkzeug --- */
@@ -28861,6 +28955,7 @@ function bandAnschlussHtml(g) {
 }
 
 /* --- Personal: freie Arbeiter --- */
+Object.assign(ob, { personalInhalt: $("personal-inhalt") });   // 2026-10-12: Personal-Fenster (Markup oben)
 function ohneAufgabeHtml() {
   const liste = ohneAufgabeListe();
   if (!liste.length) return "";
@@ -28877,7 +28972,7 @@ function ohneAufgabeHtml() {
         <button class="mini-knopf gefahr${entlassFrageOffen(p.id) ? " bestaetigen" : ""}" type="button" data-aktion="entlassen-frei" title="Abfindung ${euro(abfindungVon(p))}">${entlassFrageOffen(p.id) ? "Sicher? Noch einmal" : `Entlassen · ${euro(abfindungVon(p))}`}</button>
       </span></li>`).join("")}</ul></div>`;
 }
-ob.bauInhalt.addEventListener("change", (e) => {
+ob.personalInhalt.addEventListener("change", (e) => {   // 2026-10-12: Personal-Fenster statt Baumenü
   const feld = e.target;
   if (feld.dataset.aktion === "station" && feld.value) {
     const p = mitarbeiter.find((m) => m.id === feld.closest("li").dataset.id);
@@ -28945,7 +29040,7 @@ function personalAktion(knopf) {
         p.zulage = Math.max(v ? v.ueber : 1, 1);
         zeigeMeldung(`${p.name} bekommt ab jetzt ${euro(zulageVon(p))}/Tag Gefahrenzulage und arbeitet weiter.`);
       }
-      zeichneBauInhalt();
+      zeichnePersonal();
       return true;
     }
     case "entlassen-frei": {
@@ -28956,18 +29051,11 @@ function personalAktion(knopf) {
       if (entlasse(p.id)) zeigeMeldung(`${p.name} wurde entlassen (Abfindung −${euro(abfindung)}).`);
       return true;
     }
-    case "ausbauen": {
-      const r = baueHalleAus();
-      if (!r.ok) zeigeMeldung(r.grund, true);
-      else zeigeMeldung(`Hallenausbau: ${r.stufe.name} mit ${level.breite} × ${r.stufe.tiefe} Kacheln (−${euro(r.stufe.preis)}). Miete jetzt ${euro(r.stufe.miete)}/Tag.`);
-      zeichneBauInhalt();
-      return true;
-    }
   }
   return false;
 }
 
-// Schnellanzeige oben links: "👤 2 ohne Aufgabe" (Klick öffnet den Personal-Reiter)
+// Schnellanzeige oben links: "👤 2 ohne Aufgabe" (Klick öffnet das Personal-Fenster)
 function aktualisiereFreiChip() {
   const n = ohneAufgabeListe().length;
   ob.hudFrei.hidden = n === 0;
@@ -29014,10 +29102,89 @@ ob.hudLagerWarnung.addEventListener("click", () => {
   kameraFlugZiel = new THREE.Vector3(mitte.x, 0, mitte.z);
   waehleGebaeude(g.id);
 });
-ob.hudFrei.addEventListener("click", () => {
-  bau.reiter = "personal";
-  if (bau.offen) { setzeWerkzeug(null); zeichneBauInhalt(); aktualisiereBauTipp(); } else oeffneBau();
+ob.hudFrei.addEventListener("click", () => oeffnePersonal());   // 2026-10-12: eigenes Fenster
+
+/* --- Paket Bandbau/Baumenü 2026-10-12: Fenster „Personal“ und „Halle & Ausbau“ ---
+   Beide waren Reiter im Baumenü. Jetzt schweben sie wie Lager, Kontor & Co. über der Halle (Klasse .frei,
+   verschiebbar über window.fensterLage – das richtet richteFreieFensterEin für alle .frei-Fenster ein).
+   Personal: Topbar-Modul „Personal x / y“, Dock-Taste, Taste P, Hinweis „ohne Aufgabe“.
+   Halle & Ausbau: Klick aufs Firmenschild (Logo + Hallengröße) oben links. Esc oder ✕ schließt. */
+Object.assign(ob, {
+  personalOverlay: $("personal-overlay"), personalFenster: $("personal-fenster"),
+  halleOverlay: $("halle-overlay"), halleFenster: $("halle-fenster"), halleInhalt: $("halle-inhalt"),
 });
+let personalOffen = false;
+let halleOffen = false;
+const menueAnzeige = { personal: -1 };   // strukturVersion, mit der die Personal-Liste zuletzt gebaut wurde
+function oeffnePersonal() {
+  if (dialogOffen || insolvenzOffen) return;
+  if (!personalOffen) schliesseAndereFenster();
+  personalOffen = true;
+  ob.personalOverlay.hidden = false;
+  aktualisiereSperre();
+  menueAnzeige.personal = spiel.strukturVersion;
+  zeichnePersonal();
+  ob.personalFenster.focus({ preventScroll: true });
+}
+function schliessePersonal(fokusZurueck = true) {
+  if (!personalOffen) return;
+  personalOffen = false;
+  ob.personalOverlay.hidden = true;
+  aktualisiereSperre();
+  if (fokusZurueck && ob.personalFenster.contains(document.activeElement)) document.activeElement.blur();
+}
+function schaltePersonal() { if (personalOffen) schliessePersonal(); else oeffnePersonal(); }
+function oeffneHalle() {
+  if (dialogOffen || insolvenzOffen) return;
+  if (!halleOffen) schliesseAndereFenster();
+  halleOffen = true;
+  ob.halleOverlay.hidden = false;
+  aktualisiereSperre();
+  zeichneHalle();
+  ob.halleFenster.focus({ preventScroll: true });
+}
+function schliesseHalle(fokusZurueck = true) {
+  if (!halleOffen) return;
+  halleOffen = false;
+  ob.halleOverlay.hidden = true;
+  aktualisiereSperre();
+  if (fokusZurueck && ob.halleFenster.contains(document.activeElement)) document.activeElement.blur();
+}
+function schalteHalle() { if (halleOffen) schliesseHalle(); else oeffneHalle(); }
+// Aus aktualisiereOberflaeche (4-mal pro Sekunde): Liste nur bei Strukturänderung neu, Status-Texte immer
+function aktualisiereMenueFenster() {
+  if (personalOffen) {
+    const auswahlOffen = document.activeElement instanceof HTMLSelectElement && ob.personalInhalt.contains(document.activeElement);
+    if (menueAnzeige.personal !== spiel.strukturVersion && !auswahlOffen) { menueAnzeige.personal = spiel.strukturVersion; zeichnePersonal(); }
+    aktualisierePersonalStatus();
+  }
+  if (halleOffen) zeichneHalle();   // Geld kann sich jede Sekunde ändern (Kaufen-Knopf); setzeHtml tauscht nur Geändertes
+}
+ob.personalInhalt.addEventListener("click", behandlePersonalKlick);
+$("personal-schliessen").addEventListener("click", () => schliessePersonal());
+$("halle-schliessen").addEventListener("click", () => schliesseHalle());
+ob.halleInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("[data-halle-aktion]");
+  if (!knopf || knopf.disabled) return;
+  switch (knopf.dataset.halleAktion) {
+    case "ausbauen": {
+      const r = baueHalleAus();
+      if (!r.ok) zeigeMeldung(r.grund, true);
+      else zeigeMeldung(`Hallenausbau: ${r.stufe.name} mit ${r.stufe.breite} × ${r.stufe.tiefe} Kacheln (−${euro(r.stufe.preis)}). Miete jetzt ${euro(r.stufe.miete)}/Tag.`);
+      break;
+    }
+    case "bereinigen": frageHalleBereinigen(); break;
+    case "wiederherstellen": aufbauWiederherstellen(); break;
+  }
+  zeichneHalle();
+});
+// Schutz vor „Durchklicken“ wie bei den anderen Fenstern: Mausaktionen im Fenster erreichen das Raster nicht
+for (const element of [ob.personalOverlay, ob.halleOverlay]) {
+  for (const art of ["pointerdown", "pointerup", "click", "dblclick", "wheel", "contextmenu"]) {
+    element.addEventListener(art, (e) => { if (art === "pointerdown") { if (typeof breche3dGestenAb === "function") breche3dGestenAb(); sperre3dEingaben(!!oberstesModal()); } e.stopPropagation(); });
+  }
+  element.addEventListener("pointerenter", (e) => { if (!e.buttons) { if (typeof breche3dGestenAb === "function") breche3dGestenAb(); sperre3dEingaben(!!oberstesModal()); } setzeHover(null); });
+}
 
 // Phase 7c: "🔓 n freischaltbar" – Herstellungsziel erreicht, Klick öffnet den Designer (dort "Freischalten")
 Object.assign(ob, { hudFreischaltbar: $("hud-freischaltbar") });
@@ -30360,6 +30527,8 @@ spielschleife();
       [forschungOffen,     () => schliesseForschung(false)],
       [rezeptFenster.offen,() => schliesseRezepte(false)],
       [einstellungsFenster.offen, () => schliesseEinstellungen(false)],
+      [personalOffen,      () => schliessePersonal()],   // 2026-10-12
+      [halleOffen,         () => schliesseHalle()],
     ];
     for (const [aktiv, zu] of derReiheNach) {
       if (!aktiv) continue;
@@ -30539,6 +30708,11 @@ window.tradeUp = {
   // W1b/W2-3D: Gefahren-Overlay + Marken (3D-Agent)
   gefahren, gefahrenCache, schalteGefahrenOverlay, aktualisiereGefahren3d, aktualisiereMarken3d,
 };
+// Paket Bandbau/Baumenü 2026-10-12: Personal- und Hallenfenster, Importzone „bis Soll“, Hallenraster (auch für Tests)
+Object.assign(window.tradeUp, {
+  oeffnePersonal, schliessePersonal, schaltePersonal, oeffneHalle, schliesseHalle, schalteHalle,
+  importzonenStand, level, istImRaster, gebaeudeListe, zoomeAufGarage,
+});
 </script>
 
 <!-- Falls Three.js nicht geladen werden kann (z. B. offline), einen Hinweis zeigen. -->
@@ -31112,7 +31286,7 @@ const HUD_MARKUP = (() => {
 <div class="kopfzeile">
   <header class="leitstand links" aria-label="Trade Up Spielstatus">
     <span class="griff" aria-hidden="true"></span>
-    <button class="firmenschild" type="button" data-hud-action="uebersicht" title="Übersicht – alle Fenster schließen">
+    <button class="firmenschild" type="button" data-hud-action="uebersicht" title="Halle &amp; Ausbau öffnen">
       ${iso("logo")}<span class="text"><b>TRADE UP</b><small id="th-context">Garage · 16 × 8</small></span>
     </button>
     <button class="modul lcd-modul money" type="button" data-hud-action="finanzen" title="Kassenbuch öffnen">
@@ -31165,7 +31339,7 @@ const HUD_MARKUP = (() => {
   ${taste({ aktion: "rezepte", name: "Rezepte", symbol: "rezepte", taste: "rezepte", titel: "Rezepte" })}
   <span class="dock-trenn" aria-hidden="true"></span>
   ${taste({ aktion: "kurierwege", name: "Kurierwege", symbol: "kurier", id: "th-kurierwege", titel: "Kurierwege" })}
-  ${taste({ aktion: "personal", name: "Personal", symbol: "personal", titel: "Personal", marke: '<span class="badge" id="th-free-badge" hidden>0</span>' })}
+  ${taste({ aktion: "personal", name: "Personal", symbol: "personal", taste: "personal", titel: "Personal", marke: '<span class="badge" id="th-free-badge" hidden>0</span>' })}
 </nav>`;
 })();
 </script>
@@ -31215,7 +31389,7 @@ const HUD_MARKUP = (() => {
   const buildPanel = document.getElementById("bau-leiste");
   const offenFuer = {
     bauen: () => sichtbar(buildPanel),
-    personal: () => sichtbar(buildPanel) && !!document.querySelector('#bau-leiste [data-reiter="personal"][aria-selected="true"]'),
+    personal: () => sichtbar(document.getElementById("personal-overlay")),   // 2026-10-12: eigenes Fenster
     lager: () => sichtbar(document.getElementById("lager-overlay")),
     kontor: () => sichtbar(document.getElementById("kontor-overlay")),
     forschung: () => sichtbar(document.getElementById("forschung-overlay")),
@@ -31351,32 +31525,18 @@ const HUD_MARKUP = (() => {
       synchronisiereDock();
     });
   }
-  function schliesseFenster() {
-    const game = api();
-    if (!game) return;
-    try { game.schliesseBau(); } catch (_) {}
-    try { game.schliesseLager(); } catch (_) {}
-    try { game.schliesseKurierwege(); } catch (_) {}
-    try { game.schliesseKomponentenVorschau(); } catch (_) {}
-    try { game.schliesseKontor(false); } catch (_) {}
-    try { game.schliesseForschung(false); } catch (_) {}
-    try { game.schliesseEinstellungen(false); } catch (_) {}
-    try { game.schliesseRezepte(false); } catch (_) {}
-    try { game.schliesseDesigner(); } catch (_) {}
-    try { game.waehleGebaeude(null); } catch (_) {}
-  }
   function aktion(name) {
     const game = api();
     if (!game) return;
     switch (name) {
       case "kurierwege": game.oeffneKurierwege(); setActive(name); break;
-      case "uebersicht": schliesseFenster(); setActive(name); break;
+      case "uebersicht": game.schalteHalle(); break;   // 2026-10-12: Firmenschild öffnet „Halle & Ausbau“
       case "bauen": if (buildPanel && !buildPanel.hidden) { game.schliesseBau(); setActive(""); } else { game.oeffneBau(); setActive(name); } break;
       case "lager": game.oeffneLager(); setActive(name); break;
       case "kontor": game.oeffneKontor(); setActive(name); break;
       case "markt": game.oeffneKontor("auftraege"); setActive("kontor"); break;
       case "logistik": oeffneBauReiter("baender"); setActive(name); break;
-      case "personal": oeffneBauReiter("personal"); setActive(name); break;
+      case "personal": game.schaltePersonal(); setActive(name); break;   // 2026-10-12: eigenes Fenster
       case "finanzen": game.oeffneKontor("kassenbuch"); setActive("kontor"); break;
       case "auftraege": game.oeffneKontor("auftraege"); setActive("kontor"); break;
       case "forschung": game.oeffneForschung(); setActive(name); break;

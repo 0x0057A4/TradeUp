@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "claude-code-mods": {
+      "source": {
+        "source": "github",
+        "repo": "hamzafer/claude-code-mods"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "next-steps@claude-code-mods": true
+  }
+}

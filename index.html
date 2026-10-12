@@ -4186,7 +4186,7 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
   <span><kbd data-taste="band">F</kbd> Fließband</span>
   <span><kbd data-taste="gefahren">H</kbd> Gefahren</span>
   <span><kbd data-taste="abreissen">Entf</kbd> Abreißen</span>
-  <span><kbd>Strg</kbd>+Klick / Rahmen ziehen: mehrere wählen</span>
+  <span><kbd>Shift</kbd>+Klick / Rahmen ziehen: mehrere wählen · <kbd>Strg</kbd>+Klick: Pipette</span>
   <span><kbd>Strg</kbd>+<kbd>C</kbd> / <kbd>Strg</kbd>+<kbd>V</kbd> kopieren, einfügen</span>
   <span>Mitarbeiter ziehen: an Station · Gebäude, Bandteile und verbundene Brücken/Tunnel ziehen: versetzen (ohne Werkzeug; Esc bricht ab)</span>
   <span><kbd data-taste="einstellungen">O</kbd> Optionen</span>
@@ -4228,7 +4228,13 @@ const GRAFIK = {
   farbeKachel:        "#bfc4be",  // Grauer Industrieboden
   farbeKachelHover:   "#fff9ec",  // Kachel unter der Maus (etwas heller)
   farbeKachelAuswahl: "#f08a3c",  // Ausgewählte Kachel (Akzent-Orange)
-  farbeHoverRahmen:   "#f08a3c",  // Leuchtender Rahmen, der der Maus folgt
+  farbeHoverRahmen:   "#f08a3c",  // Leuchtender Rahmen, der der Maus folgt (bis 2026-10-12; jetzt Klammern, siehe unten)
+  // Paket Bandbau (Tim, 2026-10-12): animierte Auswahl statt orangem Viereck (Abschnitt 12f)
+  farbeKlammerAuswahl: "#f5c518", // Leitstand-Gelb: Eckklammern um Gewähltes, umlaufender Lichtpunkt
+  farbeKlammerHover:   "#ffffff", // Eckklammern unter der Maus (umfassen das ganze Gebäude)
+  klammerLaenge:       0.3,       // Länge eines Klammer-Arms (Kacheln)
+  klammerDicke:        0.07,      // Breite eines Klammer-Arms
+  klammerAbstand:      0.1,       // so weit stehen die Klammern außerhalb des Grundrisses
 
   // --- Kamera ---
   kameraDrehung:  45,       // Grad, um die die Kamera um die Hochachse gedreht ist
@@ -4339,7 +4345,7 @@ const GRAFIK = {
   farbeZusammen:        "#5a9a5e",   // Zusammenführung (Grün)
   farbeArm:             "#f5c542",   // Greifarm (Gelb)
   farbeArmGelenk:       "#3a3f47",   // Gelenke und Greifer
-  farbeSegment:         "#f08a3c",   // Rahmen um das ausgewählte Segment
+  farbeSegment:         "#f5c518",   // Rahmen um das ausgewählte Segment (Paket Bandbau: Leitstand-Gelb, pulsiert)
   bandHoehe:            0.09,        // Höhe der Bandoberfläche über dem Boden (Kacheln) – wird von wendeBandLookAn() gesetzt
   bandHoeheKlassisch:   0.09,        // 12d: bisherige flache Bänder
   bandHoeheNeu:         0.2,         // 12d: neuer Band-Look (Band steht auf kleinen Füßen)
@@ -6498,7 +6504,7 @@ function faerbeKachel(x, z) {
   if (!istImRaster(x, z)) return;
   let farbe = farbeNormal;
   if (hoverKachel && hoverKachel.x === x && hoverKachel.z === z) farbe = farbeHover;
-  if (auswahlKachel && auswahlKachel.x === x && auswahlKachel.z === z) farbe = farbeAuswahl;
+  // Paket Bandbau: Die gewählte Kachel färbt sich nicht mehr orange – das zeigen die Klammern (Abschnitt 12f)
   kacheln.setColorAt(kachelNummer(x, z), farbe);
   kacheln.instanceColor.needsUpdate = true;
 }
@@ -6525,6 +6531,7 @@ const hoverRahmen = new THREE.Mesh(
 hoverRahmen.rotation.x = -Math.PI / 2;
 hoverRahmen.position.y = rasterHoehe + 0.01;  // knapp über den Kacheln, damit nichts flackert
 szene.add(hoverRahmen);
+hoverRahmen.visible = false;   // Paket Bandbau: ersetzt durch die Hover-Klammern (Abschnitt 12f), bleibt als Zielpunkt erhalten
 const rahmenZiel = hoverRahmen.position.clone(); // wohin der Rahmen gleiten soll (gleiche Höhe)
 
 /* ============================================================================
@@ -6850,6 +6857,7 @@ zeichenflaeche.addEventListener("pointerdown", (e) => {
     // Linke Taste: möglicher Klick – erst beim Loslassen entscheiden.
     maus.linksUnten = true;
     maus.startX = e.clientX; maus.startY = e.clientY;
+    maus.strg = e.ctrlKey || e.metaKey;          // Paket Bandbau: Strg beim Drücken = Pipette (auch mit Zieh-Werkzeug)
     // Phase 7a: Auf einem Mitarbeiter gedrückt? Dann kann er auf eine Station gezogen werden.
     if (personZiehenStart(e.clientX, e.clientY)) {
       maus.ziehtPerson = true;
@@ -6920,7 +6928,7 @@ zeichenflaeche.addEventListener("pointerup", (e) => {
   }
   if (e.button === 0 && maus.rahmen) {               // Phase 7a (Nachtrag 3): Rahmen fertig
     maus.rahmen = false; maus.rahmenMoeglich = false; maus.linksUnten = false;
-    rahmenEnde(e.clientX, e.clientY, e.ctrlKey || e.metaKey);
+    rahmenEnde(e.clientX, e.clientY, e.shiftKey || e.ctrlKey || e.metaKey);   // Paket Bandbau: Shift = zur Auswahl dazu
     return;
   }
   if (e.button === 0) maus.rahmenMoeglich = false;
@@ -18853,6 +18861,7 @@ function zeigeBauVorschau(info) {
     vorschau.schluessel = schluessel;
   }
   if (vorschau.pfeil) { szene.remove(vorschau.pfeil); vorschau.pfeil = null; }
+  zeigeTorVorschau(info && info.geo);               // Paket Bandbau: Ein-/Ausgang schon vor dem Bau
   if (!info) return;
   const farbe = info.passt ? GRAFIK.farbeVorschauOk : GRAFIK.farbeVorschauFehler;
   vorschauMaterial.color.set(farbe);
@@ -18864,6 +18873,78 @@ function zeigeBauVorschau(info) {
   vorschau.pfeil = baueZugangsPfeil(info.geo.zugang, info.geo.richtung, vorschauPfeilMaterial);
   vorschau.pfeil.position.y += 0.005;
   szene.add(vorschau.pfeil);
+}
+
+/* --- Paket Bandbau (Tim, 2026-10-12): Tore schon beim Platzieren zeigen ---
+   Bau-Geist, Verschieben und Pipette zeigen vor dem Gebäude farbige Bodenplatten mit Pfeil und Schild:
+   grün „EIN“ (Pfeil in die Maschine) und rot „AUS“ (Pfeil heraus) an den festen Toren, sonst gelb „ZUGANG“
+   (hier stehen Kuriere und Arbeiter). Die Marken drehen mit R mit, weil sie aus der Geometrie (geo) kommen. */
+const TOR_VORSCHAU = {
+  ein:    { farbe: "#3fb950", text: "EIN" },
+  aus:    { farbe: "#f85149", text: "AUS" },
+  zugang: { farbe: "#f5c518", text: "ZUGANG" },
+};
+const torSchildTexturen = {};
+function torSchildTextur(art) {
+  if (torSchildTexturen[art]) return torSchildTexturen[art];
+  const { farbe, text } = TOR_VORSCHAU[art];
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 96;
+  const k = c.getContext("2d");
+  k.fillStyle = "rgba(20, 24, 28, 0.88)";
+  k.beginPath(); k.roundRect(6, 10, 244, 76, 18); k.fill();
+  k.fillStyle = farbe;
+  k.beginPath(); k.roundRect(6, 10, 22, 76, [18, 0, 0, 18]); k.fill();
+  k.font = "700 46px 'Saira Condensed', 'Arial Narrow', sans-serif";
+  k.textAlign = "center"; k.textBaseline = "middle";
+  k.fillStyle = "#ffffff";
+  k.fillText(text, 140, 50);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return (torSchildTexturen[art] = t);
+}
+const torPlattenGeo = new THREE.BoxGeometry(0.86, 0.03, 0.86);
+const torVorschau3d = new THREE.Group();
+torVorschau3d.renderOrder = 6;
+szene.add(torVorschau3d);
+const torVorschauMaterial = Object.fromEntries(Object.entries(TOR_VORSCHAU).map(([art, t]) => [art, {
+  platte: new THREE.MeshBasicMaterial({ color: t.farbe, transparent: true, opacity: 0.5, depthWrite: false }),
+  pfeil:  new THREE.MeshBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.95, depthWrite: false, side: THREE.DoubleSide }),
+  schild: new THREE.SpriteMaterial({ map: torSchildTextur(art), transparent: true, depthTest: false }),
+}]));
+// kachel = Platz vor dem Tor, nachInnen = Richtung (x/z), in die der Pfeil zeigt
+function torMarke(art, kachel, nachInnen) {
+  const m = torVorschauMaterial[art], mitte = kachelZuWelt(kachel.x, kachel.z);
+  const gruppe = new THREE.Group();
+  gruppe.position.set(mitte.x, rasterHoehe + 0.02, mitte.z);
+  const platte = new THREE.Mesh(torPlattenGeo, m.platte);
+  platte.renderOrder = 6;
+  const pfeil = new THREE.Mesh(pfeilGeometrie, m.pfeil);
+  pfeil.position.y = 0.025;
+  pfeil.rotation.y = gebaeudeWinkel(nachInnen);
+  pfeil.renderOrder = 7;
+  const schild = new THREE.Sprite(m.schild);
+  schild.scale.set(art === "zugang" ? 0.78 : 0.62, 0.24, 1);
+  schild.position.y = 0.55;
+  schild.renderOrder = 30;
+  gruppe.add(platte, schild);
+  if (art !== "zugang") gruppe.add(pfeil);           // am Zugang zeigt schon der Zugangspfeil (grün/rot = passt)
+  return gruppe;
+}
+let torVorschauSchluessel = "";
+function zeigeTorVorschau(geo) {
+  const schluessel = geo ? JSON.stringify([geo.zugang, geo.tore && geo.tore.ein.aussen, geo.tore && geo.tore.aus.aussen]) : "";
+  if (schluessel === torVorschauSchluessel) return;
+  torVorschauSchluessel = schluessel;
+  while (torVorschau3d.children.length) torVorschau3d.remove(torVorschau3d.children[0]);
+  if (!geo) return;
+  if (geo.tore) {
+    const { ein, aus } = geo.tore;
+    torVorschau3d.add(torMarke("ein", ein.aussen, { x: -ein.richtung.x, z: -ein.richtung.z }));
+    torVorschau3d.add(torMarke("aus", aus.aussen, aus.richtung));
+  } else if (geo.zugang) {
+    torVorschau3d.add(torMarke("zugang", geo.zugang, { x: -geo.richtung.x, z: -geo.richtung.z }));
+  }
 }
 
 // Rote, durchsichtige Haube über einem Gebäude, das gleich abgerissen würde
@@ -18913,15 +18994,7 @@ function zeigeGebaeudeAuswahl(g) {
   if (!g) return;
   const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
   const links = kachelZuWelt(Math.min(...xs), Math.min(...zs)), rechts = kachelZuWelt(Math.max(...xs), Math.max(...zs));
-  const r = 0.56, y = rasterHoehe + 0.02;
-  const rahmen = new THREE.LineLoop(
-    new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(links.x - r, y, links.z - r), new THREE.Vector3(rechts.x + r, y, links.z - r),
-      new THREE.Vector3(rechts.x + r, y, rechts.z + r), new THREE.Vector3(links.x - r, y, rechts.z + r),
-    ]),
-    new THREE.LineBasicMaterial({ color: GRAFIK.farbeKachelAuswahl })
-  );
-  auswahl3d.add(rahmen);
+  void links; void rechts;   // Paket Bandbau: der Rahmen ist jetzt eine animierte Klammer (Abschnitt 12f, auswahlRechteck)
   // Phase 7a: grüne Bögen = Ware kommt hierher (Import), rote Bögen = Ware geht von hier weg (Export)
   const io = einstellungen.grafik.ioLinien ? ioPartner(g) : { rein: new Set(), raus: new Set() };
   for (const id of io.rein) {
@@ -20709,13 +20782,15 @@ const MASCHINEN_LOOK = (() => {
       box(g, 0.06, 0.95, 0.06, C.armGelenk, sx * 0.4, y0 + 0.55, 0.16, 0.012);
       box(g, 0.012, 0.8, 0.02, null, sx * 0.4 - sx * 0.03, y0 + 0.62, 0.16, 0, leucht(C.leuchten, 1.6));
     }
-    box(g, 0.05, 0.85, 0.05, C.armGelenk, 0.78, y0, -0.05, 0.01);
-    box(g, 0.3, 0.26, 0.1, null, 0.78, y0 + 0.85, -0.05, 0.03, WEISS());
-    bildschirm(g, 0.78, y0 + 1.0, 0.002, 0.2, 0.13, "balken");
-    knoepfe(g, { x: 0, z: 1 }, 0, y0 + 0.86, 0.2, C.orange).position.set(0.78, 0, 0.002);
+    // Paket Bandbau: Bedienpult etwas nach vorn, damit das Eingangstor rechts frei steht
+    box(g, 0.05, 0.85, 0.05, C.armGelenk, 0.78, y0, 0.2, 0.01);
+    box(g, 0.3, 0.26, 0.1, null, 0.78, y0 + 0.85, 0.2, 0.03, WEISS());
+    bildschirm(g, 0.78, y0 + 1.0, 0.252, 0.2, 0.13, "balken");
+    knoepfe(g, { x: 0, z: 1 }, 0, y0 + 0.86, 0.2, C.orange).position.set(0.78, 0, 0.252);
     const lampe = signalTurm(g, 0.38, y0 + 1.9, -0.62);
-    einlass(g, 0.5, -0.5, { x: 1, z: 0 }, GRUEN);
-    einlass(g, -0.5, -0.5, { x: -1, z: 0 }, ROT);
+    // Paket Bandbau (Tim, 2026-10-12): eindeutige Tore wie bei den Kategorie-Maschinen – Tunnel mit Leuchtrahmen,
+    // EIN/AUS-Schild und Pfeil auf dem Dach (Lage aus GEBAEUDE_TYPEN.tore: rechts hinein, links heraus)
+    torePaar(g, "gehaeuseStanzer");
     fachStaender(g, 0.5, 0.68); fachStaender(g, -0.5, 0.68);
     const eingangPlaetze = fach(g, 0.5, 0.42, 0.68, 0.6, 0.45, GRUEN, MW);
     const plaetze = fach(g, -0.5, 0.42, 0.68, 0.6, 0.45, ROT, MW);
@@ -20768,8 +20843,7 @@ const MASCHINEN_LOOK = (() => {
     zyl(g, 0.04, 0.04, 0.03, null, 0.68, y0 + 0.62, 0.335, "z", 16, leucht("#ff4a3a", 1.2));
     const lampe = signalTurm(g, 0.74, y0 + 1.25, 0.06);
     box(g, 0.5, 0.4, 0.05, null, xm + 0.2, y0 + 0.45, z0 - 0.03, 0.01, mat(C.tuerkis, { r: 0.4, t: true, o: 0.75 }));
-    einlass(g, x1, -0.5, { x: 1, z: 0 }, GRUEN);
-    einlass(g, x0, -0.5, { x: -1, z: 0 }, ROT);
+    torePaar(g, "cncFraese");   // Paket Bandbau: eindeutige Tore wie bei den Kategorie-Maschinen
     fachStaender(g, 0.62, 0.7); fachStaender(g, -0.55, 0.7);
     const eingangPlaetze = fach(g, 0.62, 0.42, 0.7, 0.56, 0.42, GRUEN, MW);
     const plaetze = fach(g, -0.55, 0.42, 0.7, 0.6, 0.42, ROT, MW);
@@ -21559,6 +21633,24 @@ const MASCHINEN_LOOK = (() => {
   // Lebenslauf eines Teils auf einer Strecke: 0 … 1, am Rand ein- und ausblenden
   const rand = (s, b = 0.08) => Math.max(0.001, Math.min(1, s / b, (1 - s) / b));
 
+  // Paket Bandbau: Eingangs- und Ausgangstor eines Gebäudetyps (aus GEBAEUDE_TYPEN.tore) ins Modell setzen
+  function torePaar(g, typ) {
+    const t = gebaeudeTypNach.get(typ);
+    if (!t || !t.tore) return;
+    for (const [art, istEin] of [["ein", true], ["aus", false]]) {
+      const lage = torLageModell(t.breite, t.tiefe, t.tore[art]);
+      tor(g, lage, istEin);
+      if (ersatz) continue;                       // Bau-Geist: dort zeigen die Bodenplatten die Tore (zeigeTorVorschau)
+      // Schwebendes Schild über dem Tor, von jeder Seite lesbar (Sprite dreht sich zur Kamera)
+      // depthTest aus: auch das Tor auf der abgewandten Seite bleibt lesbar
+      const schild = new THREE.Sprite(new THREE.SpriteMaterial({ map: torSchildTextur(art), transparent: true, depthWrite: false, depthTest: false }));
+      schild.scale.set(0.56, 0.21, 1);
+      schild.position.set(lage.x + lage.d.x * 0.25, 1.05, lage.z + lage.d.z * 0.25);
+      schild.userData.einzeln = true;
+      schild.renderOrder = 12;
+      g.add(schild);
+    }
+  }
   // Gemeinsamer Aufbau: Platte, beide Tore aus typ.tore, Körper (aufbau) und Ergebnis
   function katMaschine(t) {
     const aufbau = KAT_KOERPER[t.katMaschine], kat = kategorieNachId.get(t.katMaschine);
@@ -22701,6 +22793,35 @@ function zeigeBandVorschau(liste) {
   }
 }
 
+// Paket Bandbau: gelbe Pflöcke an den abgesteckten Knoten (der letzte ist größer: Doppelklick dort baut)
+const bandKnotenNetz = new THREE.InstancedMesh(
+  new THREE.CylinderGeometry(0.07, 0.1, 0.42, 10).translate(0, 0.21, 0),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeKlammerAuswahl, transparent: true, opacity: 0.95, depthWrite: false }), 64);
+bandKnotenNetz.frustumCulled = false;
+bandKnotenNetz.renderOrder = 9;
+bandKnotenNetz.count = 0;
+szene.add(bandKnotenNetz);
+let bandKnotenListe = [];
+function zeigeBandKnoten(liste) {
+  bandKnotenListe = (liste || []).slice(0, 64);
+  stelleBandKnoten(0);
+}
+// zeit > 0: der letzte Knoten wippt leicht (wird aus aktualisiereAuswahlKlammern aufgerufen)
+function stelleBandKnoten(zeit) {
+  bandKnotenListe.forEach((k, i) => {
+    const m = kachelZuWelt(k.x, k.z);
+    const letzter = i === bandKnotenListe.length - 1;
+    const s = letzter ? 1.25 + (wenigerAnimation ? 0 : Math.sin(zeit * 6) * 0.12) : 0.9;
+    bandHilfsVektor.set(m.x, rasterHoehe + GRAFIK.bandHoehe, m.z);
+    bandHilfsSkala.set(s, s, s);
+    hilfsMatrix.compose(bandHilfsVektor, bandHilfsQuat.identity(), bandHilfsSkala);
+    bandKnotenNetz.setMatrixAt(i, hilfsMatrix);
+  });
+  bandHilfsSkala.set(1, 1, 1);
+  bandKnotenNetz.count = bandKnotenListe.length;
+  bandKnotenNetz.instanceMatrix.needsUpdate = true;
+}
+
 // Jedes Bild: Modelle abgleichen, Streifen laufen lassen, Greifarme drehen, Items zeichnen
 const bandLauf = Object.fromEntries(BAND_TEMPO.map((st) => [st.id, 0]));
 function aktualisiereBaender3d(simSekunden, zeit) {
@@ -22888,6 +23009,142 @@ spielEreignisse.addEventListener("spielNeuGestartet", () => {
   begrenzeKameraZiel();
   aktualisiereKamera();
 });
+
+/* ============================================================================
+   ABSCHNITT 12f: Animierte Auswahl – Eckklammern statt orangem Viereck (Paket Bandbau, 2026-10-12) [3D-Agent]
+   - Hover: weiße Eckklammern gleiten weich mit der Maus und umfassen das ganze Gebäude unter ihr
+     (sonst die Kachel). Sie „atmen“ leicht.
+   - Auswahl (Gebäude, Kachel): gelbe Eckklammern rasten von außen ein (kurzes Zusammenziehen),
+     pulsieren danach sanft; ein Lichtpunkt läuft am Rand entlang, darunter ein schwacher Schein.
+   - Mehrfachauswahl: dieselben gelben Klammern um jedes Gebäude (Abschnitt 13g, zeigeMehrfachRahmen).
+   „Weniger Animation“ (Betriebssystem) schaltet Gleiten, Puls und Lichtpunkt ab.
+   Rechteck = { x0, z0, x1, z1 } in Weltkoordinaten (Außenkante des Grundrisses).
+   ============================================================================ */
+const klammerArmX = new THREE.BoxGeometry(GRAFIK.klammerLaenge, 0.03, GRAFIK.klammerDicke).translate(GRAFIK.klammerLaenge / 2, 0, GRAFIK.klammerDicke / 2);
+const klammerArmZ = new THREE.BoxGeometry(GRAFIK.klammerDicke, 0.03, GRAFIK.klammerLaenge).translate(GRAFIK.klammerDicke / 2, 0, GRAFIK.klammerLaenge / 2);
+const klammerMaterial = (farbe, deckkraft) => new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: deckkraft, depthWrite: false });
+const klammerMaterialHover = klammerMaterial(GRAFIK.farbeKlammerHover, 0);
+const klammerMaterialAuswahl = klammerMaterial(GRAFIK.farbeKlammerAuswahl, 0);
+const klammerMaterialMehrfach = klammerMaterial(GRAFIK.farbeKlammerAuswahl, 0.95);
+// Vier L-förmige Ecken. Die Ecke links hinten zeigt mit beiden Armen nach +x/+z; die anderen sind gedreht.
+function baueKlammern(material) {
+  const gruppe = new THREE.Group();
+  gruppe.renderOrder = 8;
+  const ecken = [0, 1, 2, 3].map(() => {
+    const ecke = new THREE.Group();
+    for (const geo of [klammerArmX, klammerArmZ]) {
+      const arm = new THREE.Mesh(geo, material);
+      arm.renderOrder = 8;
+      ecke.add(arm);
+    }
+    gruppe.add(ecke);
+    return ecke;
+  });
+  // Drehung je Ecke (siehe oben): (x0,z0) 0°, (x0,z1) 90°, (x1,z1) 180°, (x1,z0) 270°
+  ecken[1].rotation.y = Math.PI / 2; ecken[2].rotation.y = Math.PI; ecken[3].rotation.y = -Math.PI / 2;
+  const ist = { x0: 0, z0: 0, x1: 1, z1: 1 }, ziel = { ...ist };
+  let skala = 1;   // > 1 = Klammern stehen weiter außen (Einrasten)
+  function stelle() {
+    const mx = (ist.x0 + ist.x1) / 2, mz = (ist.z0 + ist.z1) / 2;
+    const hx = (ist.x1 - ist.x0) / 2 * skala, hz = (ist.z1 - ist.z0) / 2 * skala;
+    const y = rasterHoehe + 0.025;
+    ecken[0].position.set(mx - hx, y, mz - hz); ecken[1].position.set(mx - hx, y, mz + hz);
+    ecken[2].position.set(mx + hx, y, mz + hz); ecken[3].position.set(mx + hx, y, mz - hz);
+  }
+  return {
+    gruppe, ist, ziel,
+    setze(r, sofort = false) { Object.assign(ziel, r); if (sofort) { Object.assign(ist, r); stelle(); } },
+    rasteEin(von = 1.35) { skala = von; },
+    // weich zum Ziel gleiten; Rückgabe: aktuelle Skala (für den Lichtpunkt)
+    schritt(sekunden) {
+      const k = wenigerAnimation ? 1 : 1 - Math.exp(-GRAFIK.hoverTempo * sekunden);
+      for (const a of ["x0", "z0", "x1", "z1"]) ist[a] += (ziel[a] - ist[a]) * k;
+      skala += (1 - skala) * (wenigerAnimation ? 1 : 1 - Math.exp(-11 * sekunden));
+      stelle();
+      return skala;
+    },
+  };
+}
+// Außenkante eines Gebäudes bzw. einer Kachel (mit kleinem Abstand)
+function gebaeudeRechteck(g) {
+  const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
+  const a = kachelZuWelt(Math.min(...xs), Math.min(...zs)), b = kachelZuWelt(Math.max(...xs), Math.max(...zs));
+  const r = KACHEL_GROESSE / 2 + GRAFIK.klammerAbstand;
+  return { x0: a.x - r, z0: a.z - r, x1: b.x + r, z1: b.z + r };
+}
+function kachelRechteck(k) {
+  const m = kachelZuWelt(k.x, k.z), r = KACHEL_GROESSE / 2 + GRAFIK.klammerAbstand * 0.5;
+  return { x0: m.x - r, z0: m.z - r, x1: m.x + r, z1: m.z + r };
+}
+const hoverKlammern = baueKlammern(klammerMaterialHover);
+const auswahlKlammern = baueKlammern(klammerMaterialAuswahl);
+szene.add(hoverKlammern.gruppe, auswahlKlammern.gruppe);
+// Schein unter der Auswahl und Lichtpunkt, der am Rand umläuft
+const auswahlSchein = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: GRAFIK.farbeKlammerAuswahl, transparent: true, opacity: 0, depthWrite: false }));
+auswahlSchein.renderOrder = 7;
+const auswahlLicht = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 8),
+  new THREE.MeshBasicMaterial({ color: "#fff6c8", transparent: true, opacity: 0, depthWrite: false }));
+auswahlLicht.renderOrder = 9;
+szene.add(auswahlSchein, auswahlLicht);
+let auswahlMerker = "", hoverMerker = "";
+// Was ist gerade gewählt? Rechteck + Schlüssel (Wechsel → neu einrasten) oder null
+function auswahlZiel() {
+  const g = auswahlGebaeudeId && !mehrfachAktiv() && spiel.gebaeude.get(auswahlGebaeudeId);
+  if (g) return { schluessel: "g" + g.id + ":" + g.zellen.map((c) => c.x + "," + c.z).join(";"), r: gebaeudeRechteck(g) };
+  if (auswahlKachel && !auswahlBandId) return { schluessel: "k" + auswahlKachel.x + "," + auswahlKachel.z, r: kachelRechteck(auswahlKachel) };
+  return null;
+}
+function aktualisiereAuswahlKlammern(sekunden, zeit) {
+  // Hover: ganzes Gebäude unter der Maus, sonst die Kachel. Beim Bauen zeigt der Bau-Geist den Platz.
+  const werkzeug = bau.offen && bau.werkzeug;
+  const hk = !werkzeug && hoverKachel;
+  const hg = hk && gebaeudeUnter(hk);
+  const hr = hk ? (hg ? gebaeudeRechteck(hg) : kachelRechteck(hk)) : null;
+  const hs = hk ? (hg ? "g" + hg.id : "k") : "";
+  if (hr) hoverKlammern.setze(hr, !hoverMerker || wenigerAnimation);
+  hoverMerker = hs;
+  const az = auswahlZiel();
+  // Über dem Gewählten keine zweite (weiße) Klammer
+  const hoverSichtbar = !!hr && !(az && hg && az.schluessel.startsWith("g" + hg.id + ":"));
+  const weich = wenigerAnimation ? 1 : 1 - Math.exp(-10 * sekunden);
+  klammerMaterialHover.opacity += ((hoverSichtbar ? 0.85 : 0) - klammerMaterialHover.opacity) * weich;
+  hoverKlammern.gruppe.visible = klammerMaterialHover.opacity > 0.02;
+  hoverKlammern.schritt(sekunden);
+  if (!wenigerAnimation) hoverKlammern.gruppe.children.forEach((e, i) => { e.scale.setScalar(1 + Math.sin(zeit * 4 + i) * 0.04); });
+  // Auswahl
+  if (az && az.schluessel !== auswahlMerker) {
+    auswahlKlammern.setze(az.r, true);
+    if (!wenigerAnimation) auswahlKlammern.rasteEin();
+  }
+  auswahlMerker = az ? az.schluessel : "";
+  const puls = wenigerAnimation ? 0 : (Math.sin(zeit * 3.2) + 1) / 2;
+  klammerMaterialAuswahl.opacity += ((az ? 0.75 + puls * 0.25 : 0) - klammerMaterialAuswahl.opacity) * weich;
+  klammerMaterialMehrfach.opacity = 0.7 + puls * 0.3;
+  segmentRahmen.material.opacity = 0.65 + puls * 0.35;   // gewählte Bandstücke pulsieren mit
+  if (bandKnotenListe.length) stelleBandKnoten(zeit);
+  auswahlKlammern.gruppe.visible = klammerMaterialAuswahl.opacity > 0.02;
+  const skala = auswahlKlammern.schritt(sekunden);
+  const r = auswahlKlammern.ist;
+  const breite = r.x1 - r.x0, tiefe = r.z1 - r.z0;
+  auswahlSchein.visible = auswahlKlammern.gruppe.visible;
+  auswahlSchein.position.set((r.x0 + r.x1) / 2, rasterHoehe + 0.012, (r.z0 + r.z1) / 2);
+  auswahlSchein.scale.set(breite * skala, 1, tiefe * skala);
+  auswahlSchein.material.opacity = az ? 0.08 + puls * 0.07 : 0;
+  // Lichtpunkt: läuft in ~2,4 s einmal um das Rechteck
+  auswahlLicht.visible = auswahlSchein.visible && !wenigerAnimation;
+  if (auswahlLicht.visible) {
+    const umfang = 2 * (breite + tiefe);
+    let d = ((zeit * umfang) / 2.4) % umfang;
+    let x = r.x0, z = r.z0;
+    if (d < breite) x += d;
+    else if ((d -= breite) < tiefe) { x = r.x1; z += d; }
+    else if ((d -= tiefe) < breite) { x = r.x1 - d; z = r.z1; }
+    else { d -= breite; z = r.z1 - d; }
+    auswahlLicht.position.set(x, rasterHoehe + 0.06, z);
+    auswahlLicht.material.opacity = klammerMaterialAuswahl.opacity;
+  }
+}
 
 /* ============================================================================
    ABSCHNITT 12c: 3D – Neue Komponenten-Modelle (Vorschau, Display.html)  [3D- & UI/UX-Agent]
@@ -24562,6 +24819,8 @@ function behandleKachelKlick(k, shift, strg = false) {
     return;
   }
   if (zuweisModus) { weiseRezeptWareZu(g, shift); return; }           // Tim 2026-10-12: Rezept-Ware einer Station zuweisen
+  // Paket Bandbau (Tim, 2026-10-12): Strg + Klick = Pipette – Baumenü öffnen und genau dieses Teil in die Hand nehmen
+  if (strg && !verknuepfModus && pipette(k)) return;
   // 1. Verknüpfen-Modus: angeklicktes Gebäude verknüpfen bzw. lösen
   if (verknuepfModus) {
     if (!g) { beendeVerknuepfen(); return; }
@@ -24628,8 +24887,8 @@ function behandleKachelKlick(k, shift, strg = false) {
     aktualisiereAbrissMarke();
     return;
   }
-  // 3b. Strg + Klick (Phase 7a, Nachtrag 3): Teil zur Mehrfachauswahl dazu oder heraus
-  if (strg) { mehrfachKlick(k); return; }
+  // 3b. Shift + Klick (Phase 7a, Nachtrag 3; seit Paket Bandbau Shift statt Strg): Teil zur Mehrfachauswahl dazu oder heraus
+  if (shift && !w && (g || bandteilAufKachel(k))) { mehrfachKlick(k); return; }
   // 4. Gebäude angeklickt: Info-Fenster
   if (g) { setzeAuswahl(null); waehleGebaeude(g.id); return; }
   // 4b. Bandteil angeklickt (Phase 7a): Einfachklick wählt das einzelne Stück,
@@ -24653,12 +24912,49 @@ function behandleKachelKlick(k, shift, strg = false) {
 function brecheSpielaktionAb() {
   if (eingaben3dGesperrt) return;
   if (verknuepfModus) { beendeVerknuepfen(); return; }
+  if (nimmKnotenZurueck()) return;                 // Paket Bandbau: Rechtsklick nimmt den letzten Knoten zurück
   if (bau.werkzeug) { setzeWerkzeug(null); aktualisiereBauTipp(); return; }
   if (bau.offen) { schliesseBau(); return; }
   if (auswahlGebaeudeId || auswahlBandId || mehrfachAktiv()) waehleGebaeude(null);
   setzeAuswahl(null);
 }
 spielEreignisse.addEventListener("rechtsKlick", brecheSpielaktionAb);
+
+// Paket Bandbau (Tim, 2026-10-12): Pipette – Strg + Klick auf ein Gebäude oder Bandteil öffnet das Baumenü im passenden
+// Reiter und nimmt denselben Typ in die Hand (gleiche Drehung; beim Band auch das Tempo als Vorlage).
+// Rückgabe: true, wenn unter der Maus etwas Baubares lag.
+function pipette(k) {
+  const g = gebaeudeUnter(k);
+  if (g) {
+    const typ = typVon(g);
+    if (typ.nichtImMenue || !typ.freigeschaltet) { zeigeMeldung(`${typ.name} gibt es nicht im Baumenü.`, true); return true; }
+    const reiter = typ.kategorie === "lager" ? "lager" : typ.kategorie === "maschine" ? "maschinen" : "stationen";
+    if (!bau.offen) oeffneBau();
+    if (bau.reiter !== reiter) bau.reiter = reiter;
+    zeichneBauInhalt();
+    const sperre = bauSperre(g.typ);
+    if (sperre) { zeigeMeldung(sperre, true); return true; }
+    bau.letzteDrehung[g.typ] = g.drehung;
+    setzeWerkzeug({ art: "bauen", typ: g.typ, drehung: g.drehung });
+    aktualisiereBauTipp();
+    zeigeMeldung(`Pipette: ${typ.name} in der Hand.`);
+    return true;
+  }
+  const t = bandteilAufKachel(k);
+  if (!t) return false;
+  // Brücken und Untergrund-Bänder baut man als Ganzes
+  const typ = t.bruecke ? "bruecke" : t.typ === "untergrundAus" ? "untergrundEin" : t.typ;
+  const info = bandTypNach.get(typ);
+  if (!info || !info.imMenue) { zeigeMeldung(`${bandTyp(t).name} gibt es nicht im Baumenü.`, true); return true; }
+  if (bau.reiter !== "baender") bau.reiter = "baender";
+  if (!bau.offen) oeffneBau(); else zeichneBauInhalt();
+  const w = { art: "band", typ, richtung: t.bruecke ? 0 : t.richtung, vorlage: { tempo: t.tempo } };
+  if (typ === "untergrundEin") { w.untergrund = true; w.eingang = null; }
+  setzeWerkzeug(w);
+  aktualisiereBauTipp();
+  zeigeMeldung(`Pipette: ${info.name} in der Hand.`);
+  return true;
+}
 // Browser-Kontextmenüs gehören nicht zur Spielsteuerung. Auf Formularfeldern wird der native
 // Menüinhalt ebenfalls unterdrückt, aber ein Rechtsklick soll dort keine laufende Aktion abbrechen.
 // Im Produkt-Designer bleibt der lokale Rechtsklick zum Drehen erhalten.
@@ -27317,8 +27613,12 @@ window.addEventListener("keydown", (e) => {
   }
   if (kontor.offen && (taste === "escape" || aktion === "kontor")) { erledigt(); schliesseKontor(); return; }
   if (forschungOffen && (taste === "escape" || aktion === "forschung")) { erledigt(); schliesseForschung(); return; }
+  if (taste === "enter" && knotenWerkzeug(bau.offen && bau.werkzeug) && bau.werkzeug.knoten?.length) {   // Paket Bandbau
+    erledigt(); baueKnotenStrasse(bau.werkzeug); return;
+  }
   if (taste === "escape") {
     if (verknuepfModus) { erledigt(); beendeVerknuepfen(); }
+    else if (verwirfKnoten()) erledigt();            // Paket Bandbau: erst die abgesteckte Strecke verwerfen
     else if (bau.werkzeug) { erledigt(); setzeWerkzeug(null); aktualisiereBauTipp(); }
     else if (bau.offen) { erledigt(); schliesseBau(); }
     else if (auswahlGebaeudeId || mehrfachAktiv()) { waehleGebaeude(null); }   // weiter an die 3D-Steuerung (hebt die Kachel-Auswahl auf)
@@ -27518,6 +27818,7 @@ function ziehWerkzeugAktiv() {
   if (!w) return false;
   if (w.art === "abriss") return true;
   if (w.anker) return false;   // Phase 7a: beim Weiterbauen genügt ein Klick aufs Ziel
+  if (w.knoten?.length || w.brueckeStart) return false;   // Paket Bandbau: Knoten gesetzt → Klicks statt Ziehen
   return w.art === "band" && (!!bandTypNach.get(w.typ).ziehen || !!w.untergrund);   // Phase 7d: Untergrund wie die Brücke ziehen
 }
 // Phase 7a: Strecke vom Ansatzpunkt (Weiterbauen, Taste E) bis zur Kachel k.
@@ -27607,7 +27908,7 @@ function ziehen(phase, k, shift) {
   if (!start) { aktualisiereBandVorschau(); return; }
   // Nur eine Kachel: wie ein normaler Klick (ein Teil legen, Gebäude oder Band abreißen)
   if (start.x === ende.x && start.z === ende.z && !(w.art === "band" && w.typ === "bruecke")) {
-    behandleKachelKlick(start, shift);
+    behandleKachelKlick(start, shift, maus.strg);   // Paket Bandbau: Strg = Pipette
     aktualisiereBandVorschau();
     return;
   }
@@ -27631,6 +27932,7 @@ function ziehen(phase, k, shift) {
     const r = baueBandStrecke(plan.strecke, w.typ);
     if (!r.ok) zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true);
     else {
+      uebernimmBandVorlage(w, plan.strecke);       // Paket Bandbau: Tempo des kopierten Bands
       const letzte = plan.strecke[plan.strecke.length - 1];
       w.richtung = letzte.richtung;
       bau.letzteDrehung.bandRichtung = letzte.richtung;
@@ -27654,7 +27956,8 @@ function aktualisiereBandVorschau() {
     zeigeBandVorschau(plan.teile.map((p) => ({ ...p, passt: plan.passt })));
     return;
   }
-  if (!w || (w.art !== "band" && w.art !== "abriss")) { zeigeBandVorschau(null); return; }
+  if (!w || (w.art !== "band" && w.art !== "abriss")) { zeigeBandVorschau(null); zeigeBandKnoten(null); return; }
+  zeigeBandKnoten(null);
   if (zug.start && zug.plan) {
     zeigeBandVorschau(zug.plan.liste);
     bandVorschauGrund = zug.plan.passt ? "" : zug.plan.gruende[0] || "";
@@ -27667,7 +27970,24 @@ function aktualisiereBandVorschau() {
     zeigeBandVorschau(t && !gebaeudeUnter(k) ? [{ x: t.x, z: t.z, typ: t.typ, abriss: true }] : null);
     return;
   }
-  if (w.typ === "bruecke") { zeigeBandVorschau([{ x: k.x, z: k.z, typ: "rampeHoch", richtung: null, passt: true }]); return; }
+  if (w.typ === "bruecke") {                         // Paket Bandbau: nach dem ersten Klick Brücke bis zur Maus
+    if (w.brueckeStart) {
+      const plan = planeBruecke(w.brueckeStart, k);
+      bandVorschauGrund = plan.passt ? "" : plan.gruende[0] || "";
+      zeigeBandVorschau(plan.teile.map((t, i) => ({ ...t, passt: !plan.fehler.includes(i) && plan.passt })));
+      zeigeBandKnoten([w.brueckeStart]);
+      return;
+    }
+    zeigeBandVorschau([{ x: k.x, z: k.z, typ: "rampeHoch", richtung: null, passt: true }]);
+    return;
+  }
+  if (knotenWerkzeug(w) && w.knoten?.length) {      // Paket Bandbau: abgesteckte Strecke + Stück bis zur Maus
+    const plan = planeKnotenStrecke(w, k, gedrueckteTasten.has("shift"));
+    bandVorschauGrund = plan.passt ? "" : plan.gruende[0] || "";
+    zeigeBandVorschau(plan.liste);
+    zeigeBandKnoten(w.knoten);
+    return;
+  }
   if (w.untergrund) {                               // Phase 7d: Eingang gewählt → Strecke bis zur Maus
     const plan = planeUntergrundZug(w.eingang || k, k, w);
     bandVorschauGrund = plan.anzahl === 1 ? plan.fehlt || "" : plan.passt ? "" : plan.gruende[0] || "";
@@ -27699,8 +28019,13 @@ function bandTipp(w) {
   const t = bandTypNach.get(w.typ);
   if (bandVorschauGrund) return { html: `Hier geht das nicht: ${htmlSicher(bandVorschauGrund)}`, warnung: true };
   if (w.anker) return { html: `Weiterbauen (${euro(t.preis)}/Kachel): Ziel anklicken – die Strecke beginnt vor dem gewählten Band · <kbd>Shift</kbd> Ecke tauschen · Rechtsklick / <kbd>Esc</kbd> abbrechen` };
-  if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): ziehen legt eine Strecke, Klick ein Stück · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · Rechtsklick / <kbd>Esc</kbd> abbrechen` };
-  if (w.typ === "bruecke") return { html: "Brücke: gerade von der Auffahrt zur Abfahrt ziehen (mind. 3 Kacheln). Darunter bleibt Platz für Bänder und Wege." };
+  if (knotenWerkzeug(w) && w.knoten?.length) {      // Paket Bandbau
+    const p = planeKnotenStrecke(w, hoverKachel, gedrueckteTasten.has("shift"));
+    return { html: `${p.anzahl} Kacheln · ${p.kosten ? euro(p.kosten) : "kostenlos"} · Klick setzt Knoten · <b>Doppelklick auf den letzten Knoten</b> (oder <kbd>Enter</kbd>) baut · Rechtsklick Knoten zurück · <kbd>Esc</kbd> verwerfen · <kbd>Shift</kbd> Ecke tauschen` };
+  }
+  if (w.typ === "band") return { html: `Fließband (${euro(t.preis)}/Kachel): Klick setzt Knoten, Doppelklick baut · ziehen legt schnell eine Strecke · Richtung ${RICHTUNGS_PFEIL[w.richtung]} ${kbd("drehen")} drehen · Rechtsklick / <kbd>Esc</kbd> abbrechen` };
+  if (w.typ === "bruecke") return { html: w.brueckeStart ? "Brücke: jetzt die Abfahrt anklicken (gerade Linie, mind. 3 Kacheln) · Rechtsklick / <kbd>Esc</kbd> zurück"
+    : "Brücke: Auffahrt anklicken, dann Abfahrt – oder gerade ziehen (mind. 3 Kacheln). Darunter bleibt Platz für Bänder und Wege." };
   if (w.untergrund) {                               // Phase 7d
     const kosten = bandteilPreis("untergrundEin") + bandteilPreis("untergrundAus");
     return w.eingang
@@ -27713,7 +28038,8 @@ function bandTipp(w) {
 
 // Ein einzelnes Teil legen (Klick mit dem Band-Werkzeug)
 function bandKlick(w, k, shift) {
-  if (w.typ === "bruecke") { zeigeMeldung("Eine Brücke ziehst du mit gedrückter Maustaste (mindestens 3 Kacheln).", true); return; }
+  if (w.typ === "bruecke") { brueckeKlick(w, k); return; }   // Paket Bandbau: Auffahrt anklicken, dann Abfahrt
+  if (knotenWerkzeug(w)) { knotenKlick(w, k, shift); return; }   // Paket Bandbau: Strecke per Knoten abstecken
   if (w.untergrund) {                               // Phase 7d: erster Klick = Eingang, zweiter Klick = Ausgang
     if (!w.eingang || (w.eingang.x === k.x && w.eingang.z === k.z)) {
       const p = pruefeBandteil("untergrundEin", k.x, k.z, w.richtung);
@@ -27748,6 +28074,142 @@ function ankerKlick(w, k, shift) {
   zeigeMeldung(`${r.gebaut} × ${bandTypNach.get(w.typ).name} gelegt${r.kosten ? ` (−${euro(r.kosten)})` : ""}.${frei ? " Weiter anklicken oder Esc." : ""}`);
   aktualisiereBandVorschau();
   aktualisiereBauTipp();
+}
+/* --- Paket Bandbau (Tim, 2026-10-12): Fließband per Klick-Knoten abstecken ---
+   Klick setzt einen Knoten. Zwischen zwei Knoten läuft die Strecke L-förmig: zuerst in der Richtung, in der
+   das vorige Stück lief (Shift beim Klick: andere Ecke). Die Vorschau zeigt alles bis zur Maus.
+   Doppelklick auf den letzten Knoten (= noch ein Klick darauf) oder Enter baut die ganze Straße auf einmal.
+   Rechtsklick nimmt den letzten Knoten zurück, Esc verwirft alle. Ziehen mit gedrückter Maus bleibt Schnellbau.
+   w.knoten = [{ x, z, zuerstZ }] – zuerstZ gilt für das Stück, das an diesem Knoten ENDET. */
+function knotenWerkzeug(w) {
+  return !!w && w.art === "band" && w.typ === "band" && !w.untergrund;
+}
+// Läuft das Stück zuerst entlang z? Ohne Shift geradeaus weiter in der Richtung des vorigen Stücks.
+function knotenEcke(w, von, nach, shift) {
+  const n = w.knoten.length;
+  let zuerstZ;
+  if (n >= 2) {                                     // Richtung des letzten Schritts im vorigen Stück
+    const a = w.knoten[n - 2], b = w.knoten[n - 1];
+    const lief = b.zuerstZ ? (b.x !== a.x ? "x" : "z") : (b.z !== a.z ? "z" : "x");
+    zuerstZ = lief === "z";
+  } else zuerstZ = w.knoten[0]?.zuerstZ ?? false;   // erstes Stück: beim Weiterbauen geradeaus, sonst erst x
+  if (von.x === nach.x) zuerstZ = true;             // gerade Linien brauchen keine Ecke
+  else if (von.z === nach.z) zuerstZ = false;
+  else if (shift) zuerstZ = !zuerstZ;
+  return zuerstZ;
+}
+// Kacheln der ganzen Strecke (Knoten + optional ein Stück bis "ziel") mit Richtungen
+function knotenKacheln(w, ziel, shift) {
+  const punkte = w.knoten.slice();
+  const letzter = punkte[punkte.length - 1];
+  if (ziel && letzter && (ziel.x !== letzter.x || ziel.z !== letzter.z)) {
+    punkte.push({ x: ziel.x, z: ziel.z, zuerstZ: knotenEcke(w, letzter, ziel, shift) });
+  }
+  if (!punkte.length) return [];
+  const kacheln = [{ x: punkte[0].x, z: punkte[0].z }];
+  const gehe = (achse, wert) => {
+    let k = kacheln[kacheln.length - 1];
+    while (k[achse] !== wert) { k = { ...k, [achse]: k[achse] + Math.sign(wert - k[achse]) }; kacheln.push(k); }
+  };
+  for (let i = 1; i < punkte.length; i++) {
+    const p = punkte[i];
+    if (p.zuerstZ) { gehe("z", p.z); gehe("x", p.x); } else { gehe("x", p.x); gehe("z", p.z); }
+  }
+  let richtung = w.richtung ?? 0;
+  return kacheln.map((k, i) => {
+    const n = kacheln[i + 1];
+    if (n) richtung = richtungVonVektor(n.x - k.x, n.z - k.z);
+    return { x: k.x, z: k.z, richtung };
+  });
+}
+// Planung für Vorschau, Tipp und Bau: { liste, strecke, passt, gruende, kosten, anzahl }
+function planeKnotenStrecke(w, ziel, shift) {
+  const strecke = knotenKacheln(w, ziel, shift);
+  const p = pruefeBandStrecke(strecke, w.typ);
+  // Eine Straße darf sich nicht selbst kreuzen (sonst läge ein Stück doppelt)
+  const gesehen = new Map(), doppelt = [];
+  strecke.forEach((k, i) => {
+    const s = k.x + "," + k.z;
+    if (gesehen.has(s)) doppelt.push(i, gesehen.get(s)); else gesehen.set(s, i);
+  });
+  const fehler = [...new Set([...p.fehler, ...doppelt])];
+  const gruende = doppelt.length ? ["Die Strecke kreuzt sich selbst.", ...p.gruende] : p.gruende;
+  return {
+    liste: strecke.map((k, i) => ({ ...k, typ: w.typ, passt: !fehler.includes(i) })),
+    strecke, passt: !gruende.length, gruende, kosten: p.kosten, anzahl: strecke.length,
+  };
+}
+function knotenKlick(w, k, shift) {
+  w.knoten = w.knoten || [];
+  const letzter = w.knoten[w.knoten.length - 1];
+  if (letzter && letzter.x === k.x && letzter.z === k.z) { baueKnotenStrasse(w); return; }   // Doppelklick auf den letzten Knoten
+  if (!letzter) {
+    const p = pruefeBandteil(w.typ, k.x, k.z, w.richtung, { ersetzen: true });
+    if (!p.passt) { zeigeMeldung(`Hier geht das nicht: ${p.gruende[0]}`, true); return; }
+    w.knoten.push({ x: k.x, z: k.z, zuerstZ: false });
+  } else w.knoten.push({ x: k.x, z: k.z, zuerstZ: knotenEcke(w, letzter, k, shift) });
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+}
+// Die abgesteckte Straße bauen (alles oder nichts). Das Werkzeug bleibt in der Hand.
+function baueKnotenStrasse(w) {
+  if (!w?.knoten?.length) return false;
+  const plan = planeKnotenStrecke(w, null, false);
+  if (!plan.passt) { zeigeMeldung(`Hier geht das nicht: ${plan.gruende[0]}`, true); return false; }
+  const r = baueBandStrecke(plan.strecke, w.typ);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return false; }
+  uebernimmBandVorlage(w, plan.strecke);
+  const letzte = plan.strecke[plan.strecke.length - 1];
+  w.richtung = letzte.richtung;
+  bau.letzteDrehung.bandRichtung = letzte.richtung;
+  w.knoten = [];
+  zeigeMeldung(`${r.gebaut} × ${bandTypNach.get(w.typ).name} gelegt${r.kosten ? ` (−${euro(r.kosten)})` : ""}.`);
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+  return true;
+}
+// Rechtsklick: letzten Knoten zurücknehmen (true = es gab einen)
+function nimmKnotenZurueck() {
+  const w = bau.offen ? bau.werkzeug : null;
+  if (w?.brueckeStart) { w.brueckeStart = null; aktualisiereBandVorschau(); aktualisiereBauTipp(); return true; }
+  if (!knotenWerkzeug(w) || !w.knoten?.length) return false;
+  w.knoten.pop();
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+  return true;
+}
+// Esc: alle Knoten verwerfen (true = es gab welche)
+function verwirfKnoten() {
+  const w = bau.offen ? bau.werkzeug : null;
+  if (w?.brueckeStart) { w.brueckeStart = null; aktualisiereBandVorschau(); aktualisiereBauTipp(); return true; }
+  if (!knotenWerkzeug(w) || !w.knoten?.length) return false;
+  w.knoten = [];
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+  zeigeMeldung("Abgesteckte Strecke verworfen.");
+  return true;
+}
+// Brücke per Klick: erst Auffahrt, dann Abfahrt (gerade Linie)
+function brueckeKlick(w, k) {
+  if (!w.brueckeStart) { w.brueckeStart = { x: k.x, z: k.z }; aktualisiereBandVorschau(); aktualisiereBauTipp(); return; }
+  if (w.brueckeStart.x === k.x && w.brueckeStart.z === k.z) { w.brueckeStart = null; aktualisiereBandVorschau(); aktualisiereBauTipp(); return; }
+  const r = baueBruecke(w.brueckeStart, k);
+  if (!r.ok) { zeigeMeldung(`Hier geht das nicht: ${r.gruende[0]}`, true); return; }
+  w.brueckeStart = null;
+  zeigeMeldung(`Brücke gebaut: ${r.laenge} Kacheln (−${euro(r.kosten)}). Darunter ist Platz für Bänder und Wege.`);
+  aktualisiereBandVorschau();
+  aktualisiereBauTipp();
+}
+// Paket Bandbau (A3): Kopiertes Band als Vorlage – neue Stücke übernehmen das Tempo des Originals
+function uebernimmBandVorlage(w, strecke) {
+  const tempo = w.vorlage?.tempo;
+  if (!tempo || !tempoFreigeschaltet(tempo)) return;
+  for (const k of strecke) {
+    const t = bandteilAufKachel(k);
+    if (t && t.typ === w.typ) t.tempo = tempo;
+  }
+  spiel.bandVersion++;
+  meldeStruktur();
 }
 // Phase 7d: Planung für das Untergrund-Band (Vorschau + Tipp). Auf derselben Kachel nur der Eingang (fehlt = Hinweis)
 function planeUntergrundZug(start, ende, w) {
@@ -27828,7 +28290,7 @@ function bandWeiterbauen() {
     return false;
   }
   oeffneFliessbandWerkzeug(ende.richtung, { x: start.x, z: start.z });
-  zeigeMeldung("Weiterbauen: Ziel anklicken – die Strecke beginnt vor dem gewählten Band. Esc beendet.");
+  zeigeMeldung("Weiterbauen: Knoten anklicken, Doppelklick auf den letzten baut – die Strecke beginnt vor dem gewählten Band.");
   return true;
 }
 // Phase 7b Nachtrag: Baumenü öffnen, Reiter "Bänder", Karte "Fließband" aktiv – genau wie von Hand gewählt.
@@ -27837,7 +28299,8 @@ function oeffneFliessbandWerkzeug(richtung, anker = null) {
   if (bau.reiter !== "baender") { bau.reiter = "baender"; if (bau.offen) zeichneBauInhalt(); }
   if (!bau.offen) oeffneBau();
   const w = { art: "band", typ: "band", richtung: richtung ?? bau.letzteDrehung["band:band"] ?? bau.letzteDrehung.bandRichtung ?? 0 };
-  if (anker) w.anker = anker;
+  // Paket Bandbau: Weiterbauen = erster Knoten vor dem gewählten Band, die Strecke geht zuerst geradeaus weiter
+  if (anker) w.knoten = [{ x: anker.x, z: anker.z, zuerstZ: RICHTUNGEN[w.richtung].z !== 0 }];
   setzeWerkzeug(w);
   aktualisiereBauTipp();
 }
@@ -29124,9 +29587,10 @@ function weiseRezeptWareZu(g, shift) {
 
 /* ============================================================================
    ABSCHNITT 13g: Mehrfachauswahl, Kopieren & Einfügen (Phase 7a, Nachtrag 3) [UI/UX-Agent]
-   - Strg + Klick nimmt Gebäude und Bandteile zur Auswahl dazu oder wieder heraus.
+   - Shift + Klick nimmt Gebäude und Bandteile zur Auswahl dazu oder wieder heraus (bis 2026-10-12 Strg + Klick,
+     Strg + Klick ist jetzt die Pipette, Abschnitt 13).
    - Ziehen mit der linken Maustaste (ohne Werkzeug) spannt einen Rahmen auf: alles darin wird gewählt
-     (mit Strg kommt es zur bisherigen Auswahl dazu).
+     (mit Shift kommt es zur bisherigen Auswahl dazu).
    - Strg + C merkt sich die Auswahl: Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und die
      Import-/Export-Verknüpfungen zwischen den kopierten Teilen. Inhalt, Arbeiter und Fortschritt nicht.
    - Strg + V hängt die Kopie als Vorschau an die Maus: R dreht die Gruppe, Klick stellt auf
@@ -29188,7 +29652,7 @@ function setzeMehrfach(gebaeudeIds, bandIds) {
   return gs.length + bs.size;
 }
 
-// Strg + Klick: Teil unter der Maus dazu oder heraus
+// Shift + Klick: Teil unter der Maus dazu oder heraus
 function mehrfachKlick(k) {
   const g = gebaeudeUnter(k);
   const t = !g && bandteilAufKachel(k);
@@ -29260,26 +29724,18 @@ function rahmenEnde(x, y, strg) {
   else if (n > 1) zeigeMeldung(`${teileText(n)} ausgewählt – Strg + C kopiert, ${tastenName(tasteFuer("abreissen"))} reißt ab.`);
 }
 
-/* --- Orangefarbene Rahmen um die gewählten Gebäude (Bänder: Abschnitt 12, zeichneSegmentRahmen) --- */
+/* --- Gelbe Eckklammern um die gewählten Gebäude (Paket Bandbau; Bänder: Abschnitt 12, zeichneSegmentRahmen) --- */
 const mehrfach3d = new THREE.Group();
 szene.add(mehrfach3d);
-const mehrfachLinie = new THREE.LineBasicMaterial({ color: GRAFIK.farbeKachelAuswahl });
 function zeigeMehrfachRahmen() {
-  while (mehrfach3d.children.length) {
-    const kind = mehrfach3d.children[0];
-    kind.geometry.dispose();
-    mehrfach3d.remove(kind);
-  }
+  while (mehrfach3d.children.length) mehrfach3d.remove(mehrfach3d.children[0]);   // Klammern teilen Geometrie und Material
+  // Paket Bandbau: jedes gewählte Gebäude bekommt gelbe Eckklammern (pulsieren mit der Einzelauswahl, Abschnitt 12f)
   for (const id of mehrfach.gebaeude) {
     const g = spiel.gebaeude.get(id);
     if (!g) continue;
-    const xs = g.zellen.map((c) => c.x), zs = g.zellen.map((c) => c.z);
-    const a = kachelZuWelt(Math.min(...xs), Math.min(...zs)), b = kachelZuWelt(Math.max(...xs), Math.max(...zs));
-    const r = 0.56, y = rasterHoehe + 0.02;
-    mehrfach3d.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(a.x - r, y, a.z - r), new THREE.Vector3(b.x + r, y, a.z - r),
-      new THREE.Vector3(b.x + r, y, b.z + r), new THREE.Vector3(a.x - r, y, b.z + r),
-    ]), mehrfachLinie));
+    const k = baueKlammern(klammerMaterialMehrfach);
+    k.setze(gebaeudeRechteck(g), true);
+    mehrfach3d.add(k.gruppe);
   }
   bandRahmenNeu();
 }
@@ -29295,7 +29751,7 @@ function zeichneMehrfachInfo() {
   for (const id of mehrfach.gebaeude) zaehle(typVon(spiel.gebaeude.get(id)).name);
   for (const id of mehrfach.baender) zaehle(bandTyp(spiel.baender.get(id)).name);
   ob.infoTitel.textContent = `${teileText(n)} ausgewählt`;
-  ob.infoUnter.textContent = "Strg + Klick nimmt Teile dazu oder heraus. Mit der linken Maustaste einen Rahmen ziehen wählt alles darin.";
+  ob.infoUnter.textContent = "Shift + Klick nimmt Teile dazu oder heraus. Mit der linken Maustaste einen Rahmen ziehen wählt alles darin.";
   const zeilen = [...zaehler].sort((a, b) => b[1] - a[1]).map(([name, anzahl]) => `<dt>${htmlSicher(name)}</dt><dd>${anzahl}</dd>`).join("");
   morphe(ob.infoInhalt, `<div class="info-block"><h3>Auswahl</h3><dl class="info-zeilen zwei">${zeilen}</dl></div>
     <p class="modus-text">Kopiert werden Typ, Drehung, Rezept, Lagerregeln, Band-Einstellungen und die Verknüpfungen zwischen den gewählten Teilen – kein Inhalt, keine Arbeiter.</p>
@@ -29381,7 +29837,7 @@ function kopiereAuswahl() {
 }
 function kopierenAktion() {
   const n = kopiereAuswahl();
-  if (!n) { zeigeMeldung("Nichts ausgewählt: Teile anklicken (Strg + Klick für mehrere) oder einen Rahmen ziehen, dann Strg + C.", true); return 0; }
+  if (!n) { zeigeMeldung("Nichts ausgewählt: Teile anklicken (Shift + Klick für mehrere) oder einen Rahmen ziehen, dann Strg + C.", true); return 0; }
   zeigeMeldung(`${teileText(n)} kopiert (Strg + V zum Einfügen).`);
   if (mehrfachAktiv()) zeichneMehrfachInfo();
   return n;
@@ -29483,6 +29939,16 @@ function fuegeEin(k, drehung = 0) {
 function einfuegenAktion() {
   if (!zwischenablage) { zeigeMeldung("Noch nichts kopiert: Teile auswählen und Strg + C drücken.", true); return false; }
   verknuepfModus = null;
+  // Paket Bandbau (Tim, 2026-10-12): Nur normales Fließband kopiert → kein starres Einfügen, sondern das Fließband-
+  // Werkzeug mit dem Tempo des Originals. Die Strecke wird wie gewohnt per Knoten oder Ziehen gelegt.
+  const z = zwischenablage;
+  if (!z.gebaeude.length && z.baender.length && z.baender.every((b) => b.typ === "band")) {
+    oeffneFliessbandWerkzeug(z.baender[0].richtung);
+    bau.werkzeug.vorlage = { tempo: z.baender[0].tempo };
+    aktualisiereBauTipp();
+    zeigeMeldung("Fließband kopiert: Strecke per Klick abstecken (Doppelklick baut) oder ziehen – Tempo wie das Original.");
+    return true;
+  }
   if (!bau.offen) oeffneBau();
   setzeWerkzeug({ art: "einfuegen", drehung: 0 });
   return true;
@@ -29550,7 +30016,7 @@ function aktualisiereEinfuegeVorschau(aktiv) {
 
 /* --- AP01: Bestehende Produktionsobjekte direkt ziehen ---
    Bis zum gültigen Loslassen bleibt das Original unverändert. Kurze Klicks,
-   Strg-Auswahl, Rahmen auf freien Flächen und Mitarbeiterziehen bleiben erhalten. */
+   Shift-Auswahl, Strg-Pipette, Rahmen auf freien Flächen und Mitarbeiterziehen bleiben erhalten. */
 let objektZug = null;
 function objektZiehenStart(e) {
   if (e.ctrlKey || e.metaKey || e.shiftKey || verknuepfModus || bau.werkzeug || mehrfachAktiv()) return false;
@@ -29865,6 +30331,7 @@ function spielschleife() {
   // leichtes "Atmen" des Rahmens, damit er lebendig wirkt
   const puls = wenigerAnimation ? 1 : 1 + Math.sin(zeit * 5) * 0.025;
   hoverRahmen.scale.set(puls, puls, 1);
+  aktualisiereAuswahlKlammern(sekunden, zeit);  // Paket Bandbau: animierte Hover-/Auswahl-Klammern (Abschnitt 12f)
 
   renderer.render(szene, kamera);
   requestAnimationFrame(spielschleife);
@@ -29963,6 +30430,9 @@ function richteMenueSeitenEin() {
 richteMenueSeitenEin();
 wendeSkalierungAn();
 window.tradeUp = {
+  // Paket Bandbau: zum Testen – Bildschirmpunkt (Pixel) der Mitte einer Kachel
+  kachelAufBildschirm: (x, z) => { const m = kachelZuWelt(x, z); return bildschirmPunkt(m.x, rasterHoehe, m.z); },
+  schalteAllesFrei, bau,
   speichereKurierweg, setzeKurierwegAktiv, weiseKurierwegZu, loescheKurierweg, oeffneKurierwege, schliesseKurierwege, benenneGebaeude,
   oeffneKomponentenVorschau, schliesseKomponentenVorschau, komponentenModellForm, ladeKomponentenModule,   // 12c: Display-Modelle
   schliesseLager,   // für den HUD-Knopf „Übersicht“

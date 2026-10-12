@@ -5811,6 +5811,8 @@ const VERTEILER_TYPEN = ["splitter", "smartVerteiler", "ventil"];
 function istVerteiler(t) { return !!t && VERTEILER_TYPEN.includes(t.typ); }
 
 const BAENDER = {
+  umsortierSek: 0.4,        // 2026-10-12: Umsortieren – Dauer des Hubs (Sekunden)
+  umsortierTeile: 3,        // ... und wie viele gerade Bandteile dahinter durchsucht werden
   mindestAbstand:   0.5,   // Abstand zwischen zwei Items auf einem Band (0,5 = 2 Items pro Kachel)
   knotenTempo:      2.5,   // so schnell (Kacheln/s) laufen Items durch Splitter und Zusammenführungen
   stauWarnung:      5,     // nach so vielen Sekunden Stillstand am Ende zeigt das Segment "Stau"
@@ -9663,6 +9665,26 @@ function kapazitaetVon(g) { return typVon(g).kapazitaet; }
    Material kommt per Kurier oder Band ins Eingangsfach, das Erzeugnis liegt im Ausgabefach (s.bestand),
    bis ein Kurier, ein Band oder ein Greifarm es holt. Mit PROD-072 (Gigafactory) laufen auch alle Werkbänke so. */
 function istMaschine(g) { return !!g && !!typVon(g).maschine; }
+/* --- Fließband-Mechanik neu (2026-10-12): feste Tore ---
+   Maschinen mit "tore" (GEBAEUDE_TYPEN) nehmen Ware NUR am Eingang an und geben sie NUR am Ausgang ab:
+   Bänder, Greifarme und Kuriere müssen genau an der Kachel vor dem Tor stehen. toreVon liefert
+   { ein: { innen, aussen, richtung }, aus: … } (gedreht und verschoben wie das Gebäude) oder null. */
+const toreSpeicher = new Map();
+function toreVon(g) {
+  if (!g || !gebaeudeTypNach.get(g.typ)?.tore) return null;
+  const schluessel = `${g.typ}|${g.x}|${g.z}|${g.drehung}`;
+  if (!toreSpeicher.has(schluessel)) toreSpeicher.set(schluessel, gebaeudeGeometrie(g.typ, g.x, g.z, g.drehung).tore);
+  return toreSpeicher.get(schluessel);
+}
+const gleicheKachel = (a, b) => !!a && !!b && a.x === b.x && a.z === b.z;
+// Darf an Gebäude g von der Kachel "aussen" in die Kachel "innen" geliefert (art "ein") bzw. dort abgeholt (art "aus") werden?
+function torErlaubt(g, art, innen, aussen) {
+  const tore = toreVon(g);
+  return !tore || (gleicheKachel(tore[art].innen, innen) && gleicheKachel(tore[art].aussen, aussen));
+}
+// Wo stehen Kuriere zum Anliefern bzw. Abholen? (ohne Tore: der normale Zugang)
+function bringZugang(g) { return toreVon(g)?.ein.aussen || g.zugang; }
+function holZugang(g) { return toreVon(g)?.aus.aussen || g.zugang; }
 // Läuft diese Station ohne Arbeiter? (Maschine oder Werkbank mit Gigafactory-Forschung)
 function laeuftOhnePersonal(s) {
   if (!s || !istStation(s)) return false;
@@ -9683,7 +9705,7 @@ function maschineKann(typ, rezept) {
   const b = herstellbarNachTyp.get(rezept);
   if (!b || !b.rezept) return false;
   if (r.art === "gehaeuse") return b.art === "gehaeuse" && (!r.nur || r.nur.includes(b.typ));
-  if (r.art === "bauteil") return b.art !== "gehaeuse" && (!r.tier || b.tier === r.tier);
+  if (r.art === "bauteil") return b.art !== "gehaeuse" && (!r.tier || b.tier === r.tier) && (!r.kategorie || b.kategorie === r.kategorie);
   return false;
 }
 // Die Rezepte, die eine Station bzw. Maschine gerade wählen kann (nur freigeschaltete), als Liste von IDs.
@@ -9845,8 +9867,15 @@ function hlEinlagern(item, n, res = null) {
    Kuriere und Arbeiter berücksichtigen zugangGesperrt; direkte Band-/Greifarm-Anschlüsse folgen ihren eigenen Regeln. */
 function istLagerTyp(t) { return !!t && t.kategorie !== "station" && t.kategorie !== "maschine"; }   // Phase 7d: Maschinen sind keine Lager
 // Auf dem Zugangspfeil blockieren Gebäude, Fließbänder, Hochbänder und unpassierbare Kacheln.
-function zugangGesperrt(g) {
+function zugangGesperrt(g, art = null) {
   if (!g) return false;
+  const tore = toreVon(g);
+  if (tore) {
+    // 2026-10-12 Kategorie-Maschinen: Kuriere nur an einem Tor ohne Band ("bring" = Eingang, "hol" = Ausgang).
+    // Ohne Art (Warnung): blockiert nur, wenn vor einem Tor weder ein Band noch ein freier Weg ist.
+    if (art) { const a = tore[art === "bring" ? "ein" : "aus"].aussen, k = holeKachel(a.x, a.z); return !k || !k.begehbar || !!(k.objekt || k.band || k.hochband); }
+    return ["ein", "aus"].some((s) => { const a = tore[s].aussen, k = holeKachel(a.x, a.z); return !k || !(k.band || (k.begehbar && !k.objekt && !k.hochband)); });
+  }
   const k = holeKachel(g.zugang.x, g.zugang.z);
   return !k || !k.begehbar || !!(k.objekt || k.band || k.hochband);
 }
@@ -9891,7 +9920,7 @@ function maschinenZugangFrei(geo, zusatzBelegt = null, erlaubtId = null) {
 }
 function richteMaschinenZugaengeEin() {
   for (const g of spiel.gebaeude.values()) {
-    if (!istMaschine(g)) continue;
+    if (!istMaschine(g) || toreVon(g)) continue;   // Maschinen mit Toren: Zugang bleibt vor dem Ausgang
     const standard = gebaeudeGeometrie(g.typ, g.x, g.z, g.drehung).zugang;
     const neu = maschinenZugangFrei({ zellen: g.zellen, zugang: standard });
     if (neu && (neu.x !== g.zugang.x || neu.z !== g.zugang.z)) { g.zugang = neu; g.version = (g.version || 0) + 1; }
@@ -10104,7 +10133,14 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
   // Der neue Zugang eines Gebäudes wird beim Aufstellen weiterhin auf Freiheit geprüft.
   // 2026-10-12: Maschinen (ohne Personal) brauchen nur irgendeine freie Seite für Kuriere.
   const zugangKachel = holeKachel(geo.zugang.x, geo.zugang.z);
-  if (t.maschine) {
+  if (t.tore) {
+    // 2026-10-12: Vor jedem Tor bleibt eine Kachel frei – für ein Band oder einen Kurier
+    for (const s of ["ein", "aus"]) {
+      const a = geo.tore[s].aussen, k = holeKachel(a.x, a.z);
+      if (!k) gruende.push(`Das ${s === "ein" ? "Eingangstor" : "Ausgangstor"} zeigt aus der Halle.`);
+      else if ((k.objekt || !k.begehbar && !k.band) && !istEigen(a)) gruende.push(`Vor dem ${s === "ein" ? "Eingangstor" : "Ausgangstor"} muss eine Kachel frei bleiben (Band oder Weg).`);
+    }
+  } else if (t.maschine) {
     if (!maschinenZugangFrei(geo, null, ignoriereId)) gruende.push("Die Maschine braucht eine freie Seite, an die Kuriere herankommen.");
   } else {
     if (!zugangKachel || ((!zugangKachel.begehbar || zugangKachel.objekt) && !istEigen(geo.zugang))) gruende.push("Der Arbeitszugang (Pfeil) ist versperrt.");
@@ -10113,6 +10149,8 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
   // 2026-10-12: Fremde Pfeil-Kacheln nicht überbauen (Maschinen weichen auf eine andere freie Seite aus)
   const neueZellen = new Set(geo.zellen.map((c) => c.x + "," + c.z));
   for (const anderes of spiel.gebaeude.values()) {
+    const andereTore = anderes.id !== ignoriereId && toreVon(anderes);
+    if (andereTore && ["ein", "aus"].some((s) => neueZellen.has(andereTore[s].aussen.x + "," + andereTore[s].aussen.z))) { gruende.push(`Hier ist ein Tor von ${gebaeudeName(anderes)}.`); continue; }
     if (anderes.id === ignoriereId || !neueZellen.has(anderes.zugang.x + "," + anderes.zugang.z)) continue;
     if (istMaschine(anderes)) {
       const standard = gebaeudeGeometrie(anderes.typ, anderes.x, anderes.z, anderes.drehung).zugang;
@@ -11366,7 +11404,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
   // wer am längsten wartet, wird zuerst bedient (sonst verhungert eine Station am geteilten Schrank).
   // Je länger ein Ziel nichts bekommen hat, desto wichtiger wird es (kein Lager verhungert).
   const direkt = forschungAktiv("direktlieferung");
-  const ziele = gebaeudeListe((g) => (istZwischenlager(g) || istExportzone(g) || (istStation(g) && fachGroesse(g, "eingang") > 0)) && !zugangGesperrt(g));
+  const ziele = gebaeudeListe((g) => (istZwischenlager(g) || istExportzone(g) || (istStation(g) && fachGroesse(g, "eingang") > 0)) && !zugangGesperrt(g, "bring"));
   for (const ziel of ziele) {
     const fach = istStation(ziel) ? "eingang" : "bestand";
     const export_ = istExportzone(ziel);                     // Phase 7b: Exportzone bekommt, was Aufträge brauchen
@@ -11385,7 +11423,7 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
       if (hl && hl !== ziel) pruefe({ art: "liefern", quelle: hl, ziel, zielFach: fach, item, max: Math.min(fehlt, verfuegbar(hl, item, res)), prio });
       if (!direkt || gebunden) continue;
       // Direktlieferung: aus Ausgabefächern und (abholbaren) Zwischenlagern, ohne Umweg übers Lager
-      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)) && !zugangGesperrt(g))) {
+      for (const quelle of gebaeudeListe((g) => g !== ziel && (istStation(g) || istZwischenlager(g)) && !zugangGesperrt(g, "hol"))) {
         const n = istStation(quelle) ? (darfKurierAbholen(quelle, item) ? verfuegbar(quelle, item, res) : 0)
                                      : (abholbar(quelle, res)[item] || 0);
         if (n > 0) pruefe({ art: "liefern", quelle, ziel, zielFach: fach, item, max: Math.min(fehlt, n), prio: prio + 0.5 });
@@ -11735,7 +11773,7 @@ function ladeKurierwegPerson(p,d) {
 function starteKurierAuftrag(p, auftrag) {
   p.auftrag = auftrag;
   p.phase = "zurQuelle";
-  geheZu(p, spiel.gebaeude.get(auftrag.quelleId).zugang);
+  geheZu(p, holZugang(spiel.gebaeude.get(auftrag.quelleId)));   // Tore: am Ausgang abholen
 }
 
 function verteileAuftraege() {
@@ -11758,13 +11796,13 @@ function schrittKurier(p, dt) {
   switch (p.phase) {
     case "zurQuelle":
       if (!quelle || !ziel) return beendeAuftrag(p);          // noch nichts getragen: einfach abbrechen
-      if (zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // Phase 7b Nachtrag: Zugang zugebaut
-      if (istAngekommen(p, quelle.zugang)) { p.phase = "laedt"; p.timer = ladezeitVon(p); schaueAuf(p, quelle); }
-      else if (istFestgefahren(p, quelle.zugang)) beendeAuftrag(p);
+      if (zugangGesperrt(quelle, "hol") || zugangGesperrt(ziel, "bring")) return beendeAuftrag(p);   // Phase 7b Nachtrag: Zugang zugebaut
+      if (istAngekommen(p, holZugang(quelle))) { p.phase = "laedt"; p.timer = ladezeitVon(p); schaueAuf(p, quelle); }
+      else if (istFestgefahren(p, holZugang(quelle))) beendeAuftrag(p);
       break;
 
     case "laedt": {
-      if (!quelle || !ziel || zugangGesperrt(quelle) || zugangGesperrt(ziel)) return beendeAuftrag(p);   // 7b Nachtrag: auch Zugang zugebaut
+      if (!quelle || !ziel || zugangGesperrt(quelle, "hol") || zugangGesperrt(ziel, "bring")) return beendeAuftrag(p);   // 7b Nachtrag: auch Zugang zugebaut
       p.timer -= dt;
       if (p.timer > 0) break;
       const geladen = {};
@@ -11778,18 +11816,18 @@ function schrittKurier(p, dt) {
       a.items = { ...geladen };
       a.abgeholt = true;
       p.phase = "zumZiel";
-      geheZu(p, ziel.zugang);
+      geheZu(p, bringZugang(ziel));   // Tore: am Eingang anliefern
       break;
     }
 
     case "zumZiel":
-      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);   // Phase 7b Nachtrag: Zugang zugebaut → anderes Lager
-      if (istAngekommen(p, ziel.zugang)) { p.phase = "entlaedt"; p.timer = ladezeitVon(p); schaueAuf(p, ziel); }
-      else if (istFestgefahren(p, ziel.zugang)) leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel, "bring")) return leiteUm(p);   // Phase 7b Nachtrag: Zugang zugebaut → anderes Lager
+      if (istAngekommen(p, bringZugang(ziel))) { p.phase = "entlaedt"; p.timer = ladezeitVon(p); schaueAuf(p, ziel); }
+      else if (istFestgefahren(p, bringZugang(ziel))) leiteUm(p);
       break;
 
     case "entlaedt": {
-      if (!ziel || zugangGesperrt(ziel)) return leiteUm(p);
+      if (!ziel || zugangGesperrt(ziel, "bring")) return leiteUm(p);
       p.timer -= dt;
       if (p.timer > 0) break;
       // Ablegen, soweit Platz ist (und das Item dort noch erwünscht ist); der Rest geht zurück ins Lager
@@ -15008,7 +15046,7 @@ function zielVon(t, richtung = t.richtung) {
   if (b) return nimmtVonSeite(b, richtung, ebene) ? { art: "band", teil: b } : null;
   if (ebene === 0) {
     const g = gebaeudeAufKachel(k);
-    if (g) return { art: "gebaeude", g };
+    if (g) return torErlaubt(g, "ein", k, t) ? { art: "gebaeude", g } : null;   // Maschinen mit Toren: nur am Eingang
   }
   return null;
 }
@@ -15076,7 +15114,10 @@ function baueBandTopologie() {
   bandAblaeufe = [];
   for (const t of teile) {
     if (istGreifarm(t)) {
-      const quelle = gebaeudeAufKachel(hinterKachel(t)), ziel = gebaeudeAufKachel(vorKachel(t));
+      const hk = hinterKachel(t), vk = vorKachel(t);
+      let quelle = gebaeudeAufKachel(hk), ziel = gebaeudeAufKachel(vk);
+      if (quelle && !torErlaubt(quelle, "aus", hk, t)) quelle = null;   // Tore: Nehmer nur am Ausgang, Geber nur am Eingang
+      if (ziel && !torErlaubt(ziel, "ein", vk, t)) ziel = null;
       if (quelle && t.typ === "greifarm") ablauf(quelle, t);   // Phase 7a (Nachtrag 3): nur der Nehmer holt aus Gebäuden
       if (ziel) zulauf(ziel, t);
       continue;
@@ -15085,8 +15126,8 @@ function baueBandTopologie() {
     if (istVerteiler(t)) for (const a of t.ausgaenge) if (a.ziel.art === "gebaeude") zulauf(a.ziel.g, t);
     // Ablauf: ein Spur-Teil am Boden, das vom Gebäude weg zeigt und hinten keinen Band-Zulauf hat
     if (istSpur(t) && t.typ !== "untergrundAus" && bandTyp(t).ebeneEin === 0 && !t.vorgaenger.some((v) => seiteVonFahrt(t, v.richtung) === "hinten")) {   // 7d: Untergrund-Ausgang nie
-      const g = gebaeudeAufKachel(hinterKachel(t));
-      if (g) { t.ablaufVon = g.id; ablauf(g, t); bandAblaeufe.push(t); }
+      const hk = hinterKachel(t), g = gebaeudeAufKachel(hk);
+      if (g && torErlaubt(g, "aus", hk, t)) { t.ablaufVon = g.id; ablauf(g, t); bandAblaeufe.push(t); }   // Tore: nur am Ausgang
     }
   }
   // 3. Kurven: ein Band ohne Zulauf von hinten, aber mit genau einem von der Seite
@@ -15627,18 +15668,26 @@ function bedarfFehlt(g, item, res) {
 }
 // Reihum zuerst Maschinen, innerhalb jeder Maschine die Ressourcen bedienen.
 function bedarfWaehle(t, kandidaten, start = bedarfStart(t)) {
-  const res = reservierungen(), choices = new Map();
+  const res = reservierungen(), choices = new Map(), maschinen = new Map();
   for (const item of kandidaten) for (const [id, route] of bedarfZiele(start, item, t.richtung)) {
-    if (bedarfFehlt(route.g, item, res) <= 0) continue;
+    const fehlt = bedarfFehlt(route.g, item, res);
+    if (fehlt <= 0) continue;
     if (route.weg.some((b) => bandInventar(b).anzahl >= 25 || (istSpur(b) && bandTempo(b) <= 0))) continue;
     if (!choices.has(id)) choices.set(id, []);
-    choices.get(id).push(item);
+    choices.get(id).push({ item, fehlt });
+    maschinen.set(id, route.g);
   }
   const ids = [...choices.keys()].sort();
   if (!ids.length) return null;
   const id = ids.find((id) => id > (t.bedarfLetztesZiel || "")) || ids[0];
-  const items = choices.get(id), letzter = (t.bedarfLetzteItems || {})[id];
-  const item = items[(items.indexOf(letzter) + 1) % items.length];
+  // 2026-10-12 Satzweise: die Ware, von der im Rezeptverhältnis am meisten fehlt (Si, KS, Glas, Si, KS, Glas …);
+  // bei Gleichstand reihum nach der zuletzt geschickten.
+  const eingaben = rezeptVon(maschinen.get(id))?.eingaben || {};
+  const liste = choices.get(id), letzter = (t.bedarfLetzteItems || {})[id];
+  const ab = (liste.findIndex((c) => c.item === letzter) + 1) % liste.length;
+  const reihum = [...liste.slice(ab), ...liste.slice(0, ab)];
+  const anteil = (c) => c.fehlt / Math.max(1, eingaben[c.item] || 1);
+  const item = reihum.reduce((best, c) => anteil(c) > anteil(best) + 1e-9 ? c : best).item;
   t.bedarfLetztesZiel = id;
   t.bedarfLetzteItems = { ...(t.bedarfLetzteItems || {}), [id]: item };
   return { item, bedarfZiel: id };
@@ -16043,14 +16092,22 @@ function gebaeudeNimmtAn(g, item) {
   }
   if (istStation(g)) {
     const r = rezeptVon(g);
+    if (torReichtDurch(g, item)) return summe(g.bestand) < kapazitaetVon(g);
     if (!r || g.pausiert || produktionsAusgangVoll(g) || !(item in r.eingaben) || !fachGroesse(g, "eingang")) return false;
     if (summe(g.eingang) >= fachGroesse(g, "eingang")) return false;
     return (g.eingang[item] || 0) < bandSoll(g, item, r);
   }
   return false;
 }
+// 2026-10-12: Eine Maschine mit Toren reicht Ware, die ihr Rezept nicht braucht, zum Ausgang durch (statt Stau).
+function torReichtDurch(g, item) {
+  if (!toreVon(g)) return false;
+  const r = rezeptVon(g);
+  return !r || !(item in r.eingaben);
+}
 function gebaeudeNimmtVomBand(g, item) {
   if (!gebaeudeNimmtAn(g, item)) return false;
+  if (istStation(g) && torReichtDurch(g, item)) { aendereBestand(g, item, 1); return true; }
   if (istStation(g)) {
     aendereFach(g, "eingang", item, 1);
     g.bandVersorgt = g.bandVersorgt || {};
@@ -16148,9 +16205,12 @@ function baenderSchritt(dt) {
     bewegeItems(t, tempo * dt);
     if (t.typ === "pruefband") pruefeAufTeststrecke(t);   // W2b (M7): jedes Stück einmal prüfen
     if (t.typ === "aussweiche") weicheEntsorgt(t);        // W2b (M7): defekte Stücke aussortieren
+    for (const it of t.items) if (it.hub !== undefined && (it.hub += dt / BAENDER.umsortierSek) >= 1) delete it.hub;
     const vorn = t.items[0];
     if (vorn && vorn.pos >= 1 - 1e-6) {
-      if (gibWeiter(t, vorn)) { t.items.shift(); t.stau = 0; t.warnung = false; t.ioFixiert = false; }
+      if (vorn.hubSperre > 0) vorn.hubSperre -= dt;   // Umsortieren: die getauschte Ware schiebt sich noch unter der anderen durch
+      else if (gibWeiter(t, vorn)) { t.items.shift(); t.stau = 0; t.warnung = false; t.ioFixiert = false; }
+      else if (umsortiere(t, vorn)) t.stau = 0;
       else {
         t.stau += dt;
         t.ioFixiert = t.stau >= PHYSIK.fixiertNachSek;              // W1 (M4): I/O fixiert
@@ -16176,6 +16236,35 @@ function baenderSchritt(dt) {
     t.bedarfAbgabe = null;
   }
   bedarfZiele.cache = null;
+}
+
+/* --- 2026-10-12 (Tim): Umsortieren auf dem Band ---
+   Steht vorn an einem Band zu einem Gebäude eine Ware, die es gerade nicht annimmt, und liegt dahinter (dieses
+   Teil und bis zu BAENDER.umsortierTeile gerade Vorgänger) eine Ware, die es annimmt, tauschen beide den Platz.
+   Positionen bleiben, nur Ware und Kennzeichen wechseln. Die zurückgestellte Ware wird sichtbar angehoben
+   (it.hub 0 → 1, Abschnitt 12d), die vordere geht erst danach hinein (hubSperre). Bänder mit von Hand
+   sortiertem Inventar bleiben, wie sie sind. */
+function umsortiere(t, vorn) {
+  const z = t.ziel;
+  if (!z || z.art !== "gebaeude" || vorn.hub !== undefined || (t.inventarReihenfolge || []).length) return false;
+  const passt = (it) => bedarfPasst(z, t.richtung, it) && gebaeudeNimmtAn(z.g, it.item);
+  let teil = t, kandidat = null;
+  for (let n = 0; teil && n <= BAENDER.umsortierTeile && !kandidat; n++) {
+    if (teil !== t && (!istSpur(teil) || (teil.inventarReihenfolge || []).length)) break;
+    kandidat = teil.items.find((it) => it !== vorn && it.item !== vorn.item && it.hub === undefined && passt(it)) || null;
+    const zurueck = (teil.vorgaenger || []).filter((v) => seiteVonFahrt(teil, v.richtung) === "hinten");
+    teil = zurueck.length === 1 && (teil.vorgaenger || []).length === 1 ? zurueck[0].teil : null;
+  }
+  if (!kandidat) return false;
+  const a = { item: vorn.item, ...warenFlags(vorn) }, b = { item: kandidat.item, ...warenFlags(kandidat) };
+  for (const [ziel, ware] of [[vorn, b], [kandidat, a]]) {
+    ziel.item = ware.item;
+    delete ziel.geprueft; delete ziel.defekt; delete ziel.bedarfZiel;
+    Object.assign(ziel, warenFlags(ware));
+  }
+  kandidat.hub = 0;
+  vorn.hubSperre = BAENDER.umsortierSek;
+  return true;
 }
 
 /* --- Phase 7d: Omni-Merger (PROD-055) ---
@@ -16205,7 +16294,7 @@ function warnleuchtenAktiv() { return istErforscht("PROD-059"); }
 // Nimmt das Gebäude diese Ware grundsätzlich nicht an (egal wie voll es ist)?
 function wareFalschGeroutet(g, item) {
   const art = typVon(g).art;
-  if (istStation(g)) { const r = rezeptVon(g); return !r || g.pausiert || !(item in r.eingaben); }
+  if (istStation(g)) { if (toreVon(g)) return false; const r = rezeptVon(g); return !r || g.pausiert || !(item in r.eingaben); }
   if (art === "importzone") return true;
   if (art === "muell") return !muellNimmt(g, item, "band");
   if (art === "exportzone") return !zoneAktiv(g);
@@ -16267,14 +16356,14 @@ function armZiel(a) {
   const b = bandteilAn(k.x, k.z, 0);
   if (b) return istSpur(b) && bandTyp(b).ebeneEin === 0 ? { art: "band", teil: b } : null;
   const g = gebaeudeAufKachel(k);
-  return g ? { art: "gebaeude", g } : null;
+  return g && torErlaubt(g, "ein", k, a) ? { art: "gebaeude", g } : null;
 }
 function armQuelle(a) {
   const k = hinterKachel(a);
   const b = bandteilAn(k.x, k.z, 0);
   if (b) return istSpur(b) && bandTyp(b).ebeneAus === 0 ? { art: "band", teil: b } : null;
   const g = gebaeudeAufKachel(k);
-  return g ? { art: "gebaeude", g } : null;
+  return g && torErlaubt(g, "aus", k, a) ? { art: "gebaeude", g } : null;
 }
 function armZielNimmt(ziel, item) {
   if (!ziel) return false;
@@ -23043,7 +23132,7 @@ function zeichneBauInhalt() {
   if (bau.reiter === "baender") { zeichneBaender(); return; }   // Phase 6
   if (bau.reiter === "halle") { zeichneHalle(); return; }       // Phase 6
   const kategorie = bau.reiter === "lager" ? "lager" : bau.reiter === "maschinen" ? "maschine" : "station";   // Phase 7d: Maschinen
-  ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet).map((t) => {
+  ob.bauInhalt.innerHTML = GEBAEUDE_TYPEN.filter((t) => t.kategorie === kategorie && t.freigeschaltet && !t.nichtImMenue).map((t) => {
     const imDepot = spiel.depot.gebaeude[t.typ] || 0;
     const voll = t.maxAnzahl && anzahlTyp(t.typ) >= t.maxAnzahl;
     const gewaehlt = bau.werkzeug && bau.werkzeug.art === "bauen" && bau.werkzeug.typ === t.typ;
@@ -24143,9 +24232,11 @@ function maschinenInfoHtml(g) {
   const r = t.maschine.rezepte || {};
   const kann = r.art === "produkt" ? "Produkte nach Blaupause"
     : r.art === "gehaeuse" ? (r.nur ? r.nur.map((id) => herstellbarNachTyp.get(id)?.name || id).join(" und ") : "alle Gehäuse")
-    : r.art === "bauteil" ? `${r.tier ? r.tier + "-" : ""}Komponenten` : "–";
+    : r.art === "bauteil" ? (r.kategorie ? `Komponenten der Kategorie ${KATEGORIEN.find((k) => k.id === r.kategorie)?.name || r.kategorie}` : `${r.tier ? r.tier + "-" : ""}Komponenten`) : "–";
+  const seiteText = { hinten: "hinten", vorn: "vorn", links: "links", rechts: "rechts" };
+  const tore = t.tore ? `<span>Tore: <b style="color:#3fb950">Eingang ${seiteText[t.tore.ein.seite]}</b> · <b style="color:#f85149">Ausgang ${seiteText[t.tore.aus.seite]}</b> – befüllen und entnehmen nur dort; falsche Ware geht zum Ausgang durch</span>` : "";
   return `<div class="info-block"><h3>⚙ Maschine</h3><p class="info-maschine">
-      <span>Stellt her: <b>${htmlSicher(kann)}</b></span>
+      <span>Stellt her: <b>${htmlSicher(kann)}</b></span>${tore}
       <span>Tempo <b>×${zahlText(maschinenTempo(g))}</b></span>
       <span>Laufkosten <b>${euro(t.tagesKosten || 0)}/Tag</b></span>
       <span>kein Arbeiter nötig – Kuriere oder Bänder bringen Material und holen ab</span></p></div>`;

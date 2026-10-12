@@ -3536,6 +3536,20 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
   .modal-schleier.frei, #layout-overlay.frei { padding: calc(60px + env(safe-area-inset-top, 0px)) 8px 8px !important; }
   .modal-schleier.frei > section, #layout-overlay.frei > section { max-height: 58dvh !important; width: calc(100vw - 16px) !important; }
 }
+/* Tim 2026-10-12: Oberflächen verschiebbar, Rezept-Stapel unter der Tempo-Leiste, Rezept-Ware zuweisen */
+.wird-gezogen { transition: none !important; }
+#rezept-stapel .rezept-karte header { cursor: grab; touch-action: none; user-select: none; }
+#rezept-stapel.wird-gezogen .rezept-karte header { cursor: grabbing; }
+html.leitstand #rezept-stapel { top: calc(84px + env(safe-area-inset-top, 0px)); max-height: calc(100% - 84px - 150px); }
+#rezept-stapel .rezept-item.stapel.zuweist { outline: 2px solid var(--schiene, #f5c518); outline-offset: 2px; border-radius: 8px; }
+#zuweis-banner {
+  position: fixed; top: 75px; left: 50%; transform: translateX(-50%); z-index: 360; display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px 8px 14px; border-radius: 10px; border: 1px solid var(--schiene, #f5c518);
+  background: var(--stahl, #203448); color: var(--stahl-ink, #fff); box-shadow: 0 8px 20px #0005; font-size: 14px;
+}
+#zuweis-banner small { opacity: 0.75; }
+#zuweis-banner .ic { width: 26px; height: 26px; flex: none; }
+body.zuweist canvas { cursor: crosshair !important; }
 </style>
 <style id="leitstand-ui">
 /* === Leitstand-UI (Tim, 2026-10-12) ==========================================================
@@ -6952,10 +6966,16 @@ function fensterHatTastatur() {
 
 // Tastatur: W A S D / Pfeiltasten bewegen die Kamera, Esc hebt die Auswahl auf.
 const gedrueckteTasten = new Set();
+function istKameraTaste(key) {
+  const k = String(key).toLowerCase();
+  return k.startsWith("arrow") || ["kameraVor", "kameraZurueck", "kameraLinks", "kameraRechts"].some((a) => tasteFuer(a) === k);
+}
 window.addEventListener("keydown", (e) => {
   if (eingaben3dGesperrt) return;    // modaler Dialog offen: 3D-Steuerung ruht
   if (fensterHatTastatur()) return;  // Leitstand-UI: Tasten gehen an das zuletzt angeklickte Menüfenster (Designer, Kurierwege)
-  if (e.target instanceof Element && (e.target.isContentEditable || e.target.closest("input, select, textarea, button, a, [role='button']"))) return;
+  if (e.target instanceof Element && (e.target.isContentEditable || e.target.closest("input, select, textarea"))) return;
+  // 2026-10-12 (Tim): Kamera-Tasten wirken auch, wenn ein Knopf den Fokus hat (z. B. nach Klick auf eine Baukarte)
+  if (e.target instanceof Element && e.target.closest("button, a, [role='button']") && !istKameraTaste(e.key)) return;
   if (e.key === "Escape") { setzeAuswahl(null); return; }
   gedrueckteTasten.add(e.key.toLowerCase());
 });
@@ -11278,8 +11298,9 @@ function waehleAuftragFuer(p, res, distanzGewicht = 0.05) {
     }
     for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {   // 7b Nachtrag: Zugang frei
       // Phase 6: Ein Lager mit Ablauf gibt Export-Ware ans Band. Phase 7b: keine Notabholung mehr –
-      // läuft das Band voll, staut es sich bis zur Station zurück. (Die Importzone räumen Kuriere immer.)
-      if (lager.bandAblauf && !istImportzone(lager)) continue;
+      // läuft das Band voll, staut es sich bis zur Station zurück. 2026-10-12: Eine Importzone mit Ablauf
+      // versorgt ihr Band; Kuriere räumen sie nur noch, wenn sie fast voll ist.
+      if (lager.bandAblauf && (!istImportzone(lager) || fuellgrad(lager) < 0.9)) continue;
       const voll = fuellgrad(lager) >= 1;
       for (const [item, n] of Object.entries(abholbar(lager, res))) {
         // Reine Export-Ware drängt (sonst läuft das Lager voll), der Überschuss eines Puffers nicht
@@ -11384,7 +11405,7 @@ function keinLagerFuer() {
     for (const item of Object.keys(abholbarEingang(s, res))) pruefeKurier(item, s);
   }
   for (const lager of gebaeudeListe((g) => (istZwischenlager(g) || istImportzone(g)) && !zugangGesperrt(g))) {
-    if (lager.bandAblauf && !istImportzone(lager)) continue;
+    if (lager.bandAblauf && (!istImportzone(lager) || fuellgrad(lager) < 0.9)) continue;
     for (const item of Object.keys(abholbar(lager, res))) pruefeKurier(item, lager);
   }
   // Bänder, Verteiler und Greifarm-Geber, die vor einem Lager warten
@@ -13353,8 +13374,11 @@ function importzonenSchritt() {
     for (const b of [...g.bestellungen]) {
       if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
       let n = b.menge;
-      // "bis Sollmenge": nur so viel, dass Lager + Importzonen + Wagen die Menge erreichen
-      if (b.rhythmus === "bisSoll") n = Math.max(0, b.menge - hlMenge(b.item) - zonenMenge("importzone", b.item) - wagenUnterwegs(b.item));
+      // "bis Sollmenge": nur so viel, dass Lager + Importzonen + Wagen die Menge erreichen.
+      // 2026-10-12 (Tim): Zone mit Band-Ablauf versorgt das Band direkt – dann zählt nur diese Zone (+ ihre Wagen).
+      if (b.rhythmus === "bisSoll") n = Math.max(0, g.bandAblauf
+        ? b.menge - (g.bestand[b.item] || 0) - g.lieferwagen.reduce((s, w) => s + (w.abgeladen ? 0 : w.items[b.item] || 0), 0)
+        : b.menge - hlMenge(b.item) - zonenMenge("importzone", b.item) - wagenUnterwegs(b.item));
       if (n > 0) bestelle(g, b.item, n);
       const r = rhythmusNach.get(b.rhythmus);
       if (!r || b.rhythmus === "einmal") g.bestellungen.splice(g.bestellungen.indexOf(b), 1);
@@ -23675,6 +23699,7 @@ function behandleKachelKlick(k, shift, strg = false) {
     if(kwGebaeudeErlaubt(g))kwPickEnde(g);else zeigeMeldung('Bitte Lager, Station oder Zone anklicken.',true);
     return;
   }
+  if (zuweisModus) { weiseRezeptWareZu(g, shift); return; }           // Tim 2026-10-12: Rezept-Ware einer Station zuweisen
   // 1. Verknüpfen-Modus: angeklicktes Gebäude verknüpfen bzw. lösen
   if (verknuepfModus) {
     if (!g) { beendeVerknuepfen(); return; }
@@ -24347,7 +24372,7 @@ function importzoneHtml(g) {
       '<span class="iz-stepper"><button type="button" class="iz-minus" data-iz-schritt="-1" data-item="'+r.id+'" title="−'+IZ_SCHRITT+'" aria-label="'+r.name+' −'+IZ_SCHRITT+'">−</button>'+
       '<input type="number" class="iz-amount" min="0" max="9999" step="1" placeholder="0" data-iz-menge="'+r.id+'" aria-label="Menge '+r.name+'" value="'+(menge||'')+'">'+
       '<button type="button" class="iz-plus" data-iz-schritt="1" data-item="'+r.id+'" title="+'+IZ_SCHRITT+'" aria-label="'+r.name+' +'+IZ_SCHRITT+'">+</button></span>'+
-      ['einmal','bisSoll'].map(m=>'<button type="button" data-iz-modus="'+m+'" data-item="'+r.id+'" aria-pressed="'+(aktiv===m||alt&&m==='bisSoll')+'" title="'+(m==='einmal'?'Menge jetzt einmal bestellen':'Jede Minute Hauptlager + Importzonen bis zur Menge auffüllen (nochmal klicken: stoppen)')+(alt&&m==='bisSoll'?' – läuft: '+htmlSicher(rhythmusNach.get(aktiv)?.name||aktiv):'')+'">'+(m==='einmal'?'Einmalig':'Bis Soll')+'</button>').join('')+'</div>';
+      ['einmal','bisSoll'].map(m=>'<button type="button" data-iz-modus="'+m+'" data-item="'+r.id+'" aria-pressed="'+(aktiv===m||alt&&m==='bisSoll')+'" title="'+(m==='einmal'?'Menge jetzt einmal bestellen':(g.bandAblauf?'Jede Minute diese Zone bis zur Menge auffüllen – sie versorgt das Band (nochmal klicken: stoppen)':'Jede Minute Hauptlager + Importzonen bis zur Menge auffüllen (nochmal klicken: stoppen)'))+(alt&&m==='bisSoll'?' – läuft: '+htmlSicher(rhythmusNach.get(aktiv)?.name||aktiv):'')+'">'+(m==='einmal'?'Einmalig':'Bis Soll')+'</button>').join('')+'</div>';
   }).join('');
   const wagen=g.lieferwagen.filter(w=>!w.abgeladen).map(w=>'<p>🚚 '+(w.ankunft>spiel.zeit?'in '+dauerSek(w.ankunft-spiel.zeit):'wartet auf Platz / Geld')+': '+Object.entries(w.items).map(([i,n])=>n+'× '+htmlSicher(itemInfo(i).name)).join(', ')+'</p>').join('');
   return '<section class="iz-orders"><h3>Ressourcen bestellen</h3><div class="iz-order-list">'+zeilen+'</div>'+
@@ -26207,6 +26232,11 @@ function spielReiterHtml() {
       <div><small>Mitarbeiter</small><b>${personal}</b></div>
       <div><small>Erforscht</small><b>${spiel.erforscht.length}</b></div>
     </div>
+    <section class="fenster-box">
+      <h3 class="einstellungen-gruppe">Fenster</h3>
+      <p>Alle Fenster und Leisten lassen sich am Kopf oder am Griff verschieben. Die Lage bleibt gespeichert, auch nach Neustart.</p>
+      <button class="lz-knopf" type="button" data-spiel-aktion="fenster-zurueck">Fenster an ihren Platz</button>
+    </section>
     <section class="neustart-box">
       <h3 class="einstellungen-gruppe">Spiel neu starten</h3>
       <p>Setzt alles auf den Anfang zurück: Kontostand ${euro(WIRTSCHAFT.startKapital)}, Garage ${level.breite} × ${HALLE_STUFEN[0].tiefe},
@@ -26303,6 +26333,7 @@ ob.einstellungenFenster.addEventListener("click", (e) => {
     zeichneEinstellungen();
     return;
   }
+  if (e.target.closest("[data-spiel-aktion='fenster-zurueck']")) { window.fensterLage?.allesZurueck(); zeigeMeldung("Alle Fenster sind wieder an ihrem Platz."); return; }
   if (e.target.closest("[data-spiel-aktion='neustart']")) { frageSpielNeuStarten(); return; }   // Phase 8
   const entwickler = e.target.closest("[data-entwicklung]");   // Phase 7a: Test-Werkzeuge
   if (entwickler) { if (entwicklungAktion(entwickler.dataset.entwicklung) !== false) zeichneEinstellungen(); return; }
@@ -26391,6 +26422,7 @@ window.addEventListener("keydown", (e) => {
     else if (!["tab", "enter", " "].includes(taste)) erledigt();
     return;
   }
+  if (zuweisModus && taste === "escape" && !dialogOffen) { erledigt(); beendeZuweisen(); zeigeMeldung("Zuweisen abgebrochen."); return; }
   if (dialogOffen) {                                    // Bestätigungsfenster: nur Esc (Enter löst den fokussierten Knopf aus)
     if (taste === "escape") { erledigt(); schliesseDialog(false); }
     return;
@@ -27994,9 +28026,9 @@ function rezeptItemHtml(item, n, knopf) {
   if (!knopf) return `<span class="rezept-item mit-ware"${symbolAttr(info)} style="--item-farbe:${info.farbe}">${wareHtml(item, 22)}${name}</span>`;   // Phase 7c: Symbol
   const anzahl = istRohstoff(item) ? null : stationenFuer(item).length;
   const titel = istRohstoff(item) ? `${info.name}: wird in der Importzone bestellt`
-    : anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} ${info.name} gerade her – Klick zeigt sie`
-    : `Keine Station stellt ${info.name} gerade her`;
-  return `<button type="button" class="rezept-item mit-ware stapel"${symbolAttr(info)} data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
+    : `Klick: ${info.name} einer Maschine oder Werkbank zuweisen · `
+      + (anzahl ? `${anzahl} Station${anzahl === 1 ? "" : "en"} stell${anzahl === 1 ? "t" : "en"} es her (Zahl zeigt sie)` : "noch keine Station stellt es her");
+  return `<button type="button" class="rezept-item mit-ware stapel${zuweisModus?.item === item ? " zuweist" : ""}"${symbolAttr(info)} data-item="${htmlSicher(item)}" style="--item-farbe:${info.farbe}" title="${htmlSicher(titel)}">`
     + `${wareHtml(item, 30)}<span class="name">${name}</span>${anzahl === null ? "" : `<span class="anzahl ${anzahl ? "" : "null"}">${anzahl}</span>`}</button>`;
 }
 function istAngeheftet(schluessel) {
@@ -28157,7 +28189,9 @@ ob.rezeptStapel.addEventListener("click", (e) => {
   if (!pin || !knopf) return;
   if (knopf.dataset.aktion === "zuklappen") { pin.zu = !pin.zu; zeichneRezeptStapel(true); return; }
   if (knopf.dataset.aktion === "loesen") { schalteRezeptPin(pin.schluessel); return; }
-  if (knopf.dataset.item) zeigeHerstellendeStation(knopf.dataset.item);
+  if (!knopf.dataset.item) return;
+  if (e.target.closest(".anzahl")) zeigeHerstellendeStation(knopf.dataset.item);   // Zahl: zu den Stationen springen
+  else starteZuweisen(knopf.dataset.item);                                          // Tim 2026-10-12: Station zuweisen
 });
 // Die Info-Leiste rechts schiebt die Karten nach links
 new MutationObserver(() => document.body.classList.toggle("info-offen", !ob.info.hidden))
@@ -28182,6 +28216,46 @@ function zeigeHerstellendeStation(item) {
   waehleGebaeude(s.id);
   zeigeMeldung(`${gebaeudeName(s)} stellt ${info.name} her${liste.length > 1 ? ` (${nr + 1} von ${liste.length})` : ""}.`);
   return s;
+}
+
+// Tim 2026-10-12: Ware im angehefteten Rezept anklicken → nächste angeklickte Station stellt sie her.
+// Shift + Klick weist weitere Stationen zu, Esc oder Klick ins Leere bricht ab.
+var zuweisModus = null;   // var: zeichneRezeptStapel liest es schon beim Start
+const zuweisBanner = Object.assign(document.createElement("div"), { id: "zuweis-banner", hidden: true });
+zuweisBanner.setAttribute("role", "status");
+document.body.append(zuweisBanner);
+zuweisBanner.addEventListener("click", (e) => { if (e.target.closest("button")) beendeZuweisen(); });
+function starteZuweisen(item) {
+  const info = itemInfo(item);
+  if (istRohstoff(item)) { zeigeMeldung(`${info.name} bestellst du in der Importzone.`); return; }
+  if (zuweisModus?.item === item) { beendeZuweisen(); return; }       // zweiter Klick: aus
+  zuweisModus = { item };
+  zuweisBanner.innerHTML = `${wareHtml(item, 26)}<span><b>${htmlSicher(info.name)}</b> zuweisen: Maschine oder Werkbank anklicken`
+    + ` <small>· Shift: mehrere · Esc bricht ab</small></span><button type="button" class="lz-knopf">Abbrechen</button>`;
+  zuweisBanner.hidden = false;
+  document.body.classList.add("zuweist");
+  zeichneRezeptStapel(true);
+}
+function beendeZuweisen() {
+  zuweisModus = null;
+  zuweisBanner.hidden = true;
+  document.body.classList.remove("zuweist");
+  zeichneRezeptStapel(true);
+}
+function weiseRezeptWareZu(g, shift) {
+  const item = zuweisModus.item, info = itemInfo(item);
+  if (!g) { beendeZuweisen(); zeigeMeldung("Zuweisen abgebrochen."); return; }
+  if (!istStation(g)) { zeigeMeldung(`${gebaeudeName(g)} stellt nichts her – bitte Maschine oder Werkbank anklicken.`, true); return; }
+  const rezept = item.startsWith("p:") ? item.slice(2) : item;
+  if (!setzeRezept(g.id, rezept)) {
+    const ort = item.startsWith("p:") ? "einen Montagetisch" : "eine Werkbank oder passende Maschine";
+    zeigeMeldung(`${gebaeudeName(g)} kann ${info.name} nicht herstellen – bitte ${ort} wählen.`, true);
+    return;
+  }
+  zeigeMeldung(`${gebaeudeName(g)} stellt jetzt ${info.name} her.`);
+  if (auswahlGebaeudeId === g.id) zeichneInfo();
+  zeichneRezeptStapel(true);
+  if (!shift) beendeZuweisen();                                       // Shift: Modus bleibt für weitere Stationen
 }
 
 /* ============================================================================
@@ -28855,42 +28929,38 @@ window.addEventListener("keydown", (e) => {
    Die Fenster sperren das Spiel nicht (siehe CSS "leitstand-frei"). Am Kopf lässt sich jedes
    Fenster verschieben, der Knopf − klappt es auf den Kopf zusammen. Position bleibt bis zum Neuladen. */
 (function richteFreieFensterEin() {
-  const fenster = [...document.querySelectorAll(".modal-schleier.frei > section, #layout-overlay.frei > section")]
-    .filter((f) => f.id !== "kurier-fenster");                 // Kurierwege zeichnen ihren Kopf selbst neu
+  // Tim 2026-10-12: Lage und Einklappen bleiben gespeichert (window.fensterLage, localStorage)
+  const lage = window.fensterLage;
+  const fenster = [...document.querySelectorAll(".modal-schleier.frei > section, #layout-overlay.frei > section")];
   for (const f of fenster) {
+    const name = "fenster:" + (f.id || f.parentElement.id);
+    if (f.id === "kurier-fenster") {                           // Kurierwege zeichnen ihren Kopf selbst neu
+      f.classList.add("frei-fenster");
+      lage?.machVerschiebbar(f, f, name, { nurIn: "header" });
+      continue;
+    }
     const kopf = f.querySelector(":scope > header");
     if (!kopf) continue;
     f.classList.add("frei-fenster");
     kopf.classList.add("frei-griff");
     const zu = kopf.querySelector(".lz-knopf-rund");
     const ein = document.createElement("button");
-    ein.type = "button"; ein.className = "lz-knopf lz-einklappen"; ein.textContent = "−";
-    ein.title = "Einklappen"; ein.setAttribute("aria-label", "Fenster einklappen"); ein.setAttribute("aria-pressed", "false");
-    ein.addEventListener("click", () => {
-      const an = f.classList.toggle("eingeklappt");
+    ein.type = "button"; ein.className = "lz-knopf lz-einklappen";
+    const zeige = (an) => {
+      f.classList.toggle("eingeklappt", an);
       ein.textContent = an ? "+" : "−"; ein.title = an ? "Ausklappen" : "Einklappen";
       ein.setAttribute("aria-label", an ? "Fenster ausklappen" : "Fenster einklappen"); ein.setAttribute("aria-pressed", String(an));
-    });
+    };
+    const eintrag = lage?.machVerschiebbar(f, kopf, name, { zurueck: () => zeige(false) });
+    zeige(!!eintrag?.zu);
+    ein.addEventListener("click", () => { const an = !f.classList.contains("eingeklappt"); zeige(an); eintrag?.merkeZu(an); });
     if (zu) kopf.insertBefore(ein, zu); else kopf.append(ein);
-    let zug = null, dx = 0, dy = 0;
-    kopf.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0 || e.target.closest("button, input, select, textarea, label, a")) return;
-      zug = { id: e.pointerId, x: e.clientX - dx, y: e.clientY - dy };
-      kopf.setPointerCapture(e.pointerId); kopf.classList.add("zieht");
-    });
-    kopf.addEventListener("pointermove", (e) => {
-      if (!zug || e.pointerId !== zug.id) return;
-      const r = f.getBoundingClientRect();
-      // Kopf bleibt immer greifbar im Bild
-      const nx = e.clientX - zug.x, ny = e.clientY - zug.y;
-      const minX = dx - r.left - r.width + 120, maxX = dx + (innerWidth - r.left) - 120;
-      const minY = dy - r.top + 4, maxY = dy + (innerHeight - r.top) - 48;
-      dx = Math.min(maxX, Math.max(minX, nx)); dy = Math.min(maxY, Math.max(minY, ny));
-      f.style.translate = `${dx}px ${dy}px`;
-    });
-    const ende = (e) => { if (zug && e.pointerId === zug.id) { zug = null; kopf.classList.remove("zieht"); } };
-    kopf.addEventListener("pointerup", ende); kopf.addEventListener("pointercancel", ende);
   }
+  // Info-Leiste und angeheftete Rezepte
+  const info = document.getElementById("info-panel"), infoKopf = info?.querySelector(".info-kopf");
+  if (infoKopf) { infoKopf.classList.add("frei-griff"); lage?.machVerschiebbar(info, infoKopf, "info"); }
+  const stapel = document.getElementById("rezept-stapel");
+  if (stapel) lage?.machVerschiebbar(stapel, stapel, "rezepte", { nurIn: ".rezept-karte header", ohneTitel: true });
 })();
 
 /* ============================================================================
@@ -29032,6 +29102,7 @@ window.tradeUp = {
   speichereKurierweg, setzeKurierwegAktiv, weiseKurierwegZu, loescheKurierweg, oeffneKurierwege, schliesseKurierwege, benenneGebaeude,
   oeffneKomponentenVorschau, schliesseKomponentenVorschau, komponentenModellForm, ladeKomponentenModule,   // 12c: Display-Modelle
   schliesseLager,   // für den HUD-Knopf „Übersicht“
+  schalteRezeptPin, starteZuweisen, beendeZuweisen,   // Tim 2026-10-12
   szene, kamera, rasterDaten, holeKachel, kachelZuWelt, weltZuKachel, spielEreignisse,
   figur, findePfad, setzeBlockade, schickeFigur,
   // Phase 3: Produkt-Layout-Designer
@@ -29144,6 +29215,86 @@ window.tradeUp = {
     var lade = document.getElementById("hud-lade");
     if (lade && !lade.hidden) lade.textContent = "Die 3D-Grafik konnte nicht geladen werden. Bitte Internetverbindung prüfen und neu laden.";
   }, true);
+</script>
+<script>
+/* ============================================================================
+   Fensterlage (Tim 2026-10-12): Jede Oberfläche ist verschiebbar. Lage und
+   Einklapp-Zustand bleiben in localStorage – über Schließen, Speichern und
+   Neustart hinweg. Doppelklick auf den Griff: zurück an den Platz.
+   ============================================================================ */
+window.fensterLage = (() => {
+  const SCHLUESSEL = "tradeup.fensterLage";
+  let daten = {};
+  try { daten = JSON.parse(localStorage.getItem(SCHLUESSEL)) || {}; } catch (f) { daten = {}; }
+  const speichere = () => { try { localStorage.setItem(SCHLUESSEL, JSON.stringify(daten)); } catch (f) { /* egal */ } };
+  const alle = new Map();
+  const RAND = 80;                                   // so viel Fläche bleibt immer greifbar im Bild
+  const SPERRE = "button, input, select, textarea, label, a, [contenteditable], .rezept-item";
+  // Verschiebung so begrenzen, dass das Element greifbar im Bild bleibt (Bildschirm-Pixel)
+  function klemme(r, mx, my) {
+    const x = Math.min(innerWidth - RAND - r.left, Math.max(RAND - r.right, mx));
+    const y = Math.min(innerHeight - 40 - r.top, Math.max(-r.top, my));
+    return [x, y];
+  }
+  function machVerschiebbar(el, griff, name, wahl = {}) {
+    if (!el || !griff || alle.has(name)) return null;
+    const e0 = daten[name] || {};
+    let dx = +e0.dx || 0, dy = +e0.dy || 0;
+    const setze = (x, y, merken) => {
+      dx = Math.round(x); dy = Math.round(y);
+      el.style.translate = dx || dy ? `${dx}px ${dy}px` : "";
+      if (merken) { daten[name] = { ...daten[name], dx, dy }; speichere(); }
+    };
+    const zoom = () => el.currentCSSZoom || 1;
+    // Nach dem Öffnen oder bei kleinerem Fenster: wieder ins Bild holen
+    const insBild = () => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const [x, y] = klemme(r, 0, 0);
+      if (x || y) setze(dx + x / zoom(), dy + y / zoom(), false);
+    };
+    setze(dx, dy, false);
+    let zug = null;
+    griff.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || e.target.closest(SPERRE) || (wahl.nurIn && !e.target.closest(wahl.nurIn))) return;
+      zug = { id: e.pointerId, x: e.clientX, y: e.clientY, dx, dy, r: el.getBoundingClientRect(), los: false };
+      griff.setPointerCapture(e.pointerId);            // schmaler Griff: Maus darf ihn sofort verlassen
+    });
+    griff.addEventListener("pointermove", (e) => {
+      if (!zug || e.pointerId !== zug.id) return;
+      const mx = e.clientX - zug.x, my = e.clientY - zug.y;
+      if (!zug.los) {
+        if (Math.hypot(mx, my) < 4) return;          // kleiner Wackler bleibt ein Klick
+        zug.los = true; griff.classList.add("zieht"); el.classList.add("wird-gezogen");
+      }
+      const [x, y] = klemme(zug.r, mx, my);
+      setze(zug.dx + x / zoom(), zug.dy + y / zoom(), false);
+    });
+    const ende = (e) => {
+      if (!zug || e.pointerId !== zug.id) return;
+      if (zug.los) { setze(dx, dy, true); griff.classList.remove("zieht"); el.classList.remove("wird-gezogen"); }
+      zug = null;
+    };
+    griff.addEventListener("pointerup", ende); griff.addEventListener("pointercancel", ende);
+    griff.addEventListener("dblclick", (e) => { if (!e.target.closest(SPERRE) && (!wahl.nurIn || e.target.closest(wahl.nurIn))) setze(0, 0, true); });
+    if (!griff.title && !wahl.ohneTitel) griff.title = "Ziehen zum Verschieben · Doppelklick: zurück an den Platz";
+    new ResizeObserver(insBild).observe(el);
+    const eintrag = {
+      el, setze, insBild,
+      zu: !!e0.zu,
+      merkeZu(an) { daten[name] = { ...daten[name], dx, dy, zu: !!an }; speichere(); },
+      zurueck: wahl.zurueck,
+    };
+    alle.set(name, eintrag);
+    return eintrag;
+  }
+  addEventListener("resize", () => { for (const e of alle.values()) e.insBild(); });
+  function allesZurueck() {
+    daten = {}; speichere();
+    for (const e of alle.values()) { e.setze(0, 0, false); e.zurueck?.(); }
+  }
+  return { machVerschiebbar, allesZurueck };
+})();
 </script>
 <script>
 /* ============================================================================
@@ -29403,6 +29554,13 @@ const HUD_CSS = `
     box-shadow: inset 0 -2px 0 var(--schiene), 0 4px 0 var(--stahl-tief), 0 10px 24px var(--schatten);
   }
   .leitstand.rechts { margin-left: auto; }
+  /* Griff: jedes Leitstand-Teil ist verschiebbar (Lage bleibt gespeichert, Doppelklick: zurück) */
+  .griff {
+    flex: none; align-self: stretch; width: 10px; margin: 2px 0; border-radius: 4px; cursor: grab; touch-action: none;
+    background: radial-gradient(circle, var(--stahl-ink) 1.1px, transparent 1.4px) 0 0 / 5px 5px; opacity: 0.35;
+  }
+  .griff:hover { opacity: 0.8; }
+  .griff.zieht { cursor: grabbing; opacity: 1; }
 
   /* Firmenschild: Iso-Logo, Name, Halle – Klick schließt alle Fenster (Übersicht) */
   .firmenschild {
@@ -29619,6 +29777,7 @@ const HUD_MARKUP = (() => {
   return `
 <div class="kopfzeile">
   <header class="leitstand links" aria-label="Trade Up Spielstatus">
+    <span class="griff" aria-hidden="true"></span>
     <button class="firmenschild" type="button" data-hud-action="uebersicht" title="Übersicht – alle Fenster schließen">
       ${iso("logo")}<span class="text"><b>TRADE UP</b><small id="th-context">Garage · 16 × 8</small></span>
     </button>
@@ -29646,6 +29805,7 @@ const HUD_MARKUP = (() => {
   </div>
 
   <div class="leitstand rechts" aria-label="Zeit und Optionen">
+    <span class="griff" aria-hidden="true"></span>
     <div class="modul lcd-modul kalender" aria-label="Spielzeit">
       ${glyphe("kalender")}<span><small>Kalender</small><b><span id="th-day">Tag 1</span><span class="trenner"> · </span><span id="th-time">08:00</span></b><span class="mini"><span id="th-day-bar"></span></span></span>
     </div>
@@ -29661,6 +29821,7 @@ const HUD_MARKUP = (() => {
 </div>
 
 <nav class="dock bottom-dock" aria-label="Hauptmenü">
+    <span class="griff" aria-hidden="true"></span>
   ${taste({ aktion: "bauen", name: "Bauen", symbol: "bauen", taste: "bauen", titel: "Baumenü öffnen", id: "th-build-toggle", klasse: "bauen build-toggle" })}
   <span class="dock-trenn" aria-hidden="true"></span>
   ${taste({ aktion: "lager", name: "Lager", symbol: "lager", taste: "lager", titel: "Lager / Items", marke: '<span class="badge" id="th-stock-badge" hidden>!</span>' })}
@@ -29688,6 +29849,11 @@ const HUD_MARKUP = (() => {
   }
   const root = host.attachShadow({ mode: "open" });
   root.innerHTML = `<style>${HUD_CSS}</style>${HUD_MARKUP}`;
+  // Tim 2026-10-12: Leitstand links/rechts und Dock am Griff verschiebbar, Lage bleibt gespeichert
+  for (const [sel, name] of [[".leitstand.links", "hud:links"], [".leitstand.rechts", "hud:rechts"], [".dock", "hud:dock"]]) {
+    const el = root.querySelector(sel), griff = el?.querySelector(":scope > .griff");
+    window.fensterLage?.machVerschiebbar(el, griff, name);
+  }
 
   const read = (id) => (document.getElementById(id)?.textContent || "").replace(/\s+/g, " ").trim();
   const mirror = (sourceId, targetId) => {

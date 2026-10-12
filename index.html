@@ -3926,6 +3926,35 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-matrix .wb-leer { border-radius: 8px; border: 1px dashed rgba(255, 255, 255, 0.08); }
 .wb-liste, .wb-treffer { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 3px; }
 .wb-hinweis { opacity: 0.7; font-size: 10px; }
+/* 2026-10-12 (Tim): Personal als Karten */
+.pk-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 8px; max-height: 440px; overflow: auto; padding: 2px 4px 2px 0; }
+.pk-karte { display: grid; gap: 7px; padding: 9px 11px; border-radius: 12px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-left: 3px solid var(--farbe-arbeiter, #6fb3ff); min-width: 0; }
+.pk-karte.kurier { border-left-color: var(--farbe-kurier, #ff9f43); }
+.pk-karte.service { border-left-color: var(--farbe-service, #8be9a8); }
+.pk-karte.scout { border-left-color: var(--farbe-scout, #c792ea); }
+.pk-karte.ist-du { border-left-color: var(--hud-magenta, #ff5fa2); background: rgba(255, 95, 162, 0.05); }
+.pk-karte:hover { background: rgba(255, 255, 255, 0.07); }
+.pk-kopf { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.pk-name { font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pk-du { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 99px; background: rgba(255, 95, 162, 0.2); color: var(--hud-magenta, #ff5fa2); }
+.pk-kopf .personal-sterne { font-size: 0.7rem; color: var(--hud-gelb, #ffd93d); white-space: nowrap; }
+.pk-rolle { margin-left: auto; font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); white-space: nowrap; }
+.pk-lohn { font-size: 0.72rem; color: var(--hud-leise); white-space: nowrap; }
+.pk-lohn b { color: var(--hud-text); font-variant-numeric: tabular-nums; }
+.pk-kopf .lz-symbol-knopf { flex: none; }
+.pk-mitte { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+.pk-feld { display: grid; gap: 2px; min-width: 0; font-size: 0.74rem; }
+.pk-feld > small, .pk-gruppe > small { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--hud-leise); }
+.pk-feld .personal-status { overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.pk-feld .kw-zuordnung { width: 100%; min-width: 0; font-size: 0.72rem; }
+.pk-fuss { display: grid; gap: 6px; padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.pk-gruppe { display: grid; grid-template-columns: 74px minmax(0, 1fr); align-items: center; gap: 6px; min-width: 0; }
+.pk-gruppe .personal-ausruestung { display: flex; flex-wrap: nowrap; gap: 0; margin: 0; min-width: 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.14); }
+.pk-gruppe .personal-ausruestung button { flex: 1 1 0; min-width: 0; margin: 0; border: 0; border-right: 1px solid rgba(255, 255, 255, 0.10); border-radius: 0; padding: 4px 4px; font-size: 0.64rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pk-gruppe .personal-ausruestung button:last-child { border-right: 0; }
+.pk-aktionen .personal-umschulen { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+.pk-zeile { font-size: 0.72rem; }
+.pk-aktionen .mini-knopf { font-size: 0.68rem; padding: 3px 9px; }
 .ez-wahl { margin-top: 8px; }
 .ez-wahl-titel { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
 .ez-kachel.aktiv { background: rgba(245, 197, 24, 0.16); border-color: rgba(245, 197, 24, 0.6); }
@@ -25095,7 +25124,7 @@ function zeichnePersonal() {
         return `<button type="button" data-aktion="ausruestung" data-stufe="${k.stufe}" aria-pressed="${p.stufe === k.stufe}" title="${titel}">${k.name}</button>`;
       }
       if (!stufeFreigeschaltet(k.stufe)) return `<button type="button" disabled title="Zuerst im Techtree erforschen (T)">🔒 ${k.name}</button>`;
-      return `<button type="button" data-aktion="ausruestung" data-stufe="${k.stufe}" aria-pressed="false" title="${titel}">${k.name} kaufen · ${euro(k.preis)}</button>`;
+      return `<button type="button" data-aktion="ausruestung" data-stufe="${k.stufe}" aria-pressed="false" title="${titel} – kaufen für ${euro(k.preis)}">${k.name} · ${euro(k.preis)}</button>`;
     }).join("") + `</div>`;
     // Phase 7a (Nachtrag 2): „Du" – kein Lohn, nicht entlassbar, Schalter „Flexibel"
     const du = p.istDu ? `<button class="mini-knopf" type="button" data-aktion="duFlexibel" aria-pressed="${!!p.flexibel}"
@@ -25115,18 +25144,28 @@ function zeichnePersonal() {
     const einsatz = p.rolle === "kurier" ? `<select class="kw-zuordnung" data-kw-person="${htmlSicher(p.id)}" aria-label="Kurierweg für ${htmlSicher(p.name)}"><option value="">Freie Aufträge</option>${spiel.kurierwege.map(r=>`<option value="${htmlSicher(r.id)}" ${p.kurierwegId===r.id?'selected':''}>${htmlSicher(r.name)}</option>`).join('')}</select>`
       : station ? `<b>${htmlSicher(gebaeudeName(station))}</b>${p.rolle === "scout" ? `<span class="pt-klein">Außenposten</span>` : ""}`
       : `<span class="pt-klein">${p.rolle === "scout" ? "kein Außenposten" : "keine Station"}</span>`;
-    return `<tr data-id="${p.id}" class="${p.istDu ? "ist-du" : ""}">
-        <td><span class="pt-name"><span class="personal-punkt ${p.rolle}"></span><b>${htmlSicher(p.name)}</b>${p.istDu ? ` <span class="personal-du">(du)</span>` : ""} <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${ep} EP)">${sterneText(stufe)}</span></span>
-          <span class="pt-klein">${ep} EP</span></td>
-        <td><b>${htmlSicher(rolleName)}</b><span class="pt-klein">${unter}</span></td>
-        <td>${einsatz}</td>
-        <td><span class="personal-status" data-status-id="${p.id}">${htmlSicher(personZustandText(p))}</span>${zulageZeile}</td>
-        <td>${p.istDu ? `<b>—</b><span class="pt-klein">kein Lohn</span>` : `<b>${euro(lohnVon(p))}</b><span class="pt-klein">pro Tag</span>`}</td>
-        <td class="pt-aktionen">${ausruestung}${umschulen || du ? `<span class="personal-umschulen">${umschulen}${du}</span>` : (!ausruestung ? `<span class="pt-klein">—</span>` : "")}</td>
-        <td>${p.istDu ? "" : (entlassFrageOffen(p.id)
-            ? `<button class="lz-symbol-knopf bestaetigen" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Noch einmal klicken: wirklich entlassen (Abfindung ${euro(abfindungVon(p))})">Sicher?</button>`
-            : `<button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>`)}</td>
-      </tr>`;
+    // 2026-10-12 (Tim): Karte statt enger Tabellenzeile – Kopf (Name, Rolle, Lohn, ✕), Status, Einsatz, Ausrüstung, Aktionen
+    const entlassen = p.istDu ? "" : (entlassFrageOffen(p.id)
+      ? `<button class="lz-symbol-knopf bestaetigen" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Noch einmal klicken: wirklich entlassen (Abfindung ${euro(abfindungVon(p))})">Sicher?</button>`
+      : `<button class="lz-symbol-knopf" type="button" data-aktion="entlassen" aria-label="${htmlSicher(p.name)} entlassen" title="Entlassen (Abfindung ${euro(abfindungVon(p))})">✕</button>`);
+    return `<article data-id="${p.id}" class="pk-karte ${p.rolle}${p.istDu ? " ist-du" : ""}">
+        <header class="pk-kopf">
+          <span class="personal-punkt ${p.rolle}"></span>
+          <b class="pk-name">${htmlSicher(p.name)}</b>${p.istDu ? `<span class="pk-du">du</span>` : ""}
+          <span class="personal-sterne" title="Erfahrungsstufe ${stufe} (${ep} EP)">${sterneText(stufe)}</span>
+          <span class="pk-rolle" title="${htmlSicher(unter)}">${htmlSicher(rolleName)}</span>
+          <span class="pk-lohn">${p.istDu ? "kein Lohn" : `<b>${euro(lohnVon(p))}</b> / Tag`}</span>
+          ${entlassen}
+        </header>
+        <div class="pk-mitte">
+          <span class="pk-feld"><small>Status</small><span class="personal-status" data-status-id="${p.id}">${htmlSicher(personZustandText(p))}</span></span>
+          <span class="pk-feld"><small>${p.rolle === "kurier" ? "Einsatz" : "Station"}</small>${einsatz}</span>
+          <span class="pk-feld"><small>${p.rolle === "kurier" ? "Traglast" : "Erfahrung"}</small><span>${p.rolle === "kurier" ? `${traglastVon(p)} Items / Gang` : `Stufe ${stufe} · ${ep} EP`}</span></span>
+        </div>
+        ${zulageZeile ? `<div class="pk-zeile">${zulageZeile}</div>` : ""}
+        ${ausruestung || umschulen || du ? `<div class="pk-fuss">${ausruestung ? `<span class="pk-gruppe"><small>Ausrüstung</small>${ausruestung}</span>` : ""}
+          ${umschulen || du ? `<span class="pk-gruppe pk-aktionen"><small>Tätigkeit</small><span class="personal-umschulen">${umschulen}${du}</span></span>` : ""}</div>` : ""}
+      </article>`;
   }).join("");
   // 2026-10-12: eigenes Fenster (früher Baumenü-Reiter); morphen statt ersetzen, damit Klicks und Auswahlfelder bleiben
   setzeHtml(ob.personalInhalt, `<div class="personal"><div class="kw-kopf"><b>Mitarbeiter</b><button class="lz-knopf" type="button" data-kw="oeffnen">Kurierwege</button></div>
@@ -25144,11 +25183,7 @@ function zeichnePersonal() {
       <label class="personal-auto"><input type="checkbox" data-aktion="autoZuweisung" ${spiel.autoZuweisung ? "checked" : ""}>
         Freie Arbeiter gehen selbst an freie Stationen</label>
       ${ohneAufgabeHtml()}
-      <div class="personal-tabelle-huelle"><table class="personal-tabelle">
-        <colgroup><col style="width:180px"><col style="width:150px"><col style="width:138px"><col style="width:188px"><col style="width:76px"><col><col style="width:36px"></colgroup>
-        <thead><tr><th>Name</th><th>Rolle</th><th>Einsatzort</th><th>Status</th><th>Lohn</th><th>Ausrüstung · Tätigkeit</th><th></th></tr></thead>
-        <tbody>${zeilen || `<tr><td colspan="7" class="info-leer">Noch niemand eingestellt.</td></tr>`}</tbody>
-      </table></div>
+      <div class="pk-liste">${zeilen || `<p class="info-leer">Noch niemand eingestellt.</p>`}</div>
     </div>`);
 }
 // Phase 7d: HR-071 – mehrere auf einmal einstellen (so viele, wie die Forschung erlaubt und Platz ist)

@@ -3526,6 +3526,7 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 .lz-kopf > .lz-einklappen { margin-left: auto; }
 .frei-fenster.eingeklappt > :not(header) { display: none !important; }
 .frei-fenster.eingeklappt { height: auto !important; min-height: 0 !important; }
+#lager-fenster .lager-spalten { flex: 1 1 auto; min-height: 0; overflow: auto !important; }   /* lange Listen scrollen im Fenster */
 #pause-fenster { width: min(380px, calc(100vw - 32px)) !important; height: auto !important; }
 #pause-fenster .pause-liste { display: grid; gap: 8px; padding: 16px 18px 4px; }
 #pause-fenster .pause-liste .lz-knopf { justify-content: flex-start; min-height: 42px; padding: 0 14px; font-size: 14px; display: flex; align-items: center; gap: 8px; }

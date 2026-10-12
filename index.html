@@ -13892,20 +13892,10 @@ function bestelle(g, item, n) {
   spiel.version++;
   return w;
 }
-// 2026-10-12 (Tim): Was zählt für „bis Soll“? Rückgabe { ist, unterwegs } für einen Rohstoff.
-//   ist       – liegt schon in der Halle: alle Lager, alle Importzonen und alle Zwischenlager (Regale, Kisten …)
-//   unterwegs – Kuriere tragen es gerade bzw. Lieferwagen bringen es (noch nicht abgeladen)
-// Eine Zone mit Band-Ablauf versorgt ihr Band direkt – dann zählt nur diese Zone und ihre eigenen Wagen.
-// Bisher fehlten Zwischenlager und Kuriere: Ware auf dem Weg ins Regal wurde ein zweites Mal bestellt.
+// 2026-10-12 (Tim, Nachbesserung): Jede Importzone rechnet für sich. „Bis Soll“ zählt nur, was in DIESER Zone
+// liegt, plus ihre eigenen Lieferwagen unterwegs – nicht den Bestand der ganzen Halle. Rückgabe { ist, unterwegs }.
 function importzonenStand(g, item) {
-  if (g && g.bandAblauf) {
-    return { ist: g.bestand[item] || 0, unterwegs: g.lieferwagen.reduce((s, w) => s + (w.abgeladen ? 0 : w.items[item] || 0), 0) };
-  }
-  let ist = hlMenge(item) + zonenMenge("importzone", item);
-  for (const z of gebaeudeListe(istZwischenlager)) ist += z.bestand[item] || 0;
-  let unterwegs = wagenUnterwegs(item);
-  for (const p of mitarbeiter) if (p.rolle === "kurier" && p.traegt) unterwegs += p.traegt[item] || 0;
-  return { ist, unterwegs };
+  return { ist: g.bestand[item] || 0, unterwegs: g.lieferwagen.reduce((s, w) => s + (w.abgeladen ? 0 : w.items[item] || 0), 0) };
 }
 // Der Wagen ist da: abladen, soweit Platz und Geld reichen; bezahlt wird nur, was abgeladen wurde
 function ladeLieferwagenAb(g, w) {
@@ -13942,8 +13932,7 @@ function importzonenSchritt() {
     for (const b of [...g.bestellungen]) {
       if (!bestellungAktiv(b) || spiel.zeit < b.naechste) continue;   // Entwurf: wartet auf Menge bzw. Rhythmus
       let n = b.menge;
-      // "bis Sollmenge": nur so viel, dass Bestand + Unterwegs die Menge erreichen (was zählt: importzonenStand).
-      // 2026-10-12 (Tim): Zone mit Band-Ablauf versorgt das Band direkt – dann zählt nur diese Zone (+ ihre Wagen).
+      // "bis Sollmenge": nur so viel, dass Zonenbestand + eigene Wagen die Menge erreichen (importzonenStand, je Zone).
       if (b.rhythmus === "bisSoll") {
         const st = importzonenStand(g, b.item);
         n = Math.max(0, b.menge - st.ist - st.unterwegs);
@@ -26180,8 +26169,7 @@ function izSoll(g,item) {
 function izStandHtml(g,item) {
   const {ist,unterwegs}=importzonenStand(g,item),soll=izSoll(g,item);
   const fehlt=soll>0&&ist+unterwegs<soll;
-  return '<span class="iz-stand'+(soll?'':' iz-aus')+'" title="Ist: in Lagern, Importzonen und Zwischenlagern'+(g.bandAblauf?' (Zone mit Band-Ablauf: nur diese Zone)':'')+
-    ' · unterwegs: Kuriere und Lieferwagen · Soll: bis zu dieser Menge wird nachbestellt"><b>'+ist+'</b> · <span class="iz-unterwegs">'+unterwegs+'</span> · <b class="'+(fehlt?'iz-fehlt':'')+'">'+(soll||'–')+'</b></span>';
+  return '<span class="iz-stand'+(soll?'':' iz-aus')+'" title="Ist: liegt in dieser Importzone · unterwegs: Lieferwagen dieser Zone · Soll: bis zu dieser Menge füllt der Lieferwagen diese Zone auf (jede Zone für sich)"><b>'+ist+'</b> · <span class="iz-unterwegs">'+unterwegs+'</span> · <b class="'+(fehlt?'iz-fehlt':'')+'">'+(soll||'–')+'</b></span>';
 }
 function importzoneHtml(g) {
   const zeilen=ROHSTOFFE.map(r=>{

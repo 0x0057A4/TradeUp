@@ -3872,6 +3872,130 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
   .iz-kopfzeile { display: none; }
 }
 </style>
+<style id="paket-rezepte-grafiken">
+/* === Paket Bandbau/Baumenü 2026-10-12 – Rezepte/Grafiken (B4–B7) ===============================
+   B6 Kategorie-Grafiken (kategorieGrafik, Abschnitt 13x2) · B7 Rezeptmenü der Werkbank (wb-…) ·
+   B5 große Rezeptkarte am Rand (rz-…) · B4 Hover-Schild im Baumenü (#bau-waren-schild, bs-…) */
+
+/* --- B6: Grafik statt Sonderzeichen --- */
+.kat-grafik { display: inline-grid; place-items: center; flex: none; line-height: 0; vertical-align: middle; }
+.kat-grafik svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Stellen, an denen CSS bisher das Zeichen zeigte (::before mit attr(data-symbol)): Grafik als Hintergrund */
+[data-kat-grafik]::before {
+  content: "" !important; text-shadow: none !important;
+  background-color: color-mix(in srgb, var(--kat-farbe, #9aa3ab) 26%, #f4f2ec) !important;
+  background-position: center !important; background-size: 86% !important; background-repeat: no-repeat !important;
+}
+#lz-palette .lz-gruppe[data-kat-grafik]::before { width: 24px; height: 24px; border-radius: 6px; }
+.rezepte-inhalt h3.mit-grafik { display: flex; align-items: center; gap: 8px; }
+.lz-kat .kat-grafik { pointer-events: none; }
+.lz-kat[aria-selected="true"] .kat-grafik { filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.55)); }
+.lz-ziel-teil .lz-kat-symbol.mit-grafik, .fo-symbol.mit-grafik {
+  background: color-mix(in srgb, var(--kat-farbe, #9aa3ab) 26%, #f4f2ec); text-shadow: none;
+}
+.fo-symbol.mit-grafik .kat-grafik { width: 20px !important; height: 20px !important; }
+.lager-falt-knopf .kat-grafik { margin: -3px 5px -3px 0; }
+.info-maschine .kat-grafik { margin: -5px 5px -5px 0; }
+.bau-symbol .kat-grafik { width: 30px; height: 30px; }
+
+/* --- B7: Rezeptmenü der Werkbank und der Maschinen --- */
+.wb-menue { display: grid; gap: 6px; margin: 4px 0 8px; min-width: 0; }
+.wb-zeile-kopf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 8px; align-items: center; }
+.wb-zeile-kopf .lz-suche { padding: 4px 8px; font-size: var(--groesse-klein); min-width: 0; }
+.wb-aktuell { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: var(--groesse-klein); }
+.wb-aktuell b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-aktuell .mini-knopf { margin-left: auto; flex: none; }
+.wb-gebraucht { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.16); }
+.wb-gebraucht > small { margin-right: 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.wb-kats { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 3px; }
+.wb-kat {
+  position: relative; display: grid; justify-items: center; gap: 0; padding: 3px 0 2px; min-width: 0; cursor: pointer;
+  font: inherit; color: inherit; background: color-mix(in srgb, var(--kat-farbe) 12%, rgba(255, 255, 255, 0.04));
+  border: 1px solid color-mix(in srgb, var(--kat-farbe) 45%, transparent); border-radius: 8px;
+}
+.wb-kat small { font-size: 10px; line-height: 1.1; font-variant-numeric: tabular-nums; opacity: 0.85; }
+.wb-kat:hover { border-color: var(--kat-farbe); }
+.wb-kat[aria-selected="true"] { background: color-mix(in srgb, var(--kat-farbe) 38%, rgba(255, 255, 255, 0.06)); border-color: var(--kat-farbe); box-shadow: inset 0 0 0 1px var(--kat-farbe); }
+.wb-kat.hat-rezept::after { content: ""; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--schiene, #f5c518); }
+.wb-kat.leer { opacity: 0.35; }
+.wb-titel { display: flex; align-items: center; gap: 6px; font-size: var(--groesse-klein); }
+.wb-titel small { opacity: 0.7; }
+.wb-matrix { display: grid; grid-template-columns: 20px repeat(5, minmax(0, 1fr)); gap: 3px; }
+.wb-matrix .wb-kopf { text-align: center; font-size: 10px; font-weight: 700; opacity: 0.6; }
+.wb-matrix .wb-linie { display: grid; place-items: center; font-size: 10px; font-weight: 700; opacity: 0.7; border-radius: 6px; background: color-mix(in srgb, var(--kat-farbe) 18%, transparent); cursor: help; }
+.wb-matrix .wb-leer { border-radius: 8px; border: 1px dashed rgba(255, 255, 255, 0.08); }
+.wb-liste, .wb-treffer { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 3px; }
+.wb-hinweis { opacity: 0.7; font-size: 10px; }
+.wb-kachel {
+  position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); grid-template-rows: auto auto; align-items: center; gap: 1px 4px;
+  min-width: 0; min-height: 50px; padding: 3px 4px 3px 5px; cursor: pointer; text-align: left;
+  font: inherit; font-size: 10.5px; line-height: 1.15; color: inherit;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); border-left: 3px solid var(--tier-farbe); border-radius: 8px;
+}
+.wb-kachel:hover:not(:disabled) { background: rgba(255, 255, 255, 0.10); border-color: rgba(255, 255, 255, 0.28); border-left-color: var(--tier-farbe); }
+.wb-kachel:focus-visible { outline: 2px solid var(--schiene, #f5c518); outline-offset: 1px; }
+.wb-kachel.aktiv { background: color-mix(in srgb, var(--schiene, #f5c518) 20%, rgba(255, 255, 255, 0.04)); border-color: var(--schiene, #f5c518); border-left-color: var(--tier-farbe); box-shadow: 0 0 0 1px var(--schiene, #f5c518); }
+.wb-kachel.gesperrt { opacity: 0.55; filter: grayscale(0.9); border-style: dashed; border-left-style: solid; cursor: help; }
+.wb-kachel.nicht { opacity: 0.18; cursor: not-allowed; }
+.wb-k-bild { position: relative; grid-row: 1 / span 2; display: grid; place-items: center; }
+.wb-k-schloss { position: absolute; right: -4px; top: -4px; font-size: 10px; line-height: 1; }
+.wb-k-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; }
+.wb-k-fuss { display: flex; align-items: center; justify-content: space-between; gap: 2px; min-width: 0; font-size: 9.5px; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.wb-k-roh { display: flex; gap: 2px; min-width: 0; overflow: hidden; }
+.wb-k-roh > span { display: inline-flex; align-items: center; gap: 0; }
+.wb-k-roh .ic.ware:hover::after { display: none; }
+.wb-k-zeit { flex: none; opacity: 0.8; }
+.wb-kachel.klein { display: inline-grid; grid-template-columns: 24px auto; grid-template-rows: auto; min-height: 0; max-width: 128px; padding: 2px 6px 2px 3px; }
+.wb-kachel.klein .wb-k-bild { grid-row: auto; }
+.wb-kachel.klein .wb-k-name { -webkit-line-clamp: 1; white-space: nowrap; text-overflow: ellipsis; display: block; }
+html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border-color: rgba(0, 0, 0, 0.14); border-left-color: var(--tier-farbe); }
+
+/* --- B5: angeheftete Rezepte – große Ansicht (Baum) --- */
+#rezept-stapel:has(.rezept-karte.gross) { width: 320px; }
+.rezept-karte.gross .rz-baum { display: grid; gap: 6px; margin-top: 6px; }
+.rz-produkt { display: grid; gap: 2px; }
+.rz-produkt small { opacity: 0.75; font-size: 10px; }
+.rezept-karte ul.rz-zweige { display: grid; gap: 4px; margin: 0 0 0 8px; padding: 0 0 0 10px; border-left: 2px solid rgba(255, 255, 255, 0.18); }
+.rezept-karte ul.rz-zweige > li.rz-zweig { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; align-items: center; }
+.rezept-karte ul.rz-zweige > li.rz-zweig .rezept-item .name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rezept-karte ul.rz-zweige > li.rz-zweig::before { content: ""; position: absolute; left: -10px; top: 17px; width: 9px; border-top: 2px solid rgba(255, 255, 255, 0.18); }
+.rz-rohe { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px; max-width: 120px; }
+.rz-roh { display: inline-flex; align-items: center; gap: 2px; padding: 1px 5px 1px 2px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.rz-summe { display: grid; gap: 3px; padding-top: 5px; border-top: 1px solid rgba(255, 255, 255, 0.16); }
+.rz-summe > small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.rz-summe > span { display: flex; flex-wrap: wrap; gap: 3px; }
+#rezept-stapel .rezept-karte header .mini-knopf[data-aktion="gross"][aria-pressed="true"] { color: var(--schiene, #f5c518); border-color: var(--schiene, #f5c518); }
+
+/* --- B4: Hover-Schild im Baumenü --- */
+#bau-waren-schild {
+  position: fixed; z-index: 400; max-width: min(560px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: hidden;
+  padding: 8px 10px 9px; border-radius: 12px; pointer-events: none;
+  color: #eef3f1; background: rgba(22, 28, 31, 0.96); border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  font: 12px/1.3 "IBM Plex Sans", system-ui, sans-serif;
+}
+#bau-waren-schild[hidden] { display: none; }
+#bau-waren-schild header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+#bau-waren-schild header b { font-size: 13px; }
+#bau-waren-schild header small { flex: 1; opacity: 0.75; }
+#bau-waren-schild p { margin: 0; max-width: 340px; }
+#bau-waren-schild .leise { opacity: 0.7; margin-top: 4px; }
+.bs-ware { position: relative; display: inline-grid; place-items: center; }
+.bs-ware.gesperrt .ic { filter: grayscale(1); opacity: 0.32; }
+.bs-ware > i { position: absolute; right: -3px; bottom: -3px; font-size: 8px; font-style: normal; line-height: 1; }
+.bs-ware.leer { border-radius: 3px; background: rgba(255, 255, 255, 0.04); }
+.bs-bloecke { display: grid; grid-template-columns: repeat(5, auto); gap: 6px 8px; }
+.bs-block { display: grid; gap: 3px; padding: 4px; border-radius: 8px; background: color-mix(in srgb, var(--kat-farbe) 10%, rgba(255, 255, 255, 0.03)); border: 1px solid color-mix(in srgb, var(--kat-farbe) 35%, transparent); }
+.bs-block-kopf { display: flex; align-items: center; gap: 3px; min-width: 0; }
+.bs-block-kopf em { margin-left: auto; font-style: normal; font-size: 9px; opacity: 0.75; white-space: nowrap; }
+.bs-block-kopf small { min-width: 0; max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9.5px; opacity: 0.85; }
+.bs-raster { display: grid; grid-template-columns: repeat(5, 16px); gap: 1px; }
+.bs-linien { display: grid; grid-template-columns: 22px repeat(5, 28px); gap: 3px; align-items: center; }
+.bs-linie { font-size: 10px; font-weight: 700; opacity: 0.7; text-align: center; }
+.bs-reihe { display: flex; gap: 6px; }
+.bs-blaupausen { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 4px; width: min(400px, calc(100vw - 40px)); }
+.bs-bp { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.bs-bp small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
 </head>
 <body>
 
@@ -8186,7 +8310,7 @@ function zeichneZiel(layout, bewertung) {
     const da = !fehlen.includes(k);
     const kat = kategorieNachId.get(k);   // Phase 7c (UI): Symbol und Farbe der Kategorie; Klick zeigt ihre Teile
     return `<button type="button" class="lz-ziel-teil ${da ? "da" : "fehlt"}" data-kat="${k}" style="--kat-farbe:${kat.farbe}"
-      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${da ? "✓" : "✗"} <span class="lz-kat-symbol" aria-hidden="true">${kat.symbol}</span>${htmlSicher(kat.name)}</button>`;
+      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${da ? "✓" : "✗"} <span class="lz-kat-symbol mit-grafik" aria-hidden="true">${kategorieGrafik(kat.id, 18)}</span>${htmlSicher(kat.name)}</button>`;
   }).join("");
   if (endprodukt) {
     html += `<span class="lz-ziel-teil ${tierOk ? "da" : "fehlt"}" title="Gehäuse-Tier mindestens T${endprodukt.tier}">${tierOk ? "✓" : "✗"} Gehäuse ≥ T${endprodukt.tier}</span>`;
@@ -8363,15 +8487,15 @@ function paletteSichtbar(b, suche) {
   if (lzPalette.nurFrei && !b.freigeschaltet && !istFreischaltbar(b.typ)) return false;
   return !suche || suchText(b.name).includes(suche) || suchText(b.nr).includes(suche);
 }
-function gruppeHtml(titel, symbol, farbe) {
-  return `<li class="lz-gruppe" data-symbol="${htmlSicher(symbol)}" style="--kat-farbe:${farbe}">${htmlSicher(titel)}</li>`;
+function gruppeHtml(titel, symbol, farbe, katId = "") {   // katId: Kategorie-Grafik statt Zeichen (B6)
+  return `<li class="lz-gruppe" data-symbol="${htmlSicher(symbol)}"${katId ? ` data-kat-grafik="${katId}"` : ""} style="--kat-farbe:${farbe}">${htmlSicher(titel)}</li>`;
 }
 // Kategorie-Reiter: "Alle" + 12 Kategorien (Punkt = dort ist etwas freischaltbar)
 function zeichneKategorieReiter() {
   const bereit = new Set(BAUTEILE.filter((b) => !b.freigeschaltet && istFreischaltbar(b.typ)).map((b) => b.kategorie));
   lzPalette.reiter.innerHTML = `<button class="lz-kat text" type="button" role="tab" data-kat="" aria-selected="${lzPalette.kategorie === ""}" title="Alle Kategorien">Alle</button>` +
     KATEGORIEN.map((k) => `<button class="lz-kat" type="button" role="tab" data-kat="${k.id}" style="--kat-farbe:${k.farbe}"
-      aria-selected="${lzPalette.kategorie === k.id}" aria-label="${htmlSicher(k.name)}" title="${htmlSicher(k.name)}">${k.symbol}${bereit.has(k.id) ? '<span class="lz-punkt" aria-hidden="true"></span>' : ""}</button>`).join("");
+      aria-selected="${lzPalette.kategorie === k.id}" aria-label="${htmlSicher(k.name)}" title="${htmlSicher(k.name)}">${kategorieGrafik(k.id, 24)}${bereit.has(k.id) ? '<span class="lz-punkt" aria-hidden="true"></span>' : ""}</button>`).join("");
 }
 function zeichnePalette() {
   zeichneKategorieReiter();
@@ -8384,7 +8508,7 @@ function zeichnePalette() {
   if (lzPalette.kategorie) {
     // Eine Kategorie: Linie für Linie (Reihen), darin nach Stufe
     const kat = kategorieNachId.get(lzPalette.kategorie);
-    html += gruppeHtml(kat.name, kat.symbol, kat.farbe);
+    html += gruppeHtml(kat.name, kat.symbol, kat.farbe, kat.id);
     for (let linie = 1; linie <= kat.linien.length; linie++) {
       const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && b.linie === linie && paletteSichtbar(b, suche));
       if (!teile.length) continue;
@@ -8396,7 +8520,7 @@ function zeichnePalette() {
     if (bereit.length) html += gruppeHtml("Bereit zum Freischalten", "🔓", "var(--farbe-akzent)") + bereit.map(bauteilKarteHtml).join("");
     for (const kat of KATEGORIEN) {
       const teile = BAUTEILE.filter((b) => b.kategorie === kat.id && !bereit.includes(b) && paletteSichtbar(b, suche));
-      if (teile.length) html += gruppeHtml(kat.name, kat.symbol, kat.farbe) + teile.map(bauteilKarteHtml).join("");
+      if (teile.length) html += gruppeHtml(kat.name, kat.symbol, kat.farbe, kat.id) + teile.map(bauteilKarteHtml).join("");
     }
   }
   if (!html.includes("<li><")) {
@@ -9665,6 +9789,243 @@ document.addEventListener("change", (e) => {
   const platz = feld.parentElement && feld.parentElement.querySelector(":scope > .kw-ware");
   if (platz) platz.innerHTML = feld.value ? wareHtml(feld.value, 24) : "";
 });
+
+/* ============================================================================
+   ABSCHNITT 13x2: Kategorie-Grafiken (Paket Bandbau/Baumenü 2026-10-12, B6)   [UI/UX-Agent]
+   13 feste Grafiken statt der Sonderzeichen ϟ ▣ ▤ … – je Komponenten-Kategorie ein kleines
+   Iso-Objekt im Stil der Ware-Symbole (13x) und des Leitstands, dazu die Gehäuse-Schale:
+     Energie = Batterie · Prozessoren = Chip · Speicher = RAM-Riegel · Displays = Bildschirm ·
+     Konnektivität = Antenne mit Funkwellen · Audio = Lautsprecher · Optik = Objektiv ·
+     Umwelt = Thermometer mit Blatt · Bewegung = Kreisel · Kühlung = Lüfter · Eingabe = Taste ·
+     Mechanik = Zahnrad · Gehäuse = Gehäuse-Schale
+   kategorieGrafik(id, px)     – HTML (<span class="kat-grafik">) für Fenster und Reiter
+   kategorieGrafikDatenUrl(id) – eigenständiges SVG als data:-URL (CSS-Hintergrund, Canvas)
+   kategorieGrafikBild(id)     – geladenes Bild für Canvas-Texturen (Kartondeckel in 3D), sonst null
+   Wo nur CSS ein Zeichen zeigen kann (::before mit attr(data-symbol)), setzt der Code zusätzlich
+   data-kat-grafik="<id>" – das Stylesheet unten tauscht das Zeichen dann gegen die Grafik.
+   Die Grafiken entstehen einmal beim ersten Gebrauch (Cache), keine Arbeit pro Frame.
+   ============================================================================ */
+var katGrafikBereit = false;   // var: die Designer-Leiste fragt schon beim Laden (vor diesem Abschnitt) danach
+class KatIso extends Iso {
+  // Zeichnung direkt im Bild-Raum (Funkwellen, Ringe); punkte = Ecken, damit das Bild groß genug wird
+  roh(svg, ...punkte) { punkte.forEach(([a, b]) => this.merk(a, b)); this.teile.push(svg); }
+}
+const KAT_GRAFIK_METALL = "#c9d1d8", KAT_GRAFIK_DUNKEL = "#2b3036";
+// Zahnrad-Umriss (Koordinaten −50 … 50), auch für die Flach-Zeichnung
+function katZahnradPunkte(zaehne = 10, aussen = 47, innen = 36) {
+  const p = [];
+  for (let i = 0; i < zaehne * 4; i++) {
+    const w = (i / (zaehne * 4)) * Math.PI * 2, r = i % 4 < 2 ? aussen : innen;
+    p.push(isoZ2(Math.cos(w) * r) + "," + isoZ2(Math.sin(w) * r));
+  }
+  return p.join(" ");
+}
+const KAT_GRAFIK_BAU = {
+  // Batterie: dunkler Mantel, Banderole in Kategorie-Farbe mit Blitz, silberner Pluspol
+  energie: (g, f) => {
+    g.zylinder(0, 0, 0, 7.5, 3, KAT_GRAFIK_DUNKEL);
+    g.zylinder(0, 0, 3, 7.5, 11, f, { o: 0.25 });
+    g.zylinder(0, 0, 14, 7.5, 6, KAT_GRAFIK_DUNKEL);
+    g.zylinder(0, 0, 20, 7.3, 0.8, KAT_GRAFIK_METALL);
+    g.zylinder(0, 0, 20.8, 2.8, 2.2, KAT_GRAFIK_METALL);
+    const [cx, cy] = isoP(0, 0, 8.5);
+    g.roh(`<g transform="translate(${isoZ2(cx)} ${isoZ2(cy + 4.2)}) scale(0.115)"><polygon points="10,-48 -28,6 -3,6 -12,48 28,-8 3,-8 16,-48" fill="${KAT_GRAFIK_DUNKEL}"/></g>`);
+  },
+  // Chip: schwarzes Gehäuse mit Beinchen an allen Seiten, Kern in Kategorie-Farbe
+  prozessoren: (g, f) => {
+    const pins = [-7.5, -2.5, 2.5, 7.5];
+    for (const p of pins) { g.quader(p - 1, -12.4, 0.4, 2, 2.6, 1, KAT_GRAFIK_METALL); g.quader(-12.4, p - 1, 0.4, 2.6, 2, 1, KAT_GRAFIK_METALL); }
+    g.quader(-10, -10, 0, 20, 20, 3.4, KAT_GRAFIK_DUNKEL, { o: 0.12 });
+    for (const p of pins) { g.quader(p - 1, 9.8, 0.4, 2, 2.6, 1, KAT_GRAFIK_METALL); g.quader(9.8, p - 1, 0.4, 2.6, 2, 1, KAT_GRAFIK_METALL); }
+    g.quader(-5.6, -5.6, 3.4, 11.2, 11.2, 1.4, f, { o: 0.2 });
+    g.auf(0, 0, 4.8, 0.085, `<rect x="-36" y="-36" width="72" height="72" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="5"/>` +
+      `<path d="M-20,-36 V36 M0,-36 V36 M20,-36 V36" stroke="#fff" stroke-opacity="0.3" stroke-width="3"/>`);
+    g.auf(-7.2, -7.2, 3.4, 0.03, `<circle r="40" fill="#fff" fill-opacity="0.75"/>`);
+  },
+  // RAM-Riegel: grüne Platine hochkant, schwarze Speicherchips, Goldkontakte, Etikett in Kategorie-Farbe
+  speicher: (g, f) => {
+    g.quader(-13, -1.1, 0, 26, 2.2, 11, "#2f7d4f", { o: 0.18 });
+    let kontakte = "";
+    for (let i = 0; i < 17; i++) { const x = -47 + i * 5.6; if (Math.abs(x + 12) > 3) kontakte += `<rect x="${isoZ2(x)}" y="-9" width="3.4" height="8" fill="#e0b84e"/>`; }
+    g.auf(0, 1.1, 0, 0.26, kontakte + `<rect x="-14" y="-9" width="4" height="9" fill="#1d2226"/><rect x="-46" y="-40" width="92" height="3.2" fill="${f}"/>`, "links");
+    for (let i = 0; i < 4; i++) g.quader(-11.6 + i * 6.1, 1.1, 3.4, 4.6, 0.9, 5.4, "#23272c", { o: 0.2 });
+    g.auf(-8.0, 2.0, 6.1, 0.035, `<circle r="30" fill="${f}"/>`, "links");
+  },
+  // Bildschirm: Fuß, Hals und Rahmen; die Fläche leuchtet in der Kategorie-Farbe
+  displays: (g, f) => {
+    g.quader(-6, -4.5, 0, 12, 9, 1.2, "#3a4048");
+    g.quader(-1.2, -1.6, 1.2, 2.4, 2.4, 6, "#4a515a");
+    g.quader(-13, 0.8, 4.6, 26, 1.8, 16.4, KAT_GRAFIK_DUNKEL, { o: 0.15 });
+    const glanz = isoVerlauf(`<linearGradient x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${isoTon(f, 0.35)}"/><stop offset="0.6" stop-color="${f}"/><stop offset="1" stop-color="${isoTon(f, -0.35)}"/></linearGradient>`);
+    g.auf(0, 2.6, 4.6, 0.26, `<rect x="-45" y="-58" width="90" height="51" rx="2" fill="${glanz}"/>` +
+      `<path d="M-38,-18 L-20,-32 L-6,-24 L14,-44 L36,-34" stroke="#fff" stroke-opacity="0.85" stroke-width="3.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>` +
+      `<path d="M10,-58 L30,-58 L-2,-7 L-22,-7 Z" fill="#fff" fill-opacity="0.12"/>`, "links");
+  },
+  // Antenne: Funkmodul als Sockel, Mast mit Kugel in Kategorie-Farbe, Funkwellen links und rechts
+  konnektivitaet: (g, f) => {
+    g.quader(-6.5, -6.5, 0, 13, 13, 4, KAT_GRAFIK_DUNKEL, { o: 0.15 });
+    g.auf(0, 6.5, 0, 0.13, `<circle cx="-26" cy="-15" r="7" fill="${f}"/><rect x="-6" y="-21" width="34" height="12" rx="3" fill="#4a515a"/>`, "links");
+    g.zylinder(0, 0, 4, 1.05, 14.5, KAT_GRAFIK_METALL);
+    g.kugel(0, 0, 20.2, 2.5, f);
+    const [cx, cy] = isoP(0, 0, 20.2);
+    let wellen = "";
+    [5.2, 8.6, 12].forEach((r, i) => {
+      for (const s of [1, -1]) {
+        const a1 = -0.62, a2 = 0.62, x1 = cx + s * r * Math.cos(a1), y1 = cy + r * Math.sin(a1), x2 = cx + s * r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+        wellen += `<path d="M${isoZ2(x1)},${isoZ2(y1)} A${r},${r} 0 0 ${s > 0 ? 1 : 0} ${isoZ2(x2)},${isoZ2(y2)}" fill="none" stroke="${f}" stroke-width="1.7" stroke-linecap="round" stroke-opacity="${[1, 0.75, 0.5][i]}"/>`;
+      }
+    });
+    g.roh(wellen, [cx - 13, cy - 8], [cx + 13, cy + 8]);
+  },
+  // Lautsprecher: Box mit Tieftöner (Membran in Kategorie-Farbe) und Hochtöner
+  audio: (g, f) => {
+    g.quader(-8, -7, 0, 16, 14, 22, KAT_GRAFIK_DUNKEL, { o: 0.14 });
+    const membran = isoVerlauf(`<radialGradient cx="0.42" cy="0.4" r="0.65"><stop offset="0" stop-color="${isoTon(f, 0.4)}"/><stop offset="0.7" stop-color="${f}"/><stop offset="1" stop-color="${isoTon(f, -0.4)}"/></radialGradient>`);
+    g.auf(0, 7, 0, 0.16, `<circle cx="0" cy="-48" r="38" fill="#15181c" stroke="${isoTon(f, -0.15)}" stroke-width="5"/>` +
+      `<circle cx="0" cy="-48" r="27" fill="${membran}"/><circle cx="0" cy="-48" r="9" fill="#23272c"/>` +
+      `<circle cx="0" cy="-109" r="16" fill="#15181c" stroke="${isoTon(f, -0.15)}" stroke-width="4"/><circle cx="0" cy="-109" r="7.5" fill="${f}"/>`, "links");
+  },
+  // Objektiv: liegender Tubus mit Ring in Kategorie-Farbe, vorn die Glaslinse mit Spiegelung
+  optik: (g, f) => {
+    g.rolle(-10, -2, 0, 10, 8.6, "#2a2e33");
+    g.rolle(-2, 0.6, 0, 10, 9, f);
+    g.rolle(0.6, 7, 0, 10, 10, "#3a3f46");
+    const glas = isoVerlauf(`<radialGradient cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#cfe6ff"/><stop offset="0.45" stop-color="${isoTon(f, 0.25)}"/><stop offset="1" stop-color="#101418"/></radialGradient>`);
+    g.auf(7.02, 0, 10, 0.2, `<circle r="44" fill="#15181c"/><circle r="35" fill="${glas}"/><circle r="35" fill="none" stroke="${isoTon(f, 0.2)}" stroke-width="3"/>` +
+      `<ellipse cx="-12" cy="-13" rx="11" ry="6" transform="rotate(-35 -12 -13)" fill="#fff" fill-opacity="0.7"/>`, "rechts");
+  },
+  // Thermometer mit Blatt: Glasröhre mit roter Säule und Kugel, daneben ein liegendes Blatt in Kategorie-Farbe
+  umwelt: (g, f) => {
+    g.auf(5, 4, 0, 0.21, `<path d="M-40,30 C-34,-10 -6,-40 44,-44 C40,4 10,34 -40,30 Z" fill="${f}" stroke="${isoTon(f, -0.45)}" stroke-width="3"/>` +
+      `<path d="M-40,30 C-12,6 12,-18 34,-36 M-8,4 L-8,-16 M8,-10 L20,-6 M-22,16 L-30,0" stroke="${isoTon(f, -0.4)}" stroke-width="3" fill="none" stroke-linecap="round"/>`);
+    for (const [dx, dy] of [[-9, -9], [9, -9], [9, 9], [-9, 9]]) g.merk(...isoP(5 + dx, 4 + dy, 0));   // auf() merkt sich keine Größe
+    g.zylinder(-3, -1, 3, 2.8, 18, "#eef3f6", { op: 0.92 });
+    g.zylinder(-3, -1, 3, 1.15, 11, "#d8473c");
+    const [cx, cy] = isoP(-3, -1, 3);
+    let skala = "";
+    for (let i = 0; i < 5; i++) skala += `<path d="M${isoZ2(cx + 1.4)},${isoZ2(cy - 6 - i * 2.8)} h1.7" stroke="#59636b" stroke-width="0.55"/>`;
+    g.roh(skala);
+    g.kugel(-3, -1, 2.6, 4.1, "#d8473c");
+  },
+  // Kreisel: Standfuß, stehender Ring, Rotor-Scheibe in Kategorie-Farbe, waagrechter Ring davor
+  bewegung: (g, f) => {
+    g.zylinder(0, 0, 0, 5, 1.4, "#3a4048");
+    g.zylinder(0, 0, 1.4, 0.7, 4, KAT_GRAFIK_METALL);
+    const [cx, cy] = isoP(0, 0, 13), R = 10.5, rx = R * 1.2247, ry = R * 0.7071;
+    const ring = (d, breite = 1.5) => `<path d="${d}" fill="none" stroke="#8a949c" stroke-width="${breite + 0.9}" stroke-linecap="round"/><path d="${d}" fill="none" stroke="#dfe5ea" stroke-width="${breite}" stroke-linecap="round"/>`;
+    const oval = (breite = 1.5) => [["#8a949c", breite + 0.9], ["#dfe5ea", breite]].map(([farbe, b]) =>
+      `<ellipse cx="${isoZ2(cx)}" cy="${isoZ2(cy)}" rx="${isoZ2(R * 0.82)}" ry="${isoZ2(R * 1.02)}" fill="none" stroke="${farbe}" stroke-width="${b}"/>`).join("");
+    g.roh(oval(), [cx - rx, cy - R * 1.1], [cx + rx, cy + R * 1.05]);   // stehender Ring (fast von vorn gesehen)
+    g.roh(ring(`M${isoZ2(cx - rx)},${isoZ2(cy)} A${isoZ2(rx)},${isoZ2(ry)} 0 0 1 ${isoZ2(cx + rx)},${isoZ2(cy)}`));
+    g.zylinder(0, 0, 5.4, 0.7, 7, KAT_GRAFIK_METALL);
+    g.zylinder(0, 0, 11.8, 7, 2.4, f, { o: 0.22 });
+    g.auf(0, 0, 14.2, 0.07, `<circle r="70" fill="none" stroke="#fff" stroke-opacity="0.45" stroke-width="7"/><path d="M-50,0 A50,50 0 0 1 0,-50" stroke="#fff" stroke-opacity="0.8" stroke-width="9" fill="none"/>`);
+    g.zylinder(0, 0, 14.2, 0.7, 6.4, KAT_GRAFIK_METALL);
+    g.kugel(0, 0, 21, 1.4, KAT_GRAFIK_METALL);
+    g.roh(ring(`M${isoZ2(cx - rx)},${isoZ2(cy)} A${isoZ2(rx)},${isoZ2(ry)} 0 0 0 ${isoZ2(cx + rx)},${isoZ2(cy)}`));
+  },
+  // Lüfter: flacher Rahmen, darin sieben Flügel in Kategorie-Farbe um die Nabe
+  kuehlung: (g, f) => {
+    g.quader(-11, -11, 0, 22, 22, 5, KAT_GRAFIK_DUNKEL, { o: 0.12 });
+    let fluegel = "";
+    for (let i = 0; i < 7; i++) fluegel += `<path d="M0,-11 C12,-16 28,-30 25,-44 C12,-42 2,-28 0,-11 Z" transform="rotate(${isoZ2(i * 360 / 7)})" fill="${f}" stroke="${isoTon(f, -0.45)}" stroke-width="2"/>`;
+    g.auf(0, 0, 5, 0.21, `<circle r="46" fill="#15181c"/>${fluegel}<circle r="14" fill="#3a4048" stroke="#15181c" stroke-width="2"/><circle r="6" fill="${f}"/>` +
+      [[-41, -41], [41, -41], [-41, 41], [41, 41]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.5" fill="#15181c"/>`).join(""));
+  },
+  // Taste: Schalter-Sockel, darauf die Tastenkappe (oben schmaler) mit Eingabe-Pfeil
+  eingabe: (g, f) => {
+    g.quader(-11, -11, 0, 22, 22, 2.6, KAT_GRAFIK_DUNKEL, { o: 0.12 });
+    g.barren(-9.2, -9.2, 2.6, 18.4, 18.4, 8.4, f, 2.6, 0.24);
+    g.auf(0, 0, 11, 0.11, `<rect x="-55" y="-55" width="110" height="110" rx="16" fill="${isoTon(f, 0.34)}" stroke="${isoTon(f, -0.2)}" stroke-width="3"/>` +
+      `<path d="M28,-28 V10 H-24 M-8,-6 L-26,10 L-8,26" stroke="${KAT_GRAFIK_DUNKEL}" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+  },
+  // Zahnrad: liegend, aus Schichten aufgebaut (Seite dunkler), Achse aus Metall
+  mechanik: (g, f) => {
+    const punkte = katZahnradPunkte(), seite = isoTon(f, -0.32);
+    for (let z = 0; z < 4.5; z += 0.5) g.auf(0, 0, z, 0.24, `<polygon points="${punkte}" fill="${seite}"${z === 0 ? ` stroke="${isoTon(f, -0.55)}" stroke-width="2.5"` : ""}/>`);
+    g.auf(0, 0, 4.5, 0.24, `<polygon points="${punkte}" fill="${isoTon(f, 0.14)}" stroke="${isoTon(f, -0.5)}" stroke-width="2.2"/>` +
+      `<circle r="26" fill="none" stroke="${isoTon(f, -0.15)}" stroke-width="3"/><circle r="13" fill="#1d2226"/>`);
+    g.zylinder(0, 0, 1, 1.5, 5.8, KAT_GRAFIK_METALL);
+    for (const z of [0, 4.5]) {   // auf() merkt sich keine Größe: Umriss des Rads (Ellipse) eintragen
+      const [cx, cy] = isoP(0, 0, z), r = 11.3;
+      g.merk(cx - r * 1.2247, cy); g.merk(cx + r * 1.2247, cy); g.merk(cx, cy - r * 0.7071); g.merk(cx, cy + r * 0.7071);
+    }
+  },
+  // Gehäuse-Schale: offene Wanne mit Schraubdomen (wie ISO_BAU.geh, in neutralem Metallgrau)
+  gehaeuse: (g, f) => ISO_BAU["geh"](g, f),
+};
+const KAT_GRAFIK_GEHAEUSE_FARBE = "#8e9aa6";
+const KAT_GRAFIK_IDS = [...KATEGORIEN.map((k) => k.id), "gehaeuse"];
+function kategorieGrafikFarbe(id) { return id === "gehaeuse" ? KAT_GRAFIK_GEHAEUSE_FARBE : (isoKategorie.get(id)?.farbe || "#b9a07a"); }
+function kategorieGrafikName(id) { return id === "gehaeuse" ? "Gehäuse" : (isoKategorie.get(id)?.name || id); }
+const katGrafikSpeicher = new Map();   // id → { svg (Text), url (data:-URL), bild (Image) }
+function katGrafikEintrag(id) {
+  let e = katGrafikSpeicher.get(id);
+  if (!e) {
+    const bau = KAT_GRAFIK_BAU[id];
+    const g = new KatIso();
+    if (bau) bau(g, kategorieGrafikFarbe(id)); else ISO_BAU["karton"](g, kategorieGrafikFarbe(id));
+    e = { svg: g.svg(1.2), url: null, bild: null };
+    katGrafikSpeicher.set(id, e);
+  }
+  return e;
+}
+// Grafik als HTML (Breite = Höhe = px). titel = Hover-Text (leer: keiner, der Name steht meist daneben)
+// Vor diesem Abschnitt (Designer-Leiste beim Laden) gibt es die Grafiken noch nicht: dann das alte Zeichen
+function kategorieGrafik(id, px = 22, titel = "") {
+  if (!katGrafikBereit) return id === "gehaeuse" ? "▢" : (KATEGORIEN.find((k) => k.id === id)?.symbol || "");
+  const svg = katGrafikEintrag(id).svg.replace("<svg ", `<svg width="${px}" height="${px}" `);
+  isoVerlaeufeEinhaengen();
+  return `<span class="kat-grafik" data-kat="${htmlSicher(id)}" style="width:${px}px;height:${px}px"${titel ? ` title="${htmlSicher(titel)}"` : ' aria-hidden="true"'}>${svg}</span>`;
+}
+// Eigenständiges SVG (mit eigenen Verläufen) als data:-URL – für CSS-Hintergründe und Canvas
+function kategorieGrafikDatenUrl(id) {
+  const e = katGrafikEintrag(id);
+  if (!e.url) {
+    const ids = new Set([...e.svg.matchAll(/url\(#(iso-v\d+)\)/g)].map((m) => m[1]));
+    const defs = [...isoVerlaeufe.nachText].filter(([, vid]) => ids.has(vid)).map(([def, vid]) => def.replace(/^<(\w+)/, `<$1 id="${vid}"`)).join("");
+    const svg = e.svg.replace("<svg ", `<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" `).replace(/(<svg[^>]*>)/, `$1<defs>${defs}</defs>`);
+    e.url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  return e.url;
+}
+// Geladenes Bild (für drawImage) oder null, solange es noch lädt; beiFertig wird nach dem Laden einmal aufgerufen
+function kategorieGrafikBild(id, beiFertig = null) {
+  const e = katGrafikEintrag(id);
+  if (!e.bild) {
+    e.bild = new Image();
+    e.warten = [];
+    e.bild.onload = () => { const w = e.warten; e.warten = []; w.forEach((f) => { try { f(e.bild); } catch (fehler) { console.warn(fehler); } }); };
+    e.bild.src = kategorieGrafikDatenUrl(id);
+  }
+  if (e.bild.complete && e.bild.naturalWidth > 0) return e.bild;
+  if (beiFertig) e.warten.push(beiFertig);
+  return null;
+}
+// Grafik auf ein Canvas malen (Mitte cx/cy, Kantenlänge s). Noch nicht geladen: false (dann Ersatz malen)
+function maleKategorieGrafik(k, id, cx, cy, s, beiFertig = null) {
+  const bild = kategorieGrafikBild(id, beiFertig);
+  if (!bild) return false;
+  k.drawImage(bild, cx - s / 2, cy - s / 2, s, s);
+  return true;
+}
+// Stylesheet für alle Stellen, an denen bisher CSS das Zeichen zeigte (::before mit attr(data-symbol))
+(function katGrafikStylesheet() {
+  if (typeof document === "undefined" || !document.head) return;
+  const stil = document.createElement("style");
+  stil.id = "kat-grafik-stil";
+  stil.textContent = KAT_GRAFIK_IDS.map((id) => `[data-kat-grafik="${id}"]::before{background-image:url("${kategorieGrafikDatenUrl(id)}") !important}`).join("\n");
+  document.head.appendChild(stil);
+  KAT_GRAFIK_IDS.forEach((id) => kategorieGrafikBild(id));   // vorladen: Kartondeckel in 3D brauchen das Bild
+})();
+katGrafikBereit = true;
+zeichnePalette();   // Designer-Leiste wurde beim Laden noch mit Zeichen gebaut – jetzt mit Grafiken
+// Test-Schnittstelle (window.tradeUp entsteht erst am Ende des Skripts – deshalb als Mikro-Aufgabe danach)
+queueMicrotask(() => window.tradeUp && Object.assign(window.tradeUp, {
+  KAT_GRAFIK_IDS, kategorieGrafik, kategorieGrafikDatenUrl, kategorieGrafikBild, kategorieGrafikName,
+  werkbankWahl, werkbankRezeptHtml, werkbankGebraucht, waehleWerkbankRezept, rezeptBaumHtml, bauSchildHtml, zeigeBauSchild,
+  waehleGebaeude, zeichneRezeptStapel, oeffneDesigner,
+}));
 
 /* --- Kleine Helfer für Bestände (Objekte wie { eisen: 3, akku: 1 }) --- */
 function summe(bestand) {
@@ -20523,15 +20884,20 @@ const MASCHINEN_LOOK = (() => {
         k.fillStyle = "rgba(255,255,255,0.32)"; k.fillRect(w / 2 - 11, 0, 22, 35);
         maleSymbol(k, kat.id, w - 25, h - 26, 23, tief, kat.farbe);
       }, false);
-      const deckel = textur(256, 256, (k, w, h) => {
+      // B6 (Paket Bandbau/Baumenü): Etikett zeigt die Kategorie-Grafik; solange das Bild noch lädt, das alte
+      // Vektor-Zeichen – danach wird der Deckel einmal neu gemalt (needsUpdate)
+      const deckelMalen = (k, w, h) => {
         pappe(k, w, h, kat.farbe);
         k.fillStyle = "rgba(0,0,0,0.22)"; k.fillRect(w / 2 - 2, 0, 4, h);
         k.fillStyle = "rgba(255,255,255,0.32)"; k.fillRect(w / 2 - 22, 0, 44, h);
         k.fillStyle = "rgba(0,0,0,0.25)"; k.beginPath(); k.roundRect(w / 2 - 78, h / 2 - 74, 156, 156, 22); k.fill();
         k.fillStyle = "#fbfaf6"; k.beginPath(); k.roundRect(w / 2 - 80, h / 2 - 80, 160, 160, 22); k.fill();
         k.strokeStyle = tief; k.lineWidth = 6; k.beginPath(); k.roundRect(w / 2 - 70, h / 2 - 70, 140, 140, 16); k.stroke();
-        maleSymbol(k, kat.id, w / 2, h / 2, 104, tief, "#fbfaf6");
-      }, false);
+        if (!maleKategorieGrafik(k, kat.id, w / 2, h / 2, 124, () => { deckelMalen(deckel.image.getContext("2d"), w, h); deckel.needsUpdate = true; })) {
+          maleSymbol(k, kat.id, w / 2, h / 2, 104, tief, "#fbfaf6");
+        }
+      };
+      const deckel = textur(256, 256, deckelMalen, false);
       const mS = new THREE.MeshStandardMaterial({ map: seite, roughness: 0.88 });
       const mD = new THREE.MeshStandardMaterial({ map: deckel, roughness: 0.82 });
       return [mS, mS, mD, mS, mS, mS];   // +x, −x, +y (Deckel), −y, +z, −z
@@ -21618,10 +21984,17 @@ const MASCHINEN_LOOK = (() => {
   // Leuchtschild mit dem Symbol der Kategorie; (x, y, z) = Mitte
   function symbolSchild(g, x, y, z, katId, gross = 0.2) {
     const kat = kategorieNachId.get(katId);
-    const m = ersatz || merke("symbol:" + katId, () => new THREE.MeshStandardMaterial({ roughness: 0.5, map: textur(128, 128, (k, w, h) => {
-      k.fillStyle = "#fbfaf6"; k.beginPath(); k.roundRect(4, 4, w - 8, h - 8, 18); k.fill();
-      maleSymbol(k, katId, w / 2, h / 2, 76, dunkler(kat.farbe, 0.25), "#fbfaf6");
-    }, false) }));
+    const m = ersatz || merke("symbol:" + katId, () => {
+      // B6: Kategorie-Grafik auf dem Schild (Ersatz: Vektor-Zeichen, bis das Bild geladen ist)
+      const malen = (k, w, h) => {
+        k.fillStyle = "#fbfaf6"; k.beginPath(); k.roundRect(4, 4, w - 8, h - 8, 18); k.fill();
+        if (!maleKategorieGrafik(k, katId, w / 2, h / 2, 104, () => { k.clearRect(0, 0, w, h); malen(k, w, h); t.needsUpdate = true; })) {
+          maleSymbol(k, katId, w / 2, h / 2, 76, dunkler(kat.farbe, 0.25), "#fbfaf6");
+        }
+      };
+      const t = textur(128, 128, malen, false);
+      return new THREE.MeshStandardMaterial({ roughness: 0.5, map: t });
+    });
     const s = new THREE.Mesh(new THREE.PlaneGeometry(gross, gross), m);
     s.position.set(x, y, z);
     g.add(s);
@@ -24019,7 +24392,8 @@ const zug = { start: null, ende: null, shift: false, plan: null };   // Phase 6:
 // Phase 7c: Komponenten und Gehäuse zeigen ihr Symbol im Farbfeld (CSS .info-item[data-symbol]) – nur Optik,
 // der Text der Zeile bleibt gleich
 function symbolAttr(info) {
-  return info && info.symbol && (info.kategorie || info.art === "gehaeuse") ? ` data-symbol="${htmlSicher(info.symbol)}"` : "";
+  return info && info.symbol && (info.kategorie || info.art === "gehaeuse")
+    ? ` data-symbol="${htmlSicher(info.symbol)}" data-kat-grafik="${info.art === "gehaeuse" ? "gehaeuse" : htmlSicher(info.kategorie)}"` : "";   // B6: Grafik statt Zeichen
 }
 // Liste von Items als Zeilen: Name | Menge (| Soll). "markiere(id)" liefert einen Zusatztext (Phase 5).
 function itemZeilen(bestand, soll = null, markiere = null) {
@@ -24203,7 +24577,7 @@ function zeichneBauInhalt() {
     const sperre = bauSperre(t.typ);               // Phase 7d: noch nicht erforscht → Schloss; Klick zeigt den Forschungseintrag
     return `<button class="bau-karte${sperre ? " gesperrt" : ""}" type="button" data-typ="${t.typ}" aria-pressed="${!!gewaehlt}" ${voll ? "disabled" : ""}
         ${sperre ? `data-forschung="${bauForschungVon(t.typ)}"` : ""} title="${htmlSicher(sperre ? `${sperre} Klick zeigt den Eintrag.` : t.beschreibung)}">
-        <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.symbol}</span>
+        <span class="bau-symbol" aria-hidden="true">${sperre ? "🔒" : t.katMaschine ? kategorieGrafik(t.katMaschine, 30) : t.symbol}</span>
         <span><b>${t.name}</b>
           <small>${t.breite} × ${t.tiefe} Kacheln · ${bauKartenWerte(t)}</small>
           ${voll ? "<small>steht schon in der Halle</small>"
@@ -25222,7 +25596,7 @@ function zeichneInfo() {
   // Die Maschinenart steht bereits im Fenstertitel; der ausführliche Infoblock
   // entfällt zugunsten einer kurzen, übersichtlichen Objektansicht.
   if (t.art === "werkbank") {
-    html += werkbankRezeptHtml(g);   // Phase 7c (UI): Suche + Kategorie, Gehäuse oben, nur freigeschaltete
+    html += werkbankRezeptHtml(g);   // B7 (Paket Bandbau/Baumenü): Kategorie-Kacheln, Matrix 5 × 5, Schnellzeile „Gebraucht“
   } else if (t.art === "montage") {
     const liste = [...blaupausenNachId.values()].sort((a, b) => a.name.localeCompare(b.name) || (b.produktVersion || 1) - (a.produktVersion || 1));
     const fehlt = g.rezept && !blaupausenNachId.has(g.rezept);
@@ -25336,58 +25710,199 @@ function maschinenInfoHtml(g) {
   const kann = r.art === "produkt" ? "Produkte nach Blaupause"
     : r.art === "gehaeuse" ? (r.nur ? r.nur.map((id) => herstellbarNachTyp.get(id)?.name || id).join(" und ") : "alle Gehäuse")
     : r.art === "bauteil" ? (r.kategorie ? `Komponenten der Kategorie ${KATEGORIEN.find((k) => k.id === r.kategorie)?.name || r.kategorie}` : `${r.tier ? r.tier + "-" : ""}Komponenten`) : "–";
+  const grafik = r.art === "gehaeuse" ? kategorieGrafik("gehaeuse", 22) : r.kategorie ? kategorieGrafik(r.kategorie, 22) : "";   // B6
   const seiteText = { hinten: "hinten", vorn: "vorn", links: "links", rechts: "rechts" };
   const tore = t.tore ? `<span>Tore: <b style="color:#3fb950">Eingang ${seiteText[t.tore.ein.seite]}</b> · <b style="color:#f85149">Ausgang ${seiteText[t.tore.aus.seite]}</b> – befüllen und entnehmen nur dort; falsche Ware geht zum Ausgang durch</span>` : "";
   return `<div class="info-block"><h3>⚙ Maschine</h3><p class="info-maschine">
-      <span>Stellt her: <b>${htmlSicher(kann)}</b></span>${tore}
+      <span>Stellt her: ${grafik}<b>${htmlSicher(kann)}</b></span>${tore}
       <span>Tempo <b>×${zahlText(maschinenTempo(g))}</b></span>
       <span>Laufkosten <b>${euro(t.tagesKosten || 0)}/Tag</b></span>
       <span>kein Arbeiter nötig – Kuriere oder Bänder bringen Material und holen ab</span></p></div>`;
 }
 
-/* --- Phase 7c: Rezeptwahl der Werkbank – Suche und Kategorie statt einer langen Liste ---
-   Gehäuse stehen oben als eigene Gruppe, darunter die 12 Kategorien. Wählbar ist nur, was freigeschaltet ist;
-   das eingestellte Rezept bleibt immer in der Liste, auch wenn der Filter es ausblendet. */
-const werkbankWahl = { suche: "", kategorie: "" };   // kategorie: "" = alle, "gehaeuse" oder Kategorie-ID
+/* --- Paket Bandbau/Baumenü 2026-10-12 (B7): Rezeptmenü der Werkbank und der Maschinen ---
+   Statt einer Auswahlliste mit ~300 Einträgen:
+     1. Schnellzeile „Gebraucht“: Komponenten aus angehefteten Rezepten, aus angenommenen Aufträgen
+        und die zuletzt gewählten (höchstens WERKBANK_MENUE.maxGebraucht)
+     2. Leiste mit Kategorie-Kacheln (Grafik + Anzahl frei) – nur Gruppen, die diese Station kann
+     3. die gewählte Kategorie als Matrix 5 Linien × 5 Stufen (Gehäuse als Liste)
+   Kategorie-Maschinen (typ.katMaschine) zeigen sofort ihre Kategorie, ohne Leiste. Die Suche filtert
+   über alle Gruppen (Treffer als Kacheln), Enter wählt den ersten freien Treffer. Klick auf eine
+   Kachel setzt das Rezept (setzeRezept), gesperrte Kacheln nennen ihre Freischaltbedingung. */
+const WERKBANK_MENUE = {
+  maxGebraucht: 8,    // so viele Kacheln höchstens in der Schnellzeile
+  maxZuletzt:   6,    // so viele zuletzt gewählte Rezepte merkt sich das Menü (nur für diese Sitzung)
+  maxTreffer:   40,   // so viele Such-Treffer höchstens als Kacheln
+};
+const werkbankWahl = { suche: "", kategorie: "", fuer: null, zuletzt: [] };   // kategorie: "gehaeuse" oder Kategorie-ID
 function werkbankGruppen() {
-  return [{ id: "gehaeuse", name: "Gehäuse", symbol: "▢", eintraege: GEHAEUSE },
-    ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name, symbol: k.symbol, eintraege: BAUTEILE.filter((b) => b.kategorie === k.id) }))];
+  return [{ id: "gehaeuse", name: "Gehäuse", eintraege: GEHAEUSE },
+    ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name, eintraege: BAUTEILE.filter((b) => b.kategorie === k.id) }))];
+}
+// Gruppe eines Rezepts ("gehaeuse" oder Kategorie-ID)
+function werkbankGruppeVon(typ) {
+  const b = herstellbarNachTyp.get(typ);
+  return !b ? "" : b.art === "gehaeuse" ? "gehaeuse" : b.kategorie;
+}
+// Komponenten, die gerade gebraucht werden – je Eintrag { typ, wo } (wo = Herkunft für den Hover-Text)
+function werkbankGebraucht(typ) {
+  const liste = [], schon = new Set();
+  const dazu = (id, wo) => {
+    const b = herstellbarNachTyp.get(id);
+    if (!b || !b.rezept || schon.has(id) || !maschineKann(typ, id)) return;
+    schon.add(id); liste.push({ typ: id, wo });
+  };
+  for (const pin of spiel.rezeptPins || []) {
+    if (pin.schluessel.startsWith("b:")) dazu(pin.schluessel.slice(2), "angeheftetes Rezept");
+    else if (pin.schluessel.startsWith("p:")) {
+      const bp = blaupausenNachId.get(pin.schluessel.slice(2));
+      if (!bp) continue;
+      const name = `angeheftet: ${bp.name}`;
+      if (bp.gehaeuse) dazu(bp.gehaeuse, name);
+      Object.keys(teileZaehlen(bp.teile)).forEach((id) => dazu(id, name));
+    }
+  }
+  for (const a of spiel.auftraege || []) {
+    const p = auftragProdukt(a), klasse = klasseNachId.get(p ? p.auftragsklasse : a.klasse);
+    const name = `Auftrag: ${auftragProduktName(a)}`;
+    const passend = klasse ? passendeProdukte(klasse)[0] : null;   // ein bekanntes Produkt erfüllt den Auftrag: dessen Teile
+    const teile = passend ? spiel.produktTeile[passend.slice(2)] : null;
+    if (teile) { Object.keys(teile).forEach((id) => dazu(id, name)); continue; }
+    // sonst je geforderte Kategorie die beste freigeschaltete Komponente
+    for (const kat of (p && p.pflicht) || (klasse && klasse.kategorien) || []) {
+      const beste = BAUTEILE.filter((b) => b.kategorie === kat && b.freigeschaltet && maschineKann(typ, b.typ))
+        .sort((x, y) => y.stufe - x.stufe || y.stufeInLinie - x.stufeInLinie)[0];
+      if (beste) dazu(beste.typ, name);
+    }
+  }
+  for (const id of werkbankWahl.zuletzt) dazu(id, "zuletzt gewählt");
+  return liste.slice(0, WERKBANK_MENUE.maxGebraucht);
+}
+// Hover-Text einer Kachel: Name, Tier, Rezept, Zeit, Wert – bei gesperrten die Freischaltbedingung
+function werkbankKachelTitel(b, kannHier) {
+  const teile = [b.name + (b.tier ? ` · ${b.tier}` : b.stufe ? ` · T${b.stufe}` : ""),
+    `${textVon(b.rezept)} · ${zahlText(b.zeit)} s · Wert ${euro(berechneBauteilwert(b.typ))}`];
+  if (b.linie) teile.push(`Linie ${b.linie}, Stufe ${b.stufeInLinie}`);
+  if (!kannHier) teile.push("Diese Maschine kann das nicht herstellen.");
+  else if (!b.freigeschaltet) {
+    const st = uiFreischaltStatus(b.typ);
+    teile.push("🔒 gesperrt – " + (st && st.kann ? "Ziel erreicht: im Designer freischalten." : (st && st.grund) || "noch nicht freigeschaltet"));
+  }
+  return teile.join("\n");
+}
+// Eine Komponenten-Kachel. klein = Schnellzeile (nur Bild und Name)
+function werkbankKachelHtml(g, b, typ, klein = false, zusatz = "") {
+  const kannHier = maschineKann(typ, b.typ);
+  const aktiv = g.rezept === b.typ, gesperrt = !b.freigeschaltet;
+  const tier = b.stufe || Number(String(b.tier || "T1").slice(1)) || 1;
+  const klassen = ["wb-kachel", klein ? "klein" : "", aktiv ? "aktiv" : "", gesperrt ? "gesperrt" : "", kannHier ? "" : "nicht"].filter(Boolean).join(" ");
+  const roh = klein ? "" : `<span class="wb-k-fuss"><span class="wb-k-roh">${Object.entries(b.rezept).map(([id, n]) =>
+    `<span>${wareHtml(id, 14)}${n}</span>`).join("")}</span><span class="wb-k-zeit">${zahlText(b.zeit)} s</span></span>`;
+  return `<button type="button" class="${klassen}" data-aktion="wb-rezept" data-rezept="${b.typ}" style="--tier-farbe:${KOMPONENTEN_MODELLE.tierFarben[tier] || "#8a94a3"}"
+      aria-pressed="${aktiv}" ${kannHier ? "" : "disabled"} title="${htmlSicher(werkbankKachelTitel(b, kannHier) + (zusatz ? "\n" + zusatz : ""))}">
+      <span class="wb-k-bild">${wareHtml(b.typ, klein ? 24 : 28, b.name)}${gesperrt ? '<span class="wb-k-schloss" aria-hidden="true">🔒</span>' : ""}</span>
+      <span class="wb-k-name">${htmlSicher(b.name)}</span>${roh}</button>`;
+}
+// Inhalt der gewählten Gruppe: Matrix (Kategorie) bzw. Liste (Gehäuse)
+function werkbankGruppeHtml(g, typ, gruppe) {
+  if (gruppe === "gehaeuse") {
+    return `<div class="wb-liste">${GEHAEUSE.map((b) => werkbankKachelHtml(g, b, typ)).join("")}</div>`;
+  }
+  const kat = kategorieNachId.get(gruppe);
+  if (!kat) return "";
+  let html = `<div class="wb-matrix" style="--kat-farbe:${kat.farbe}"><span></span>` +
+    KOMPONENTEN.muster.map((m, s) => `<span class="wb-kopf" title="Stufe ${s + 1}">S${s + 1}</span>`).join("");
+  kat.linien.forEach((linie, l) => {
+    html += `<span class="wb-linie" title="${htmlSicher(`Linie ${l + 1}: ${linie.namen.join(" → ")}`)}">L${l + 1}</span>`;
+    for (let s = 0; s < linie.namen.length; s++) {
+      const b = BAUTEILE.find((x) => x.kategorie === kat.id && x.linie === l + 1 && x.stufeInLinie === s + 1);
+      html += b ? werkbankKachelHtml(g, b, typ) : `<span class="wb-leer"></span>`;
+    }
+  });
+  return html + `</div>`;
 }
 function werkbankRezeptHtml(g) {
-  const suche = suchText(werkbankWahl.suche.trim());
-  const option = (b) => `<option value="${b.typ}" ${g.rezept === b.typ ? "selected" : ""}>${htmlSicher(b.name)}${b.tier ? ` · ${b.tier}` : ""} (${textVon(b.rezept)} · ${b.zeit} s · Wert ${euro(berechneBauteilwert(b.typ))})</option>`;
-  let optionen = "", treffer = 0, frei = 0, gesperrt = 0, drin = false;
   const typ = typVon(g);                             // Phase 7d: Maschinen können nur ihre Rezepte (maschineKann)
-  for (const gruppe of werkbankGruppen()) {
-    const liste = gruppe.eintraege.filter((b) => b.rezept && b.freigeschaltet && maschineKann(typ, b.typ));
-    frei += liste.length;
-    gesperrt += gruppe.eintraege.filter((b) => b.rezept && !b.freigeschaltet && maschineKann(typ, b.typ)).length;
-    if (werkbankWahl.kategorie && gruppe.id !== werkbankWahl.kategorie) continue;
-    const passend = liste.filter((b) => !suche || suchText(b.name).includes(suche));
-    if (!passend.length) continue;
-    treffer += passend.length;
-    if (passend.some((b) => b.typ === g.rezept)) drin = true;
-    optionen += `<optgroup label="${gruppe.symbol} ${htmlSicher(gruppe.name)}">${passend.map(option).join("")}</optgroup>`;
-  }
+  const gruppen = werkbankGruppen().filter((gr) => gr.eintraege.some((b) => b.rezept && maschineKann(typ, b.typ)));
+  // Andere Station gewählt: deren Rezept-Kategorie zeigen; Kategorie-Maschine: immer ihre Kategorie
+  if (werkbankWahl.fuer !== g.id) { werkbankWahl.fuer = g.id; werkbankWahl.kategorie = werkbankGruppeVon(g.rezept); }
+  if (typ.katMaschine) werkbankWahl.kategorie = typ.katMaschine;
+  if (!gruppen.some((gr) => gr.id === werkbankWahl.kategorie)) werkbankWahl.kategorie = gruppen[0] ? gruppen[0].id : "";
+  const suche = suchText(werkbankWahl.suche.trim());
+  const passt = (b) => !suche || suchText(b.name).includes(suche) || (b.nr && suchText(b.nr).includes(suche));
   const aktuell = g.rezept && herstellbarNachTyp.get(g.rezept);
-  const ausgeblendet = aktuell && !drin ? `<option value="${aktuell.typ}" selected>${htmlSicher(aktuell.name)} (eingestellt)</option>` : "";
-  const filter = werkbankWahl.suche.trim() || werkbankWahl.kategorie;
-  return `<div class="info-rezeptwahl">
+  let html = `<div class="wb-menue">
+    <div class="wb-zeile-kopf">
       <input class="lz-suche" type="search" data-aktion="rezept-suche" value="${htmlSicher(werkbankWahl.suche)}" placeholder="Rezept suchen …"
-        autocomplete="off" spellcheck="false" aria-label="Werkbank-Rezepte durchsuchen">
-      <select data-aktion="rezept-kategorie" aria-label="Kategorie der Rezepte">
-        <option value="" ${werkbankWahl.kategorie ? "" : "selected"}>Alle Kategorien</option>
-        ${werkbankGruppen().filter((gr) => gr.eintraege.some((b) => b.rezept && maschineKann(typ, b.typ)))   /* Phase 7d: nur passende Gruppen */
-          .map((gr) => `<option value="${gr.id}" ${werkbankWahl.kategorie === gr.id ? "selected" : ""}>${gr.symbol} ${htmlSicher(gr.name)}</option>`).join("")}
-      </select>
-      <small>${filter ? `${treffer} Treffer · ` : ""}${frei} frei${gesperrt ? ` · ${gesperrt} gesperrt (Designer)` : ""}</small>
-    </div>
-    <label class="info-feld">Rezept <select data-aktion="rezept">
-        <option value="">${filter && !treffer ? "– keine Treffer –" : "– kein Rezept –"}</option>
-        ${ausgeblendet}${optionen}
-      </select></label>`;
+        autocomplete="off" spellcheck="false" aria-label="Rezepte dieser Station durchsuchen">
+      <span class="wb-aktuell">${aktuell ? `${wareHtml(aktuell.typ, 22)}<b title="${htmlSicher(aktuell.name)}">${htmlSicher(aktuell.name)}</b>
+        <button class="mini-knopf" type="button" data-aktion="wb-rezept" data-rezept="" title="Rezept entfernen">✕</button>` : `<small>kein Rezept gewählt</small>`}</span>
+    </div>`;
+  // 1. Schnellzeile „Gebraucht“
+  const gebraucht = werkbankGebraucht(typ);
+  if (gebraucht.length && !suche) {
+    html += `<div class="wb-gebraucht"><small>Gebraucht</small>${gebraucht.map((e) => werkbankKachelHtml(g, herstellbarNachTyp.get(e.typ), typ, true, e.wo)).join("")}</div>`;
+  }
+  // 2. Leiste mit Kategorie-Kacheln (nicht bei Kategorie-Maschinen)
+  if (!typ.katMaschine && gruppen.length > 1) {
+    html += `<div class="wb-kats" role="tablist" aria-label="Kategorien">` + gruppen.map((gr) => {
+      const liste = gr.eintraege.filter((b) => b.rezept && maschineKann(typ, b.typ));
+      const frei = liste.filter((b) => b.freigeschaltet).length;
+      const treffer = suche ? liste.filter(passt).length : 0;
+      const gewaehlt = !suche && werkbankWahl.kategorie === gr.id;
+      const hatRezept = aktuell && werkbankGruppeVon(aktuell.typ) === gr.id;
+      return `<button type="button" role="tab" class="wb-kat${hatRezept ? " hat-rezept" : ""}${suche && !treffer ? " leer" : ""}" data-aktion="wb-kat" data-kat="${gr.id}"
+        style="--kat-farbe:${kategorieGrafikFarbe(gr.id)}" aria-selected="${gewaehlt}"
+        title="${htmlSicher(`${gr.name}: ${frei} von ${liste.length} frei${suche ? ` · ${treffer} Treffer` : ""}${hatRezept ? " · eingestelltes Rezept" : ""}`)}">
+        ${kategorieGrafik(gr.id, 26)}<small>${suche ? treffer : frei}</small></button>`;
+    }).join("") + `</div>`;
+  }
+  // 3. Suche: Treffer aus allen Gruppen · sonst die gewählte Gruppe
+  if (suche) {
+    const treffer = gruppen.flatMap((gr) => gr.eintraege.filter((b) => b.rezept && maschineKann(typ, b.typ) && passt(b)))
+      .sort((a, b) => Number(b.freigeschaltet) - Number(a.freigeschaltet));
+    html += treffer.length
+      ? `<div class="wb-treffer">${treffer.slice(0, WERKBANK_MENUE.maxTreffer).map((b) => werkbankKachelHtml(g, b, typ)).join("")}</div>`
+        + (treffer.length > WERKBANK_MENUE.maxTreffer ? `<small class="wb-hinweis">… und ${treffer.length - WERKBANK_MENUE.maxTreffer} weitere – Suche genauer fassen</small>` : "")
+      : `<p class="info-leer">Keine passenden Rezepte.</p>`;
+  } else if (werkbankWahl.kategorie) {
+    const name = werkbankWahl.kategorie === "gehaeuse" ? "Gehäuse" : kategorieNachId.get(werkbankWahl.kategorie)?.name || "";
+    html += `<div class="wb-titel">${kategorieGrafik(werkbankWahl.kategorie, 20)}<b>${htmlSicher(name)}</b>
+      <small>${werkbankWahl.kategorie === "gehaeuse" ? "Holz → Carbon" : "Linien L1–L5 · Stufen S1–S5"}</small></div>`;
+    html += werkbankGruppeHtml(g, typ, werkbankWahl.kategorie);
+  }
+  return html + `</div>`;
 }
-// Tippen in der Suche: Liste sofort filtern (das Feld behält den Fokus, siehe infoFormularAktiv)
+// Rezept aus dem Menü setzen (Kachel-Klick oder Enter in der Suche); merkt es sich als „zuletzt gewählt“
+function waehleWerkbankRezept(g, rezept) {
+  if (!rezept) { setzeRezept(g.id, null); zeigeMeldung(`${gebaeudeName(g)}: kein Rezept.`); return true; }
+  const b = herstellbarNachTyp.get(rezept);
+  if (!b) return false;
+  if (!b.freigeschaltet) {
+    const st = uiFreischaltStatus(rezept);
+    zeigeMeldung(`${b.name} ist noch gesperrt – ${st && st.kann ? "im Designer freischalten." : (st && st.grund) || "erst freischalten."}`, true);
+    return false;
+  }
+  if (!setzeRezept(g.id, rezept)) { zeigeMeldung(`${gebaeudeName(g)} kann ${b.name} nicht herstellen.`, true); return false; }
+  werkbankWahl.zuletzt = [rezept, ...werkbankWahl.zuletzt.filter((id) => id !== rezept)].slice(0, WERKBANK_MENUE.maxZuletzt);
+  zeigeMeldung(`${gebaeudeName(g)}: Rezept ${b.name}.`);
+  return true;
+}
+// Klicks im Menü: Kategorie wechseln bzw. Rezept setzen
+ob.infoInhalt.addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-aktion='wb-kat'], button[data-aktion='wb-rezept']");
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!knopf || !g) return;
+  if (knopf.dataset.aktion === "wb-kat") {
+    werkbankWahl.kategorie = knopf.dataset.kat;
+    if (werkbankWahl.suche) { werkbankWahl.suche = ""; }   // Kategorie gewählt: Suche endet
+  } else {
+    waehleWerkbankRezept(g, knopf.dataset.rezept);
+  }
+  zeichneInfo();
+  sofortAktualisieren();
+});
+// Tippen in der Suche: Kacheln sofort filtern (das Feld behält den Fokus, siehe infoFormularAktiv)
 ob.infoInhalt.addEventListener("input", (e) => {
   if (e.target.dataset.aktion !== "rezept-suche") return;
   werkbankWahl.suche = e.target.value;
@@ -25398,13 +25913,14 @@ ob.infoInhalt.addEventListener("keydown", (e) => {
   e.stopPropagation();               // Buchstaben steuern nicht die Kamera (W/A/S/D)
   if (e.key === "Escape") {
     if (e.target.value) { e.target.value = ""; werkbankWahl.suche = ""; zeichneInfo(); } else e.target.blur();
-  } else if (e.key === "Enter") {    // Enter: das einzige bzw. erste Ergebnis wählen
+  } else if (e.key === "Enter") {    // Enter: den ersten freien Treffer wählen
     const g = spiel.gebaeude.get(auswahlGebaeudeId);
-    const erstes = ob.infoInhalt.querySelector('select[data-aktion="rezept"] optgroup option');
-    if (g && erstes && werkbankWahl.suche.trim()) {
-      setzeRezept(g.id, erstes.value);
-      zeigeMeldung(`${gebaeudeName(g)}: Rezept ${herstellbarNachTyp.get(erstes.value)?.name || erstes.value}.`);
+    const erstes = ob.infoInhalt.querySelector(".wb-treffer .wb-kachel:not(.gesperrt):not(.nicht)");
+    if (g && erstes && werkbankWahl.suche.trim() && waehleWerkbankRezept(g, erstes.dataset.rezept)) {
+      werkbankWahl.suche = "";
+      werkbankWahl.kategorie = werkbankGruppeVon(erstes.dataset.rezept);
       e.target.blur();
+      zeichneInfo();
       sofortAktualisieren();
     }
   }
@@ -25515,7 +26031,7 @@ function lagerSmartZeilen(g, ids, zeile) {
   for (const gr of [...gruppen.values()].sort((a, b) => a.name.localeCompare(b.name))) {
     const key = g.id + "|" + gr.id, offen = lagerOffeneGruppen.has(key);
     const stueck = gr.items.reduce((n, i) => n + (g.bestand[i] || 0), 0);
-    haupt.push({ item: null, html: `<tr class="lager-falt"><td colspan="5"><button type="button" class="lager-falt-knopf" data-aktion="lager-falt" data-gruppe="${htmlSicher(gr.id)}" aria-expanded="${offen}">${offen ? "▾" : "▸"} ${htmlSicher(gr.name)} <span class="leise">· ${gr.items.length} ${gr.items.length === 1 ? "Art" : "Arten"} · ${stueck} Stück · nicht im Fluss</span></button></td></tr>` });
+    haupt.push({ item: null, html: `<tr class="lager-falt"><td colspan="5"><button type="button" class="lager-falt-knopf" data-aktion="lager-falt" data-gruppe="${htmlSicher(gr.id)}" aria-expanded="${offen}">${offen ? "▾" : "▸"} ${gr.id.startsWith("k:") ? kategorieGrafik(gr.id.slice(2), 18) : ""}${htmlSicher(gr.name)} <span class="leise">· ${gr.items.length} ${gr.items.length === 1 ? "Art" : "Arten"} · ${stueck} Stück · nicht im Fluss</span></button></td></tr>` });
     if (offen) for (const item of gr.items) haupt.push(zeile(item));
   }
   return haupt;
@@ -26801,7 +27317,7 @@ function forschungKarte(e, st, stationen, ort = false, baum = false) {
     }
   }
   return `<div class="tt-knoten fo-karte ${zustand}${fokus}" data-id="${e.id}" style="--kat-farbe:${forschungFarbe(e)}" title="${htmlSicher(st.grund)}">
-      <header><span class="fo-symbol" aria-hidden="true">${e.symbol}</span><b>${htmlSicher(e.name)}</b><span class="fo-tier">${e.tier}</span></header>
+      <header><span class="fo-symbol${e.baum === "komponenten" ? " mit-grafik" : ""}" aria-hidden="true">${e.baum === "komponenten" ? kategorieGrafik(e.gruppe, 20) : e.symbol}</span><b>${htmlSicher(e.name)}</b><span class="fo-tier">${e.tier}</span></header>
       <p class="fo-text">${ort ? `<b>${htmlSicher(forschungGruppenName(e))}</b> · ` : ""}${e.baum === "komponenten" ? "" : `${e.id} · `}${htmlSicher(e.beschreibung)}</p>
       ${zeile}${abh}${balken}${knoepfe ? `<div class="fo-knoepfe">${knoepfe}</div>` : ""}
     </div>`;
@@ -27004,14 +27520,14 @@ function forschungKomponentenHtml(stationen) {
       (herstellbarNachTyp.get(a.id)?.linie || 0) - (herstellbarNachTyp.get(b.id)?.linie || 0)
       || (herstellbarNachTyp.get(a.id)?.stufeInLinie || 0) - (herstellbarNachTyp.get(b.id)?.stufeInLinie || 0));
     return forschungLegendeHtml()
-      + forschungsBaumHtml(`▢ Gehäuse <small>· eigene Linie, Freischaltung durch Herstellung</small>`, gehaeuse, stationen)
-      + forschungsBaumHtml(`<span class="fo-symbol" style="--kat-farbe:${kat.farbe}">${kat.symbol}</span> ${htmlSicher(kat.name)}
+      + forschungsBaumHtml(`<span class="fo-symbol mit-grafik">${kategorieGrafik("gehaeuse", 20)}</span> Gehäuse <small>· eigene Linie, Freischaltung durch Herstellung</small>`, gehaeuse, stationen)
+      + forschungsBaumHtml(`<span class="fo-symbol mit-grafik" style="--kat-farbe:${kat.farbe}">${kategorieGrafik(kat.id, 20)}</span> ${htmlSicher(kat.name)}
           <small>· Stufe 1 ab Start, Stufe 2 Projekt an der Forschungsstation, Stufe 3–5 durch Herstellung der Vorstufe</small>`,
           sortiert, stationen);
   }
-  let html = `<section class="fo-abschnitt"><h3>▢ Gehäuse <small>· eigene Linie, Freischaltung durch Herstellung</small></h3>
+  let html = `<section class="fo-abschnitt"><h3><span class="fo-symbol mit-grafik">${kategorieGrafik("gehaeuse", 20)}</span> Gehäuse <small>· eigene Linie, Freischaltung durch Herstellung</small></h3>
     ${forschungReihe(`<b>Gehäuse</b><span>Holz → Carbon</span>`, gehaeuse, stationen)}</section>`;
-  html += `<section class="fo-abschnitt"><h3><span class="fo-symbol" style="--kat-farbe:${kat.farbe}">${kat.symbol}</span> ${htmlSicher(kat.name)}
+  html += `<section class="fo-abschnitt"><h3><span class="fo-symbol mit-grafik" style="--kat-farbe:${kat.farbe}">${kategorieGrafik(kat.id, 20)}</span> ${htmlSicher(kat.name)}
     <small>· Stufe 1 ab Start, Stufe 2 Projekt an der Forschungsstation, Stufe 3–5 durch Herstellung der Vorstufe</small></h3>`;
   kat.linien.forEach((linie, i) => {
     const liste = katListe.filter((e) => herstellbarNachTyp.get(e.id)?.linie === i + 1)
@@ -27075,7 +27591,7 @@ function forschungGruppenHtml() {
   let html = "";
   if (forschungBaum.id === "komponenten") {
     html = KATEGORIEN.map((k) => `<button type="button" role="tab" class="lz-kat" data-gruppe="${k.id}" style="--kat-farbe:${k.farbe}"
-      aria-selected="${forschungAnsicht.gruppe.komponenten === k.id}" title="${htmlSicher(k.name)}">${k.symbol}${punkt(k.id)}</button>`).join("")
+      aria-selected="${forschungAnsicht.gruppe.komponenten === k.id}" title="${htmlSicher(k.name)}">${kategorieGrafik(k.id, 24)}${punkt(k.id)}</button>`).join("")
       + (bereit.has("gehaeuse") ? `<span class="leise" style="align-self:center;font-size:var(--groesse-klein)">· Gehäuse bereit (oben)</span>` : "");
   } else if (forschungBaum.id === "mitarbeiter") {
     html = MITARBEITER_FORSCHUNG.map((g) => `<button type="button" role="tab" class="lz-kat text" data-gruppe="${g.id}" style="--kat-farbe:${FORSCHUNG_FARBEN[g.id] || "#999"}"
@@ -29586,7 +30102,7 @@ function zeichneRezepte() {
   for (const gruppe of rezeptGruppen()) {
     if (rezeptFilter.kategorie && rezeptFilter.kategorie !== gruppe.id) continue;
     const liste = gruppe.schluessel.filter(passt);
-    if (liste.length) html += `<h3 data-symbol="${gruppe.symbol}" style="--kat-farbe:${gruppe.farbe}">${htmlSicher(gruppe.titel)}</h3><ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`;
+    if (liste.length) html += `<h3 class="mit-grafik" style="--kat-farbe:${gruppe.farbe}">${kategorieGrafik(gruppe.id, 24)}${htmlSicher(gruppe.titel)}</h3><ul class="rezept-liste">${liste.map(zeile).join("")}</ul>`;
   }
   if (!rezeptFilter.kategorie || rezeptFilter.kategorie === "produkte") {
     const produkte = alleRezeptSchluessel().filter((k) => k.startsWith("p:"));
@@ -29612,7 +30128,7 @@ function zeichneRezeptReiter() {
   const reiter = [{ id: "", text: "Alle", name: "Alle Rezepte" }, { id: "gehaeuse", symbol: "▢", farbe: "#b5895a", name: "Gehäuse" },
     ...KATEGORIEN.map((k) => ({ id: k.id, symbol: k.symbol, farbe: k.farbe, name: k.name })), { id: "produkte", text: "Produkte", name: "Produkte (Montagetisch)" }];
   $("rezepte-kategorien").innerHTML = reiter.map((r) => `<button class="lz-kat${r.text ? " text" : ""}" type="button" role="tab" data-kat="${r.id}"
-    ${r.farbe ? `style="--kat-farbe:${r.farbe}"` : ""} aria-selected="${rezeptFilter.kategorie === r.id}" title="${htmlSicher(r.name)}" aria-label="${htmlSicher(r.name)}">${r.text || r.symbol}</button>`).join("");
+    ${r.farbe ? `style="--kat-farbe:${r.farbe}"` : ""} aria-selected="${rezeptFilter.kategorie === r.id}" title="${htmlSicher(r.name)}" aria-label="${htmlSicher(r.name)}">${r.text || kategorieGrafik(r.id, 24)}</button>`).join("");
 }
 zeichneRezeptReiter();
 $("rezepte-kategorien").addEventListener("click", (e) => {
@@ -29650,6 +30166,34 @@ $("rezepte-schliessen").addEventListener("click", () => schliesseRezepte());
 ob.rezepteOverlay.addEventListener("click", (e) => { if (e.target === ob.rezepteOverlay) schliesseRezepte(); });
 ob.hudRezepte.addEventListener("click", () => (rezeptFenster.offen ? schliesseRezepte() : oeffneRezepte()));
 
+/* --- Paket Bandbau/Baumenü 2026-10-12 (B5): große Ansicht einer angehefteten Rezeptkarte ---
+   Baum Produkt → Komponenten (mit Anzahl) → Rohstoffe je Komponente, unten die Summe der Rohstoffe
+   für EIN Stück. Komponenten und Produkt bleiben anklickbar wie in der kleinen Karte (Zuweisen,
+   Zahl = zu den Stationen springen). Werkbank-Rezepte (Rohstoffe → Komponente) zeigen nur eine Ebene. */
+function rezeptBaumHtml(r) {
+  const summeRoh = {};
+  const rohChip = (id, n, titel) => `<span class="rz-roh" title="${htmlSicher(titel)}">${wareHtml(id, 18)}<b>${zahlText(n)}</b></span>`;
+  const zweige = Object.entries(r.eingaben).map(([item, n]) => {
+    const b = herstellbarNachTyp.get(item);
+    if (!b || !b.rezept) {                       // Rohstoff direkt im Rezept
+      summeRoh[item] = (summeRoh[item] || 0) + n;
+      return `<li class="rz-zweig blatt">${rezeptItemHtml(item, n, true)}</li>`;
+    }
+    const roh = Object.entries(b.rezept).map(([id, m]) => {
+      summeRoh[id] = (summeRoh[id] || 0) + m * n;
+      return rohChip(id, m * n, `${m * n}× ${itemInfo(id).name}${n > 1 ? ` (${m} je Stück × ${n})` : ""}`);
+    }).join("");
+    return `<li class="rz-zweig">${rezeptItemHtml(item, n, true)}<div class="rz-rohe">${roh}</div></li>`;
+  }).join("");
+  const summeHtml = Object.entries(summeRoh).sort((a, b) => b[1] - a[1])
+    .map(([id, n]) => rohChip(id, n, `${n}× ${itemInfo(id).name} für ein Stück ${r.name}`)).join("");
+  return `<div class="rz-baum">
+      <div class="rz-produkt">${rezeptItemHtml(r.ausgabe, 1, true)}<small>${htmlSicher(r.ort)} · ${zahlText(r.zeit)} s · Wert ${euro(r.wert)}</small></div>
+      <ul class="rz-zweige">${zweige}</ul>
+      <div class="rz-summe"><small>Rohstoffe pro Stück</small><span>${summeHtml}</span></div>
+    </div>`;
+}
+
 /* --- Angeheftete Rezepte am Rand --- */
 let rezeptStapelHtml = null;
 function zeichneRezeptStapel(sofort = false) {
@@ -29660,11 +30204,13 @@ function zeichneRezeptStapel(sofort = false) {
   const html = spiel.rezeptPins.map((pin) => {
     const r = rezeptDaten(pin.schluessel);
     const zeilen = Object.entries(r.eingaben).map(([i, n]) => `<li>${rezeptItemHtml(i, n, true)}</li>`).join("");
-    return `<section class="rezept-karte" data-schluessel="${htmlSicher(pin.schluessel)}" aria-label="Rezept: ${htmlSicher(r.name)}">
+    const gross = !!pin.gross && !pin.zu;   // B5: große Ansicht (Baum); alte Spielstände ohne Feld = klein
+    return `<section class="rezept-karte${gross ? " gross" : ""}" data-schluessel="${htmlSicher(pin.schluessel)}" aria-label="Rezept: ${htmlSicher(r.name)}">
         <header><b title="${htmlSicher(r.name)} · ${r.ort}">Rezept: ${htmlSicher(r.name)}</b>
+          <button class="mini-knopf" type="button" data-aktion="gross" aria-pressed="${gross}" aria-label="${gross ? "Verkleinern" : "Vergrößern: Baum mit Rohstoffen"}" title="${gross ? "Verkleinern" : "Vergrößern: Produkt → Komponenten → Rohstoffe"}">⤢</button>
           <button class="mini-knopf" type="button" data-aktion="zuklappen" aria-expanded="${!pin.zu}" aria-label="${pin.zu ? "Aufklappen" : "Einklappen"}">${pin.zu ? "▸" : "▾"}</button>
           <button class="mini-knopf" type="button" data-aktion="loesen" aria-label="Rezept ${htmlSicher(r.name)} lösen" title="Lösen">✕</button></header>
-        ${pin.zu ? "" : `<ul class="rezept-symbole">${zeilen}<li class="ergebnis">${rezeptItemHtml(r.ausgabe, 1, true)}</li></ul>`}
+        ${pin.zu ? "" : gross ? rezeptBaumHtml(r) : `<ul class="rezept-symbole">${zeilen}<li class="ergebnis">${rezeptItemHtml(r.ausgabe, 1, true)}</li></ul>`}
       </section>`;
   }).join("");
   if (!sofort && rezeptStapelHtml === html) return;
@@ -29682,6 +30228,7 @@ ob.rezeptStapel.addEventListener("click", (e) => {
   const knopf = e.target.closest("button");
   if (!pin || !knopf) return;
   if (knopf.dataset.aktion === "zuklappen") { pin.zu = !pin.zu; zeichneRezeptStapel(true); return; }
+  if (knopf.dataset.aktion === "gross") { pin.gross = !pin.gross; if (pin.gross) pin.zu = false; zeichneRezeptStapel(true); return; }   // B5
   if (knopf.dataset.aktion === "loesen") { schalteRezeptPin(pin.schluessel); return; }
   if (!knopf.dataset.item) return;
   if (e.target.closest(".anzahl")) zeigeHerstellendeStation(knopf.dataset.item);   // Zahl: zu den Stationen springen
@@ -29751,6 +30298,115 @@ function weiseRezeptWareZu(g, shift) {
   zeichneRezeptStapel(true);
   if (!shift) beendeZuweisen();                                       // Shift: Modus bleibt für weitere Stationen
 }
+
+/* ============================================================================
+   ABSCHNITT 13f2: Baumenü – Hover-Schild „stellt her“ (Paket Bandbau/Baumenü 2026-10-12, B4) [UI/UX-Agent]
+   Fährt die Maus über eine Stations- oder Maschinen-Karte im Baumenü, zeigt ein Schild die Grafiken
+   aller Waren, die dieser Bautyp herstellen kann (gesperrte grau mit Schloss):
+     Werkbank, Roboter-Arm, T2-Presse – Gehäuse und Komponenten, je Kategorie ein 5 × 5-Block
+     Kategorie-Maschine                 – ihre 25 Komponenten, eine Reihe je Linie
+     Gehäuse-Stanzer, CNC-Fräse         – die Gehäuse
+     Montagetisch, Assembler            – „Produkte nach Blaupause“ und die gespeicherten Blaupausen
+     Forschungsstation                  – kurzer Text
+   Das Schild steht über (bzw. unter) der Karte und bleibt immer ganz im Bild. Nur Optik.
+   ============================================================================ */
+const BAU_SCHILD = {
+  maxBlaupausen: 12,   // so viele Blaupausen zeigt das Schild höchstens
+  abstand:       8,    // Abstand zur Karte und zum Bildschirmrand (px)
+};
+const bauSchild = Object.assign(document.createElement("div"), { id: "bau-waren-schild", hidden: true });
+bauSchild.setAttribute("role", "tooltip");
+document.body.append(bauSchild);
+// Ein Waren-Feld des Schilds: Grafik, gesperrt grau mit Schloss (kleine Felder nur grau – das Schloss
+// mit der Zahl steht dann im Kopf des Blocks), Name im Hover-Text
+function bauSchildWare(b, px, kannHier = true) {
+  if (!kannHier) return `<span class="bs-ware leer" style="width:${px}px;height:${px}px"></span>`;
+  const st = b.freigeschaltet ? null : uiFreischaltStatus(b.typ);
+  const titel = b.name + (b.tier ? ` · ${b.tier}` : "") + (st ? ` – gesperrt: ${st.kann ? "im Designer freischalten" : st.grund}` : "");
+  return `<span class="bs-ware${b.freigeschaltet ? "" : " gesperrt"}" title="${htmlSicher(titel)}">${wareHtml(b.typ, px, b.name)}${b.freigeschaltet || px < 24 ? "" : '<i aria-hidden="true">🔒</i>'}</span>`;
+}
+// Inhalt des Schilds für einen Gebäudetyp (leer = kein Schild)
+function bauSchildHtml(t) {
+  if (!t || (t.kategorie !== "station" && t.kategorie !== "maschine")) return "";
+  const kopf = (text, unter = "") => `<header><b>${htmlSicher(t.name)}</b><small>${text}</small>${unter}</header>`;
+  if (t.art === "forschung") {
+    return kopf("Forschung") + `<p>Zerlegt Komponenten und Produkte zu Forschungspunkten (FP) – oder arbeitet an einem Zeitprojekt (z. B. Stufe 2 einer Komponenten-Linie).</p>`;
+  }
+  if (t.art === "aussenposten") {
+    return kopf("Expeditionen") + `<p>Schickt Scouts in die Außenwelt: zurück kommen Rohstoffe oder eine Prototyp-Blaupause.</p>`;
+  }
+  if (t.art === "montage") {
+    const liste = [...blaupausenNachId.values()].filter((bp) => !bp.veraltet).sort((a, b) => a.name.localeCompare(b.name));
+    const zeigen = liste.slice(0, BAU_SCHILD.maxBlaupausen);
+    return kopf("stellt her: Produkte nach Blaupause") + (liste.length
+      ? `<div class="bs-blaupausen">${zeigen.map((bp) => `<span class="bs-bp" title="${htmlSicher(produktVersionsName(bp))}">${wareHtml("p:" + bp.id, 24, bp.name)}<small>${htmlSicher(bp.name)}</small></span>`).join("")}</div>`
+        + (liste.length > zeigen.length ? `<p class="leise">… und ${liste.length - zeigen.length} weitere</p>` : "")
+      : `<p class="leise">Noch keine Blaupause gespeichert – im Layout-Designer entwerfen.</p>`);
+  }
+  if (t.art !== "werkbank") return "";
+  const gruppen = werkbankGruppen().filter((gr) => gr.eintraege.some((b) => b.rezept && maschineKann(t, b.typ)));
+  const zaehle = (liste) => { const ok = liste.filter((b) => b.rezept && maschineKann(t, b.typ)); return `${ok.filter((b) => b.freigeschaltet).length} / ${ok.length} frei`; };
+  // Kategorie-Maschine: 5 Reihen (Linien) × 5 Stufen, groß
+  if (t.katMaschine) {
+    const kat = kategorieNachId.get(t.katMaschine);
+    const teile = BAUTEILE.filter((b) => b.kategorie === kat.id);
+    return kopf(`stellt her: ${htmlSicher(kat.name)} · ${zaehle(teile)}`, kategorieGrafik(kat.id, 26)) + `<div class="bs-linien">` +
+      kat.linien.map((linie, l) => `<span class="bs-linie" title="${htmlSicher(linie.namen.join(" → "))}">L${l + 1}</span>` +
+        teile.filter((b) => b.linie === l + 1).sort((a, b) => a.stufeInLinie - b.stufeInLinie).map((b) => bauSchildWare(b, 26)).join("")).join("") + `</div>`;
+  }
+  // Nur Gehäuse (Stanzer, CNC-Fräse): eine Reihe
+  if (gruppen.length === 1 && gruppen[0].id === "gehaeuse") {
+    return kopf(`stellt her: Gehäuse · ${zaehle(GEHAEUSE)}`, kategorieGrafik("gehaeuse", 26)) +
+      `<div class="bs-reihe">${GEHAEUSE.filter((b) => maschineKann(t, b.typ)).map((b) => bauSchildWare(b, 28)).join("")}</div>`;
+  }
+  // Werkbank & Co.: je Gruppe ein Block (Gehäuse als Reihe, Kategorien als 5 × 5)
+  const alle = gruppen.flatMap((gr) => gr.eintraege);
+  const unter = t.maschine && t.maschine.rezepte && t.maschine.rezepte.tier ? ` (nur ${t.maschine.rezepte.tier})` : "";
+  return kopf(`stellt her: Gehäuse und Komponenten${unter} · ${zaehle(alle)}`) + `<div class="bs-bloecke">` + gruppen.map((gr) => {
+    const name = gr.id === "gehaeuse" ? "Gehäuse" : kategorieNachId.get(gr.id).name;
+    const felder = gr.id === "gehaeuse"
+      ? gr.eintraege.map((b) => bauSchildWare(b, 16, maschineKann(t, b.typ))).join("")
+      : [...gr.eintraege].sort((a, b) => a.linie - b.linie || a.stufeInLinie - b.stufeInLinie).map((b) => bauSchildWare(b, 16, maschineKann(t, b.typ))).join("");
+    const zu = gr.eintraege.filter((b) => b.rezept && maschineKann(t, b.typ) && !b.freigeschaltet).length;
+    return `<div class="bs-block${gr.id === "gehaeuse" ? " geh" : ""}" style="--kat-farbe:${kategorieGrafikFarbe(gr.id)}">
+        <div class="bs-block-kopf" title="${htmlSicher(`${name}: ${zaehle(gr.eintraege)}`)}">${kategorieGrafik(gr.id, 20)}<small>${htmlSicher(name)}</small>${zu ? `<em>🔒${zu}</em>` : ""}</div>
+        <div class="bs-raster">${felder}</div></div>`;
+  }).join("") + `</div>`;
+}
+// Schild an der Karte ausrichten: darüber (sonst darunter), mittig zur Karte, nie aus dem Bild
+function stelleBauSchild(karte) {
+  const r = karte.getBoundingClientRect(), a = BAU_SCHILD.abstand;
+  const b = bauSchild.offsetWidth, h = bauSchild.offsetHeight;
+  let x = r.left + r.width / 2 - b / 2;
+  x = Math.max(a, Math.min(x, innerWidth - b - a));
+  let y = r.top - h - a;
+  if (y < a) y = r.bottom + a;                                      // oben kein Platz: unter die Karte
+  y = Math.max(a, Math.min(y, innerHeight - h - a));
+  bauSchild.style.left = `${Math.round(x)}px`;
+  bauSchild.style.top = `${Math.round(y)}px`;
+}
+let bauSchildTyp = null;
+function zeigeBauSchild(karte) {
+  const typ = karte && karte.dataset.typ;
+  const html = typ ? bauSchildHtml(gebaeudeTypNach.get(typ)) : "";
+  if (!html) { versteckeBauSchild(); return; }
+  if (bauSchildTyp !== typ || bauSchild.hidden) { bauSchild.innerHTML = html; bauSchildTyp = typ; }
+  bauSchild.hidden = false;
+  stelleBauSchild(karte);
+}
+function versteckeBauSchild() { bauSchild.hidden = true; bauSchildTyp = null; }
+ob.bauInhalt.addEventListener("pointerover", (e) => {
+  if (e.pointerType === "touch") return;                            // Touch: kein Hover-Schild
+  const karte = e.target.closest(".bau-karte[data-typ]");
+  if (karte) zeigeBauSchild(karte); else versteckeBauSchild();
+});
+ob.bauInhalt.addEventListener("pointerleave", versteckeBauSchild);
+ob.bauInhalt.addEventListener("pointerdown", versteckeBauSchild);   // Klick wählt den Bautyp – Schild weg
+ob.bauInhalt.addEventListener("scroll", versteckeBauSchild, { passive: true });
+spielEreignisse.addEventListener("blaupausenGeaendert", () => { if (!bauSchild.hidden) bauSchildTyp = null; });
+// Baumenü zu: Schild weg
+new MutationObserver(() => { if (ob.bauLeiste.hidden) versteckeBauSchild(); })
+  .observe(ob.bauLeiste, { attributes: true, attributeFilter: ["hidden"] });
 
 /* ============================================================================
    ABSCHNITT 13g: Mehrfachauswahl, Kopieren & Einfügen (Phase 7a, Nachtrag 3) [UI/UX-Agent]

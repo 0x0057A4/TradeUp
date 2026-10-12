@@ -4423,7 +4423,7 @@ const GEBAEUDE_TYPEN = [
   { typ: "kiste", name: "Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
     breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 10, maxAnzahl: 0, preis: 120, freigeschaltet: true,
     beschreibung: "Kleines Zwischenlager neben einer Station." },
-  { typ: "schrank", name: "Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+  { typ: "schrank", name: "Regal", symbol: "▥", kategorie: "lager", art: "zwischenlager",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 25, maxAnzahl: 0, preis: 350, freigeschaltet: true,
     beschreibung: "Großes Zwischenlager, versorgt auch mehrere Stationen." },
   { typ: "werkbank", name: "Werkbank", symbol: "⚒", kategorie: "station", art: "werkbank",
@@ -4450,16 +4450,16 @@ const GEBAEUDE_TYPEN = [
   { typ: "metallKiste", name: "Metall-Kiste", symbol: "▣", kategorie: "lager", art: "zwischenlager",
     breite: 1, tiefe: 1, zugang: [0, 1], kapazitaet: 50, maxAnzahl: 0, preis: 450, freigeschaltet: true, forschung: "PROD-019",
     beschreibung: "Robustes Zwischenlager (50 Volumen) auf einer Kachel." },
-  { typ: "metallSchrank", name: "Metall-Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+  { typ: "metallSchrank", name: "Metall-Regal", symbol: "▥", kategorie: "lager", art: "zwischenlager",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 100, maxAnzahl: 0, preis: 900, freigeschaltet: true, forschung: "PROD-023",
-    beschreibung: "Fortgeschrittener Schrank für Zwischenprodukte (100 Volumen)." },
-  { typ: "industrieSchrank", name: "Industrie-Schrank", symbol: "▥", kategorie: "lager", art: "zwischenlager",
+    beschreibung: "Fortgeschrittenes Regal für Zwischenprodukte (100 Volumen)." },
+  { typ: "industrieSchrank", name: "Industrie-Regal", symbol: "▥", kategorie: "lager", art: "zwischenlager",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 250, maxAnzahl: 0, preis: 2000, freigeschaltet: true, forschung: "PROD-033",
     beschreibung: "Massives Zwischenlager (250 Volumen) auf zwei Kacheln." },
   // smart: bestellt Rohstoffe mit ⇣ Import über die Importzone nach, bis "Max" erreicht ist (Abschnitt 11j)
-  { typ: "smartSchrank", name: "Smarter Industrie-Schrank", symbol: "▥⟳", kategorie: "lager", art: "zwischenlager",
+  { typ: "smartSchrank", name: "Smartes Industrie-Regal", symbol: "▥⟳", kategorie: "lager", art: "zwischenlager",
     breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 250, maxAnzahl: 0, preis: 3500, freigeschaltet: true, forschung: "PROD-054", smart: true,
-    beschreibung: "Wie der Industrie-Schrank (250 Volumen). Rohstoffe auf ⇣ Import bestellt er über die Importzone selbst nach, bis Max erreicht ist." },
+    beschreibung: "Wie das Industrie-Regal (250 Volumen). Rohstoffe auf ⇣ Import bestellt er über die Importzone selbst nach, bis Max erreicht ist." },
   // silo: nimmt genau EINE Rohstoffart an (die erste, die ankommt, oder die eingestellte), dafür quasi ohne Limit
   { typ: "endlosSilo", name: "Endlos-Silo", symbol: "◎", kategorie: "lager", art: "zwischenlager",
     breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 1000000, maxAnzahl: 0, preis: 6000, freigeschaltet: true, forschung: "PROD-063", silo: true,
@@ -5171,7 +5171,7 @@ const BAU_FORSCHUNG = [
   ["PROD-005", "Handkarre", "logistik", "Kuriere können 3 Items gleichzeitig transportieren", "ausruestung"],
   ["PROD-006", "Forschungs-Tisch", "spezial", "Schaltet Station zur Generierung von Technologiepunkten frei", "bau"],
   ["PROD-007", "Mülltonne", "logistik", "Erlaubt das manuelle Löschen überproduzierter Basis-Ressourcen", "bau"],
-  ["PROD-008", "Holz-Schrank", "lager", "Größeres Zwischenlager (25 Slots), blockiert weniger Kacheln", "bau"],
+  ["PROD-008", "Holz-Regal", "lager", "Größeres Zwischenlager (25 Slots), blockiert weniger Kacheln", "bau"],
   ["PROD-009", "Lager-Etiketten", "logistik", "Kuriere finden Ressourcen im Lager 10% schneller", "kurierLadezeit*0.9"],
   ["PROD-010", "Basis-Werkzeugset", "produktion", "Manuelle Produktion an Werkbänken wird 5% schneller", "werkbankTempo*1.05"],
   ["PROD-011", "Sackkarre", "logistik", "Kuriere können 5 Items gleichzeitig transportieren", "ausruestung"],
@@ -5186,7 +5186,7 @@ const BAU_FORSCHUNG = [
   ["PROD-020", "Automatischer Greifarm", "automatisierung", "Legt Items vollautomatisch von Kisten auf Fließbänder", "bau"],
   ["PROD-021", "Fließband-Brücke", "logistik", "Kuriere können über Fließbänder laufen, ohne stecken zu bleiben", "bau"],
   ["PROD-022", "Segment-Steuerung Mk.1", "automatisierung", "Erlaubt manuelles Drosseln/Beschleunigen von Fließband-Segmenten", "segmentSteuerung"],
-  ["PROD-023", "Metall-Schrank", "lager", "Fortgeschrittener Schrank für Zwischenprodukte (100 Slots)", "bau"],
+  ["PROD-023", "Metall-Regal", "lager", "Fortgeschrittenes Regal für Zwischenprodukte (100 Slots)", "bau"],
   ["PROD-024", "Hubwagen", "logistik", "Kuriere transportieren bis zu 10 Items bei reduzierter Geschwindigkeit", "ausruestung"],
   ["PROD-025", "Gehäuse-Stanzer", "produktion", "Halbautomatische Maschine für Holz- und Eisengehäuse", "@B"],
   ["PROD-026", "Hitze-Abluftrohr", "umwelt", "Reduziert physische Hitze-Zonen im 3D-Raster um Maschinen", ""],
@@ -5196,7 +5196,7 @@ const BAU_FORSCHUNG = [
   ["PROD-030", "Expeditions-Außenposten", "spezial", "Baut Außenposten, an denen Scouts Expeditionen starten (Rolle: HR-007)", ""],
   ["PROD-031", "Fließband Mk.2", "automatisierung", "Schnelles Fließband mit Durchsatz von 60 Items/Min", "@B"],
   ["PROD-032", "Intelligenter Splitter", "automatisierung", "Filtert Fließbänder gezielt nach spezifischen Ressourcen", "bau"],
-  ["PROD-033", "Industrie-Schrank", "lager", "Massives Zwischenlager (250 Slots, belegt 2 Rasterkacheln)", "bau"],
+  ["PROD-033", "Industrie-Regal", "lager", "Massives Zwischenlager (250 Slots, belegt 2 Rasterkacheln)", "bau"],
   ["PROD-034", "QA-Teststrecke", "automatisierung", "Filtert defekte Produkte, um teure Rückrufaktionen zu verhindern", ""],
   ["PROD-035", "Ausschuss-Weiche", "automatisierung", "Schiebt defekte Items von der QA-Strecke automatisch in den Müll", ""],
   ["PROD-036", "Gabelstapler-Station", "logistik", "Fahrzeug für massiven Warentransport auf breiten Hauptwegen", ""],
@@ -5217,13 +5217,13 @@ const BAU_FORSCHUNG = [
   ["PROD-051", "Reinraum-Schleuse", "umwelt", "Senkt QA-Fehlerquote bei extrem empfindlichen Chips fast auf null", ""],
   ["PROD-052", "Kryo-Kühlsystem", "umwelt", "Riesige Industrie-Kühlung negiert alle Hitze-Mali im Umkreis von 5 Kacheln", ""],
   ["PROD-053", "Lärm-Absorber-Kacheln", "umwelt", "Bodenkacheln, die den Lärm von schweren Maschinen schlucken", ""],
-  ["PROD-054", "Smarter Industrie-Schrank", "lager", "Sendet automatische Nachkauf-Befehle, wenn I/O-Ressourcen leerlaufen", "@B"],
+  ["PROD-054", "Smartes Industrie-Regal", "lager", "Sendet automatische Nachkauf-Befehle, wenn I/O-Ressourcen leerlaufen", "@B"],
   ["PROD-055", "Omni-Merger", "automatisierung", "Führt bis zu 4 Fließbänder von allen Seiten staufrei zusammen", "@B"],
   ["PROD-056", "Vollautomatische T2-Presse", "automatisierung", "Produziert mittlere Komponenten komplett ohne Personal", "@B"],
   ["PROD-057", "Fern-Wartung", "automatisierung", "Service-Techniker räumen Staus und rüsten Übertaktung ohne Laufweg auf", ""],
   ["PROD-058", "Bürger-Krisen-Scanner", "management", "Zeigt interaktive Krisen-Events mit Spezialanforderungen früher an", ""],
   ["PROD-059", "Warnleuchten-Netzwerk", "automatisierung", "Blinkt rot bei falsch gerouteten I/O-Fixierungen, bevor Staus entstehen", "@B"],
-  ["PROD-060", "Logistik-Weiche (Drohnen)", "logistik", "Verteilt Luftfracht-Ressourcen automatisch auf die leersten Schränke", ""],
+  ["PROD-060", "Logistik-Weiche (Drohnen)", "logistik", "Verteilt Luftfracht-Ressourcen automatisch auf die leersten Regale", ""],
   ["PROD-061", "Mag-Lev Fließband Mk.4", "automatisierung", "Magnet-Schwebeband für 240 Items/Min", "@B"],
   ["PROD-062", "Autarker 16-Kachel-Assembler", "automatisierung", "Baut komplexe High-End-Layouts komplett ohne Mitarbeiter", "@B"],
   ["PROD-063", "Endlos-Silo", "lager", "Außenlager mit quasi unendlichem Platz für eine spezifische Rohstoffart", "@B"],
@@ -5518,6 +5518,7 @@ const GRAFIK_STANDARD = {
   ioLinien:     true,   // grüne/rote Import- und Exportlinien, solange ein Gebäude ausgewählt ist
   hoheAufloesung: true, // volle Bildschirmauflösung (aus = schneller auf schwachen Geräten)
   neueBaender:  true,   // 12d: Fließbänder im neuen Look (Schienen, weiße Knotenköpfe, Portalkran, kräftige Greifarme)
+  neueMaschinen: true,  // 12e: Stationen, Maschinen, Regale und Lager im neuen Look, Komponenten in Kartons
   neueDisplayModelle: false, // Vorschau: Display-Teile mit den neuen 3D-Modellen aus Display.html (Abschnitt 12c)
 };
 const EINSTELLUNGEN_SCHLUESSEL = "tradeup.einstellungen";   // Name, unter dem der Browser die Einstellungen speichert
@@ -17122,6 +17123,7 @@ function aktualisiereGebaeude7d(eintrag, g, sekunden) {
     eintrag.siloVersion = g.version;
     const ware = siloWareVon(g), n = ware ? (g.bestand[ware] || 0) : 0;
     const fuellung = n > 0 ? Math.min(1, Math.max(0.03, Math.log10(1 + n) / Math.log10(1 + kapazitaetVon(g)))) : 0;
+    if (bau.silo.setze) { bau.silo.setze(fuellung, ware); return; }   // 12e: neues Silo stellt seine Anzeige selbst
     bau.silo.balken.visible = fuellung > 0;
     bau.silo.balken.scale.y = Math.max(0.001, fuellung);
     bau.silo.pegel.visible = fuellung > 0;
@@ -17313,6 +17315,11 @@ function itemForm(id) {
   if (neu) { itemFormen.set(id, neu); return neu; }
   // Unbekannte oder kaputte Ids (alte Spielstände): grauer Würfel statt Absturz
   const info = typeof id === "string" && id ? itemInfo(id) : { farbe: "#cccccc", art: "unbekannt" };
+  // 12e: Komponenten fahren in Kartons (Farbe und Symbol der Kategorie), wenn der neue Maschinen-Look an ist
+  if (info.art === "bauteil" && neuerMaschinenLook()) {
+    const karton = MASCHINEN_LOOK.kartonForm(info);
+    if (karton) { itemFormen.set(id, karton); return karton; }
+  }
   const farbe = new THREE.Color(info.farbe || "#cccccc");
   let geo = "wuerfel", masse = [1, 1, 1];
   if (info.art === "bauteil") {
@@ -17398,7 +17405,7 @@ spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
   gebaeude3d.set(g.id, {
     huelle, modell: bau.gruppe, fuellung, plaetze: bau.plaetze, wuerfel: bau.wuerfel, pfeil,
     status: istStation(g) ? baueStatusAnzeige() : null,
-    lagerMarke: istZwischenlager(g) ? baueLagerMarke(g, huelle) : null,   // Phase 5: Eingang/Ausgang/Gemischt
+    lagerMarke: istZwischenlager(g) ? baueLagerMarke(g, huelle, bau.schildHoehe) : null,   // Phase 5: Eingang/Ausgang/Gemischt
     tor: bau.tor || null,                                                 // Phase 7b Nachtrag: Tor der Import-/Exportzone
     stationsMarke: istStation(g) ? baueStationsMarke(g) : null,          // Phase 5b: Import/Export der Station
     alter: 0, verschwindet: false, version: -1, gebaeude: g, splitterTimer: 0,
@@ -17439,7 +17446,7 @@ for (const [modus, info] of Object.entries(ANZEIGE_MODI)) {
   lagerModusTexturen[modus].colorSpace = THREE.SRGBColorSpace;
 }
 const LAGER_SCHILD_HOEHE = { kiste: 0.95, schrank: 1.8, metallKiste: 0.95, metallSchrank: 1.85, industrieSchrank: 2.05, smartSchrank: 2.4, endlosSilo: 3.0 };   // Phase 7d: neue Lager   // Höhe des Schilds über dem Boden
-function baueLagerMarke(g, huelle) {
+function baueLagerMarke(g, huelle, schildHoehe) {
   const t = typVon(g);
   const b = t.breite / 2 - 0.02, d = t.tiefe / 2 - 0.02, r = 0.07;
   const form = new THREE.Shape();
@@ -17456,7 +17463,7 @@ function baueLagerMarke(g, huelle) {
   const schild = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), new THREE.MeshBasicMaterial({ map: lagerModusTexturen[modus], transparent: true, depthTest: false }));
   schild.renderOrder = 19;
   szene.add(schild);
-  return { rahmen, schild, modus, hoehe: LAGER_SCHILD_HOEHE[g.typ] || 1.2 };
+  return { rahmen, schild, modus, hoehe: schildHoehe || LAGER_SCHILD_HOEHE[g.typ] || 1.2 };   // 12e: neue Modelle bringen ihre Höhe mit
 }
 // Phase 5b: kleines Pfeil-Schild an Stationen (⇣ Import ins Eingangsfach, ⇡ Export, ⇅ beides, – keins).
 // Es sitzt an der Vorderkante, unterhalb des Status-Symbols.
@@ -19029,12 +19036,1111 @@ function gleicheBandModelleAb() {
   }
 }
 
+
+/* ============================================================================
+   ABSCHNITT 12e: Maschinen, Stationen, Lager und Kartons im neuen Look      [3D-Engine-Agent]
+   Vorlage: Maschinen-Baukasten (von Tim abgenommen am 2026-10-11). Stil wie der neue Band-Look (12d):
+   weiße Gehäuse mit Farbakzent, dunkler Unterbau mit Warnstreifen, Bedienfelder mit Leuchtknöpfen.
+   Eingangsfach immer GRÜN, Ausgabefach immer ROT. Aus Schränken werden offene Regale, die Ware steht
+   sichtbar auf den Böden (zeichneFuellung legt sie auf die Plätze). Komponenten fahren in Kartons:
+   Farbe der Kategorie, Symbol der Kategorie auf dem Deckel.
+   Grafik-Schalter "neueMaschinen" (Standard an). Aus = bisherige Modelle aus MODELLE (Abschnitt 12).
+   Alles steckt in MASCHINEN_LOOK; nach außen gehen nur die Modelle, die Kartonform und der Umbau.
+   m (Vorschau- bzw. Einfügematerial) ersetzt wie bei den alten Modellen jedes Material.
+   ============================================================================ */
+function neuerMaschinenLook() { return einstellungen.grafik.neueMaschinen !== false; }
+const ITEM_NETZ_MATERIAL = {};   // Item-Form → eigenes Material für ihr InstancedMesh auf den Bändern (Kartons)
+
+const MASCHINEN_LOOK = (() => {
+  // Farben (wie im Baukasten)
+  const C = {
+    kopf: "#f3f6f7", unterbau: "#48515a", dunkel: "#1f2328", armGelenk: "#3a3f47", stahl: "#a7b0b6", stahlHell: "#cfd5d8",
+    stahlDunkel: "#5f6a73", gelb: "#f2b233", orange: "#f29a2e", rot: "#d8473c", tuerkis: "#27aaa6", leuchten: "#5fe3ff",
+    smart: "#2f9e8f", omni: "#8a63c9", feld: "#2a3036", bolzen: "#a3acb3",
+  };
+  const GRUEN = "#3fa65c", ROT = "#d8473c", H = 0.2;   // H: Höhe der Bandoberfläche (Einlässe sitzen darauf)
+
+  /* --- Materialien und Formen; ersatz (Vorschau) überdeckt alles --- */
+  let ersatz = null;
+  const mat = (farbe, o) => ersatz || nbMat(farbe, o);
+  const leucht = (farbe, s = 1.4) => ersatz || nbLeucht(farbe, s);
+  const nimm = (m, farbe) => ersatz || m || nbMat(farbe);
+  function box(g, w, h, d, farbe, x, y, z, r = 0.015, m = null) { return nbBox(g, w, h, d, nimm(m, farbe), x, y, z, r); }
+  function zyl(g, rO, rU, h, farbe, x, y, z, achse = "y", seg = 16, m = null) { return nbZyl(g, rO, rU, h, nimm(m, farbe), x, y, z, achse, seg); }
+  function strebe(g, a, b, dicke, farbe, m = null) { return nbStrebe(g, a, b, dicke, nimm(m, farbe)); }
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const winkelVon = (dx, dz) => Math.atan2(dx, dz);
+  function textur(w, h, malen, wiederholen = true) {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    malen(c.getContext("2d"), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = wiederholen ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+    t.anisotropy = 4;
+    return t;
+  }
+  const speicher = new Map();
+  const merke = (schluessel, bauen) => speicher.get(schluessel) || (speicher.set(schluessel, bauen()), speicher.get(schluessel));
+  // Warnstreifen, Holz, Lochwand und Gitter (Texturen geteilt, Materialien je Wiederholung gemerkt)
+  const warnTextur = textur(64, 64, (k) => {
+    k.fillStyle = C.gelb; k.fillRect(0, 0, 64, 64);
+    k.fillStyle = "#23272b";
+    for (let i = -64; i < 128; i += 32) { k.beginPath(); k.moveTo(i, 64); k.lineTo(i + 16, 64); k.lineTo(i + 80, 0); k.lineTo(i + 64, 0); k.fill(); }
+  });
+  const warnMat = (n) => ersatz || merke("warn" + n, () => {
+    const t = warnTextur.clone(); t.needsUpdate = true; t.repeat.set(n, 1);
+    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 });
+  });
+  const holzM = () => ersatz || merke("holz", () => new THREE.MeshStandardMaterial({ roughness: 0.7, map: textur(128, 128, (k, w, h) => {
+    k.fillStyle = "#c99a62"; k.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16; i++) { k.fillStyle = i % 2 ? "rgba(120,70,20,0.10)" : "rgba(255,230,190,0.10)"; k.fillRect(0, i * 8 + ((i * 37) % 5), w, 3 + (i % 3)); }
+    k.fillStyle = "rgba(90,50,15,0.25)";
+    for (let i = 1; i < 4; i++) k.fillRect(0, i * 32 - 1, w, 2);
+  }) }));
+  const lochTextur = textur(32, 32, (k) => {
+    k.fillStyle = "#eef1f2"; k.fillRect(0, 0, 32, 32);
+    k.fillStyle = "#9aa4aa"; k.beginPath(); k.arc(16, 16, 3.4, 0, Math.PI * 2); k.fill();
+  });
+  const lochMat = (rx, ry) => ersatz || merke(`loch${rx},${ry}`, () => {
+    const t = lochTextur.clone(); t.needsUpdate = true; t.repeat.set(rx, ry);
+    return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 });
+  });
+  const gitterTextur = textur(64, 64, (k) => {
+    k.clearRect(0, 0, 64, 64);
+    k.strokeStyle = "#c3cbd0"; k.lineWidth = 3;
+    for (let i = 0; i <= 64; i += 16) { k.beginPath(); k.moveTo(i, 0); k.lineTo(i, 64); k.stroke(); k.beginPath(); k.moveTo(0, i); k.lineTo(64, i); k.stroke(); }
+  });
+  const gitterMat = (rx, ry) => ersatz || merke(`gitter${rx},${ry}`, () => {
+    const t = gitterTextur.clone(); t.needsUpdate = true; t.repeat.set(rx, ry);
+    return new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.4, side: THREE.DoubleSide, roughness: 0.4, metalness: 0.4 });
+  });
+  function gitterFlaeche(g, w, h, x, y, z, drehung, rx, ry) {   // y = Mitte
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), gitterMat(rx, ry));
+    p.position.set(x, y, z); p.rotation.y = drehung;
+    g.add(p);
+    return p;
+  }
+
+  /* --- Symbole der Kategorien (Vektorzeichnung −50 … 50, unabhängig von Schriftarten) --- */
+  function maleSymbol(k, id, cx, cy, s, farbe, hinten = "#ffffff") {
+    k.save();
+    k.translate(cx, cy); k.scale(s / 100, s / 100);
+    k.fillStyle = farbe; k.strokeStyle = farbe; k.lineWidth = 10; k.lineCap = "round"; k.lineJoin = "round";
+    const flaeche = (pkt) => { k.beginPath(); pkt.forEach(([x, y], i) => (i ? k.lineTo(x, y) : k.moveTo(x, y))); k.closePath(); k.fill(); };
+    const kreis = (x, y, r, fuellen = true) => { k.beginPath(); k.arc(x, y, r, 0, Math.PI * 2); fuellen ? k.fill() : k.stroke(); };
+    const rund = (x, y, w, h, r) => { k.beginPath(); k.roundRect(x, y, w, h, r); k.fill(); };
+    switch (id) {
+      case "energie": flaeche([[10, -48], [-28, 6], [-3, 6], [-12, 48], [28, -8], [3, -8], [16, -48]]); break;
+      case "prozessoren":
+        rund(-30, -30, 60, 60, 6);
+        for (let i = -1; i <= 1; i++) {
+          k.fillRect(-46, i * 17 - 4, 14, 8); k.fillRect(32, i * 17 - 4, 14, 8);
+          k.fillRect(i * 17 - 4, -46, 8, 14); k.fillRect(i * 17 - 4, 32, 8, 14);
+        }
+        k.fillStyle = hinten; k.fillRect(-15, -15, 30, 30); break;
+      case "speicher":
+        rund(-48, -26, 96, 38, 4);
+        for (let i = 0; i < 9; i++) k.fillRect(-42 + i * 10, 16, 5, 14);
+        k.fillStyle = hinten;
+        for (let i = 0; i < 4; i++) k.fillRect(-40 + i * 22, -18, 15, 20);
+        k.fillRect(-4, 12, 8, 20); break;
+      case "displays":
+        rund(-46, -38, 92, 62, 6);
+        k.fillStyle = hinten; k.fillRect(-38, -30, 76, 46);
+        k.fillStyle = farbe; k.fillRect(-6, 24, 12, 12); rund(-24, 34, 48, 9, 4); break;
+      case "konnektivitaet":
+        kreis(0, 30, 9);
+        k.lineWidth = 11;
+        for (const r of [24, 44, 64]) { k.beginPath(); k.arc(0, 30, r, -Math.PI * 0.78, -Math.PI * 0.22); k.stroke(); }
+        break;
+      case "audio":
+        k.beginPath(); k.ellipse(-22, 28, 15, 11, -0.4, 0, Math.PI * 2); k.fill();
+        k.beginPath(); k.ellipse(24, 18, 15, 11, -0.4, 0, Math.PI * 2); k.fill();
+        k.fillRect(-10, -36, 9, 64); k.fillRect(36, -46, 9, 64);
+        flaeche([[-10, -36], [45, -46], [45, -30], [-10, -20]]); break;
+      case "optik":
+        rund(-48, -24, 96, 62, 10); rund(-20, -38, 40, 18, 5);
+        k.fillStyle = hinten; kreis(0, 7, 23);
+        k.fillStyle = farbe; kreis(0, 7, 13); break;
+      case "umwelt":
+        kreis(0, 0, 19);
+        k.lineWidth = 9;
+        for (let i = 0; i < 8; i++) {
+          const w = i * Math.PI / 4;
+          k.beginPath(); k.moveTo(Math.cos(w) * 30, Math.sin(w) * 30); k.lineTo(Math.cos(w) * 46, Math.sin(w) * 46); k.stroke();
+        }
+        break;
+      case "bewegung":
+        k.lineWidth = 11;
+        k.beginPath(); k.arc(0, 0, 34, -Math.PI * 0.05, Math.PI * 1.55); k.stroke();
+        flaeche([[34, -28], [52, 6], [16, 4]]);
+        kreis(0, 0, 9); break;
+      case "kuehlung":
+        k.lineWidth = 8;
+        for (let i = 0; i < 3; i++) {
+          const w = Math.PI / 2 + i * Math.PI / 3, c = Math.cos(w), s2 = Math.sin(w);
+          k.beginPath(); k.moveTo(-c * 46, -s2 * 46); k.lineTo(c * 46, s2 * 46); k.stroke();
+          for (const e of [-1, 1]) for (const z of [-1, 1]) {
+            const bx = c * 28 * e, by = s2 * 28 * e, w2 = w + z * Math.PI / 4 * (e > 0 ? 1 : -1) + (e > 0 ? 0 : Math.PI);
+            k.beginPath(); k.moveTo(bx, by); k.lineTo(bx + Math.cos(w2 + Math.PI) * 14 * -1, by + Math.sin(w2 + Math.PI) * 14 * -1); k.stroke();
+          }
+        }
+        break;
+      case "eingabe":
+        k.lineWidth = 10; kreis(0, 0, 38, false); kreis(0, 0, 19); break;
+      case "mechanik": {
+        const pkt = [];
+        for (let i = 0; i < 32; i++) {
+          const w = i / 32 * Math.PI * 2, zahn = (i % 4) < 2;
+          pkt.push([Math.cos(w) * (zahn ? 47 : 35), Math.sin(w) * (zahn ? 47 : 35)]);
+        }
+        flaeche(pkt);
+        k.fillStyle = hinten; kreis(0, 0, 14); break;
+      }
+      default: k.font = "bold 70px sans-serif"; k.textAlign = "center"; k.textBaseline = "middle"; k.fillText("?", 0, 4);
+    }
+    k.restore();
+  }
+  const dunkler = (hex, um) => "#" + new THREE.Color(hex).offsetHSL(0, 0.05, -um).getHexString();
+
+  /* --- Kartons: Pappe in Kategorienfarbe, Klebeband, weißes Etikett mit Symbol auf dem Deckel --- */
+  function pappe(k, w, h, farbe) {
+    k.fillStyle = farbe; k.fillRect(0, 0, w, h);
+    let s = 7;
+    const zufall = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 900; i++) {
+      k.fillStyle = zufall() > 0.5 ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+      k.fillRect(zufall() * w, zufall() * h, 1 + zufall() * 3, 1);
+    }
+    const rand = k.createLinearGradient(0, 0, 0, h);
+    rand.addColorStop(0, "rgba(0,0,0,0)"); rand.addColorStop(0.85, "rgba(0,0,0,0)"); rand.addColorStop(1, "rgba(0,0,0,0.16)");
+    k.fillStyle = rand; k.fillRect(0, 0, w, h);
+    k.strokeStyle = "rgba(0,0,0,0.18)"; k.lineWidth = 4; k.strokeRect(2, 2, w - 4, h - 4);
+  }
+  function kartonMaterialien(kat) {
+    return merke("karton:" + kat.id, () => {
+      const tief = dunkler(kat.farbe, 0.32);
+      const seite = textur(128, 128, (k, w, h) => {
+        pappe(k, w, h, kat.farbe);
+        k.fillStyle = "rgba(255,255,255,0.32)"; k.fillRect(w / 2 - 11, 0, 22, 35);
+        maleSymbol(k, kat.id, w - 25, h - 26, 23, tief, kat.farbe);
+      }, false);
+      const deckel = textur(256, 256, (k, w, h) => {
+        pappe(k, w, h, kat.farbe);
+        k.fillStyle = "rgba(0,0,0,0.22)"; k.fillRect(w / 2 - 2, 0, 4, h);
+        k.fillStyle = "rgba(255,255,255,0.32)"; k.fillRect(w / 2 - 22, 0, 44, h);
+        k.fillStyle = "rgba(0,0,0,0.25)"; k.beginPath(); k.roundRect(w / 2 - 78, h / 2 - 74, 156, 156, 22); k.fill();
+        k.fillStyle = "#fbfaf6"; k.beginPath(); k.roundRect(w / 2 - 80, h / 2 - 80, 160, 160, 22); k.fill();
+        k.strokeStyle = tief; k.lineWidth = 6; k.beginPath(); k.roundRect(w / 2 - 70, h / 2 - 70, 140, 140, 16); k.stroke();
+        maleSymbol(k, kat.id, w / 2, h / 2, 104, tief, "#fbfaf6");
+      }, false);
+      const mS = new THREE.MeshStandardMaterial({ map: seite, roughness: 0.88 });
+      const mD = new THREE.MeshStandardMaterial({ map: deckel, roughness: 0.82 });
+      return [mS, mS, mD, mS, mS, mS];   // +x, −x, +y (Deckel), −y, +z, −z
+    });
+  }
+  const kartonGeo = new THREE.BoxGeometry(1, 1, 1);
+  // Kartonmaße relativ zur Kantenlänge eines Rohstoff-Würfels, nach Raster der Komponente
+  const KARTON_MASSE = { "1x1": [0.66, 0.58, 0.66], "1x2": [0.92, 0.58, 0.66], "2x2": [0.86, 0.7, 0.86], "2x3": [1.02, 0.8, 0.92] };
+  // Für itemForm(): Form eines Komponenten-Kartons
+  function kartonForm(info) {
+    const kat = info.kategorie && kategorieNachId.get(info.kategorie);
+    if (!kat) return null;
+    const geo = "karton:" + kat.id;
+    if (!ITEM_GEOMETRIEN[geo]) { ITEM_GEOMETRIEN[geo] = kartonGeo; ITEM_NETZ_MATERIAL[geo] = kartonMaterialien(kat); }
+    const farbe = new THREE.Color(kat.farbe);
+    return { geo, geometrie: kartonGeo, masse: KARTON_MASSE[info.raster] || KARTON_MASSE["1x1"], farbe, hex: "#" + farbe.getHexString(),
+      instanzFarbe: new THREE.Color("#ffffff"), material: kartonMaterialien(kat), neu: true };
+  }
+
+  /* --- Bildschirme (leuchten selbst) --- */
+  function schirmMat(art) {
+    if (ersatz) return ersatz;
+    return merke("schirm:" + art, () => {
+      const t = textur(192, 128, (k, w, h) => {
+        k.fillStyle = art === "blaupause" ? "#123a6b" : "#0e1a21"; k.fillRect(0, 0, w, h);
+        k.fillStyle = art === "blaupause" ? "#2a5c97" : "#1d8a87"; k.fillRect(0, 0, w, 14);
+        k.fillStyle = "rgba(255,255,255,0.75)"; k.fillRect(6, 4, 40, 6);
+        if (art === "balken") {
+          [0.8, 0.55, 0.92, 0.35].forEach((a, i) => {
+            k.fillStyle = "rgba(255,255,255,0.12)"; k.fillRect(10, 26 + i * 24, w - 20, 12);
+            k.fillStyle = a > 0.5 ? "#3fe07a" : "#ffc23a"; k.fillRect(10, 26 + i * 24, (w - 20) * a, 12);
+          });
+        } else if (art === "graph") {
+          k.strokeStyle = "rgba(255,255,255,0.12)"; k.lineWidth = 1;
+          for (let x = 0; x < w; x += 24) { k.beginPath(); k.moveTo(x, 14); k.lineTo(x, h); k.stroke(); }
+          for (let y = 20; y < h; y += 22) { k.beginPath(); k.moveTo(0, y); k.lineTo(w, y); k.stroke(); }
+          k.strokeStyle = "#3fe07a"; k.lineWidth = 3; k.beginPath();
+          for (let x = 0; x <= w; x += 4) { const y = 76 - Math.sin(x / 13) * 22 - x / 8; x ? k.lineTo(x, y) : k.moveTo(x, y); }
+          k.stroke();
+        } else if (art === "blaupause") {
+          k.strokeStyle = "rgba(255,255,255,0.18)"; k.lineWidth = 1;
+          for (let x = 0; x < w; x += 12) { k.beginPath(); k.moveTo(x, 14); k.lineTo(x, h); k.stroke(); }
+          for (let y = 14; y < h; y += 12) { k.beginPath(); k.moveTo(0, y); k.lineTo(w, y); k.stroke(); }
+          const ox = 56, oy = 26, z = 22;
+          k.strokeStyle = "#ffffff"; k.lineWidth = 2; k.strokeRect(ox, oy, z * 4, z * 4);
+          const belegt = [[0, 0, 2, 1, 0], [2, 0, 1, 2, 3], [3, 0, 1, 1, 9], [0, 1, 2, 2, 1], [2, 2, 2, 1, 7], [0, 3, 1, 1, 5], [3, 3, 1, 1, 10]];
+          for (const [x, y, bw, bh, i] of belegt) { k.fillStyle = KATEGORIEN[i % KATEGORIEN.length].farbe; k.fillRect(ox + x * z + 2, oy + y * z + 2, bw * z - 4, bh * z - 4); }
+        } else if (art === "cnc") {
+          k.strokeStyle = "#5fe3ff"; k.lineWidth = 2; k.beginPath();
+          for (let i = 0; i < 6; i++) { k.moveTo(20, 30 + i * 14); k.lineTo(110, 30 + i * 14); k.lineTo(110, 37 + i * 14); }
+          k.stroke();
+          k.fillStyle = "rgba(255,255,255,0.6)";
+          for (let i = 0; i < 6; i++) k.fillRect(124, 26 + i * 15, 30 + (i * 13) % 30, 6);
+        }
+      }, false);
+      return new THREE.MeshStandardMaterial({ map: t, emissive: "#ffffff", emissiveMap: t, emissiveIntensity: 0.85, roughness: 0.3 });
+    });
+  }
+  // Bildschirm mit Rahmen; (x, y, z) = Mitte der Bildfläche. eigen = eigenes Material (für Smart-Regal, wird eingefärbt)
+  function bildschirm(g, x, y, z, w, h, art, dreh = 0, neigung = 0, eigen = false) {
+    const s = new THREE.Group();
+    s.rotation.order = "YXZ";
+    s.position.set(x, y, z); s.rotation.y = dreh; s.rotation.x = -neigung;
+    box(s, w + 0.035, h + 0.035, 0.03, C.armGelenk, 0, -(h + 0.035) / 2, -0.017, 0.008);
+    const m = ersatz || (eigen ? schirmMat(art).clone() : schirmMat(art));
+    const flaeche = new THREE.Mesh(new THREE.PlaneGeometry(w, h), m);
+    flaeche.position.z = 0.0008;
+    flaeche.userData.einzeln = eigen;
+    s.add(flaeche);
+    g.add(s);
+    return flaeche;
+  }
+
+  /* --- Bausteine --- */
+  const knopfGeo = new THREE.CylinderGeometry(0.017, 0.017, 0.02, 14).rotateX(Math.PI / 2);
+  // Bedienfeld: dunkle Leiste mit drei Leuchtknöpfen und Statusleiste. Rückgabe: Gruppe (zum Versetzen)
+  function knoepfe(g, d, abstand, y, breite = 0.24, akzent = C.leuchten) {
+    const n = Math.hypot(d.x, d.z), dx = d.x / n, dz = d.z / n;
+    const f = new THREE.Group();
+    f.position.set(dx * abstand, 0, dz * abstand);
+    f.rotation.y = winkelVon(dx, dz);
+    box(f, breite, 0.085, 0.014, C.feld, 0, y, 0.004, 0.006);
+    NB.knopfFarben.forEach((farbe, i) => {
+      const k = new THREE.Mesh(knopfGeo.clone(), leucht(farbe, 1.6));
+      k.position.set((i - 1) * 0.05 - 0.035, y + 0.042, 0.016);
+      f.add(k);
+    });
+    box(f, 0.05, 0.016, 0.006, null, breite / 2 - 0.045, y + 0.035, 0.013, 0, leucht(akzent, 1.8));
+    box(f, 0.05, 0.016, 0.006, null, breite / 2 - 0.045, y + 0.015, 0.013, 0, leucht(akzent, 0.6));
+    g.add(f);
+    return f;
+  }
+  const leuchtPunkt = (g, x, y, z, farbe, r = 0.022) => zyl(g, r, r, 0.016, null, x, y, z, "y", 12, leucht(farbe, 2));
+  // Grundplatte einer Maschine: Unterbau, Warnstreifen vorn, Leuchtleiste in der Akzentfarbe
+  function maschinenPlatte(g, B, T, akzent) {
+    box(g, B, 0.07, T, C.unterbau, 0, 0, 0, 0.025);
+    box(g, B - 0.06, 0.006, 0.07, null, 0, 0.07, T / 2 - 0.06, 0, warnMat(Math.round(B * 5))).castShadow = false;
+    box(g, B - 0.1, 0.012, 0.012, null, 0, 0.03, T / 2 + 0.001, 0, leucht(akzent, 1.4));
+  }
+  // Signalsäule: Stange, Fuß und EINE Leuchte, deren Farbe die Logik setzt (ampelMaterialien). Rückgabe: die Leuchte
+  function signalTurm(g, x, y, z) {
+    zyl(g, 0.016, 0.016, 0.14, C.stahlDunkel, x, y + 0.07, z, "y", 10);
+    zyl(g, 0.05, 0.05, 0.025, C.armGelenk, x, y + 0.15, z, "y", 18);
+    const lampe = new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, 0.16, 18), ersatz || ampelMaterialien.grau);
+    lampe.position.set(x, y + 0.245, z);
+    lampe.userData.einzeln = true;
+    g.add(lampe);
+    zyl(g, 0.036, 0.044, 0.025, C.armGelenk, x, y + 0.335, z, "y", 18);
+    return lampe;
+  }
+  // Ablagefach mit farbigem Rand; y = Oberkante des Bodens. Rückgabe: Plätze (zwei Lagen) für zeichneFuellung
+  function fach(g, x, y, z, b, t, rand, wuerfel) {
+    box(g, b, 0.025, t, C.stahlDunkel, x, y - 0.025, z, 0.008);
+    for (const sz of [-1, 1]) box(g, b, 0.06, 0.022, rand, x, y - 0.025, z + sz * (t / 2 - 0.011), 0.008);
+    for (const sx of [-1, 1]) box(g, 0.022, 0.06, t - 0.044, rand, x + sx * (b / 2 - 0.011), y - 0.025, z, 0.008);
+    const plaetze = [], abstand = wuerfel + 0.025;
+    const nx = Math.max(1, Math.floor((b - 0.05) / abstand)), nz = Math.max(1, Math.floor((t - 0.05) / abstand));
+    for (let lage = 0; lage < 2; lage++) for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
+      plaetze.push(V(x + (ix - (nx - 1) / 2) * abstand, y + wuerfel / 2 + lage * wuerfel, z + (iz - (nz - 1) / 2) * abstand));
+    }
+    return plaetze;
+  }
+  // Ständer unter einem Fach
+  const fachStaender = (g, x, z, y = 0.42) => box(g, 0.24, y - 0.07 - 0.025, 0.18, C.unterbau, x, 0.07, z, 0.02);
+  // Einlass in einer Seitenwand: dunkle Öffnung mit Bürsten, Rahmen grün (rein) oder rot (raus); d = nach außen
+  function einlass(g, px, pz, d, rand) {
+    const f = new THREE.Group();
+    f.position.set(px, 0, pz); f.rotation.y = winkelVon(d.x, d.z);
+    box(f, 0.44, 0.38, 0.03, rand, 0, H - 0.07, 0, 0.012);
+    box(f, 0.34, 0.28, 0.034, C.dunkel, 0, H - 0.04, 0, 0.004);
+    for (let i = 0; i < 7; i++) box(f, 0.042, 0.2, 0.008, "#23282d", -0.15 + i * 0.05, H + 0.04, 0.02, 0);
+    leuchtPunkt(f, 0.17, H + 0.29, 0.02, rand, 0.016);
+    g.add(f);
+  }
+  function standmatte(g, x, z) {
+    box(g, 0.78, 0.014, 0.5, "#2a3036", x, 0, z, 0.006);
+    for (const sz of [-1, 1]) box(g, 0.78, 0.016, 0.03, C.gelb, x, 0, z + sz * 0.235, 0.004);
+  }
+  const WEISS = () => mat(C.kopf, { r: 0.35 });
+  const alu = () => mat("#c9d0d5", { m: 0.55, r: 0.3 });
+  const chrom = () => mat("#dfe5e9", { r: 0.15, m: 0.85 });
+  const glas = (farbe) => mat(farbe, { t: true, o: 0.22, r: 0.05, m: 0.1 });
+  // Kleines Deko-Item (Werkstück usw.): Schale bzw. Kasten
+  function schale(g, farbe, x, y, z, b, h, t, w = 0) {
+    const s = new THREE.Group(); s.position.set(x, y, z); s.rotation.y = w; g.add(s);
+    box(s, b, 0.025, t, farbe, 0, 0, 0, 0.008);
+    for (const sz of [-1, 1]) box(s, b, h, 0.02, farbe, 0, 0, sz * (t / 2 - 0.01), 0.006);
+    for (const sx of [-1, 1]) box(s, 0.02, h, t - 0.04, farbe, sx * (b / 2 - 0.01), 0, 0, 0.006);
+  }
+  // Ergebnis zusammenstellen: feste Teile verschmelzen (wie die alten Maschinen)
+  function fertig(g, teile) {
+    verschmelzeTeile(g);
+    return { gruppe: g, ...teile };
+  }
+
+  /* ==========================================================================
+     Stationen (2 × 1): Werkbank, Montagetisch, Forschungsstation
+     ========================================================================== */
+  function werkbank() {
+    const g = new THREE.Group(), HT = 0.8, rahmen = mat(C.unterbau, { r: 0.45, m: 0.25 });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 0.07, HT - 0.07, 0.07, null, sx * 0.89, 0, sz * 0.33, 0.015, rahmen);
+    for (const sz of [-1, 1]) box(g, 1.78, 0.05, 0.05, null, 0, 0.14, sz * 0.33, 0.012, rahmen);
+    box(g, 1.76, 0.025, 0.62, C.stahlDunkel, 0, 0.19, 0, 0.006);
+    // Schubladenwagen
+    box(g, 0.64, HT - 0.28, 0.6, C.rot, -0.52, 0.21, 0, 0.02, mat(C.rot, { r: 0.42 }));
+    for (let i = 0; i < 4; i++) {
+      box(g, 0.58, 0.112, 0.012, "#b13a30", -0.52, 0.235 + i * 0.128, 0.3, 0.004);
+      box(g, 0.32, 0.022, 0.025, null, -0.52, 0.315 + i * 0.128, 0.315, 0.008, alu());
+    }
+    box(g, 0.24, 0.2, 0.24, "#c99a62", 0.3, 0.215, -0.08, 0.02);   // Kartons unten (Deko)
+    box(g, 0.22, 0.18, 0.22, "#a8876a", 0.6, 0.215, 0.06, 0.02);
+    // Platte und Lochwand
+    box(g, 1.96, 0.07, 0.82, null, 0, HT - 0.07, 0, 0.012, holzM());
+    box(g, 1.96, 0.7, 0.04, null, 0, HT, -0.39, 0.01, lochMat(14, 5));
+    for (const sx of [-1, 1]) box(g, 0.05, 0.78, 0.05, null, sx * 0.96, HT, -0.39, 0.012, rahmen);
+    // Werkzeug an der Lochwand
+    const stahlM = mat(C.stahl, { m: 0.6, r: 0.3 }), zw = -0.355;
+    for (let i = 0; i < 3; i++) {
+      const x = -0.78 + i * 0.09, l = 0.15 + i * 0.03;
+      box(g, 0.026, l, 0.014, null, x, HT + 0.5 - l, zw, 0.006, stahlM);
+      box(g, 0.06, 0.035, 0.014, null, x, HT + 0.5 - 0.035, zw, 0.006, stahlM);
+    }
+    box(g, 0.03, 0.24, 0.02, C.gelb, -0.42, HT + 0.18, zw, 0.006);
+    box(g, 0.13, 0.045, 0.04, null, -0.42, HT + 0.42, zw, 0.01, stahlM);
+    for (let i = 0; i < 4; i++) {
+      const x = -0.24 + i * 0.07;
+      zyl(g, 0.016, 0.016, 0.1, [C.rot, C.gelb, "#2f6fd0", C.rot][i], x, HT + 0.42, zw, "y", 10);
+      zyl(g, 0.005, 0.005, 0.12, null, x, HT + 0.31, zw, "y", 6, stahlM);
+    }
+    strebe(g, V(0.1, HT + 0.2, zw), V(0.18, HT + 0.45, zw), 0.025, C.rot);
+    strebe(g, V(0.18, HT + 0.2, zw), V(0.1, HT + 0.45, zw), 0.025, C.rot);
+    // Brett mit Sortierkästen und LED-Leiste
+    box(g, 1.96, 0.03, 0.2, C.stahlDunkel, 0, HT + 0.7, -0.29, 0.008);
+    for (let i = 0; i < 8; i++) {
+      const f = KATEGORIEN[i % KATEGORIEN.length].farbe;
+      box(g, 0.2, 0.12, 0.16, f, -0.84 + i * 0.24, HT + 0.73, -0.3, 0.012);
+      box(g, 0.2, 0.05, 0.02, dunkler(f, 0.12), -0.84 + i * 0.24, HT + 0.73, -0.215, 0.006);
+    }
+    box(g, 1.7, 0.016, 0.03, null, 0, HT + 0.675, -0.22, 0.005, leucht("#fff2d0", 1.4));
+    // Schraubstock, Akkuschrauber, Werkstück
+    const blau = "#2f5fa8";
+    box(g, 0.18, 0.06, 0.16, blau, 0.32, HT, 0.24, 0.015);
+    box(g, 0.18, 0.1, 0.05, blau, 0.32, HT + 0.06, 0.17, 0.01);
+    box(g, 0.18, 0.1, 0.05, blau, 0.32, HT + 0.06, 0.3, 0.01);
+    zyl(g, 0.012, 0.012, 0.2, null, 0.32, HT + 0.1, 0.4, "z", 8, stahlM);
+    zyl(g, 0.008, 0.008, 0.16, null, 0.32, HT + 0.1, 0.5, "x", 8, stahlM);
+    box(g, 0.16, 0.06, 0.055, C.gelb, 0.08, HT, -0.14, 0.02);
+    box(g, 0.05, 0.05, 0.05, "#23282d", -0.02, HT, -0.14, 0.012);
+    schale(g, "#b5895a", -0.15, HT, 0.08, 0.32, 0.12, 0.26, 0.25);
+    // Gelenkleuchte
+    box(g, 0.08, 0.03, 0.08, C.armGelenk, -0.86, HT, -0.22, 0.01);
+    strebe(g, V(-0.86, HT + 0.03, -0.22), V(-0.8, HT + 0.4, -0.12), 0.02, C.armGelenk);
+    strebe(g, V(-0.8, HT + 0.4, -0.12), V(-0.6, HT + 0.36, 0.05), 0.02, C.armGelenk);
+    zyl(g, 0.03, 0.08, 0.08, C.gelb, -0.6, HT + 0.32, 0.05, "y", 16);
+    zyl(g, 0.065, 0.065, 0.005, null, -0.6, HT + 0.278, 0.05, "y", 16, leucht("#fff2d0", 2));
+    const w = 0.18;
+    const plaetze = fach(g, -0.66, HT, 0.12, 0.48, 0.42, ROT, w);
+    const eingangPlaetze = fach(g, 0.68, HT, 0.02, 0.44, 0.5, GRUEN, w);
+    standmatte(g, -0.5, 0.95);
+    return fertig(g, { plaetze, eingangPlaetze, wuerfel: w });
+  }
+
+  function montagetisch() {
+    const g = new THREE.Group(), HT = 0.8;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 0.06, HT - 0.06, 0.06, null, sx * 0.9, 0, sz * 0.33, 0.01, alu());
+    for (const sz of [-1, 1]) box(g, 1.8, 0.045, 0.045, null, 0, 0.16, sz * 0.33, 0.01, alu());
+    box(g, 1.96, 0.06, 0.82, null, 0, HT - 0.06, 0, 0.012, WEISS());
+    box(g, 1.2, 0.01, 0.56, "#3c7fd6", 0.05, HT, 0.03, 0.004);
+    for (const sx of [-1, 1]) box(g, 0.06, 0.95, 0.06, null, sx * 0.93, HT, -0.37, 0.01, alu());
+    box(g, 1.92, 0.06, 0.06, null, 0, HT + 0.92, -0.37, 0.01, alu());
+    box(g, 1.6, 0.05, 0.14, null, 0, HT + 0.85, -0.24, 0.02, WEISS());
+    box(g, 1.5, 0.008, 0.1, null, 0, HT + 0.846, -0.24, 0, leucht("#f4fbff", 1.6));
+    // Schrägleiste mit Greifbehältern
+    const leiste = new THREE.Group();
+    leiste.position.set(0, HT + 0.28, -0.3); leiste.rotation.x = 0.35;
+    box(leiste, 1.82, 0.025, 0.2, null, 0, 0, 0, 0.006, alu());
+    for (let i = 0; i < 9; i++) {
+      const f = KATEGORIEN[(i * 5) % KATEGORIEN.length].farbe;
+      box(leiste, 0.17, 0.1, 0.18, f, -0.8 + i * 0.2, 0.025, 0, 0.012);
+      box(leiste, 0.17, 0.035, 0.02, dunkler(f, 0.15), -0.8 + i * 0.2, 0.025, 0.085, 0.004);
+    }
+    g.add(leiste);
+    for (const sx of [-1, 1]) box(g, 0.03, 0.28, 0.03, null, sx * 0.85, HT, -0.33, 0.006, alu());
+    // Monitor, Lupenleuchte, Schrauber am Federzug
+    box(g, 0.05, 0.3, 0.05, C.armGelenk, 0.72, HT + 0.92, -0.3, 0.01);
+    bildschirm(g, 0.72, HT + 0.7, -0.19, 0.44, 0.28, "blaupause", -0.25, 0.18);
+    box(g, 0.1, 0.03, 0.1, C.armGelenk, -0.55, HT, -0.28, 0.01);
+    strebe(g, V(-0.55, HT + 0.03, -0.28), V(-0.5, HT + 0.42, -0.15), 0.02, C.armGelenk);
+    strebe(g, V(-0.5, HT + 0.42, -0.15), V(-0.32, HT + 0.32, 0.05), 0.02, C.armGelenk);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.022, 8, 28), WEISS());
+    ring.rotation.x = Math.PI / 2 - 0.3; ring.position.set(-0.3, HT + 0.3, 0.07); ring.castShadow = !ersatz; g.add(ring);
+    zyl(g, 0.004, 0.004, 0.45, C.armGelenk, 0.25, HT + 0.62, -0.24, "y", 4);
+    zyl(g, 0.022, 0.022, 0.16, C.gelb, 0.25, HT + 0.33, -0.24, "y", 12);
+    // Produkt in Arbeit
+    schale(g, "#e9e4d8", -0.02, HT + 0.01, 0.06, 0.4, 0.14, 0.32, 0.1);
+    [[-0.06, 0.03, 0], [0.04, 0.0, 3], [0.06, 0.1, 9]].forEach(([x, z, i]) => box(g, 0.07, 0.05, 0.07, KATEGORIEN[i % KATEGORIEN.length].farbe, -0.02 + x, HT + 0.035, 0.06 + z, 0.01));
+    const w = 0.22;
+    const plaetze = fach(g, -0.68, HT, 0.12, 0.44, 0.42, ROT, w);
+    const eingangPlaetze = fach(g, 0.72, HT, 0.12, 0.42, 0.42, GRUEN, w);
+    standmatte(g, -0.5, 0.95);
+    return fertig(g, { plaetze, eingangPlaetze, wuerfel: w });
+  }
+
+  function forschungsstation() {
+    const g = new THREE.Group(), HT = 0.8, vio = "#7b61c9";
+    box(g, 1.96, HT - 0.06, 0.8, null, 0, 0, 0, 0.02, WEISS());
+    for (let i = 0; i < 3; i++) {
+      box(g, 0.56, 0.18, 0.012, "#e3e8ea", -0.62 + i * 0.62, 0.42, 0.401, 0.004);
+      box(g, 0.2, 0.02, 0.02, null, -0.62 + i * 0.62, 0.53, 0.41, 0.006, alu());
+    }
+    box(g, 1.96, 0.06, 0.82, "#2a2f35", 0, HT - 0.06, 0, 0.012);
+    box(g, 1.96, 0.012, 0.012, null, 0, HT - 0.035, 0.416, 0, leucht(vio, 1.6));
+    box(g, 0.9, 0.008, 0.5, "#e9eef0", -0.1, HT, 0.05, 0.003);
+    // Mikroskop
+    const mx = -0.62;
+    box(g, 0.16, 0.04, 0.2, null, mx, HT, -0.12, 0.015, WEISS());
+    box(g, 0.05, 0.3, 0.05, null, mx, HT + 0.04, -0.2, 0.012, WEISS());
+    box(g, 0.13, 0.02, 0.12, C.armGelenk, mx, HT + 0.12, -0.1, 0.006);
+    const tubus = new THREE.Group(); tubus.position.set(mx, HT + 0.3, -0.12); tubus.rotation.x = 0.4; g.add(tubus);
+    zyl(tubus, 0.03, 0.03, 0.2, null, 0, 0, 0, "y", 14, WEISS());
+    zyl(tubus, 0.016, 0.016, 0.08, C.armGelenk, 0, 0.12, 0, "y", 10);
+    // Oszilloskop und Monitor
+    box(g, 0.34, 0.2, 0.2, "#5c666f", 0.15, HT, -0.22, 0.02);
+    bildschirm(g, 0.08, HT + 0.1, -0.115, 0.16, 0.12, "graph");
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) zyl(g, 0.014, 0.014, 0.02, j ? "#ffc23a" : C.stahlHell, 0.23 + i * 0.05, HT + 0.06 + j * 0.06, -0.115, "z", 10);
+    box(g, 0.14, 0.02, 0.1, C.armGelenk, 0.66, HT, -0.24, 0.008);
+    box(g, 0.035, 0.18, 0.03, C.armGelenk, 0.66, HT + 0.02, -0.26, 0.008);
+    bildschirm(g, 0.66, HT + 0.36, -0.235, 0.46, 0.3, "balken", -0.2, 0.06);
+    // zerlegtes Teil
+    schale(g, "#7d858c", -0.12, HT, 0.08, 0.3, 0.1, 0.24, 0.5);
+    [[0.12, 0.02, 1], [0.2, 0.14, 4], [0.05, 0.2, 6], [-0.32, 0.18, 9]].forEach(([x, z, i]) => box(g, 0.08, 0.035, 0.06, KATEGORIEN[i % KATEGORIEN.length].farbe, x, HT + 0.008, z, 0.01));
+    // Regal oben mit Probengläsern
+    for (const sx of [-1, 1]) box(g, 0.04, 0.62, 0.04, null, sx * 0.94, HT, -0.38, 0.01, WEISS());
+    box(g, 1.92, 0.03, 0.18, null, 0, HT + 0.6, -0.31, 0.008, WEISS());
+    box(g, 1.7, 0.012, 0.02, null, 0, HT + 0.585, -0.23, 0, leucht(vio, 1.2));
+    for (let i = 0; i < 7; i++) zyl(g, 0.035, 0.035, 0.09, null, -0.75 + i * 0.25, HT + 0.675, -0.31, "y", 12, mat(KATEGORIEN[(i * 3) % KATEGORIEN.length].farbe, { t: true, o: 0.7, r: 0.15 }));
+    const w = 0.18;
+    const eingangPlaetze = fach(g, 0.68, HT, 0.16, 0.42, 0.34, GRUEN, w);
+    standmatte(g, -0.5, 0.95);
+    return fertig(g, { plaetze: [], eingangPlaetze, wuerfel: w });
+  }
+
+  /* ==========================================================================
+     Maschinen: Animation über animiere(p), p = 0 … 1 eine Arbeitsbewegung (0 = Ruhe)
+     ========================================================================== */
+  const MW = MASCHINEN_WUERFEL;
+  const sanftAb = (a, b, x) => sanft((x - a) / (b - a));
+
+  function stanzer() {
+    const g = new THREE.Group(), y0 = 0.07, OR = mat(C.orange, { r: 0.45 });
+    maschinenPlatte(g, 1.94, 1.94, C.orange);
+    box(g, 1.0, 0.55, 0.9, null, 0, y0, -0.3, 0.04, WEISS());
+    box(g, 1.0, 1.3, 0.34, null, 0, y0 + 0.55, -0.62, 0.04, WEISS());
+    box(g, 1.0, 0.4, 0.85, null, 0, y0 + 1.5, -0.38, 0.05, WEISS());
+    box(g, 1.02, 0.12, 0.02, null, 0, y0 + 1.62, 0.055, 0.008, warnMat(6));
+    for (const sx of [-1, 1]) box(g, 0.04, 1.25, 0.36, null, sx * 0.52, y0 + 0.55, -0.6, 0.01, OR);
+    box(g, 1.02, 0.08, 0.87, null, 0, y0 + 1.42, -0.38, 0.02, OR);
+    knoepfe(g, { x: 0, z: 1 }, 0.06, y0 + 1.5, 0.3, C.orange);
+    box(g, 0.66, 0.06, 0.6, C.stahlDunkel, 0, y0 + 0.55, -0.15, 0.012);
+    box(g, 0.46, 0.035, 0.44, null, 0, y0 + 0.61, -0.15, 0.008, chrom());
+    for (let i = 0; i < 5; i++) box(g, 0.34, 0.018, 0.3, null, 0.28 + (i % 2) * 0.01, y0 + 0.55 + i * 0.02, -0.46, 0.004, mat("#b9c2c8", { m: 0.6, r: 0.3 }));
+    // Stempel (bewegt)
+    const stempel = new THREE.Group(); stempel.position.set(0, y0 + 1.42, -0.15); g.add(stempel);
+    zyl(stempel, 0.08, 0.08, 0.34, null, 0, -0.17, 0, "y", 18, chrom());
+    box(stempel, 0.5, 0.12, 0.46, C.stahlDunkel, 0, -0.46, 0, 0.02);
+    // Schwungrad links (dreht während der Arbeit)
+    const rad = new THREE.Group(); rad.position.set(-0.6, y0 + 1.55, -0.45); g.add(rad);
+    zyl(rad, 0.3, 0.3, 0.07, null, 0, 0, 0, "x", 36, OR);
+    zyl(rad, 0.22, 0.22, 0.075, C.stahlDunkel, 0, 0, 0, "x", 36);
+    for (let i = 0; i < 4; i++) { const sp = box(rad, 0.08, 0.42, 0.05, null, 0, -0.21, 0, 0.01, OR); sp.rotation.x = i * Math.PI / 4; sp.position.set(0, 0, 0); }
+    zyl(rad, 0.06, 0.06, 0.1, null, 0, 0, 0, "x", 16, chrom());
+    // Lichtgitter, Bedienpult, Signalsäule
+    for (const sx of [-1, 1]) {
+      box(g, 0.06, 0.95, 0.06, C.armGelenk, sx * 0.4, y0 + 0.55, 0.16, 0.012);
+      box(g, 0.012, 0.8, 0.02, null, sx * 0.4 - sx * 0.03, y0 + 0.62, 0.16, 0, leucht(C.leuchten, 1.6));
+    }
+    box(g, 0.05, 0.85, 0.05, C.armGelenk, 0.78, y0, -0.05, 0.01);
+    box(g, 0.3, 0.26, 0.1, null, 0.78, y0 + 0.85, -0.05, 0.03, WEISS());
+    bildschirm(g, 0.78, y0 + 1.0, 0.002, 0.2, 0.13, "balken");
+    knoepfe(g, { x: 0, z: 1 }, 0, y0 + 0.86, 0.2, C.orange).position.set(0.78, 0, 0.002);
+    const lampe = signalTurm(g, 0.38, y0 + 1.9, -0.62);
+    einlass(g, 0.5, -0.5, { x: 1, z: 0 }, GRUEN);
+    einlass(g, -0.5, -0.5, { x: -1, z: 0 }, ROT);
+    fachStaender(g, 0.5, 0.68); fachStaender(g, -0.5, 0.68);
+    const eingangPlaetze = fach(g, 0.5, 0.42, 0.68, 0.6, 0.45, GRUEN, MW);
+    const plaetze = fach(g, -0.5, 0.42, 0.68, 0.6, 0.45, ROT, MW);
+    return fertig(g, {
+      plaetze, eingangPlaetze, wuerfel: MW, lampe, takt: 0.9, statusHoehe: 2.65, warnPunkt: V(0.38, y0 + 2.25, -0.62),
+      animiere(p) {
+        const hub = p < 0.3 ? sanft(p / 0.3) : p < 0.45 ? 1 : 1 - sanftAb(0.45, 0.85, p);
+        stempel.position.y = y0 + 1.42 - 0.33 * hub;
+        rad.rotation.x = -p * Math.PI * 2;
+      },
+    });
+  }
+
+  function cncFraese() {
+    const g = new THREE.Group(), y0 = 0.07, TU = mat(C.tuerkis, { r: 0.4 });
+    maschinenPlatte(g, 1.94, 1.94, C.tuerkis);
+    const x0 = -0.92, x1 = 0.48, z0 = -0.88, z1 = 0.3, oben = y0 + 1.25;
+    const xm = (x0 + x1) / 2, B = x1 - x0, T = z1 - z0, zm = (z0 + z1) / 2;
+    box(g, B, 0.35, T, null, xm, y0, zm, 0.03, WEISS());
+    box(g, B, oben - y0 - 0.35, 0.05, null, xm, y0 + 0.35, z0 + 0.025, 0.01, WEISS());
+    for (const x of [x0 + 0.025, x1 - 0.025]) box(g, 0.05, oben - y0 - 0.35, T, null, x, y0 + 0.35, zm, 0.01, WEISS());
+    box(g, B, 0.14, T, null, xm, oben, zm, 0.04, WEISS());
+    box(g, B + 0.01, 0.025, 0.02, null, xm, oben + 0.05, z1 + 0.005, 0, leucht(C.tuerkis, 1.6));
+    box(g, B + 0.01, 0.05, 0.03, null, xm, y0 + 0.33, z1 + 0.01, 0.01, TU);
+    for (const x of [x0 + 0.03, x1 - 0.03]) box(g, 0.06, oben - y0 - 0.35, 0.05, C.armGelenk, x, y0 + 0.35, z1 - 0.02, 0.01);
+    box(g, B - 0.1, oben - y0 - 0.42, 0.012, null, xm, y0 + 0.38, z1 - 0.01, 0, glas("#bfe9f2")).castShadow = false;
+    zyl(g, 0.015, 0.015, 0.4, null, x0 + 0.12, y0 + 0.8, z1 + 0.03, "y", 8, chrom());
+    // Innen: Tisch, Werkstück, Brücke mit Spindel (bewegt)
+    box(g, B - 0.2, 0.06, T - 0.25, C.stahlDunkel, xm, y0 + 0.35, zm - 0.05, 0.01);
+    box(g, 0.34, 0.12, 0.26, null, xm, y0 + 0.41, zm - 0.05, 0.01, mat("#c9d1d8", { m: 0.6, r: 0.3 }));
+    const bruecke = new THREE.Group(); bruecke.position.x = xm; g.add(bruecke);
+    box(bruecke, 0.1, 0.1, T - 0.15, C.stahlDunkel, 0, oben - 0.12, zm, 0.01);
+    const spindel = new THREE.Group(); spindel.position.z = zm; bruecke.add(spindel);
+    box(spindel, 0.16, 0.26, 0.16, null, 0, oben - 0.4, 0, 0.02, TU);
+    zyl(spindel, 0.035, 0.035, 0.12, null, 0, oben - 0.46, 0, "y", 12, chrom());
+    zyl(spindel, 0.012, 0.006, 0.08, C.gelb, 0, oben - 0.56, 0, "y", 8);
+    // Funken (nur sichtbar, solange gefräst wird)
+    const funken = new THREE.Group(); g.add(funken);
+    const funkenM = ersatz || merke("funken", () => new THREE.MeshBasicMaterial({ color: "#ffd27a", transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const funkenTeile = Array.from({ length: 8 }, () => { const f = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.014), funkenM); f.userData.einzeln = true; funken.add(f); return f; });
+    // Werkzeugwechsler
+    const magazin = new THREE.Group(); magazin.position.set(x0 + 0.3, oben - 0.35, z0 + 0.1); g.add(magazin);
+    zyl(magazin, 0.17, 0.17, 0.04, C.stahlDunkel, 0, 0, 0, "z", 24);
+    for (let i = 0; i < 8; i++) { const w = i / 8 * Math.PI * 2; zyl(magazin, 0.018, 0.018, 0.08, i % 2 ? null : C.gelb, Math.cos(w) * 0.13, Math.sin(w) * 0.13, 0.05, "z", 8, i % 2 ? chrom() : null); }
+    // Bedienturm rechts vorn, Kühlmitteltank hinten
+    box(g, 0.36, 1.25, 0.36, null, 0.74, y0, 0.14, 0.03, WEISS());
+    box(g, 0.012, 1.0, 0.012, null, 0.91, y0 + 0.1, 0.32, 0, leucht(C.tuerkis, 1.4));
+    bildschirm(g, 0.74, y0 + 1.0, 0.325, 0.28, 0.2, "cnc", 0, 0.12);
+    knoepfe(g, { x: 0, z: 1 }, 0, y0 + 0.72, 0.26, C.tuerkis).position.set(0.74, 0, 0.32);
+    zyl(g, 0.04, 0.04, 0.03, null, 0.68, y0 + 0.62, 0.335, "z", 16, leucht("#ff4a3a", 1.2));
+    const lampe = signalTurm(g, 0.74, y0 + 1.25, 0.06);
+    box(g, 0.5, 0.4, 0.05, null, xm + 0.2, y0 + 0.45, z0 - 0.03, 0.01, mat(C.tuerkis, { r: 0.4, t: true, o: 0.75 }));
+    einlass(g, x1, -0.5, { x: 1, z: 0 }, GRUEN);
+    einlass(g, x0, -0.5, { x: -1, z: 0 }, ROT);
+    fachStaender(g, 0.62, 0.7); fachStaender(g, -0.55, 0.7);
+    const eingangPlaetze = fach(g, 0.62, 0.42, 0.7, 0.56, 0.42, GRUEN, MW);
+    const plaetze = fach(g, -0.55, 0.42, 0.7, 0.6, 0.42, ROT, MW);
+    const wz = { y: y0 + 0.53, z: zm - 0.05 };
+    return fertig(g, {
+      plaetze, eingangPlaetze, wuerfel: MW, lampe, takt: 1.6, statusHoehe: 1.95, warnPunkt: V(0.74, y0 + 1.62, 0.06),
+      animiere(p) {
+        const w = p * Math.PI * 2, bx = Math.sin(w) * 0.14, bz = Math.sin(w * 2) * 0.08;
+        bruecke.position.x = xm + bx;
+        spindel.position.z = zm + bz;
+        spindel.position.y = p > 0 ? -0.02 : 0;
+        magazin.rotation.z = p * Math.PI / 2;
+        funken.visible = p > 0.05 && p < 0.95;
+        funkenTeile.forEach((f, i) => {
+          const q = (p * 6 + i / funkenTeile.length) % 1, wi = i * 2.4;
+          f.position.set(xm + bx + Math.cos(wi) * q * 0.22, wz.y + q * 0.18 - q * q * 0.3, zm + bz - 0.05 + Math.sin(wi) * q * 0.16);
+        });
+      },
+    });
+  }
+
+  /* --- Industrieroboter (wie die Greifarme der Bänder), lackiert in "farbe" --- */
+  const L1 = 0.55, L2 = 0.55, SCHULTER = 0.34, HAND = 0.115;
+  function baueArm(g, farbe) {
+    const dunkel = mat("#2e343a", { r: 0.45, m: 0.3 }), stahlM = mat(C.stahl, { r: 0.35, m: 0.5 }), lack = mat(farbe, { r: 0.38, m: 0.1 });
+    zyl(g, 0.44, 0.46, 0.05, null, 0, 0.025, 0, "y", 40, mat("#59636c", { r: 0.5, m: 0.3 }));
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.02, 8, 48), leucht(farbe, 1.2));
+    ring.rotation.x = Math.PI / 2; ring.position.y = 0.055;
+    g.add(ring);
+    const sockel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.28, 0.1, 32), ersatz || [warnMat(10), dunkel, dunkel]);
+    sockel.position.y = 0.1; sockel.castShadow = !ersatz;
+    g.add(sockel);
+    knoepfe(g, { x: 1, z: 0 }, 0.47, 0.075, 0.16, farbe);
+    box(g, 0.08, 0.12, 0.2, null, 0.43, 0.05, 0, 0.015, dunkel);
+    const dreh = new THREE.Group(); g.add(dreh);
+    zyl(dreh, 0.19, 0.22, 0.14, null, 0, 0.22, 0, "y", 32, lack);
+    zyl(dreh, 0.23, 0.23, 0.025, null, 0, 0.16, 0, "y", 32, dunkel);
+    box(dreh, 0.3, 0.2, 0.22, null, 0, 0.22, -0.02, 0.06, lack);
+    for (const sx of [-1, 1]) {
+      box(dreh, 0.07, 0.16, 0.18, null, sx * 0.18, 0.24, -0.05, 0.02, dunkel);
+      zyl(dreh, 0.045, 0.045, 0.03, null, sx * 0.22, 0.32, -0.05, "x", 16, stahlM);
+    }
+    zyl(dreh, 0.11, 0.11, 0.3, null, 0, SCHULTER, 0, "x", 24, dunkel);
+    for (const sx of [-1, 1]) zyl(dreh, 0.085, 0.085, 0.02, null, sx * 0.16, SCHULTER, 0, "x", 24, lack);
+    const oa = new THREE.Group(); oa.position.y = SCHULTER; dreh.add(oa);
+    box(oa, 0.16, 0.15, L1 - 0.05, null, 0, -0.075, L1 / 2, 0.05, lack);
+    zyl(oa, 0.035, 0.035, 0.22, null, 0, -0.13, 0.17, "z", 14, dunkel);
+    zyl(oa, 0.02, 0.02, 0.22, null, 0, -0.13, 0.36, "z", 12, chrom());
+    zyl(oa, 0.085, 0.085, 0.22, null, 0, 0, L1, "x", 22, dunkel);
+    const ua = new THREE.Group(); ua.position.z = L1; oa.add(ua);
+    box(ua, 0.12, 0.11, L2 - 0.06, null, 0, -0.055, L2 / 2 - 0.01, 0.04, lack);
+    const hg = new THREE.Group(); hg.position.z = L2; ua.add(hg);
+    zyl(hg, 0.06, 0.06, 0.16, null, 0, 0, 0, "x", 18, dunkel);
+    box(hg, 0.22, 0.035, 0.1, null, 0, -0.115, 0, 0.01, dunkel);
+    const backen = [];
+    for (const sx of [-1, 1]) {
+      const backe = new THREE.Group();
+      box(backe, 0.03, 0.13, 0.08, null, 0, -0.24, 0, 0.008, stahlM);
+      hg.add(backe);
+      backen.push(backe);
+    }
+    function pose(w, r, y, zu) {
+      dreh.rotation.y = w;
+      const wy = y + HAND, dy = wy - SCHULTER;
+      const d = Math.min(Math.hypot(r, dy), L1 + L2 - 0.001);
+      const gamma = Math.atan2(dy, r);
+      const beta = Math.acos(Math.min(1, Math.max(-1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))));
+      const t1 = gamma + beta, ex = L1 * Math.cos(t1), ey = L1 * Math.sin(t1);
+      const t2 = Math.atan2(wy - SCHULTER - ey, r - ex);
+      oa.rotation.x = -t1; ua.rotation.x = -(t2 - t1); hg.rotation.x = t2;
+      backen[0].position.x = -(zu ? 0.13 : 0.16); backen[1].position.x = zu ? 0.13 : 0.16;
+    }
+    return pose;
+  }
+  // Greifzyklus zwischen zwei Stopps A und B (Winkel, Reichweite, Höhe der Hand)
+  function zyklus2(p, A, B) {
+    const hub = 0.2;
+    const misch = (u) => ({ w: A.w + (B.w - A.w) * u, r: A.r + (B.r - A.r) * u, y: A.y + (B.y - A.y) * u });
+    let q, y;
+    if (p < 0.08) { q = misch(0); y = A.y; }
+    else if (p < 0.2) { q = misch(0); y = A.y + hub * sanftAb(0.08, 0.2, p); }
+    else if (p < 0.5) { q = misch(sanftAb(0.2, 0.5, p)); y = q.y + hub; }
+    else if (p < 0.6) { q = misch(1); y = B.y + hub * (1 - sanftAb(0.5, 0.6, p)); }
+    else if (p < 0.7) { q = misch(1); y = B.y + hub * sanftAb(0.6, 0.7, p); }
+    else if (p < 0.93) { q = misch(1 - sanftAb(0.7, 0.93, p)); y = q.y + hub; }
+    else { q = misch(0); y = A.y + hub * (1 - sanftAb(0.93, 1, p)); }
+    return { w: q.w, r: q.r, y, zu: p > 0.06 && p < 0.6 };
+  }
+
+  function roboterArm() {
+    const g = new THREE.Group(), y0 = 0.07;
+    maschinenPlatte(g, 1.94, 0.94, C.gelb);
+    for (const x of [-0.94, -0.3, 0.34, 0.94]) box(g, 0.04, 0.6, 0.04, C.gelb, x, y0, -0.44, 0.008);
+    gitterFlaeche(g, 1.88, 0.5, 0, y0 + 0.32, -0.44, 0, 14, 4);
+    box(g, 1.92, 0.03, 0.04, C.gelb, 0, y0 + 0.6, -0.44, 0.008);
+    // Schaltschrank, Signalsäule
+    box(g, 0.34, 0.75, 0.22, null, 0.74, y0, -0.3, 0.02, WEISS());
+    bildschirm(g, 0.74, y0 + 0.58, -0.185, 0.22, 0.14, "balken");
+    knoepfe(g, { x: 0, z: 1 }, 0, y0 + 0.3, 0.22, C.gelb).position.set(0.74, 0, -0.19);
+    const lampe = signalTurm(g, 0.86, y0 + 0.75, -0.34);
+    // Rundtakttisch
+    zyl(g, 0.24, 0.27, 0.36, C.unterbau, -0.5, y0 + 0.18, 0, "y", 32);
+    const teller = new THREE.Group(); teller.position.set(-0.5, y0 + 0.36, 0); g.add(teller);
+    zyl(teller, 0.34, 0.34, 0.05, null, 0, 0.025, 0, "y", 40, WEISS());
+    const tr = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.012, 6, 48), leucht(C.gelb, 1.2));
+    tr.rotation.x = Math.PI / 2; tr.position.y = 0.03; teller.add(tr);
+    for (let i = 0; i < 4; i++) {
+      const w = i * Math.PI / 2;
+      box(teller, 0.16, 0.025, 0.16, C.stahlDunkel, Math.cos(w) * 0.2, 0.05, Math.sin(w) * 0.2, 0.006);
+      box(teller, 0.12, 0.09, 0.12, KATEGORIEN[(i * 2) % KATEGORIEN.length].farbe, Math.cos(w) * 0.2, 0.075, Math.sin(w) * 0.2, 0.01);
+    }
+    // Roboter (Maßstab 0,82)
+    const s = 0.82;
+    const arm = new THREE.Group(); arm.position.set(0.32, y0, 0); arm.scale.setScalar(s); g.add(arm);
+    const pose = baueArm(arm, C.gelb);
+    const teil = box(g, 0.1, 0.08, 0.1, "#c47a4a", 0, 0, 0, 0.01);   // gegriffenes Teil
+    teil.userData.einzeln = true;
+    einlass(g, 0.93, 0, { x: 1, z: 0 }, GRUEN);
+    einlass(g, -0.93, 0, { x: -1, z: 0 }, ROT);
+    fachStaender(g, 0.72, 0.32); fachStaender(g, -0.08, 0.38);
+    const eingangPlaetze = fach(g, 0.72, 0.42, 0.32, 0.4, 0.3, GRUEN, MW);
+    const plaetze = fach(g, -0.08, 0.42, 0.38, 0.28, 0.2, ROT, MW);
+    const A = { w: Math.atan2(0.4, 0.32), r: Math.hypot(0.4, 0.32) / s, y: (0.52 - y0) / s };
+    const B = { w: -Math.PI / 2, r: 0.62 / s, y: (0.6 - y0) / s };
+    const ruhe = () => { pose(0.3, 0.5, 0.75, false); teil.visible = false; };
+    ruhe();
+    return fertig(g, {
+      plaetze, eingangPlaetze, wuerfel: MW, lampe, takt: 1.3, statusHoehe: 1.75, warnPunkt: V(0.86, y0 + 1.1, -0.34),
+      animiere(p) {
+        if (p <= 0) { ruhe(); teller.rotation.y = 0; return; }
+        const z = zyklus2(p, A, B);
+        pose(z.w, z.r, z.y, z.zu);
+        teil.visible = z.zu;
+        teil.position.set(0.32 + Math.sin(z.w) * z.r * s, y0 + z.y * s - 0.08, Math.cos(z.w) * z.r * s);
+        teil.rotation.y = z.w;
+        teller.rotation.y = -sanftAb(0.62, 0.85, p) * Math.PI / 2;
+      },
+    });
+  }
+
+  function t2Presse() {
+    const g = new THREE.Group(), y0 = 0.07, BL = mat("#3b6fc4", { r: 0.42 }), zc = -0.3;
+    maschinenPlatte(g, 1.94, 1.94, "#3b6fc4");
+    box(g, 1.1, 0.5, 0.95, null, 0, y0, zc, 0.04, BL);
+    box(g, 1.12, 0.04, 0.97, null, 0, y0 + 0.5, zc, 0.01, WEISS());
+    box(g, 0.6, 0.05, 0.5, C.stahlDunkel, 0, y0 + 0.54, zc, 0.01);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) zyl(g, 0.055, 0.055, 1.35, null, sx * 0.42, y0 + 0.5 + 0.675, zc + sz * 0.33, "y", 18, chrom());
+    box(g, 1.12, 0.36, 0.95, null, 0, y0 + 1.85, zc, 0.05, WEISS());
+    box(g, 1.14, 0.06, 0.97, null, 0, y0 + 1.85, zc, 0.02, BL);
+    box(g, 1.13, 0.02, 0.012, null, 0, y0 + 2.05, zc + 0.48, 0, leucht("#5fa8ff", 1.6));
+    zyl(g, 0.2, 0.2, 0.32, null, 0, y0 + 2.36, zc, "y", 28, BL);
+    zyl(g, 0.22, 0.22, 0.04, null, 0, y0 + 2.53, zc, "y", 28, WEISS());
+    const stoessel = new THREE.Group(); stoessel.position.y = y0 + 1.5; g.add(stoessel);
+    box(stoessel, 0.98, 0.18, 0.8, null, 0, 0, zc, 0.03, BL);
+    box(stoessel, 0.56, 0.06, 0.46, C.stahlDunkel, 0, -0.06, zc, 0.01);
+    zyl(stoessel, 0.09, 0.09, 1.2, null, 0, 0.78, zc, "y", 18, chrom());
+    const rohling = box(g, 0.2, 0.08, 0.2, "#b48ad9", 0, y0 + 0.59, zc, 0.01);
+    rohling.userData.einzeln = true;
+    // Hydraulikaggregat hinten mit Manometern und Leitungen
+    box(g, 0.5, 0.42, 0.2, null, 0, y0, -0.88, 0.03, BL);
+    zyl(g, 0.08, 0.08, 0.26, C.stahlDunkel, 0, y0 + 0.5, -0.88, "x", 18);
+    for (const x of [-0.16, 0.16]) zyl(g, 0.045, 0.045, 0.02, null, x, y0 + 0.3, -0.775, "z", 18, WEISS());
+    for (const x of [-0.12, 0.12]) {
+      strebe(g, V(x, y0 + 0.42, -0.9), V(x, y0 + 2.0, -0.9), 0.03, "#1d2226");
+      strebe(g, V(x, y0 + 2.0, -0.9), V(x * 0.5, y0 + 2.2, -0.62), 0.03, "#1d2226");
+    }
+    // Lichtgitter, Zweihandpult, Signalsäule
+    for (const sx of [-1, 1]) {
+      box(g, 0.06, 1.0, 0.06, C.armGelenk, sx * 0.62, y0 + 0.5, 0.2, 0.012);
+      box(g, 0.012, 0.85, 0.02, null, sx * 0.62 - sx * 0.03, y0 + 0.57, 0.2, 0, leucht(C.leuchten, 1.6));
+    }
+    box(g, 0.05, 0.7, 0.05, C.armGelenk, -0.78, y0, 0.0, 0.01);
+    box(g, 0.32, 0.12, 0.2, null, -0.78, y0 + 0.7, 0.0, 0.03, WEISS());
+    for (const sx of [-1, 1]) zyl(g, 0.035, 0.035, 0.04, null, -0.78 + sx * 0.09, y0 + 0.84, 0.0, "y", 16, leucht("#3fe07a", 1.2));
+    const lampe = signalTurm(g, -0.48, y0 + 2.03, -0.65);
+    einlass(g, 0.56, -0.5, { x: 1, z: 0 }, GRUEN);
+    einlass(g, -0.56, -0.5, { x: -1, z: 0 }, ROT);
+    fachStaender(g, 0.55, 0.72); fachStaender(g, -0.35, 0.72);
+    const eingangPlaetze = fach(g, 0.55, 0.42, 0.72, 0.56, 0.4, GRUEN, MW);
+    const plaetze = fach(g, -0.35, 0.42, 0.72, 0.5, 0.4, ROT, MW);
+    return fertig(g, {
+      plaetze, eingangPlaetze, wuerfel: MW, lampe, takt: 2.2, statusHoehe: 3.0, warnPunkt: V(-0.48, y0 + 2.4, -0.65),
+      animiere(p) {
+        const hub = p < 0.4 ? sanft(p / 0.4) : p < 0.55 ? 1 : 1 - sanftAb(0.55, 0.95, p);
+        stoessel.position.y = y0 + 1.5 - 0.72 * hub;
+        rohling.scale.set(1, 1 - 0.4 * hub, 1);
+      },
+    });
+  }
+
+  function assembler() {
+    const g = new THREE.Group(), y0 = 0.07, VI = mat(C.omni, { r: 0.4 }), zc = -0.25, T = 1.2, B = 2.7, oben = y0 + 1.45;
+    maschinenPlatte(g, 2.94, 1.94, C.omni);
+    box(g, B, 0.32, T, null, 0, y0, zc, 0.03, WEISS());
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 0.08, oben - y0 - 0.32, 0.08, null, sx * (B / 2 - 0.04), y0 + 0.32, zc + sz * (T / 2 - 0.04), 0.015, WEISS());
+    box(g, B, 0.16, T, null, 0, oben, zc, 0.04, WEISS());
+    box(g, B + 0.01, 0.12, 0.02, null, 0, oben + 0.02, zc + T / 2 + 0.005, 0.006, VI);
+    for (const sz of [-1, 1]) box(g, B - 0.16, oben - y0 - 0.34, 0.012, null, 0, y0 + 0.32, zc + sz * (T / 2 - 0.02), 0, glas("#d9d2f2")).castShadow = false;
+    for (const sx of [-1, 1]) box(g, 0.012, oben - y0 - 0.34, T - 0.16, null, sx * (B / 2 - 0.02), y0 + 0.32, zc, 0, glas("#d9d2f2")).castShadow = false;
+    // Innenband mit Produkten
+    const innen = new THREE.Group(); innen.position.set(0, 0, zc); innen.rotation.y = -Math.PI / 2; g.add(innen);
+    if (ersatz) box(innen, 0.7, 0.1, 2.6, null, 0, y0 + 0.4, 0, 0.01);
+    else nbGeradesBand(innen, { tempo: "normal" }, { z0: -1.3, z1: 1.3, y: y0 + 0.5, deck: true });
+    const produkte = new THREE.Group(); g.add(produkte);
+    for (let i = 0; i < 4; i++) {
+      const p = new THREE.Group(); p.position.set(-1.0 + i * 0.65, y0 + 0.5, zc); produkte.add(p);
+      box(p, 0.22, 0.18, 0.18, null, 0, 0, 0, 0.03, WEISS());
+      box(p, 0.225, 0.035, 0.185, "#2f6fd0", 0, 0.12, 0, 0.01);
+    }
+    // Portal mit zwei Köpfen
+    const portal = new THREE.Group(); g.add(portal);
+    box(portal, 0.08, 0.06, T - 0.2, C.stahlDunkel, 0, oben - 0.12, zc, 0.01);
+    const koepfe = [];
+    for (const sz of [-1, 1]) {
+      const kopf = new THREE.Group(); kopf.position.z = zc + sz * 0.18; portal.add(kopf);
+      box(kopf, 0.12, 0.2, 0.12, null, 0, oben - 0.3, 0, 0.02, VI);
+      zyl(kopf, 0.025, 0.025, 0.2, null, 0, oben - 0.38, 0, "y", 10, chrom());
+      koepfe.push(kopf);
+    }
+    box(g, B - 0.2, 0.04, 0.06, C.stahlDunkel, 0, oben - 0.07, zc - T / 2 + 0.12, 0.01);
+    // Kartonvorrat innen hinten
+    for (let i = 0; i < 6; i++) box(g, 0.15, 0.13, 0.15, KATEGORIEN[(i * 5) % KATEGORIEN.length].farbe, -1.0 + i * 0.4, y0 + 0.32, zc - 0.42, 0.015);
+    // 4 × 4-Leuchtraster oben: zeigt den Baufortschritt
+    box(g, 0.7, 0.02, 0.7, C.armGelenk, 0, oben + 0.155, zc, 0.01);
+    const raster = [];
+    for (let i = 0; i < 16; i++) {
+      const ix = i % 4, iz = Math.floor(i / 4);
+      const m = ersatz || new THREE.MeshStandardMaterial({ color: "#2a2f35", emissive: KATEGORIEN[(i * 7) % KATEGORIEN.length].farbe, emissiveIntensity: 0, roughness: 0.4 });
+      const z = box(g, 0.13, 0.03, 0.13, null, -0.24 + ix * 0.16, oben + 0.16, zc - 0.24 + iz * 0.16, 0.01, m);
+      z.userData.einzeln = true;
+      raster.push(m);
+    }
+    box(g, 0.08, 0.95, 0.08, null, 1.1, y0, 0.55, 0.015, WEISS());
+    bildschirm(g, 1.1, y0 + 1.05, 0.6, 0.32, 0.22, "blaupause", 0, 0.1);
+    const lampe = signalTurm(g, -1.25, oben + 0.16, zc - 0.5);
+    einlass(g, 1.37, -0.5, { x: 1, z: 0 }, GRUEN);
+    einlass(g, -1.37, -0.5, { x: -1, z: 0 }, ROT);
+    fachStaender(g, 0.45, 0.7); fachStaender(g, -0.55, 0.7);
+    const eingangPlaetze = fach(g, 0.45, 0.42, 0.7, 0.6, 0.42, GRUEN, MW);
+    const plaetze = fach(g, -0.55, 0.42, 0.7, 0.6, 0.42, ROT, MW);
+    return fertig(g, {
+      plaetze, eingangPlaetze, wuerfel: MW, lampe, takt: 3.6, statusHoehe: 2.3, warnPunkt: V(-1.25, oben + 0.5, zc - 0.5),
+      animiere(p) {
+        portal.position.x = Math.sin(p * Math.PI * 2) * 0.9;
+        koepfe.forEach((k, i) => { k.position.y = -0.12 * Math.max(0, Math.sin(p * Math.PI * 8 + i * Math.PI)); });
+        produkte.position.x = -((p * 0.65) % 0.65);
+        if (!ersatz) raster.forEach((m, i) => { m.emissiveIntensity = i < Math.floor(p * 17) ? 1.1 : 0; });
+      },
+    });
+  }
+
+  /* ==========================================================================
+     Lager: Regale statt Schränke. plaetze = Mitte eines Würfels der Kantenlänge wuerfel (zeichneFuellung)
+     ========================================================================== */
+  function palette(g, x, y, z, b = 0.8, t = 0.7) {
+    for (const sz of [-1, 0, 1]) box(g, b, 0.06, 0.1, "#b8834a", x, y, z + sz * (t / 2 - 0.05), 0.008);
+    for (let i = 0; i < 5; i++) box(g, b / 5 - 0.02, 0.022, t, "#c99a62", x - b / 2 + b / 10 + i * b / 5, y + 0.06, z, 0.005);
+  }
+  // Ständer, Traversen, Böden und Seitenverband eines Regals. ebenen = Oberkanten der Böden
+  function regalGestell(g, { x0, x1, z0, z1, ebenen, staender, traverse, boden, sb = 0.06, hoehe }) {
+    for (const x of [x0, x1]) for (const z of [z0, z1]) {
+      box(g, sb, hoehe, sb, staender, x, 0, z, 0.008);
+      box(g, sb + 0.06, 0.012, sb + 0.06, C.stahlDunkel, x, 0, z, 0.004);
+    }
+    for (const x of [x0, x1]) for (let i = 0; i < Math.floor(hoehe / 0.5); i++) strebe(g, V(x, 0.1 + i * 0.5, z0), V(x, 0.05 + (i + 1) * 0.5, z1), 0.022, staender);
+    for (const y of ebenen) {
+      for (const z of [z0, z1]) box(g, x1 - x0, 0.07, 0.045, traverse, (x0 + x1) / 2, y - 0.07, z, 0.01);
+      if (boden) box(g, x1 - x0 - 0.02, 0.02, z1 - z0, boden, (x0 + x1) / 2, y - 0.02, (z0 + z1) / 2, 0.004);
+    }
+  }
+  function etiketten(g, x0, x1, y, z, n) {
+    for (let i = 0; i < n; i++) box(g, (x1 - x0) / n * 0.5, 0.035, 0.006, "#fbfaf6", x0 + (i + 0.5) * (x1 - x0) / n, y - 0.06, z, 0.002);
+  }
+  // Plätze auf einer Fläche (Oberkante y), Raster mit Abstand wuerfel + luft, lagen übereinander
+  function flaechenPlaetze(plaetze, { x0, x1, z0, z1, y, w, lagen = 1, luft = 0.03 }) {
+    const a = w + luft, nx = Math.max(1, Math.floor((x1 - x0 + luft) / a)), nz = Math.max(1, Math.floor((z1 - z0 + luft) / a));
+    const ox = (x0 + x1) / 2 - (nx - 1) * a / 2, oz = (z0 + z1) / 2 - (nz - 1) * a / 2;
+    for (let lage = 0; lage < lagen; lage++) for (let iz = nz - 1; iz >= 0; iz--) for (let ix = 0; ix < nx; ix++) {
+      plaetze.push(V(ox + ix * a, y + w / 2 + lage * w, oz + iz * a));
+    }
+  }
+
+  function hauptlager() {
+    const g = new THREE.Group(), plaetze = [], w = 0.2;
+    regalGestell(g, { x0: -0.95, x1: 0.95, z0: -0.92, z1: -0.22, ebenen: [0.75, 1.4], staender: "#2f5fa8", traverse: C.orange, hoehe: 1.95 });
+    for (const z of [-0.92, -0.22]) box(g, 0.06, 1.95, 0.06, "#2f5fa8", 0, 0, z, 0.008);
+    for (const y of [0, 0.75, 1.4]) for (const xm of [-0.48, 0.48]) {
+      palette(g, xm, y, -0.57, 0.8, 0.64);
+      flaechenPlaetze(plaetze, { x0: xm - 0.38, x1: xm + 0.38, z0: -0.86, z1: -0.28, y: y + 0.082, w, lagen: 2 });
+    }
+    for (const y of [0.75, 1.4]) etiketten(g, -0.95, 0.95, y, -0.195, 4);
+    for (const [bw, d, x, z] of [[1.8, 0.04, 0, 0.0], [1.8, 0.04, 0, 0.92], [0.04, 0.92, -0.9, 0.46], [0.04, 0.92, 0.9, 0.46]]) box(g, bw, 0.006, d, C.gelb, x, 0, z, 0);
+    palette(g, -0.35, 0, 0.45, 0.8, 0.7);
+    flaechenPlaetze(plaetze, { x0: -0.73, x1: 0.03, z0: 0.15, z1: 0.75, y: 0.082, w, lagen: 2 });
+    // Hubwagen und Scanner-Terminal
+    const hw = new THREE.Group(); hw.position.set(0.45, 0, 0.55); hw.rotation.y = 0.2; g.add(hw);
+    for (const sx of [-1, 1]) box(hw, 0.12, 0.05, 0.6, C.gelb, sx * 0.13, 0.02, 0, 0.01);
+    box(hw, 0.38, 0.22, 0.1, C.gelb, 0, 0.02, -0.33, 0.02);
+    strebe(hw, V(0, 0.22, -0.34), V(0, 0.7, -0.5), 0.03, C.armGelenk);
+    box(hw, 0.2, 0.04, 0.04, "#23282d", 0, 0.68, -0.52, 0.01);
+    box(g, 0.06, 0.95, 0.06, C.armGelenk, 0.84, 0, 0.08, 0.01);
+    bildschirm(g, 0.84, 1.02, 0.12, 0.2, 0.14, "balken", 0, 0.25);
+    return fertig(g, { plaetze, wuerfel: w, warnPunkt: V(0.8, 2.0, -0.6), schildHoehe: 2.25 });
+  }
+
+  function kiste() {
+    const g = new THREE.Group(), plaetze = [], w = 0.24;
+    palette(g, 0, 0, 0, 0.84, 0.84);
+    for (let i = 0; i < 3; i++) {
+      const y = 0.1 + i * 0.15;
+      for (const s of [-1, 1]) {
+        box(g, 0.84, 0.1, 0.03, i % 2 ? "#a87d48" : "#c99a62", 0, y, s * 0.4, 0.008);
+        box(g, 0.03, 0.1, 0.78, i % 2 ? "#c99a62" : "#a87d48", s * 0.4, y, 0, 0.008);
+      }
+    }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 0.07, 0.48, 0.07, null, sx * 0.405, 0.08, sz * 0.405, 0.01, mat(C.stahl, { m: 0.5, r: 0.35 }));
+    box(g, 0.24, 0.1, 0.012, "#fbfaf6", 0, 0.27, 0.422, 0.004);
+    flaechenPlaetze(plaetze, { x0: -0.36, x1: 0.36, z0: -0.36, z1: 0.36, y: 0.082, w, lagen: 2, luft: 0.02 });
+    return fertig(g, { plaetze, wuerfel: w, warnPunkt: V(0.3, 0.6, -0.3), schildHoehe: 0.95 });
+  }
+
+  function metallKiste() {
+    const g = new THREE.Group(), plaetze = [], w = 0.2, stahlM = mat("#aab3b9", { m: 0.55, r: 0.35 });
+    box(g, 0.86, 0.08, 0.86, C.gelb, 0, 0, 0, 0.01);
+    box(g, 0.84, 0.03, 0.84, null, 0, 0.08, 0, 0.006, stahlM);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(g, 0.05, 0.66, 0.05, null, sx * 0.405, 0.08, sz * 0.405, 0.008, stahlM);
+    for (const y of [0.42, 0.72]) for (const s of [-1, 1]) {
+      box(g, 0.84, 0.03, 0.03, null, 0, y, s * 0.405, 0.006, stahlM);
+      box(g, 0.03, 0.03, 0.84, null, s * 0.405, y, 0, 0.006, stahlM);
+    }
+    for (const [x, z, ry, h] of [[0, -0.405, 0, 0.64], [0.405, 0, Math.PI / 2, 0.64], [-0.405, 0, Math.PI / 2, 0.64], [0, 0.405, 0, 0.34]]) {
+      gitterFlaeche(g, 0.8, h, x, 0.1 + h / 2, z, ry, 8, Math.round(h * 10));
+    }
+    box(g, 0.26, 0.11, 0.01, "#fbfaf6", 0, 0.26, 0.43, 0.004);
+    flaechenPlaetze(plaetze, { x0: -0.36, x1: 0.36, z0: -0.36, z1: 0.36, y: 0.11, w, lagen: 3, luft: 0.03 });
+    return fertig(g, { plaetze, wuerfel: w, warnPunkt: V(0.3, 0.78, -0.3), schildHoehe: 1.0 });
+  }
+
+  // Regal (2 × 1). art: "regal" | "metall" | "industrie" | "smart"
+  function regal(art) {
+    const g = new THREE.Group(), plaetze = [];
+    let w, schild, teile = {};
+    if (art === "regal") {
+      w = 0.22;
+      const ebenen = [0.1, 0.6, 1.1];
+      regalGestell(g, { x0: -0.92, x1: 0.92, z0: -0.3, z1: 0.3, ebenen, staender: "#e9eef0", traverse: "#5b7fa8", boden: "#cfd6db", hoehe: 1.5 });
+      strebe(g, V(-0.9, 0.1, -0.31), V(0.9, 1.45, -0.31), 0.02, C.stahlDunkel);
+      strebe(g, V(0.9, 0.1, -0.31), V(-0.9, 1.45, -0.31), 0.02, C.stahlDunkel);
+      box(g, 1.86, 0.03, 0.62, "#5b7fa8", 0, 1.47, 0, 0.008);
+      for (const y of ebenen) { etiketten(g, -0.9, 0.9, y + 0.07, 0.325, 5); flaechenPlaetze(plaetze, { x0: -0.86, x1: 0.86, z0: -0.25, z1: 0.25, y, w }); }
+      schild = 1.75;
+    } else if (art === "metall") {
+      w = 0.2;
+      const ebenen = [0.1, 0.5, 0.9, 1.3];
+      regalGestell(g, { x0: -0.93, x1: 0.93, z0: -0.33, z1: 0.33, ebenen, staender: "#3b434b", traverse: C.gelb, boden: "#6c757d", sb: 0.07, hoehe: 1.75 });
+      for (const x of [-0.93, 0.93]) box(g, 0.12, 0.2, 0.12, null, x, 0, 0.33, 0.02, warnMat(1));
+      for (const y of ebenen) { etiketten(g, -0.9, 0.9, y + 0.07, 0.355, 6); flaechenPlaetze(plaetze, { x0: -0.88, x1: 0.88, z0: -0.28, z1: 0.28, y, w }); }
+      schild = 2.0;
+    } else {
+      w = art === "smart" ? 0.19 : 0.17;
+      const ebenen = [0.1, 0.5, 0.9, 1.3, 1.7];
+      const smart = art === "smart";
+      regalGestell(g, { x0: -0.94, x1: 0.94, z0: smart ? -0.34 : -0.36, z1: smart ? 0.24 : 0.36, ebenen, staender: smart ? "#e9eef0" : "#2f5fa8", traverse: smart ? C.smart : C.orange, boden: smart ? "#cfd6db" : "#8d969d", sb: 0.08, hoehe: 2.05 });
+      if (!smart) {
+        for (const x of [-0.94, 0.94]) box(g, 0.14, 0.24, 0.14, null, x, 0, 0.36, 0.02, warnMat(1));
+        for (const y of ebenen) for (let i = 0; i < 4; i++) {   // blaue Kleinladungsträger
+          const x = -0.68 + i * 0.45;
+          box(g, 0.4, 0.03, 0.62, "#2f6fd0", x, y, 0, 0.01);
+          for (const s of [-1, 1]) box(g, 0.4, 0.15, 0.025, "#2f6fd0", x, y, s * 0.3, 0.008);
+          box(g, 0.025, 0.15, 0.58, "#2f6fd0", x - 0.19, y, 0, 0.008);
+          box(g, 0.025, 0.1, 0.58, "#2f6fd0", x + 0.19, y, 0, 0.008);
+          box(g, 0.12, 0.05, 0.006, "#fbfaf6", x, y + 0.05, 0.315, 0.002);
+          flaechenPlaetze(plaetze, { x0: x - 0.17, x1: x + 0.17, z0: -0.27, z1: 0.27, y: y + 0.03, w, luft: 0.01 });
+        }
+        schild = 2.3;
+      } else {
+        for (const y of ebenen) {
+          box(g, 1.8, 0.012, 0.012, null, 0, y - 0.065, 0.27, 0, leucht(C.leuchten, 1.4));
+          flaechenPlaetze(plaetze, { x0: -0.88, x1: 0.88, z0: -0.3, z1: 0.18, y, w });
+        }
+        // Liftschiene mit Wagen vorn, Bildschirm und Nachkauf-Leuchte an der Seite
+        box(g, 1.9, 0.05, 0.05, null, 0, 2.08, 0.38, 0.01, WEISS());
+        box(g, 1.9, 0.04, 0.05, null, 0, 0, 0.38, 0.01, WEISS());
+        box(g, 0.06, 2.05, 0.06, C.smart, 0.55, 0, 0.38, 0.01);
+        box(g, 0.34, 0.04, 0.3, C.armGelenk, 0.55, 0.9, 0.3, 0.01);
+        box(g, 0.36, 0.012, 0.012, null, 0.55, 0.945, 0.45, 0, leucht(C.leuchten, 1.8));
+        const bild = bildschirm(g, 0.99, 1.2, 0.0, 0.26, 0.18, "balken", Math.PI / 2, 0, true);
+        const spitze = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 14).rotateZ(Math.PI / 2), ersatz || new THREE.MeshBasicMaterial({ color: GRAFIK.farbeAmpelAus }));
+        spitze.position.set(0.985, 0.98, 0); spitze.userData.einzeln = true; g.add(spitze);
+        if (!ersatz) teile.smart = { bildschirm: bild, spitze };
+        schild = 2.45;
+      }
+    }
+    return fertig(g, { plaetze, wuerfel: w, warnPunkt: V(0.75, schild - 0.3, 0), schildHoehe: schild, ...teile });
+  }
+
+  function endlosSilo() {
+    const g = new THREE.Group(), y0 = 0.78, hoehe = 2.1, r = 0.72;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      box(g, 0.08, y0 + 0.25, 0.08, C.stahlDunkel, sx * 0.55, 0, sz * 0.55, 0.012);
+      box(g, 0.16, 0.02, 0.16, C.stahlDunkel, sx * 0.55, 0, sz * 0.55, 0.006);
+    }
+    const trichter = new THREE.Mesh(new THREE.CylinderGeometry(r, 0.14, 0.5, 40), WEISS());
+    trichter.position.y = y0; trichter.castShadow = !ersatz; g.add(trichter);
+    zyl(g, 0.12, 0.12, 0.2, C.stahlDunkel, 0, y0 - 0.33, 0, "y", 18);
+    zyl(g, r, r, hoehe, null, 0, y0 + 0.25 + hoehe / 2, 0, "y", 48, WEISS());
+    for (const y of [y0 + 0.3, y0 + 1.1, y0 + 1.9]) zyl(g, r + 0.012, r + 0.012, 0.06, C.tuerkis, 0, y, 0, "y", 48);
+    const kuppel = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 12, 0, Math.PI * 2, 0, Math.PI / 2), WEISS());
+    kuppel.scale.y = 0.3; kuppel.position.y = y0 + 0.25 + hoehe; kuppel.castShadow = !ersatz; g.add(kuppel);
+    const top = y0 + 0.25 + hoehe;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r - 0.06, 0.012, 6, 40), mat(C.gelb)); ring.rotation.x = Math.PI / 2; ring.position.y = top + 0.32; g.add(ring);
+    for (let i = 0; i < 10; i++) { const w = i / 10 * Math.PI * 2; zyl(g, 0.01, 0.01, 0.3, C.gelb, Math.cos(w) * (r - 0.06), top + 0.17, Math.sin(w) * (r - 0.06), "y", 6); }
+    // Leiter mit Rückenschutz (links)
+    const lx = -(r + 0.05);
+    for (const sz of [-1, 1]) box(g, 0.025, top + 0.2, 0.025, C.gelb, lx, 0.1, sz * 0.12, 0.006);
+    for (let y = 0.3; y < top; y += 0.2) box(g, 0.02, 0.02, 0.24, C.gelb, lx, y, 0, 0.004);
+    for (let y = 1.0; y < top; y += 0.35) {
+      const bogen = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.008, 4, 16, Math.PI), mat(C.gelb));
+      bogen.rotation.set(Math.PI / 2, 0, -Math.PI / 2); bogen.position.set(lx, y, 0); g.add(bogen);
+    }
+    // Füllstandsanzeige vorn (leuchtet in der Farbe der Ware) und Schild mit Farbpunkt
+    const az = r + 0.005, skalaH = hoehe - 0.34;
+    box(g, 0.1, hoehe - 0.3, 0.02, C.armGelenk, 0, y0 + 0.4, az, 0.01);
+    const balken = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1, 0.01), ersatz || new THREE.MeshBasicMaterial({ color: "#5fd4ff" }));
+    balken.geometry.translate(0, 0.5, 0);
+    balken.position.set(0, y0 + 0.42, az + 0.012); balken.userData.einzeln = true; g.add(balken);
+    const pegel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.02), ersatz || nbLeucht("#ffffff", 1.2));
+    pegel.position.set(0, y0 + 0.42, az + 0.015); pegel.userData.einzeln = true; g.add(pegel);
+    const schildPlatte = box(g, 0.34, 0.18, 0.02, "#fbfaf6", -0.3, y0 + 0.75, az - 0.02, 0.01);
+    schildPlatte.rotation.y = -0.35;
+    const marke = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.012, 18).rotateX(Math.PI / 2), ersatz || new THREE.MeshStandardMaterial({ color: "#5b7fc4" }));
+    marke.position.set(-0.36, y0 + 0.84, az - 0.005); marke.rotation.y = -0.35; marke.userData.einzeln = true; g.add(marke);
+    const silo = ersatz ? null : {
+      balken, pegel, marke,
+      setze(fuellung, ware) {   // fuellung 0 … 1 (logarithmisch aus der Logik), ware = Item-Id oder null
+        balken.visible = pegel.visible = fuellung > 0;
+        balken.scale.y = Math.max(0.001, fuellung * skalaH);
+        pegel.position.y = y0 + 0.42 + fuellung * skalaH;
+        marke.visible = !!ware;
+        if (ware) { balken.material.color.copy(itemForm(ware).farbe); marke.material.color.copy(itemForm(ware).farbe); }
+      },
+    };
+    if (silo) silo.setze(0, null);
+    return fertig(g, { plaetze: [], wuerfel: 0.16, silo, warnPunkt: V(0, top + 0.4, 0), schildHoehe: top + 0.65 });
+  }
+
+  function muelltonne() {
+    const g = new THREE.Group(), korpus = mat("#4d5a52", { r: 0.55 });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) zyl(g, 0.045, 0.045, 0.04, "#23282d", sx * 0.3, 0.045, sz * 0.26, "x", 14);
+    box(g, 0.74, 0.62, 0.64, null, 0, 0.07, 0, 0.05, korpus);
+    box(g, 0.76, 0.06, 0.66, C.armGelenk, 0, 0.66, 0, 0.02);
+    const deckel = new THREE.Group(); deckel.position.set(0, 0.72, -0.3); deckel.rotation.x = -0.25; g.add(deckel);
+    box(deckel, 0.76, 0.05, 0.64, null, 0, 0, 0.32, 0.02, korpus);
+    box(deckel, 0.4, 0.012, 0.14, C.dunkel, 0, 0.05, 0.32, 0.004);
+    box(g, 0.75, 0.1, 0.012, null, 0, 0.3, 0.326, 0, warnMat(4));
+    box(g, 0.5, 0.03, 0.04, null, 0, 0.56, 0.34, 0.01, alu());
+    zyl(g, 0.03, 0.03, 0.04, null, 0.3, 0.74, 0.25, "y", 12, leucht("#ff4a3a", 1.6));
+    return fertig(g, { plaetze: [], wuerfel: 0.1 });
+  }
+
+  const BAUER = {
+    werkbank, montagetisch, forschungsstation,
+    gehaeuseStanzer: stanzer, cncFraese, roboterArm, t2Presse, assembler,
+    hauptlager, kiste, metallKiste,
+    schrank: () => regal("regal"), metallSchrank: () => regal("metall"),
+    industrieSchrank: () => regal("industrie"), smartSchrank: () => regal("smart"),
+    endlosSilo, muelltonne,
+  };
+  // Neues Modell für einen Gebäudetyp bauen (null = Typ hat keinen neuen Look). m = Ersatzmaterial der Vorschau
+  function baue(typ, m) {
+    const bauen = BAUER[typ];
+    if (!bauen) return null;
+    ersatz = m || null;
+    try { return bauen(); } finally { ersatz = null; }
+  }
+  return { baue, hat: (typ) => !!BAUER[typ], kartonForm, maleSymbol };
+})();
+
+// Die alten Modelle bleiben erreichbar: Ist der neue Look an, baut MODELLE[typ] das neue Modell
+for (const [typ, alt] of Object.entries(MODELLE)) {
+  if (!MASCHINEN_LOOK.hat(typ)) continue;
+  MODELLE[typ] = (m) => (neuerMaschinenLook() && MASCHINEN_LOOK.baue(typ, m)) || alt(m);
+}
+
+// Schalter umgelegt: alle Gebäude mit dem passenden Modell neu aufbauen (Füllung, Fächer und Marken bleiben)
+function baueGebaeudeModelleNeu() {
+  for (const e of gebaeude3d.values()) {
+    if (e.verschwindet || !MASCHINEN_LOOK.hat(e.gebaeude.typ)) continue;
+    const g = e.gebaeude, bau = MODELLE[g.typ](null);
+    e.huelle.remove(e.modell);
+    if (e.eingangFuellung) { e.modell.remove(e.eingangFuellung); e.eingangFuellung = null; }
+    bau.gruppe.add(e.fuellung);
+    e.huelle.add(bau.gruppe);
+    Object.assign(e, {
+      modell: bau.gruppe, plaetze: bau.plaetze, wuerfel: bau.wuerfel, version: -1,
+      bau7d: bau.lampe || bau.animiere || bau.eingangPlaetze || bau.silo || bau.smart ? bau : null,
+      warnPunkt: bau.warnPunkt || warnPunktVon(bau.gruppe),
+      eingangVersion: undefined, siloVersion: undefined, smartZustand: undefined, arbeitsPhase: undefined,
+    });
+    if (e.lagerMarke) e.lagerMarke.hoehe = bau.schildHoehe || LAGER_SCHILD_HOEHE[g.typ] || 1.2;
+  }
+}
+
 /* --- Items auf den Bändern: ein InstancedMesh für alle --- */
 // Phase 7c: je Item-Form (Würfel, Komponente, Gehäuse-Schale, Bretter) EIN InstancedMesh für alle Items;
 // Größe, Drehung und Farbe kommen pro Instanz (itemForm). "bandItems" bleibt der Würfel.
 function baueBandItemNetz(geo) {
   const netz = new THREE.InstancedMesh(ITEM_GEOMETRIEN[geo],
-    new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true, vertexColors: true }),
+    ITEM_NETZ_MATERIAL[geo] || new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 0.7, flatShading: true, vertexColors: true }),   // 12e: Kartons bringen ihr Material mit
     GRAFIK.maxBandItems);
   netz.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   netz.castShadow = true;
@@ -21332,7 +22438,7 @@ function aktualisiereBauTipp() {
   let html = "", warnung = false;
   if (verknuepfModus) {
     const von = spiel.gebaeude.get(verknuepfModus.vonId);
-    const ziel = von && istStation(von) ? "Lager (Kiste, Schrank, Lager)" : "Station";
+    const ziel = von && istStation(von) ? "Lager (Kiste, Regal, Lager)" : "Station";
     html = verknuepfModus.richtung === "export"
       ? `⇡ Export verknüpfen: ${ziel} anklicken (nochmal klicken löst die Verknüpfung) · Rechtsklick / <kbd>Esc</kbd> abbrechen`
       : `⇣ Import verknüpfen: ${ziel} anklicken (nochmal klicken löst die Verknüpfung) · Rechtsklick / <kbd>Esc</kbd> abbrechen`;
@@ -21456,7 +22562,7 @@ function behandleKachelKlick(k, shift, strg = false) {
     if (!g) { beendeVerknuepfen(); return; }
     if (g.id === verknuepfModus.vonId) return;
     const ergebnis = schalteVerknuepfung(verknuepfModus.vonId, g.id, verknuepfModus.richtung);
-    if (!ergebnis) zeigeMeldung("Verknüpft werden können nur Stationen mit Lagern (Kiste, Schrank, Lager).", true);
+    if (!ergebnis) zeigeMeldung("Verknüpft werden können nur Stationen mit Lagern (Kiste, Regal, Lager).", true);
     else zeigeMeldung(verknuepfungsText(verknuepfModus.vonId, g.id, verknuepfModus.richtung, ergebnis));
     if (auswahlGebaeudeId) zeichneInfo();
     return;
@@ -21829,7 +22935,7 @@ function lagerZusatzZahlenHtml(g) {
   }
   if (!t.smart) return "";
   if (g.nachkauf === false) return `<p class="modus-text">⟳ Nachkauf ist aus.</p>`;
-  if (!naechsteImportzone(g.zugang)) return `<p class="info-warnung">⚠ Keine aktive Importzone – der Schrank kann nichts nachbestellen.</p>`;
+  if (!naechsteImportzone(g.zugang)) return `<p class="info-warnung">⚠ Keine aktive Importzone – das Regal kann nichts nachbestellen.</p>`;
   const bedarf = Object.entries(smartNachkaufBedarf(g));
   return `<p class="modus-text">⟳ ${bedarf.length ? `Bestellt gerade nach: ${bedarf.map(([item, n]) => `${n}× ${htmlSicher(itemInfo(item).name)}`).join(", ")}`
     : "Kein Bedarf – Rohstoffe auf ⇣ Import mit Max (Zahl) werden nachbestellt, sobald etwas fehlt."}</p>`;
@@ -22552,7 +23658,7 @@ ob.infoInhalt.addEventListener("click", (e) => {
       setzeWerkzeug(null);
       verknuepfModus = { vonId: g.id, richtung };
       zeichneInfo();
-      zeigeMeldung(`${VERKNUEPF_NAME[richtung]}: Jetzt ${istStation(g) ? "ein Lager (Kiste, Schrank, Lager)" : "eine Station"} anklicken (Esc: fertig).`);
+      zeigeMeldung(`${VERKNUEPF_NAME[richtung]}: Jetzt ${istStation(g) ? "ein Lager (Kiste, Regal, Lager)" : "eine Station"} anklicken (Esc: fertig).`);
       aktualisiereBauTipp();
       break;
     }
@@ -23839,7 +24945,7 @@ function sammleMeldung(art, item, n, geld, text) {
 spielEreignisse.addEventListener("ioGateVerkauf", (e) => sammleMeldung("io", e.detail.item, 1, e.detail.preis || 0,
   (m, was) => `I/O-Gates: ${m.anzahl} Items Überschuss verkauft statt zu stauen (${was}${m.anzahl > 3 ? " …" : ""}) · +${euro(m.geld)}`));
 spielEreignisse.addEventListener("smartNachkauf", (e) => sammleMeldung("smart", e.detail.item, e.detail.anzahl || 0, 0,
-  (m, was) => `Smarter Schrank bestellt über die Importzone nach: ${was}.`));
+  (m, was) => `Smartes Regal bestellt über die Importzone nach: ${was}.`));
 
 /* ============================================================================
    ABSCHNITT 13d: Einstellungen – Tastenkürzel & Grafik (Phase 7a)      [UI/UX-Agent]
@@ -23860,6 +24966,7 @@ const GRAFIK_SCHALTER = [
   { schalter: "ioLinien",       name: "Import-/Exportlinien",     text: "Grüne (Import) und rote (Export) Bögen, solange ein Lager oder eine Station ausgewählt ist." },
   { schalter: "hoheAufloesung", name: "Hohe Auflösung",           text: "Volle Bildschirmauflösung. Aus = schneller auf schwachen Geräten." },
   { schalter: "neueBaender",    name: "Neuer Fließband-Look",     text: "Bänder mit Schienen und Rollenbolzen, weiße Knotenköpfe mit Leuchtknöpfen, Stahlbrücke, Betonportal, Portalkran und kräftige Greifarme. Aus = bisherige flache Bänder (etwas schneller)." },
+  { schalter: "neueMaschinen",  name: "Neuer Maschinen-Look",     text: "Werkbank, Montagetisch, Forschung und Maschinen mit Bedienfeldern und Signalturm, offene Regale mit sichtbarer Ware, Komponenten in farbigen Kartons mit Symbol. Aus = bisherige Modelle und Platinen." },
   { schalter: "neueDisplayModelle", name: "Neue Display-Modelle (Vorschau)", text: "Display-Teile auf Bändern, in Lagern und bei Kurieren mit den neuen 3D-Modellen aus Display.html. Aus = bisherige Platine. Ansehen: Entwicklung → Komponenten-Vorschau." },
 ];
 
@@ -24017,8 +25124,10 @@ function grafikGeaendert() {
   wendeBandLookAn(); bandRahmenNeu();              // 12d: Band-Look gewechselt → andere Bahnhöhe
   gleicheBandModelleAb();                          // Bandpfeile, Band-Look: Modelle mit neuem Schlüssel neu bauen
   wendeKomponentenModelleAn();                     // 12c: neue Display-Modelle an/aus
+  if (grafikGeaendert.maschinen !== neuerMaschinenLook()) { grafikGeaendert.maschinen = neuerMaschinenLook(); baueGebaeudeModelleNeu(); }   // 12e
   if (auswahlGebaeudeId) zeigeGebaeudeAuswahl(spiel.gebaeude.get(auswahlGebaeudeId));   // Import-/Exportlinien
 }
+grafikGeaendert.maschinen = neuerMaschinenLook();   // 12e: Stand beim Laden merken (Umbau nur beim Umschalten)
 ob.hudEinstellungen.addEventListener("click", () => (einstellungsFenster.offen ? schliesseEinstellungen() : oeffneEinstellungen()));
 $("einstellungen-schliessen").addEventListener("click", () => schliesseEinstellungen());
 ob.einstellungenOverlay.addEventListener("click", (e) => { if (e.target === ob.einstellungenOverlay) schliesseEinstellungen(); });

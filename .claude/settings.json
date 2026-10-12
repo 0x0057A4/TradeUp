@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "tradeup-mods": {
+      "source": {
+        "source": "directory",
+        "path": "/mnt/project-files/mods"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "visible-compact@tradeup-mods": true
+  }
+}

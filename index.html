@@ -3510,7 +3510,7 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 }
 .modal-schleier.frei[hidden], #layout-overlay.frei[hidden] { display: none !important; }
 .modal-schleier.frei > section, #layout-overlay.frei > section {
-  pointer-events: auto; margin: 0 !important; max-height: calc(100dvh - 96px) !important;
+  pointer-events: auto; margin: 0 !important; max-height: calc(100dvh - 180px) !important;
   box-shadow: 0 6px 0 rgba(0, 0, 0, .35), 0 18px 40px rgba(0, 0, 0, .45) !important;
 }
 #lager-fenster, #kontor-fenster, #forschung-fenster, #rezepte-fenster, #einstellungen-fenster, #lz-fenster, #kurier-fenster { margin: 0 !important; }
@@ -3530,6 +3530,235 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
   .modal-schleier.frei, #layout-overlay.frei { padding: calc(60px + env(safe-area-inset-top, 0px)) 8px 8px !important; }
   .modal-schleier.frei > section, #layout-overlay.frei > section { max-height: 58dvh !important; width: calc(100vw - 16px) !important; }
 }
+</style>
+<style id="leitstand-ui">
+/* === Leitstand-UI (Tim, 2026-10-12) ==========================================================
+   Fenster wie die Bau-Elemente: Fensterfläche = Emaille der Maschinenköpfe, Kopfleiste = dunkler
+   Stahl-Unterbau mit Kante in Schienengelb, Knöpfe und Reiter = Keycaps mit Sockelkante, Zahlen in
+   Mono. Gelb = Hauptaktion, Rot = Gefahr/Abgabe, Grün = Eingang, Türkis = Auswahl/Pegel.
+   Gilt nur mit Klasse "leitstand" am <html> (Einstellungen → Grafik → "Neue Oberfläche").
+   Nachtschicht = dunkles Thema, Tagschicht = helles Thema (html[data-ui-theme]). Die alten
+   Variablen (--hud-*, --kit-*, --fl-*, --mi-*) zeigen auf die neuen, damit ältere Regeln mitziehen. */
+html.leitstand {
+  --emaille: #232b2f; --emaille-2: #2b3539; --emaille-3: #334046; --mulde: #171d20; --mulde-schatten: rgba(0, 0, 0, .45);
+  --stahl: #10161a; --stahl-2: #1f272c; --stahl-tief: #050708; --stahl-ink: #e8eded; --stahl-leise: #8d9da3;
+  --tinte: #e6ecec; --leise: #9aa8ac; --linie: #39454b; --linie-tief: #0d1214;
+  --schiene: #f2b233; --schiene-tief: #9c6c14; --schiene-ink: #161b1e;
+  --tuerkis: #48c4bf; --tuerkis-flaeche: #173b3c;
+  --ein: #4cc56f; --aus: #f0675b; --warn: #f5b03a;
+  --ein-flaeche: #173323; --aus-flaeche: #3d1d1b; --warn-flaeche: #3b2e14;
+  --lcd: #0f1b21; --lcd-ink: #5fe3ff;
+  --schild-bg: rgba(10, 14, 16, .92); --schild-ink: #eef2f2;
+  --font-schild: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-text: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-zahl: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* alte Namen → Leitstand */
+  --hud-panel: var(--emaille); --hud-panel-2: var(--emaille-2); --hud-panel-3: var(--emaille-3);
+  --hud-innen: var(--mulde); --hud-tief: var(--stahl-tief);
+  --hud-linie: var(--linie); --hud-linie-2: color-mix(in srgb, var(--linie) 60%, transparent);
+  --hud-text: var(--tinte); --hud-titel: var(--tinte); --hud-leise: var(--leise);
+  --hud-akzent: var(--tuerkis); --hud-akzent-tief: color-mix(in srgb, var(--tuerkis) 70%, #000); --hud-akzent-hell: var(--tuerkis);
+  --hud-grad-akzent: linear-gradient(var(--schiene), var(--schiene));
+  --hud-grad-dunkel: linear-gradient(var(--emaille-2), var(--emaille-2));
+  --hud-gruen: var(--ein); --hud-rot: var(--aus); --hud-gelb: var(--schiene); --hud-orange: var(--warn); --hud-tuerkis: var(--tuerkis);
+  --hud-glas: inset 0 0 0 0 transparent;
+  --hud-schatten: 0 2px 0 var(--linie-tief);
+  --hud-schatten-tief: 0 6px 0 var(--stahl-tief), 0 18px 40px rgba(0, 0, 0, .45);
+  --hud-fokus: 0 0 0 2px var(--schiene);
+  --hud-pille: 7px;
+  --farbe-karte: var(--emaille-2); --farbe-text: var(--tinte); --farbe-text-leise: var(--leise);
+  --farbe-akzent: var(--tuerkis); --farbe-frei: var(--ein); --farbe-warnung: var(--aus); --farbe-rand: var(--linie); --farbe-taste: var(--mulde);
+  --kit-fenster: var(--emaille); --kit-platte: var(--emaille-2); --kit-platte-hell: var(--emaille-3); --kit-navy: var(--stahl);
+  --kit-gelb: linear-gradient(var(--schiene), var(--schiene));
+  --fl-auftrag: var(--emaille-2); --fl-bau: var(--emaille-2); --fl-forsch: var(--emaille-2); --fl-rezept: var(--emaille-2);
+  --fl-gehaeuse: var(--emaille-2); --fl-personal: var(--emaille-2); --fl-gesperrt: var(--emaille);
+  --ty-rund-knopf: 7px; --ty-rund-karte: 8px; --ty-rund-fenster: 12px; --ty-rund-chip: 5px;
+  --lz-fenster: var(--emaille); --lz-zelle-farbe: var(--mulde); --lz-raster-rahmen: var(--linie);
+  --schrift-titel: var(--font-schild); --schrift-text: var(--font-text);
+  --mi-bg: var(--emaille); --mi-panel: var(--emaille-2); --mi-card: var(--emaille-2); --mi-border: var(--linie);
+  --mi-text: var(--tinte); --mi-muted: var(--leise); --mi-green: var(--ein); --mi-red: var(--aus); --mi-accent: var(--schiene);
+}
+html.leitstand[data-ui-theme="light"] {
+  --emaille: #f4f6f6; --emaille-2: #e7ecec; --emaille-3: #dde4e4; --mulde: #d8dfdf; --mulde-schatten: rgba(27, 35, 38, .16);
+  --stahl: #2b3237; --stahl-2: #394249; --stahl-tief: #161b1e; --stahl-ink: #eef2f2; --stahl-leise: #9fb0b6;
+  --tinte: #1b2326; --leise: #5a676d; --linie: #c3cccc; --linie-tief: #a7b2b3;
+  --schiene-tief: #b98019; --schiene-ink: #1b2326;
+  --tuerkis: #1f8f8b; --tuerkis-flaeche: #cdebe9;
+  --ein: #2f9a50; --aus: #d0433a; --warn: #e08d10;
+  --ein-flaeche: #d6efdc; --aus-flaeche: #f6dad7; --warn-flaeche: #fbe9c8;
+  --schild-bg: rgba(27, 35, 38, .9); --schild-ink: #f3f5f4;
+  --hud-schatten-tief: 0 6px 0 var(--stahl-tief), 0 18px 40px rgba(8, 12, 14, .35);
+}
+
+/* --- Fensterkörper --- */
+html.leitstand :is(.modal-fenster, #lz-fenster, #kurier-fenster, #info-panel:not([hidden]), #bau-leiste) {
+  background: var(--emaille) !important; color: var(--tinte) !important;
+  border: 2px solid var(--stahl) !important; border-radius: 12px !important;
+  box-shadow: 0 6px 0 var(--stahl-tief), 0 18px 40px rgba(0, 0, 0, .4) !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  font-family: var(--font-text);
+}
+html.leitstand #bau-leiste { border-radius: 14px 14px 0 0 !important; border-bottom: 0 !important; }
+
+/* --- Kopfleiste: Stahl, gelbe Schienenkante, Schildschrift --- */
+html.leitstand :is(.modal-fenster, #lz-fenster) > .lz-kopf,
+html.leitstand #info-panel .info-kopf, html.leitstand #bau-leiste .bau-kopf {
+  background: var(--stahl) !important; color: var(--stahl-ink) !important;
+  border-bottom: 3px solid var(--schiene) !important; border-radius: 10px 10px 0 0;
+  padding: 9px 12px 9px 14px !important;
+}
+html.leitstand :is(.lz-kopf, .info-kopf) h2, html.leitstand .modal-fenster h2, html.leitstand #info-panel h2 {
+  background: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important;
+  font-family: var(--font-schild) !important; font-weight: 700 !important; font-size: 23px !important; line-height: 1 !important;
+  letter-spacing: .05em !important; text-transform: uppercase; color: var(--stahl-ink) !important;
+}
+html.leitstand :is(.lz-kopf, .info-kopf) :is(small, .lz-untertitel, .info-unter) { color: var(--stahl-leise) !important; font-family: var(--font-zahl); }
+html.leitstand #info-panel .info-unter { background: var(--emaille-2); color: var(--leise) !important; border-bottom: 1px solid var(--linie); font-family: var(--font-zahl); font-size: 11.5px; }
+html.leitstand :is(.lz-kopf, .info-kopf) label { color: var(--stahl-leise) !important; }
+/* Fußleiste */
+html.leitstand .lz-fuss { background: var(--emaille-2) !important; border-top: 1px solid var(--linie) !important; color: var(--leise) !important; border-radius: 0 0 10px 10px; }
+
+/* --- Knöpfe: Keycaps mit Sockelkante, sinken beim Drücken --- */
+html.leitstand :is(.lz-knopf, .hud-knopf, .hud-knopf-leise, .mini-knopf, .pin-knopf, .lz-symbol-knopf, .kw-btn) {
+  background: var(--emaille-2) !important; color: var(--tinte) !important;
+  border: 1px solid var(--linie) !important; border-bottom: 3px solid var(--linie-tief) !important;
+  border-radius: 7px !important; box-shadow: none !important; filter: none !important;
+  font-family: var(--font-text) !important; font-weight: 600 !important; text-transform: none !important; letter-spacing: 0 !important;
+  text-shadow: none !important; transition: transform 80ms ease, background 120ms ease !important;
+}
+html.leitstand :is(.lz-knopf, .hud-knopf, .mini-knopf, .pin-knopf, .lz-symbol-knopf):hover:not(:disabled) { background: var(--emaille-3) !important; }
+html.leitstand :is(.lz-knopf, .hud-knopf, .mini-knopf, .pin-knopf, .lz-symbol-knopf):active:not(:disabled) { transform: translateY(2px) !important; border-bottom-width: 1px !important; margin-bottom: 2px; }
+html.leitstand :is(.lz-knopf, .mini-knopf, .lz-symbol-knopf):disabled { opacity: .45 !important; }
+/* Hauptaktion = Schienengelb */
+html.leitstand :is(.lz-knopf-haupt, .hud-knopf, .lz-knopf[aria-pressed="true"], .pin-knopf[aria-pressed="true"]) {
+  background: var(--schiene) !important; color: var(--schiene-ink) !important;
+  border-color: var(--schiene-tief) !important; border-bottom-color: var(--schiene-tief) !important;
+}
+html.leitstand .lz-knopf-haupt:hover:not(:disabled) { background: color-mix(in srgb, var(--schiene) 88%, #fff) !important; }
+/* Gefahr = Rot */
+html.leitstand :is(.lz-knopf-gefahr, .bau-gefahr) {
+  background: var(--aus-flaeche) !important; color: var(--aus) !important;
+  border-color: color-mix(in srgb, var(--aus) 55%, transparent) !important; border-bottom-color: color-mix(in srgb, var(--aus) 70%, #000) !important;
+}
+/* Runde Kopfknöpfe (Schließen, Einklappen) auf Stahl */
+html.leitstand :is(.lz-kopf, .info-kopf, .bau-kopf) :is(.lz-knopf-rund, .lz-einklappen) {
+  width: 34px !important; height: 34px !important; min-width: 34px; padding: 0 !important; border-radius: 8px !important;
+  display: inline-grid !important; place-items: center;
+  background: var(--stahl-2) !important; color: var(--stahl-ink) !important; border: 1px solid #000 !important; border-bottom: 3px solid var(--stahl-tief) !important;
+}
+html.leitstand :is(.lz-kopf, .info-kopf, .bau-kopf) .lz-knopf-rund:hover { background: var(--aus) !important; color: #fff !important; }
+html.leitstand :is(.lz-kopf, .info-kopf, .bau-kopf) .lz-einklappen:hover { background: var(--emaille-3) !important; color: var(--tinte) !important; }
+
+/* --- Reiter: Keycaps in einer Leiste, aktiv = Stahl mit gelber Unterkante --- */
+html.leitstand :is(.kontor-reiter, .bau-reiter, .fo-gruppen, .einstellungen-reiter, .rezepte-reiter, .lz-kategorien) {
+  gap: 6px !important;
+}
+html.leitstand :is(.kontor-reiter button, .bau-reiter button, .fo-gruppen button, [data-einstellung-reiter], .rezepte-reiter button, [role="tab"]) {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px;
+  background: var(--emaille) !important; color: var(--tinte) !important;
+  border: 1px solid var(--linie) !important; border-bottom: 3px solid var(--linie-tief) !important; border-radius: 7px !important;
+  box-shadow: none !important; font-family: var(--font-text) !important; font-weight: 600 !important; font-size: 12.5px !important;
+  text-transform: none !important; letter-spacing: 0 !important;
+}
+html.leitstand :is(.kontor-reiter button, .bau-reiter button, .fo-gruppen button, [data-einstellung-reiter], .rezepte-reiter button, [role="tab"]):is([aria-selected="true"], [aria-pressed="true"], .aktiv) {
+  background: var(--stahl) !important; color: var(--stahl-ink) !important; border-color: var(--stahl) !important; border-bottom-color: var(--schiene) !important;
+}
+
+/* --- Karten und Blöcke: Emaille-Platten, dünne Kante, farbige Seitenkante bleibt als Kennung --- */
+html.leitstand :is(.auftrag-karte, .bau-karte, .rezept-karte, .fo-karte, .lz-geh-karte, .personal-frei, .rezept-zeile, .rezept-item, .info-block, .kw-card, .grafik-zeile) {
+  background: var(--emaille-2) !important; color: var(--tinte) !important;
+  border: 1px solid var(--linie) !important; border-bottom: 3px solid var(--linie-tief) !important; border-radius: 8px !important;
+  box-shadow: none !important;
+}
+html.leitstand .auftrag-karte { border-left: 4px solid var(--tuerkis) !important; }
+html.leitstand .fo-karte { border-left: 4px solid var(--linie-tief) !important; }
+html.leitstand .bau-karte:not(:disabled):hover, html.leitstand .rezept-zeile:hover { background: var(--emaille-3) !important; }
+html.leitstand .bau-karte[aria-pressed="true"], html.leitstand .bau-karte.aktiv { border-color: var(--schiene) !important; box-shadow: 0 0 0 2px var(--schiene) !important; }
+
+/* --- Schrift, Abschnitte, Tabellen --- */
+html.leitstand :is(.modal-fenster, #lz-fenster, #kurier-fenster, #info-panel, #bau-leiste) :is(p, li, td, dd, dt, span, label, small, b, strong) { color: inherit; }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel, #bau-leiste) :is(h3, h4) {
+  font-family: var(--font-schild) !important; font-weight: 700 !important; letter-spacing: .04em !important; text-transform: uppercase;
+  color: var(--tinte) !important; border-left: 0 !important; padding-left: 0 !important;
+}
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel, #bau-leiste) :is(h3, h4)::before { display: none !important; }
+html.leitstand :is(.modal-fenster, #info-panel) h3 { font-size: 15px !important; display: flex; align-items: center; gap: 8px; }
+html.leitstand :is(.modal-fenster, #info-panel) h3::after { content: ""; flex: 1; height: 1px; background: var(--linie); }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel) :is(table th) {
+  color: var(--leise) !important; font-family: var(--font-zahl) !important; font-size: 10.5px !important; font-weight: 600 !important;
+  letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid var(--linie) !important; background: none !important;
+}
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel) :is(table td) { border-color: color-mix(in srgb, var(--linie) 60%, transparent) !important; }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel, #kurier-fenster) :is(td, dd, .zahl, .wert, b) { font-variant-numeric: tabular-nums; }
+html.leitstand #info-panel dd { color: var(--tinte) !important; font-family: var(--font-zahl); }
+html.leitstand :is(.info-leer, .lz-leer, .lager-hinweis, .fo-hinweis) { color: var(--leise) !important; }
+html.leitstand :is(.info-warnung, .lager-hinweis.warnung) { color: var(--aus) !important; }
+
+/* --- Eingaben: eingelassene Mulden --- */
+html.leitstand :is(.modal-fenster, #lz-fenster, #kurier-fenster, #info-panel, #bau-leiste) :is(input:not([type]), input[type="text"], input[type="search"], input[type="number"], select, textarea) {
+  background: var(--mulde) !important; color: var(--tinte) !important; border: 1px solid var(--linie) !important;
+  box-shadow: inset 0 2px 3px var(--mulde-schatten) !important; border-radius: 7px !important; font-family: var(--font-text);
+}
+/* Eingaben in der Kopfleiste: eingelassen in den Stahl */
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel) :is(.lz-kopf, .info-kopf) :is(input:not([type]), input[type="search"], input[type="text"], select, .lz-suche) {
+  background: var(--stahl-2) !important; color: var(--stahl-ink) !important; border: 1px solid #000 !important;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, .4) !important; border-radius: 7px !important;
+}
+html.leitstand :is(.modal-fenster, #info-panel) input[type="number"] { font-family: var(--font-zahl) !important; }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel) input[type="checkbox"] { accent-color: var(--ein); }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel) input[type="range"] { accent-color: var(--schiene); }
+
+/* --- Pegel und Balken: Mulde mit Türkis --- */
+html.leitstand :is(progress, meter) { accent-color: var(--tuerkis); }
+html.leitstand :is(.fo-balken, .ak-balken, .lager-balken, .pegel-balken) { background: var(--mulde) !important; box-shadow: inset 0 1px 2px var(--mulde-schatten) !important; }
+
+/* --- Chips: kleine Schilder --- */
+html.leitstand :is(.wl-chip, .ak-chip, .chip, .kontor-chip, .fo-chip) {
+  background: var(--emaille-2) !important; color: var(--tinte) !important; border: 1px solid var(--linie) !important; border-radius: 5px !important; box-shadow: none !important;
+}
+
+/* --- Kbd-Schildchen wie in der Vorschau --- */
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel, #bau-leiste, #hud-hilfe) kbd {
+  font-family: var(--font-zahl); font-size: 10.5px; font-weight: 600; padding: 1px 5px; border-radius: 4px;
+  background: var(--emaille); color: var(--tinte); border: 1px solid var(--linie); border-bottom-width: 2px;
+}
+
+/* --- Meldungen (Toast) --- */
+html.leitstand #hud-meldung:not([hidden]) {
+  background: var(--stahl) !important; color: var(--stahl-ink) !important; border: 0 !important; border-left: 4px solid var(--schiene) !important;
+  border-radius: 8px !important; box-shadow: 0 4px 0 var(--stahl-tief), 0 12px 28px rgba(0, 0, 0, .35) !important; font-family: var(--font-text);
+}
+
+/* --- Bildlaufleisten --- */
+html.leitstand :is(.modal-fenster, #lz-fenster, #kurier-fenster, #info-panel, #bau-leiste) * { scrollbar-color: var(--linie-tief) transparent; }
+html.leitstand :is(.modal-fenster, #lz-fenster, #info-panel, #bau-leiste) ::-webkit-scrollbar-thumb { background: var(--linie-tief) !important; }
+
+/* --- Dialoge: Warnband unter dem Kopf --- */
+html.leitstand :is(#dialog, #insolvenz-fenster) > .lz-kopf {
+  border-bottom: 0 !important; box-shadow: 0 6px 0 -0px transparent;
+  background: linear-gradient(var(--stahl), var(--stahl)) padding-box, var(--stahl) !important;
+  position: relative; margin-bottom: 8px;
+}
+html.leitstand :is(#dialog, #insolvenz-fenster) > .lz-kopf::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+  background: repeating-linear-gradient(-45deg, var(--schiene) 0 10px, var(--stahl) 10px 20px);
+}
+html.leitstand .modal-schleier:not(.frei) { background: rgba(4, 7, 9, .55) !important; }
+html.leitstand :is(.modal-fenster, #lz-fenster, #kurier-fenster, #info-panel, #bau-leiste):focus { outline: none !important; }
+html.leitstand :is(#lager-fenster, #kontor-fenster, #forschung-fenster, #rezepte-fenster, #einstellungen-fenster, #lz-fenster, #kurier-fenster) { max-height: calc(100dvh - 180px) !important; }
+html.leitstand .fo-spalte-kopf { background: var(--stahl) !important; color: var(--stahl-ink) !important; border: 0 !important; border-bottom: 3px solid var(--schiene) !important; border-radius: 8px 8px 4px 4px !important; padding: 7px 9px !important; }
+html.leitstand .fo-spalte-kopf b { color: var(--stahl-ink) !important; font-family: var(--font-schild) !important; font-size: 17px !important; }
+html.leitstand .fo-spalte-kopf small { color: var(--stahl-leise) !important; font-family: var(--font-zahl); }
+html.leitstand .kompakt-navigation { background: var(--emaille-2) !important; border-top: 1px solid var(--linie) !important; color: var(--leise) !important; }
+html.leitstand #kontor-konto { background: var(--lcd) !important; color: var(--lcd-ink) !important; border: 0 !important; border-radius: 6px !important; padding: 5px 10px !important;
+  font-family: var(--font-zahl) !important; font-weight: 600; box-shadow: inset 0 0 0 1px rgba(95, 227, 255, .18), inset 0 2px 6px rgba(0, 0, 0, .6) !important; text-shadow: 0 0 8px rgba(95, 227, 255, .45); }
+/* Kurierwege: Kopfzeile wird zur Stahl-Kopfleiste */
+html.leitstand #kurier-fenster .kw-kopfzeile { margin: 0 0 14px !important; padding: 9px 12px 9px 14px !important; background: var(--stahl) !important; color: var(--stahl-ink) !important;
+  border-bottom: 3px solid var(--schiene) !important; border-radius: 9px; }
+html.leitstand #kurier-fenster .kw-kopfzeile h2 { color: var(--stahl-ink) !important; font-family: var(--font-schild) !important; font-weight: 700; font-size: 23px !important; letter-spacing: .05em; text-transform: uppercase; }
+html.leitstand #kurier-fenster .kw-kopfzeile :is(input, select) { background: var(--stahl-2) !important; color: var(--stahl-ink) !important; border: 1px solid #000 !important; }
+html.leitstand #kurier-fenster { background: var(--emaille) !important; }
 </style>
 </head>
 <body>
@@ -19298,6 +19527,9 @@ function gleicheBandModelleAb() {
    m (Vorschau- bzw. Einfügematerial) ersetzt wie bei den alten Modellen jedes Material.
    ============================================================================ */
 function neuerMaschinenLook() { return einstellungen.grafik.neueMaschinen !== false; }
+// Leitstand-UI (2026-10-12): Klasse "leitstand" am <html> schaltet den neuen Fensterstil (CSS "leitstand-ui")
+function neueOberflaeche() { return einstellungen.grafik.neueOberflaeche !== false; }
+function wendeOberflaecheAn() { document.documentElement.classList.toggle("leitstand", neueOberflaeche()); }
 const ITEM_NETZ_MATERIAL = {};   // Item-Form → eigenes Material für ihr InstancedMesh auf den Bändern (Kartons)
 
 const MASCHINEN_LOOK = (() => {
@@ -25448,6 +25680,7 @@ const GRAFIK_SCHALTER = [
   { schalter: "hoheAufloesung", name: "Hohe Auflösung",           text: "Volle Bildschirmauflösung. Aus = schneller auf schwachen Geräten." },
   { schalter: "neueBaender",    name: "Neuer Fließband-Look",     text: "Bänder mit Schienen und Rollenbolzen, weiße Knotenköpfe mit Leuchtknöpfen, Stahlbrücke, Betonportal, Portalkran und kräftige Greifarme. Aus = bisherige flache Bänder (etwas schneller)." },
   { schalter: "neueMaschinen",  name: "Neuer Maschinen-Look",     text: "Werkbank, Montagetisch, Forschung und Maschinen mit Bedienfeldern und Signalturm, offene Regale mit sichtbarer Ware, Komponenten in farbigen Kartons mit Symbol. Aus = bisherige Modelle und Platinen." },
+  { schalter: "neueOberflaeche", name: "Neue Oberfläche (Leitstand)", text: "Fenster, Knöpfe und Reiter im Leitstand-Stil: Emaille-Flächen, Stahl-Kopfleiste mit gelber Kante, Tasten wie Keycaps, Zahlen in Anzeigeschrift. Aus = bisheriger Stil." },
   { schalter: "neueDisplayModelle", name: "Neue Display-Modelle (Vorschau)", text: "Display-Teile auf Bändern, in Lagern und bei Kurieren mit den neuen 3D-Modellen aus Display.html. Aus = bisherige Platine. Ansehen: Entwicklung → Komponenten-Vorschau." },
 ];
 
@@ -25610,9 +25843,11 @@ function grafikGeaendert() {
   wendeBandLookAn(); bandRahmenNeu();              // 12d: Band-Look gewechselt → andere Bahnhöhe
   gleicheBandModelleAb();                          // Bandpfeile, Band-Look: Modelle mit neuem Schlüssel neu bauen
   wendeKomponentenModelleAn();                     // 12c: neue Display-Modelle an/aus
+  wendeOberflaecheAn();                            // Leitstand-UI an/aus
   if (grafikGeaendert.maschinen !== neuerMaschinenLook()) { grafikGeaendert.maschinen = neuerMaschinenLook(); baueGebaeudeModelleNeu(); }   // 12e
   if (auswahlGebaeudeId) zeigeGebaeudeAuswahl(spiel.gebaeude.get(auswahlGebaeudeId));   // Import-/Exportlinien
 }
+wendeOberflaecheAn();
 grafikGeaendert.maschinen = neuerMaschinenLook();   // 12e: Stand beim Laden merken (Umbau nur beim Umschalten)
 ob.hudEinstellungen.addEventListener("click", () => (einstellungsFenster.offen ? schliesseEinstellungen() : oeffneEinstellungen()));
 $("einstellungen-schliessen").addEventListener("click", () => schliesseEinstellungen());

@@ -6010,6 +6010,7 @@ const BAENDER = {
   umsortierTeile: 3,        // ... und wie viele gerade Bandteile dahinter durchsucht werden
   mindestAbstand:   0.5,   // Abstand zwischen zwei Items auf einem Band (0,5 = 2 Items pro Kachel)
   knotenTempo:      2.5,   // so schnell (Kacheln/s) laufen Items durch Splitter und Zusammenführungen
+  senkePuffer:      6,     // 2026-10-12: so viele Stück dürfen gleichzeitig zu einem Lager/einer Exportzone unterwegs sein (Weg ohne Maschine)
   stauWarnung:      5,     // nach so vielen Sekunden Stillstand am Ende zeigt das Segment "Stau"
   greifZyklus:      1.2,   // Sekunden für einen Greifarm-Zyklus (greifen, schwenken, ablegen)
   bandVersorgtSek:  60,    // so lange nach der letzten Band-Lieferung gilt ein Material als "vom Band versorgt" (Kuriere bringen es dann nicht)
@@ -16042,6 +16043,7 @@ function bedarfZiele(start, item, richtung = null) {
     if (ziel.art === "gebaeude") {
       const g = ziel.g, r = istStation(g) && rezeptVon(g);
       if (r && r.eingaben[item] > 0 && !result.has(g.id)) result.set(g.id, { g, weg });
+      else if (!r && istBedarfSenke(g) && !result.has(g.id)) result.set(g.id, { g, weg, senke: true });
       continue;
     }
     const t = ziel.teil, key = `${t.id}:${von}`;
@@ -16063,6 +16065,17 @@ function bedarfZiele(start, item, richtung = null) {
   return result;
 }
 function bedarfStart(t) { return istGreifarm(t) ? armZiel(t) : { art: "band", teil: t }; }
+/* 2026-10-12 (Tim): Von Hand gelegte Wege laufen auch ohne Maschine am Ende, z. B. Importzone → Band → Exportzone.
+   Lager und Exportzonen zählen als Senke: Sie bekommen Ware, wenn keine Maschine auf dem Weg etwas braucht,
+   höchstens BAENDER.senkePuffer Stück gleichzeitig unterwegs. Mülltonnen bleiben reiner Überlauf. */
+function istBedarfSenke(g) { return ["exportzone", "hauptlager", "zwischenlager"].includes(typVon(g).art) || istZwischenlager(g); }
+function bedarfQuelleId(t) { return istGreifarm(t) ? armQuelle(t)?.g?.id : t.ablaufVon; }
+function senkeFehlt(g, item, res) {
+  if (!gebaeudeNimmtAn(g, item)) return 0;
+  const unterwegs = summe(res.rein.get(fachSchluessel(g.id, "eingang")) || {});
+  return Math.max(0, Math.min(platzFuer(g, item, res), BAENDER.senkePuffer) - unterwegs);
+}
+function zielFehlt(route, item, res) { return route.senke ? senkeFehlt(route.g, item, res) : bedarfFehlt(route.g, item, res); }
 // Freier Platz am Ende der Ausgabekette begrenzt Produktion und Rohstoffbedarf.
 // Vorhandene Ware auf dem Transportweg und im Ausgabefach belegt diesen Platz bereits.
 function produktionsAusgangVoll(s) {
@@ -16122,15 +16135,20 @@ function bedarfFehlt(g, item, res) {
 }
 // Reihum zuerst Maschinen, innerhalb jeder Maschine die Ressourcen bedienen.
 function bedarfWaehle(t, kandidaten, start = bedarfStart(t)) {
-  const res = reservierungen(), choices = new Map(), maschinen = new Map();
+  const res = reservierungen(), maschinen = new Map(), quelle = bedarfQuelleId(t);
+  const stationen = new Map(), senken = new Map();
   for (const item of kandidaten) for (const [id, route] of bedarfZiele(start, item, t.richtung)) {
-    const fehlt = bedarfFehlt(route.g, item, res);
+    if (id === quelle) continue;
+    const fehlt = zielFehlt(route, item, res);
     if (fehlt <= 0) continue;
     if (route.weg.some((b) => bandInventar(b).anzahl >= 25 || (istSpur(b) && bandTempo(b) <= 0))) continue;
+    const choices = route.senke ? senken : stationen;
     if (!choices.has(id)) choices.set(id, []);
     choices.get(id).push({ item, fehlt });
     maschinen.set(id, route.g);
   }
+  // Maschinen gehen vor; Senken (Lager, Exportzone) nur, wenn keine Maschine auf dem Weg etwas braucht.
+  const choices = stationen.size ? stationen : senken;
   const ids = [...choices.keys()].sort();
   if (!ids.length) return null;
   const id = ids.find((id) => id > (t.bedarfLetztesZiel || "")) || ids[0];
@@ -16153,7 +16171,7 @@ function bedarfOrdneUnterwegs() {
     if (w.flags.bedarfZiel && routes.has(w.flags.bedarfZiel)) continue;
     delete w.flags.bedarfZiel;
     const res = reservierungen();
-    const frei = [...routes.values()].find(({g}) => bedarfFehlt(g, w.item, res) > 0);
+    const frei = [...routes.values()].find((r) => !r.senke && bedarfFehlt(r.g, w.item, res) > 0) || [...routes.values()].find((r) => r.senke && r.g.id !== bedarfQuelleId(w.t) && senkeFehlt(r.g, w.item, res) > 0);
     if (frei) w.flags.bedarfZiel = frei.g.id;
   }
 }
@@ -16173,8 +16191,8 @@ function bedarfHinweis(t) {
   if (t.typ !== "greifarm" || q?.art !== "gebaeude" || istStation(q.g)) return "";
   const kandidaten = armKandidaten(q.g).filter((i) => !t.armFilter || t.armFilter === i);
   const res = reservierungen(), offen = new Set();
-  for (const item of kandidaten) for (const {g} of bedarfZiele(armZiel(t), item, t.richtung).values()) {
-    if (bedarfFehlt(g, item, res) > 0) offen.add(itemInfo(item).name);
+  for (const item of kandidaten) for (const route of bedarfZiele(armZiel(t), item, t.richtung).values()) {
+    if (route.g.id !== q.g.id && zielFehlt(route, item, res) > 0) offen.add(itemInfo(item).name);
   }
   const unterwegs = bandInventar(t).anzahl;
   return offen.size ? `Bedarfsgesteuert · angefordert: ${[...offen].join(", ")}. Maschinen und Ressourcen werden reihum beliefert.`

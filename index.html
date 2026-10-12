@@ -4444,7 +4444,7 @@ import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.j
 const GRAFIK = {
   // --- Farben (als Hex-Code, wie in Grafikprogrammen) ---
   farbeHimmel:        "#eee3ce",  // Warmes Tageslicht
-  farbeAussenboden:   "#c9bea9",  // Befestigtes Fabrikgelände
+  farbeAussenboden:   "#8e928b",  // 2026-10-12: Stadtgrund (Pflaster/Beton) statt Sandfläche
   farbeGarageKante:   "#8e8879",  // Betonfundament
   farbeKachel:        "#bfc4be",  // Grauer Industrieboden
   farbeKachelHover:   "#fff9ec",  // Kachel unter der Maus (etwas heller)
@@ -6662,23 +6662,77 @@ function passeHalleAn3d() {
 }
 
 // Dekoration außerhalb der bebaubaren Zellen; wächst mit jeder Hallenstufe.
+// 2026-10-12 (Tim): Hallen-Design „authentischer Stadt“ – Klinkerwände mit Betonsockel, Stahlstützen und
+// Sprossenfenstern, Ladehof, Straße mit Fahrbahnmarkierung (dort fahren die Lieferwagen), Gehweg mit
+// Laternen und Bäumen, dahinter eine Häuserzeile. Vorn und rechts bleibt alles niedrig (freie Sicht).
 const fabrikUmgebung = new THREE.Group();
 fabrikUmgebung.name = "Fabrikumgebung";
 szene.add(fabrikUmgebung);
+// Kleine Kacheltexturen aus Canvas (einmal erzeugt, pro Fläche nur die Wiederholung neu)
+const STADT_TEXTUREN = (() => {
+  const mach = (b, h, male) => {
+    const c = document.createElement("canvas"); c.width = b; c.height = h;
+    male(c.getContext("2d"), b, h);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    return t;
+  };
+  const zufall = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+  // Klinker: 4 Steine × 8 Reihen pro Kachel, versetzt, leicht unterschiedliche Rottöne, helle Fugen
+  const klinker = mach(128, 128, (g, b, h) => {
+    g.fillStyle = "#c9b8a4"; g.fillRect(0, 0, b, h);
+    const reihen = 8, steinH = h / reihen, steinB = b / 4;
+    for (let r = 0; r < reihen; r++) for (let i = -1; i < 5; i++) {
+      const x = i * steinB + (r % 2 ? steinB / 2 : 0), n = zufall(r * 13 + i * 7);
+      g.fillStyle = `hsl(${12 + n * 10}, ${42 + n * 14}%, ${36 + n * 10}%)`;
+      g.fillRect(x + 1.5, r * steinH + 1.5, steinB - 3, steinH - 3);
+    }
+  });
+  // Fassade: Fensterraster für Nachbarhäuser (1 Fenster pro Kachel), Glas mit Reflex, Sturz und Bank
+  const fassade = mach(64, 64, (g, b, h) => {
+    g.fillStyle = "#ffffff"; g.fillRect(0, 0, b, h);
+    g.fillStyle = "rgba(0,0,0,0.10)"; g.fillRect(12, 10, 40, 4); g.fillRect(12, 50, 40, 4);
+    const verlauf = g.createLinearGradient(14, 14, 50, 50);
+    verlauf.addColorStop(0, "#5f7d8c"); verlauf.addColorStop(0.55, "#2f4250"); verlauf.addColorStop(1, "#3b5363");
+    g.fillStyle = verlauf; g.fillRect(14, 14, 36, 36);
+    g.fillStyle = "rgba(255,255,255,0.85)"; g.fillRect(31, 14, 2, 36); g.fillRect(14, 30, 36, 2);
+    g.fillStyle = "rgba(255,255,255,0.18)"; g.beginPath(); g.moveTo(16, 16); g.lineTo(28, 16); g.lineTo(16, 28); g.fill();
+  });
+  // Asphalt: feines Korn
+  const asphalt = mach(64, 64, (g, b, h) => {
+    g.fillStyle = "#45484c"; g.fillRect(0, 0, b, h);
+    for (let i = 0; i < 260; i++) { const n = zufall(i); g.fillStyle = `rgba(${n > 0.5 ? "255,255,255" : "0,0,0"},${0.04 + n * 0.06})`; g.fillRect(zufall(i + 99) * b, zufall(i + 7) * h, 1.5, 1.5); }
+  });
+  // Gehwegplatten 2 × 2 pro Kachel
+  const platten = mach(64, 64, (g, b, h) => {
+    g.fillStyle = "#9c9e98"; g.fillRect(0, 0, b, h);
+    for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const n = zufall(i * 3 + j * 5); g.fillStyle = `hsl(60, 4%, ${66 + n * 6}%)`; g.fillRect(i * 32 + 1, j * 32 + 1, 30, 30); }
+  });
+  return { klinker, fassade, asphalt, platten, zufall };
+})();
+function stadtTextur(basis, rx, ry) {
+  const t = basis.clone(); t.needsUpdate = true; t.repeat.set(rx, ry); t.userData.klon = true; return t;
+}
 function baueFabrikUmgebung() {
   const materialien = new Set();
-  fabrikUmgebung.traverse(o => { if (o.isMesh) { o.geometry.dispose(); materialien.add(o.material); } });
-  materialien.forEach(m => m.dispose());
+  fabrikUmgebung.traverse(o => { if (o.isMesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => materialien.add(m)); } });
+  materialien.forEach(m => { if (m.map && m.map.userData.klon) m.map.dispose(); m.dispose(); });
   fabrikUmgebung.clear();
-  const material = farbe => new THREE.MeshStandardMaterial({color: farbe, roughness: 0.82});
-  const putz = material("#e9dfc8"), mint = material("#86a99a"), beton = material("#a7aaa1");
-  const stahl = material("#82918d"), dunkel = material("#485958"), gelb = material("#e8bb45");
-  const holz = material("#b69569"), karton = material("#cca777");
-  const glas = new THREE.MeshStandardMaterial({color:"#d2e6df", roughness:0.28, emissive:"#e4e1b6", emissiveIntensity:0.24});
+  const T = STADT_TEXTUREN, zufall = T.zufall;
+  const material = (farbe, rauh = 0.82) => new THREE.MeshStandardMaterial({color: farbe, roughness: rauh});
+  const beton = material("#a3a59f"), sockelBeton = material("#8a8d88"), stahl = material("#82918d", 0.5), dunkel = material("#3e4a4f", 0.6);
+  const gelb = material("#e8bb45"), weiss = material("#f1f1ec"), holz = material("#b69569"), karton = material("#cca777");
+  const blech = material("#6b7377", 0.45), bordstein = material("#b9bab4");
+  const glas = new THREE.MeshStandardMaterial({color:"#b9d3d6", roughness:0.18, metalness:0.1, emissive:"#dfe8d6", emissiveIntensity:0.18});
   const lampe = new THREE.MeshStandardMaterial({color:"#fff4d3", emissive:"#ffdd91", emissiveIntensity:0.65});
-  function box(w,h,d,x,y,z,m) {
+  function box(w,h,d,x,y,z,m,schatten = true) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);
-    mesh.position.set(x,y,z); mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.position.set(x,y,z); mesh.castShadow = schatten; mesh.receiveShadow = true;
+    fabrikUmgebung.add(mesh); return mesh;
+  }
+  function flaeche(w,d,x,y,z,m) {
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);
+    mesh.rotation.x = -Math.PI/2; mesh.position.set(x,y,z); mesh.receiveShadow = true;
     fabrikUmgebung.add(mesh); return mesh;
   }
   function rohr(a,b,r,m) {
@@ -6693,44 +6747,142 @@ function baueFabrikUmgebung() {
   const mx = hallenMitte().x, mz = hallenMitte().z;
   const links = mx-breiteWelt/2, rechts = mx+breiteWelt/2;
   const hinten = mz-tiefeWelt/2, vorne = hinten+tiefeWelt;
-  const y = rasterHoehe, wandH = 3.1;
-  box(breiteWelt+5,0.1,tiefeWelt+5,mx,0.04,mz,beton);
-  // Offene Vorderseiten halten das gesamte Spielfeld sichtbar und anklickbar.
-  box(breiteWelt+0.6,wandH,0.25,mx,y+wandH/2,hinten-0.38,putz);
-  box(0.25,wandH,tiefeWelt+0.6,links-0.38,y+wandH/2,mz,putz);
-  box(breiteWelt+0.6,1.1,0.07,mx,y+0.55,hinten-0.21,mint);
-  box(0.07,1.1,tiefeWelt+0.6,links-0.21,y+0.55,mz,mint);
-  box(breiteWelt+0.8,0.15,0.42,mx,y+wandH,hinten-0.38,holz);
-  box(0.42,0.15,tiefeWelt+0.8,links-0.38,y+wandH,mz,holz);
-  for(let x=links+1; x<rechts-0.3; x+=2.8) {
-    box(2,0.92,0.09,x,y+2.32,hinten-0.21,dunkel);
-    box(1.82,0.76,0.06,x,y+2.32,hinten-0.15,glas);
-    box(0.045,0.78,0.07,x,y+2.32,hinten-0.10,putz);
-    rohr(v(x,y+2.65,hinten+0.10),v(x,y+2.65,hinten+0.7),0.035,dunkel);
-    box(0.7,0.09,0.32,x,y+2.60,hinten+0.68,dunkel);
-    box(0.60,0.025,0.26,x,y+2.54,hinten+0.68,lampe);
+  const y = rasterHoehe, wandH = 3.1, sockelH = 0.55;
+
+  /* --- Gelände: Ladehof (Beton), Straße, Gehweg – ringsum, Abstände ab der Wand --- */
+  const HOF = 3.0, STRASSE = 3.4, GEHWEG = 1.4;   // Lieferwagen fahren mittig auf der Straße (wagenPose)
+  const aussen = HOF + STRASSE + GEHWEG;
+  // Gehweg (unterste Lage), Straße, Hof – jeweils als Ring aus großen Flächen
+  const ring = (abstand, m, yy) => {
+    const w = breiteWelt + abstand*2, d = tiefeWelt + abstand*2;
+    const mat = m.clone ? m : m; flaeche(w, d, mx, yy, mz, mat);
+  };
+  const gehwegMat = new THREE.MeshStandardMaterial({color:"#ffffff", roughness:0.95, map: stadtTextur(T.platten, (breiteWelt+aussen*2)/1, (tiefeWelt+aussen*2)/1)});
+  const asphaltMat = new THREE.MeshStandardMaterial({color:"#ffffff", roughness:0.97, map: stadtTextur(T.asphalt, (breiteWelt+(HOF+STRASSE)*2)/2, (tiefeWelt+(HOF+STRASSE)*2)/2)});
+  ring(aussen, gehwegMat, 0.02);
+  ring(HOF + STRASSE, asphaltMat, 0.035);
+  ring(HOF, beton, 0.05);
+  // Bordsteine an beiden Straßenrändern
+  for (const ab of [HOF, HOF + STRASSE]) {
+    const w = breiteWelt + ab*2, d = tiefeWelt + ab*2;
+    box(w, 0.08, 0.12, mx, 0.06, mz - d/2, bordstein, false); box(w, 0.08, 0.12, mx, 0.06, mz + d/2, bordstein, false);
+    box(0.12, 0.08, d, mx - w/2, 0.06, mz, bordstein, false); box(0.12, 0.08, d, mx + w/2, 0.06, mz, bordstein, false);
   }
-  for(let z=hinten+1.3; z<vorne-0.2; z+=3) {
-    box(0.08,0.88,1.8,links-0.20,y+2.3,z,dunkel);
-    box(0.06,0.72,1.64,links-0.14,y+2.3,z,glas);
-    box(0.07,0.75,0.05,links-0.10,y+2.3,z,putz);
+  // Fahrbahnmarkierung: gestrichelte Mittellinie rundum
+  const mitteAb = HOF + STRASSE/2, mw = breiteWelt + mitteAb*2, md = tiefeWelt + mitteAb*2;
+  for (let x = mx - mw/2 + 0.6; x < mx + mw/2 - 0.6; x += 1.6) { box(0.8,0.012,0.09,x,0.045,mz-md/2,weiss,false); box(0.8,0.012,0.09,x,0.045,mz+md/2,weiss,false); }
+  for (let z = mz - md/2 + 0.6; z < mz + md/2 - 0.6; z += 1.6) { box(0.09,0.012,0.8,mx-mw/2,0.045,z,weiss,false); box(0.09,0.012,0.8,mx+mw/2,0.045,z,weiss,false); }
+  // Zebrastreifen vorn links
+  for (let i = 0; i < 6; i++) box(0.32, 0.012, STRASSE - 0.4, links + 1.2 + i*0.55, 0.046, vorne + HOF + STRASSE/2, weiss, false);
+  // Ladehof: gelbe Sicherheitslinie entlang Rück- und linker Wand
+  box(breiteWelt+0.5,0.018,0.09,mx,0.07,hinten-HOF+0.35,gelb,false);
+  box(0.09,0.018,tiefeWelt+0.5,links-HOF+0.35,0.07,mz,gelb,false);
+  box(breiteWelt+0.5,0.018,0.09,mx,0.07,vorne+0.7,gelb,false);
+  box(0.09,0.018,tiefeWelt+0.5,rechts+0.7,0.07,mz,gelb,false);
+
+  /* --- Hallenwände: Betonsockel, Klinker, Blechattika, Stahlstützen innen, Sprossenfenster --- */
+  const klinkerRueck = new THREE.MeshStandardMaterial({color:"#ffffff", roughness:0.9, map: stadtTextur(T.klinker, (breiteWelt+0.6)/1.2, (wandH-sockelH)/1.2)});
+  const klinkerLinks = new THREE.MeshStandardMaterial({color:"#ffffff", roughness:0.9, map: stadtTextur(T.klinker, (tiefeWelt+0.6)/1.2, (wandH-sockelH)/1.2)});
+  box(breiteWelt+0.6,wandH-sockelH,0.3,mx,y+sockelH+(wandH-sockelH)/2,hinten-0.4,klinkerRueck);
+  box(0.3,wandH-sockelH,tiefeWelt+0.6,links-0.4,y+sockelH+(wandH-sockelH)/2,mz,klinkerLinks);
+  box(breiteWelt+0.64,sockelH,0.34,mx,y+sockelH/2,hinten-0.4,sockelBeton);
+  box(0.34,sockelH,tiefeWelt+0.64,links-0.4,y+sockelH/2,mz,sockelBeton);
+  box(breiteWelt+0.8,0.16,0.46,mx,y+wandH+0.03,hinten-0.4,blech);
+  box(0.46,0.16,tiefeWelt+0.8,links-0.4,y+wandH+0.03,mz,blech);
+  // Stahlstützen (innen) alle 4 Kacheln, mit Kopfplatte
+  for (let x = links+0.12; x <= rechts; x += 4) { box(0.16,wandH,0.12,x,y+wandH/2,hinten-0.2,dunkel); box(0.26,0.06,0.2,x,y+wandH-0.05,hinten-0.18,dunkel); }
+  for (let z = hinten+0.12; z <= vorne; z += 4) { box(0.12,wandH,0.16,links-0.2,y+wandH/2,z,dunkel); box(0.2,0.06,0.26,links-0.18,y+wandH-0.05,z,dunkel); }
+  // Sprossenfenster (Stahlrahmen, 3 × 2 Felder) zwischen den Stützen
+  const fenster = (x, z, quer) => {
+    const B = 2.2, H = 1.05, yy = y + 2.0;
+    const w = quer ? 0.1 : B, d = quer ? B : 0.1;
+    box(quer ? 0.12 : B+0.12, H+0.12, quer ? B+0.12 : 0.12, x, yy, z, dunkel);
+    box(quer ? 0.06 : B, H, quer ? B : 0.06, x + (quer ? 0.05 : 0), yy, z + (quer ? 0 : 0.05), glas, false);
+    for (const t of [-1/6, 1/6]) box(quer ? 0.07 : 0.04, H, quer ? 0.04 : 0.07, x + (quer ? 0.06 : t*B*2*0.75), yy, z + (quer ? t*B*2*0.75 : 0.06), dunkel, false);
+    box(quer ? 0.07 : B, 0.04, quer ? B : 0.07, x + (quer ? 0.06 : 0), yy, z + (quer ? 0 : 0.06), dunkel, false);
+    box(quer ? 0.18 : B+0.2, 0.06, quer ? B+0.2 : 0.18, x + (quer ? 0.08 : 0), yy - H/2 - 0.06, z + (quer ? 0 : 0.08), sockelBeton, false);
+  };
+  for (let x = links+2.1; x < rechts-0.8; x += 4) fenster(x, hinten-0.26, false);
+  for (let z = hinten+2.1; z < vorne-0.8; z += 4) fenster(links-0.26, z, true);
+  // Hallenlampen und Rohrleitung (innen)
+  for (let x = links+2.1; x < rechts-0.8; x += 4) {
+    rohr(v(x,y+2.85,hinten-0.2),v(x,y+2.85,hinten+0.7),0.035,dunkel);
+    box(0.7,0.09,0.32,x,y+2.80,hinten+0.68,dunkel);
+    box(0.60,0.025,0.26,x,y+2.74,hinten+0.68,lampe);
   }
-  rohr(v(links+0.02,y+1.55,hinten+0.03),v(rechts-0.5,y+1.55,hinten+0.03),0.105,stahl);
-  rohr(v(links+0.02,y+1.55,hinten+0.03),v(links+0.02,y+1.55,vorne-0.5),0.105,stahl);
-  rohr(v(rechts-0.5,y+1.55,hinten+0.03),v(rechts-0.5,y+0.15,hinten+0.03),0.105,stahl);
-  // Markierungen liegen auf dem äußeren Betonrand, nicht auf Arbeitszugängen.
-  box(breiteWelt+0.5,0.018,0.09,mx,0.105,vorne+0.7,gelb);
-  box(0.09,0.018,tiefeWelt+0.5,rechts+0.7,0.105,mz,gelb);
-  for(let x=links+0.4;x<rechts;x+=0.85) box(0.38,0.018,0.3,x,0.11,vorne+1.8,gelb);
-  // Waren auf Paletten neben dem Gebäude geben dem Gelände einen Maßstab.
-  for(let n=0;n<3;n++) {
-    const x=rechts+1.6,z=hinten+1+n*1.7;
+  rohr(v(links-0.1,y+1.45,hinten-0.1),v(rechts-0.5,y+1.45,hinten-0.1),0.09,stahl);
+  rohr(v(links-0.1,y+1.45,hinten-0.1),v(links-0.1,y+1.45,vorne-0.5),0.09,stahl);
+  rohr(v(rechts-0.5,y+1.45,hinten-0.1),v(rechts-0.5,y+0.15,hinten-0.1),0.09,stahl);
+  // Fallrohre außen an der Rückwand
+  for (let x = links+0.6; x < rechts; x += 8) rohr(v(x,y+wandH,hinten-0.6),v(x,0.1,hinten-0.6),0.06,blech);
+
+  /* --- Straßenmöbel: Laternen und Bäume auf dem Gehweg --- */
+  const laterneMast = material("#2f3539", 0.5);
+  const laterne = (x, z) => {
+    rohr(v(x,0.05,z),v(x,2.6,z),0.05,laterneMast);
+    box(0.5,0.08,0.18,x,2.62,z,laterneMast);
+    box(0.36,0.04,0.14,x,2.57,z,lampe,false);
+  };
+  const stamm = material("#6b4f37"), laub = [material("#6f9a52"), material("#5d8a4a"), material("#7ea65c")];
+  const kugel = new THREE.IcosahedronGeometry(0.7, 1);
+  const baum = (x, z, i) => {
+    rohr(v(x,0.05,z),v(x,1.3,z),0.08,stamm);
+    const k = new THREE.Mesh(kugel.clone(), laub[i % 3]); k.position.set(x, 1.75, z); k.scale.setScalar(0.85 + zufall(i) * 0.4); k.castShadow = true;
+    fabrikUmgebung.add(k);
+    box(0.9,0.06,0.9,x,0.05,z,material("#5a4a3a"),false);
+  };
+  const gw = HOF + STRASSE + GEHWEG/2;
+  let n = 0;
+  for (let x = links - 1; x < rechts + 2; x += 3, n++) {
+    (n % 2 ? laterne : baum)(x, hinten - gw, n); (n % 2 ? baum : laterne)(x, vorne + gw, n + 1);
+  }
+  for (let z = hinten + 1; z < vorne + 2; z += 3, n++) {
+    (n % 2 ? laterne : baum)(links - gw, z, n); (n % 2 ? baum : laterne)(rechts + gw, z, n + 1);
+  }
+
+  /* --- Nachbarhäuser hinter Rück- und linker Wand (Front zur Halle mit Fensterraster) --- */
+  const farben = ["#b4826a", "#d8c7a8", "#9a6b58", "#c9b79a", "#8f9a9c", "#cfa98a", "#a8b3a0"];
+  const dach = material("#4c5052", 0.7);
+  const haus = (x, z, b, t, h, i) => {
+    const farbe = farben[Math.floor(zufall(i) * farben.length)];
+    const front = (rx) => new THREE.MeshStandardMaterial({color: farbe, roughness: 0.85, map: stadtTextur(T.fassade, rx, Math.max(1, Math.round(h / 1.1)))});
+    const wand = material(farbe, 0.9);
+    const mats = [front(Math.round(t / 1.1)), wand, dach, wand, front(Math.round(b / 1.1)), wand];   // +x, -x, +y, -y, +z, -z
+    const m = new THREE.Mesh(new THREE.BoxGeometry(b, h, t), mats);
+    m.position.set(x, h/2, z); m.receiveShadow = true; fabrikUmgebung.add(m);
+    box(b+0.12, 0.14, t+0.12, x, h+0.07, z, blech, false);                         // Attika
+    if (zufall(i + 3) > 0.4) box(0.8, 0.45, 0.6, x - b/4, h + 0.3, z - t/4, stahl, false);   // Lüftungskasten
+    box(b, 0.6, 0.06, x, 0.3 + 0.02, z + t/2 + 0.02, sockelBeton, false);              // Sockel zur Straße
+  };
+  const hausAb = aussen + 0.4, tiefe = 4.2;
+  let i = 0;
+  for (let x = links - aussen - tiefe; x < rechts + aussen + 4; i++) {
+    const b = 3 + Math.round(zufall(i * 3.1) * 3), h = 3.6 + Math.round(zufall(i * 1.7) * 4) * 1.1;
+    haus(x + b/2, hinten - hausAb - tiefe/2, b, tiefe, h, i);
+    x += b + 0.15;
+  }
+  for (let z = hinten - aussen + 0.2; z < vorne + aussen + 4; i++) {
+    const b = 3 + Math.round(zufall(i * 3.1) * 3), h = 3.6 + Math.round(zufall(i * 1.7) * 4) * 1.1;
+    haus(links - hausAb - tiefe/2, z + b/2, tiefe, b, h, i);
+    z += b + 0.15;
+  }
+
+  /* --- Vorn/rechts niedrig: Paletten im Hof und ein Parkstreifen --- */
+  for (let k=0;k<3;k++) {
+    const x=rechts+1.6,z=hinten+1+k*1.7;
     box(0.95,0.12,1.1,x,0.16,z,holz);
     for(let j=0;j<3;j++) box(0.22,0.06,1.1,x-0.32+j*0.32,0.25,z,holz);
     box(0.74,0.6,0.85,x,0.58,z,karton);
     box(0.055,0.01,0.86,x,0.885,z,holz);
   }
-  box(1.5,0.025,3,rechts+1.65,0.10,vorne-1.6,dunkel);
+  const autoFarben = ["#c94b3a", "#3c6fb5", "#e0e0dc", "#2f3539", "#e8bb45"];
+  for (let k = 0, x = mx - breiteWelt/2 + 3; x < rechts - 1; x += 3.2, k++) {
+    if (zufall(k + 50) < 0.45) continue;
+    const zz = vorne + HOF + STRASSE + GEHWEG + 1.1, f = material(autoFarben[k % autoFarben.length], 0.4);
+    box(1.0,0.4,1.9,x,0.32,zz,f); box(0.86,0.32,1.0,x,0.68,zz-0.05,f);
+    box(0.88,0.24,0.98,x,0.7,zz-0.05,glas,false);
+    for (const dx of [-0.42,0.42]) for (const dz of [-0.6,0.6]) box(0.12,0.3,0.3,x+dx,0.16,zz+dz,dunkel,false);
+  }
 }
 baueFabrikUmgebung();
 
@@ -6738,9 +6890,15 @@ baueFabrikUmgebung();
 const farbeNormal = new THREE.Color(GRAFIK.farbeKachel);
 const farbeHover = new THREE.Color(GRAFIK.farbeKachelHover);
 const farbeAuswahl = new THREE.Color(GRAFIK.farbeKachelAuswahl);
+const bodenHilfe = new THREE.Color();
+function bodenFarbe(x, z) {
+  const n = Math.sin(x * 127.1 + z * 311.7) * 43758.5453, f = n - Math.floor(n);
+  return bodenHilfe.copy(farbeNormal).offsetHSL(0, 0, (f - 0.5) * 0.045 + ((x + z) % 2 ? 0.006 : -0.006));
+}
 function faerbeKachel(x, z) {
   if (!istImRaster(x, z)) return;
-  let farbe = farbeNormal;
+  // 2026-10-12: Industrieboden mit leicht unterschiedlichen Betonplatten (fest je Kachel, kein Flackern)
+  let farbe = bodenFarbe(x, z);
   if (hoverKachel && hoverKachel.x === x && hoverKachel.z === z) farbe = farbeHover;
   // Paket Bandbau: Die gewählte Kachel färbt sich nicht mehr orange – das zeigen die Klammern (Abschnitt 12f)
   kacheln.setColorAt(kachelNummer(x, z), farbe);
@@ -13784,7 +13942,7 @@ function automatikSchritt() {
 const ZONEN = {
   lieferzeit:      15,    // Sekunden von der Bestellung, bis der Lieferwagen ablädt
   standzeit:       4,     // so lange steht ein Wagen nach dem Abladen noch am Tor
-  fahrzeit:        2.5,   // Ein- bzw. Ausfahren (nur Anzeige)
+  fahrzeit:        5,     // Ein- bzw. Ausfahren (nur Anzeige; 2026-10-12 länger für flüssiges Rangieren)
   abholIntervall:  30,    // alle so viele Sekunden kommt der Abholwagen an jede Exportzone
   rohstoffVerkauf: 0.5,   // Rohstoffe auf "Verkaufen" bringen so viel vom Einkaufspreis
   rhythmen: [
@@ -17768,28 +17926,51 @@ function aktualisiereWagen() {
   }
   for (const [id, w] of wagen3d) if (!zonen.has(id)) { szene.remove(w); wagen3d.delete(id); }
 }
-// Phase 7b Nachtrag: Wo steht der Wagen und wohin zeigt er? z = wagenZustand (p: 0 = weit weg … 1 = am Tor).
-// Herein: bis p = 0,6 fährt er seitlich bis vor die Zone (GRAFIK.rangierAbstand vor der Wand), danach wendet er
-// und setzt rückwärts ans Tor. Hinaus: vorwärts von der Wand weg und dabei einlenken, dann seitlich davon.
+// Wo steht der Wagen und wohin zeigt er? z = wagenZustand (p: 0 = weit weg … 1 = am Tor).
+// 2026-10-12 (Tim: „LKWs fahren flüssiger“): Der Wagen fährt auf einer stetigen Bahn statt auf der Stelle zu wenden.
+// Herein: auf der Straße vorwärts am Tor vorbei, abbremsen, dann rückwärts in einem Viertelkreis ans Tor setzen.
+// Hinaus: vorwärts vom Tor weg, im Bogen auf die Straße einlenken und beschleunigt davon.
+// Die Blickrichtung folgt immer der Fahrtrichtung (rückwärts: Heck voraus); Tempo ändert sich weich.
+function wagenBahn(stuecke) {
+  const punkte = [];
+  for (const st of stuecke) {
+    const n = st.bogen ? 16 : 1;
+    for (let i = punkte.length ? 1 : 0; i <= n; i++) {
+      const t = i / n;
+      punkte.push(st.bogen ? { s: st.bogen.ms + st.bogen.r * Math.cos(st.bogen.w0 + (st.bogen.w1 - st.bogen.w0) * t), d: st.bogen.md + st.bogen.r * Math.sin(st.bogen.w0 + (st.bogen.w1 - st.bogen.w0) * t) }
+        : { s: st.von.s + (st.nach.s - st.von.s) * t, d: st.von.d + (st.nach.d - st.von.d) * t });
+    }
+  }
+  const laengen = [0];
+  for (let i = 1; i < punkte.length; i++) laengen.push(laengen[i - 1] + Math.hypot(punkte[i].s - punkte[i - 1].s, punkte[i].d - punkte[i - 1].d));
+  return { punkte, laengen, gesamt: laengen[laengen.length - 1] };
+}
+function wagenAufBahn(bahn, anteil) {
+  const ziel = Math.max(0, Math.min(1, anteil)) * bahn.gesamt, { punkte, laengen } = bahn;
+  let i = 1;
+  while (i < punkte.length - 1 && laengen[i] < ziel) i++;
+  const a = punkte[i - 1], b = punkte[i], t = (ziel - laengen[i - 1]) / Math.max(1e-6, laengen[i] - laengen[i - 1]);
+  return { s: a.s + (b.s - a.s) * t, d: a.d + (b.d - a.d) * t, rs: b.s - a.s, rd: b.d - a.d };
+}
+const WAGEN_BAHN = (() => {
+  const A = 0.8, R = 2.2, W = 11, mitte = { ms: -R, md: A, r: R };
+  return {
+    vorbei: wagenBahn([{ von: { s: W, d: A + R }, nach: { s: -R, d: A + R } }]),
+    rueckwaerts: wagenBahn([{ bogen: { ...mitte, w0: Math.PI / 2, w1: 0 } }, { von: { s: 0, d: A }, nach: { s: 0, d: 0 } }]),
+    hinaus: wagenBahn([{ von: { s: 0, d: 0 }, nach: { s: 0, d: A } }, { bogen: { ...mitte, w0: 0, w1: Math.PI / 2 } }, { von: { s: -R, d: A + R }, nach: { s: -W, d: A + R } }]),
+  };
+})();
 function wagenPose(platz, z) {
   if (wenigerAnimation) return { x: platz.x, z: platz.z, winkel: platz.winkel };
-  const a = platz.aussen, q = platz.quer, A = GRAFIK.rangierAbstand, weit = 7;
-  const p = Math.max(0, Math.min(1, z.p));
-  const weich = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
-  let ab, seit, wenden;   // ab: Abstand vor dem Tor (nach außen), seit: Versatz entlang der Wand, wenden: 0 = Fahrtrichtung, 1 = Heck zum Tor
-  if (z.rein) {
-    if (p < 0.6) { ab = A; seit = (1 - weich(p / 0.6)) * weit; wenden = 0; }
-    else { const u = (p - 0.6) / 0.4; ab = A * (1 - weich(u)); seit = 0; wenden = weich(u / 0.6); }
-  } else {
-    const r = 1 - p;
-    if (r < 0.4) { const u = r / 0.4; ab = A * weich(u); seit = 0; wenden = 1 - weich(u); }
-    else { ab = A; seit = -weich((r - 0.4) / 0.6) * weit; wenden = 0; }
-  }
-  // Drehen auf dem kürzesten Weg zwischen Fahrtrichtung (entlang der Wand) und "Führerhaus nach außen"
-  const w0 = gebaeudeWinkel({ x: -q.x, z: -q.z });
-  let d = platz.winkel - w0;
-  d = Math.atan2(Math.sin(d), Math.cos(d));
-  return { x: platz.x + a.x * ab + q.x * seit, z: platz.z + a.z * ab + q.z * seit, winkel: w0 + d * wenden };
+  const a = platz.aussen, q = platz.quer, p = Math.max(0, Math.min(1, z.p));
+  const weich = (t) => t * t * (3 - 2 * t);
+  let lage, rueck;
+  if (z.rein && p < 0.5) { const u = p / 0.5; lage = wagenAufBahn(WAGEN_BAHN.vorbei, 1 - (1 - u) * (1 - u)); rueck = false; }   // kommt mit Tempo, bremst bis zum Halt
+  else if (z.rein) { lage = wagenAufBahn(WAGEN_BAHN.rueckwaerts, weich((p - 0.5) / 0.5)); rueck = true; }
+  else { const r = 1 - p; lage = wagenAufBahn(WAGEN_BAHN.hinaus, r * r * (2 - r) * 0.5 + r * r * 0.5); rueck = false; }   // fährt weich an, wird schneller
+  const rs = rueck ? -lage.rs : lage.rs, rd = rueck ? -lage.rd : lage.rd;
+  return { x: platz.x + q.x * lage.s + a.x * lage.d, z: platz.z + q.z * lage.s + a.z * lage.d,
+    winkel: gebaeudeWinkel({ x: q.x * rs + a.x * rd, z: q.z * rs + a.z * rd }) };
 }
 // Phase 7b Nachtrag: Tor auf, solange der Wagen ans Tor setzt bzw. dort steht; zu, sobald er wegfährt
 function torSollOffen(z) {

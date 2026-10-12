@@ -4761,6 +4761,22 @@ for (const r of ROHSTOFFE) r.preis = Math.round(r.grundpreis * EINKAUF_FAKTOR * 
 //   preisWeitere – (nur Lager, Phase 7a) Preis für jedes weitere Lager; das erste ist kostenlos
 //   preis        – Kaufpreis in Euro (Phase 5). Gebäude aus dem Depot aufzustellen ist kostenlos.
 //   freigeschaltet – false = (noch) nicht im Baumenü
+//   tore         – (Fließband-Mechanik neu, 2026-10-12, nur Maschinen) feste Tore: { ein: { seite, k }, aus: { seite, k } }.
+//                  seite "hinten" (−z) | "vorn" (+z) | "links" (−x) | "rechts" (+x) bei Drehung 0; k = Kachel entlang
+//                  der Seite (hinten/vorn: Spalte von links, links/rechts: Reihe von hinten). Befüllt wird NUR am
+//                  Eingang, entnommen NUR am Ausgang (Bänder, Greifarme und Kuriere). Siehe toreVon (Abschnitt 11).
+//   nichtImMenue – (2026-10-12) nicht mehr baubar; vorhandene laufen in alten Spielständen weiter
+// Tor-Kacheln bei Drehung 0 als [Spalte, Reihe]: innen = Kachel der Maschine am Tor, aussen = Kachel davor
+function torKachelnForm(breite, tiefe, tor) {
+  const seite = Array.isArray(tor) ? tor[0] : tor.seite, k = Array.isArray(tor) ? tor[1] : tor.k;
+  switch (seite) {
+    case "hinten": return { innen: [k, 0], aussen: [k, -1] };
+    case "vorn":   return { innen: [k, tiefe - 1], aussen: [k, tiefe] };
+    case "links":  return { innen: [0, k], aussen: [-1, k] };
+    default:       return { innen: [breite - 1, k], aussen: [breite, k] };
+  }
+}
+function torAussenForm(breite, tiefe, tor) { return torKachelnForm(breite, tiefe, tor).aussen; }
 const GEBAEUDE_TYPEN = [
   { typ: "hauptlager", name: "Lager", symbol: "▤", kategorie: "lager", art: "hauptlager",
     breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 300, maxAnzahl: 0, preis: 0, preisWeitere: 1500, freigeschaltet: true,
@@ -4824,24 +4840,53 @@ const GEBAEUDE_TYPEN = [
   //   tagesKosten – Laufkosten pro Tag (statt Lohn), werden beim Tagesabschluss abgebucht
   { typ: "gehaeuseStanzer", name: "Gehäuse-Stanzer", symbol: "⬓", kategorie: "maschine", art: "werkbank",
     breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 12, maxAnzahl: 0, preis: 4000, freigeschaltet: true,
-    forschung: "PROD-025", tagesKosten: 30, maschine: { tempo: 1, rezepte: { art: "gehaeuse", nur: ["geh_holz", "geh_eisen"] } },
+    forschung: "PROD-025", tagesKosten: 30, tore: { ein: { seite: "rechts", k: 0 }, aus: { seite: "links", k: 0 } },
+    maschine: { tempo: 1, rezepte: { art: "gehaeuse", nur: ["geh_holz", "geh_eisen"] } },
     beschreibung: "Stanzt Holz- und Eisengehäuse – ganz ohne Mitarbeiter." },
   { typ: "cncFraese", name: "CNC-Fräse", symbol: "⚙⬓", kategorie: "maschine", art: "werkbank",
     breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 16, maxAnzahl: 0, preis: 9000, freigeschaltet: true,
-    forschung: "PROD-039", tagesKosten: 60, maschine: { tempo: 2, rezepte: { art: "gehaeuse" } },
+    forschung: "PROD-039", tagesKosten: 60, tore: { ein: { seite: "rechts", k: 0 }, aus: { seite: "links", k: 0 } },
+    maschine: { tempo: 2, rezepte: { art: "gehaeuse" } },
     beschreibung: "Fräst alle Gehäuse doppelt so schnell wie eine Werkbank, ohne Mitarbeiter." },
   { typ: "roboterArm", name: "Roboter-Montage-Arm", symbol: "🤖", kategorie: "maschine", art: "werkbank",
-    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 6, eingangsfach: 10, maxAnzahl: 0, preis: 12000, freigeschaltet: true,
-    forschung: "PROD-050", tagesKosten: 50, maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T1" } },
+    breite: 2, tiefe: 1, zugang: [0, 1], kapazitaet: 6, eingangsfach: 10, maxAnzahl: 0, preis: 12000, freigeschaltet: true, nichtImMenue: true,
+    forschung: "PROD-050", tagesKosten: 50, tore: { ein: { seite: "rechts", k: 0 }, aus: { seite: "links", k: 0 } },
+    maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T1" } },
     beschreibung: "Stellt einfache T1-Komponenten vollautomatisch her." },
   { typ: "t2Presse", name: "Vollautomatische T2-Presse", symbol: "⬒", kategorie: "maschine", art: "werkbank",
-    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 16, maxAnzahl: 0, preis: 18000, freigeschaltet: true,
-    forschung: "PROD-056", tagesKosten: 80, maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T2" } },
+    breite: 2, tiefe: 2, zugang: [0, 2], kapazitaet: 6, eingangsfach: 16, maxAnzahl: 0, preis: 18000, freigeschaltet: true, nichtImMenue: true,
+    forschung: "PROD-056", tagesKosten: 80, tore: { ein: { seite: "rechts", k: 0 }, aus: { seite: "links", k: 0 } },
+    maschine: { tempo: 1, rezepte: { art: "bauteil", tier: "T2" } },
     beschreibung: "Presst mittlere (T2-)Komponenten komplett ohne Personal." },
   { typ: "assembler", name: "Autarker 16-Kachel-Assembler", symbol: "⚙⚙", kategorie: "maschine", art: "montage",
     breite: 3, tiefe: 2, zugang: [1, 2], kapazitaet: 4, eingangsfach: 24, maxAnzahl: 0, preis: 40000, freigeschaltet: true,
-    forschung: "PROD-062", tagesKosten: 150, maschine: { tempo: 1, rezepte: { art: "produkt" } },
+    forschung: "PROD-062", tagesKosten: 150, tore: { ein: { seite: "rechts", k: 0 }, aus: { seite: "links", k: 0 } },
+    maschine: { tempo: 1, rezepte: { art: "produkt" } },
     beschreibung: "Baut Produkte nach einer Blaupause wie der Montagetisch – ohne Mitarbeiter." },
+  // Fließband-Mechanik neu (Tim, 2026-10-12): je Komponenten-Kategorie eine Maschine mit festem Eingang (grün) und
+  // Ausgang (rot). Sie stellt jede freigeschaltete Komponente ihrer Kategorie her (maschine.rezepte.kategorie).
+  // Zugang (Kurier) = Kachel vor dem Ausgang; Kuriere liefern am Eingang an (bringZugang/holZugang, Abschnitt 11).
+  ...[
+    ["energie",        "Zellen-Wickler",       "ϟ", 2, 3, ["hinten", 0], ["vorn", 1],   9000, 45, "Wickelt Spulen und Akkuzellen."],
+    ["prozessoren",    "Wafer-Belichter",      "▣", 2, 4, ["hinten", 0], ["vorn", 1],  14000, 70, "Belichtet Wafer und schneidet daraus Chips."],
+    ["speicher",       "Chip-Bestücker",       "▤", 1, 4, ["hinten", 0], ["vorn", 0],   8000, 40, "Setzt Speicherchips auf Platinen."],
+    ["displays",       "Panel-Laminierstraße", "▭", 2, 4, ["hinten", 1], ["vorn", 1],  14000, 70, "Laminiert Glas, Folie und Silizium zu Panels."],
+    ["konnektivitaet", "Antennen-Prüfturm",    "⌁", 1, 3, ["hinten", 0], ["vorn", 0],   6000, 30, "Bestückt Funkmodule und prüft sie am Antennenmast."],
+    ["audio",          "Membran-Presse",       "♪", 1, 3, ["hinten", 0], ["vorn", 0],   6000, 30, "Presst Membranen und baut Lautsprecher, Mikrofone und Audio-Chips."],
+    ["optik",          "Linsen-Schleifer",     "◎", 2, 3, ["vorn", 0],   ["vorn", 1],   9000, 45, "Schleift Linsen und setzt Sensoren ein. Ein- und Ausgang liegen nebeneinander vorn."],
+    ["umwelt",         "Klima-Prüfkammer",     "☼", 2, 3, ["links", 0],  ["rechts", 2], 9000, 45, "Baut Sensoren und kalibriert sie in einer Klimakammer."],
+    ["bewegung",       "Gyro-Prüfstand",       "⟲", 1, 3, ["links", 0],  ["rechts", 2], 6000, 30, "Fertigt Gyroskope und Beschleunigungssensoren und testet sie im Kreisel."],
+    ["kuehlung",       "Lamellen-Extruder",    "❄", 1, 4, ["hinten", 0], ["vorn", 0],   8000, 40, "Presst Kühlkörper, Heatpipes und Lüfter."],
+    ["eingabe",        "Tasten-Spritzguss",    "◉", 2, 3, ["hinten", 0], ["vorn", 0],   9000, 45, "Spritzt Tasten, Schalter und Touchflächen."],
+    ["mechanik",       "Getriebe-Werk",        "⚙", 2, 4, ["links", 0],  ["rechts", 3],14000, 70, "Fräst und montiert Zahnräder, Motoren und Gelenke."],
+  ].map(([kat, name, symbol, breite, tiefe, ein, aus, preis, tagesKosten, text]) => ({
+    typ: "kat_" + kat, name, symbol, kategorie: "maschine", art: "werkbank", katMaschine: kat,
+    breite, tiefe, zugang: torAussenForm(breite, tiefe, aus), kapazitaet: 6, eingangsfach: 12, maxAnzahl: 0, preis, freigeschaltet: true,
+    forschung: "PROD-050", tagesKosten,
+    tore: { ein: { seite: ein[0], k: ein[1] }, aus: { seite: aus[0], k: aus[1] } },
+    maschine: { tempo: 1, rezepte: { art: "bauteil", kategorie: kat } },
+    beschreibung: text + " Stellt alle freigeschalteten Komponenten der Kategorie her. Befüllen nur am grünen Eingang, entnehmen nur am roten Ausgang.",
+  })),
 ];
 // Phase 7d: PROD-072 "Gigafactory-Werkstatt" – ist sie erforscht, laufen alle Werkbänke wie Maschinen ohne Arbeiter
 const GIGAFACTORY = {
@@ -9954,7 +9999,9 @@ function gebaeudeGeometrie(typ, x, z, drehung) {
   const t = gebaeudeTypNach.get(typ);
   const form = [];
   for (let dz = 0; dz < t.tiefe; dz++) for (let dx = 0; dx < t.breite; dx++) form.push([dx, dz]);
-  let punkte = [...form, t.zugang];
+  // Fließband-Mechanik neu: Tor-Kacheln (innen/außen) drehen mit; bei Maschinen mit Toren ist der Zugang die Kachel vor dem Ausgang
+  const torForm = t.tore ? ["ein", "aus"].flatMap((art) => { const k = torKachelnForm(t.breite, t.tiefe, t.tore[art]); return [k.innen, k.aussen]; }) : [];
+  let punkte = [...form, t.tore ? torForm[3] : t.zugang, ...torForm];
   let richtung = [0, 1];                        // bei Drehung 0 zeigt die Vorderseite nach +z
   const schritte = ((Math.round(drehung / 90) % 4) + 4) % 4;
   for (let i = 0; i < schritte; i++) {
@@ -9965,8 +10012,12 @@ function gebaeudeGeometrie(typ, x, z, drehung) {
   const minZ = Math.min(...punkte.slice(0, form.length).map((q) => q[1]));
   const verschoben = punkte.map(([a, b]) => ({ x: x + a - minX, z: z + b - minZ }));
   const zellen = verschoben.slice(0, form.length);
+  const torPunkte = verschoben.slice(form.length + 1);
+  const tor = (i) => ({ innen: torPunkte[i], aussen: torPunkte[i + 1],
+    richtung: { x: torPunkte[i + 1].x - torPunkte[i].x, z: torPunkte[i + 1].z - torPunkte[i].z } });   // richtung: vom Tor nach außen
   return {
-    typ,                                        // Phase 7b Nachtrag: für die Zugangs-Prüfung (Lager dürfen auf ein Band zeigen)
+    typ,
+    tore: t.tore ? { ein: tor(0), aus: tor(2) } : null,                                        // Phase 7b Nachtrag: für die Zugangs-Prüfung (Lager dürfen auf ein Band zeigen)
     zellen,
     zugang: verschoben[form.length],
     richtung: { x: richtung[0], z: richtung[1] },

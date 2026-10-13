@@ -4105,6 +4105,77 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
 #info-panel .vk-tipp { margin: 4px 0 0; font-size: 11px; opacity: .65; }
 #info-panel .vk-tipp kbd { font: inherit; padding: 0 4px; border-radius: 4px; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); }
 
+/* ===== 2026-10-13 (Tim): Werkbank-Fenster kompakt – ▶/■ im Kopf, Titel = Umbenennen, Rezept-Karte, REIN | RAUS als Kacheln ===== */
+#info-panel .info-kopf { position: relative; }
+#info-panel .info-unter:empty { display: none; }   /* leere Unterzeile kostet sonst Höhe */
+#info-panel .info-fortschritt { position: absolute; left: 0; right: 0; bottom: -3px; height: 3px; pointer-events: none; }
+#info-panel .info-fortschritt i { display: block; height: 100%; width: 0; background: var(--ein, #4cc56f); transition: width .25s linear; }
+@media (prefers-reduced-motion: reduce) { #info-panel .info-fortschritt i { transition: none; } }
+#info-panel #info-titel[data-umbenennen="1"] { cursor: text; border-radius: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#info-panel #info-titel[data-umbenennen="1"]:hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent); }
+#info-panel #info-titel[data-umbenennen="1"]:hover::after { content: " ✎"; font-size: .65em; opacity: .6; }
+#info-panel .info-titel-feld { width: 100%; min-width: 0; box-sizing: border-box; height: 30px; padding: 0 8px; border-radius: 6px; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+  background: color-mix(in srgb, #000 35%, transparent); border: 1px solid var(--schiene, #f2b233); }
+#info-panel .info-kopf-knopf.lauf { color: var(--ein, #4cc56f); border-color: color-mix(in srgb, var(--ein, #4cc56f) 70%, transparent); background: color-mix(in srgb, var(--ein, #4cc56f) 18%, transparent); font-size: 13px; }
+#info-panel .info-kopf-knopf.stopp { color: var(--aus, #f0675b); border-color: color-mix(in srgb, var(--aus, #f0675b) 70%, transparent); background: color-mix(in srgb, var(--aus, #f0675b) 18%, transparent); font-size: 12px; }
+/* Rezept-Karte (zugeklappt) + Arbeiter daneben */
+#info-panel .wb-karten-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 8px; align-items: stretch; margin: 2px 0 8px; }
+#info-panel .wb-karten-zeile.allein { grid-template-columns: minmax(0, 1fr); }
+#info-panel .wb-karten-zeile .info-feld { margin: 0; padding: 4px 6px; border-radius: 8px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: 9.5px; }
+#info-panel .wb-karten-zeile .info-feld select { min-width: 0; width: 100%; text-transform: none; letter-spacing: 0; }
+#info-panel .wb-karte { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; min-width: 0; padding: 5px 8px 5px 6px; cursor: pointer; text-align: left;
+  font: inherit; color: inherit; background: color-mix(in srgb, var(--schiene, #f5c518) 14%, transparent); border: 1px solid var(--schiene, #f5c518); border-left: 4px solid var(--tier-farbe, var(--schiene, #f5c518)); border-radius: 8px; }
+#info-panel .wb-karte:hover { background: color-mix(in srgb, var(--schiene, #f5c518) 22%, transparent); }
+#info-panel .wb-karte.leer { grid-template-columns: minmax(0, 1fr) auto; min-height: 44px; background: none; border: 1px dashed color-mix(in srgb, currentColor 30%, transparent); }
+#info-panel .wb-karte-bild { grid-column: 1; grid-row: 1 / span 2; display: grid; place-items: center; }
+#info-panel .wb-karte > b { grid-column: 2; grid-row: 1; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#info-panel .wb-karte.leer > b { grid-column: 1; }
+#info-panel .wb-karte-roh { grid-column: 2; grid-row: 2; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; opacity: .75; font-variant-numeric: tabular-nums; }
+#info-panel .wb-karte-roh > span { display: inline-flex; align-items: center; gap: 2px; }
+#info-panel .wb-karte-pfeil { grid-column: 3; grid-row: 1 / span 2; font-size: 12px; opacity: .7; }
+#info-panel .wb-karte.leer .wb-karte-pfeil { grid-column: 2; grid-row: 1; }
+#info-panel .wb-menue.offen { padding: 8px; border-radius: 10px; margin-top: -2px; border: 1px solid color-mix(in srgb, currentColor 16%, transparent); background: color-mix(in srgb, #000 22%, transparent); }
+#info-panel .wb-menue.offen .wb-zeile-kopf { display: flex; }
+#info-panel .wb-menue.offen .wb-zeile-kopf .lz-suche { flex: 1; }
+/* Fächer REIN | RAUS */
+#info-panel .fk-faecher { display: grid; gap: 8px; margin: 2px 0 8px; }
+#info-panel .fk-fach { --fb: var(--ein, #4cc56f); display: grid; grid-template-rows: auto 1fr auto; gap: 6px; min-width: 0; padding: 7px 8px 8px; border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent); border-top: 3px solid var(--fb); background: color-mix(in srgb, currentColor 4%, transparent); }
+#info-panel .fk-fach.raus { --fb: var(--aus, #f0675b); }
+#info-panel .fk-fach-kopf { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+#info-panel .fk-fach-kopf b { font-family: var(--font-schild, inherit); font-size: 15px; line-height: 1; letter-spacing: .08em; text-transform: uppercase; color: var(--fb); }
+#info-panel .fk-fach-kopf span { margin-left: auto; font-size: 11px; font-weight: 600; opacity: .7; font-variant-numeric: tabular-nums; }
+#info-panel .fk-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; align-content: start; }
+#info-panel .fk-raster .info-leer { margin: 0; }
+#info-panel .fk-kachel { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 4px 4px 5px; border-radius: 8px;
+  background: color-mix(in srgb, #000 22%, transparent); border: 1px solid color-mix(in srgb, var(--fb) 40%, transparent); }
+#info-panel .fk-kachel.rest { border-style: dashed; }
+#info-panel .fk-top { display: flex; align-items: center; gap: 3px; width: 100%; }
+#info-panel .fk-ist { margin-right: auto; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#info-panel .fk-ist small { font-weight: 500; opacity: .6; }
+#info-panel .fk-kachel.knapp .fk-ist { color: var(--warn, #f5b03a); }
+#info-panel .fk-kachel.voll .fk-ist { color: var(--aus, #f0675b); }
+#info-panel :is(.fk-pfeil, .fk-weg, .fk-auto) { display: inline-grid; place-items: center; width: 20px; height: 20px; min-width: 0; margin: 0; padding: 0; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 700; line-height: 1; }
+#info-panel :is(.fk-pfeil, .fk-auto) { color: inherit; background: transparent; border: 1px solid color-mix(in srgb, currentColor 28%, transparent); opacity: .8; }
+#info-panel .fk-pfeil[aria-pressed="true"].imp { background: var(--ein, #4cc56f); border-color: var(--ein, #4cc56f); color: #0c1a10; opacity: 1; }
+#info-panel .fk-pfeil[aria-pressed="true"].exp { background: var(--aus, #f0675b); border-color: var(--aus, #f0675b); color: #220b09; opacity: 1; }
+#info-panel .fk-weg { background: #e5484d; border: 0; color: #fff; font-size: 11px; }
+#info-panel .fk-weg:hover:not(:disabled) { background: #ff5a5f; }
+#info-panel .fk-weg:disabled { opacity: .3; cursor: default; }
+#info-panel .fk-bild { position: relative; display: grid; place-items: center; height: 36px; pointer-events: none; }
+#info-panel .fk-bild em { position: absolute; right: -18px; bottom: 0; font-size: 10px; font-style: normal; font-weight: 600; opacity: .7; }
+#info-panel .fk-name { font-size: 10.5px; line-height: 1.15; text-align: center; min-height: 2.3em; max-width: 100%; overflow-wrap: break-word; hyphens: manual; opacity: .9; }
+#info-panel .fk-zahl { display: flex; align-items: stretch; width: 100%; gap: 2px; }
+#info-panel .fk-hinweis { height: 20px; display: grid; place-items: center; font-size: 10px; opacity: .65; }
+#info-panel .fk-vk { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding-top: 6px; border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+#info-panel .fk-vk > small { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+#info-panel .fk-vk-leer { font-size: 10.5px; opacity: .7; padding: 2px 6px; border-radius: 6px; border: 1px dashed color-mix(in srgb, currentColor 30%, transparent); }
+#info-panel .fk-vk-leer kbd { font: inherit; font-weight: 600; padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent); }
+#info-panel .fk-vk-neu { width: 22px; height: 22px; min-width: 0; margin: 0 0 0 auto; padding: 0; border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--fb, inherit);
+  background: transparent; border: 1px dashed color-mix(in srgb, var(--fb) 60%, transparent); }
+#info-panel .fk-vk-neu[aria-pressed="true"] { background: var(--fb); color: #111; border-style: solid; }
+@media (max-width: 520px) { #info-panel .fk-faecher { grid-template-columns: minmax(0, 1fr) !important; } #info-panel .wb-karten-zeile { grid-template-columns: minmax(0, 1fr); } }
+
 </style>
 </head>
 <body>
@@ -4291,6 +4362,7 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
     <span id="info-kopf-knoepfe" class="info-kopf-knoepfe"></span>
     <span id="info-warnmarke" class="info-warnmarke" hidden tabindex="0" role="img" aria-label=""><b aria-hidden="true">!</b><span class="info-warnmarke-text"></span></span>
     <button id="info-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Info schließen">✕</button>
+    <span id="info-fortschritt" class="info-fortschritt" hidden aria-hidden="true"><i></i></span>
   </div>
   <p id="info-unter" class="info-unter"></p>
   <div id="info-inhalt"></div>
@@ -25917,13 +25989,23 @@ function zeichneInfo() {
   if (!g) { waehleGebaeude(null); return; }
   const t = typVon(g);
   ob.info.classList.toggle('modern-import',istImportzone(g));
-  ob.infoTitel.textContent = gebaeudeName(g);
+  // 2026-10-13 (Tim): Klick auf den Titel benennt um – die Zeile „Name / Umbenennen“ entfällt
+  if (!ob.infoTitel.querySelector("input")) ob.infoTitel.textContent = gebaeudeName(g);
+  ob.infoTitel.dataset.umbenennen = "1";
+  ob.infoTitel.title = "Klicken zum Umbenennen";
   ob.infoUnter.textContent = "";
-  let html = `<form class="gebaeude-name-form"><label>Name <input data-gebaeude-name maxlength="60" aria-label="Gebäudename" value="${htmlSicher(g.name||'')}" placeholder="${htmlSicher(gebaeudeName({...g,name:''}))}"></label><button type="submit" class="lz-knopf">Umbenennen</button></form>`;
+  let html = "";
+  const arbeiterFeld = istStation(g) && !laeuftOhnePersonal(g) && !g.automatik ? `<label class="info-feld">Arbeiter <select data-aktion="arbeiter">
+        <option value="">– niemand –</option>
+        ${mitarbeiter.filter((p) => p.rolle === "arbeiter").map((p) => {
+          const andere = p.stationId && p.stationId !== g.id && spiel.gebaeude.get(p.stationId);
+          return `<option value="${p.id}" ${g.arbeiterId === p.id ? "selected" : ""}>${htmlSicher(p.name)}${andere ? ` (jetzt: ${htmlSicher(gebaeudeName(andere))})` : ""}</option>`;
+        }).join("")}
+      </select></label>` : "";
   // Die Maschinenart steht bereits im Fenstertitel; der ausführliche Infoblock
   // entfällt zugunsten einer kurzen, übersichtlichen Objektansicht.
   if (t.art === "werkbank") {
-    html += werkbankRezeptHtml(g);   // B7 (Paket Bandbau/Baumenü): Kategorie-Kacheln, Matrix 5 × 5, Schnellzeile „Gebraucht“
+    html += werkbankRezeptHtml(g, arbeiterFeld);   // B7: Kategorie-Kacheln, Matrix 5 × 5, „Gebraucht“ · 2026-10-13: Rezept-Karte + Arbeiter
   } else if (t.art === "montage") {
     const liste = [...blaupausenNachId.values()].sort((a, b) => a.name.localeCompare(b.name) || (b.produktVersion || 1) - (a.produktVersion || 1));
     const fehlt = g.rezept && !blaupausenNachId.has(g.rezept);
@@ -25952,35 +26034,80 @@ function zeichneInfo() {
     html += lagerZusatzHtml(g);                      // Phase 7d: Endlos-Silo (Rohstoffart), Smarter Schrank (Nachkauf)
     // 2026-10-13 (Tim): „Ressource hinzufügen“ entfällt – Waren erscheinen von selbst (lagerSmartIds)
   }
-  if (istStation(g) && laeuftOhnePersonal(g)) {     // Phase 7d: Maschinen haben keinen Arbeiter-Platz
-  } else if (istStation(g) && g.automatik) {        // Phase 6: läuft ohne Arbeiter
-    html += ``;
-  } else if (istStation(g)) {
-    html += `<label class="info-feld">Arbeiter <select data-aktion="arbeiter">
-        <option value="">– niemand –</option>
-        ${mitarbeiter.filter((p) => p.rolle === "arbeiter").map((p) => {
-          const andere = p.stationId && p.stationId !== g.id && spiel.gebaeude.get(p.stationId);
-          return `<option value="${p.id}" ${g.arbeiterId === p.id ? "selected" : ""}>${htmlSicher(p.name)}${andere ? ` (jetzt: ${htmlSicher(gebaeudeName(andere))})` : ""}</option>`;
-        }).join("")}
-      </select></label>`;
-  }
+  // Arbeiter (Maschinen und Automatik-Stationen haben keinen Platz); Werkbank: neben der Rezept-Karte
+  if (t.art !== "werkbank") html += arbeiterFeld;
   const zahlen = infoZahlenHtml(g);
   html += `<div id="info-zahlen">${zahlen}</div><div class="info-knoepfe">`;
-  if (istStation(g)) html += `<button class="lz-knopf symbol-knopf" type="button" data-aktion="pause" aria-label="${g.pausiert ? "Fortsetzen" : "Pausieren"}" title="${g.pausiert ? "Fortsetzen" : "Pausieren"}">${g.pausiert ? "▶" : "⏸"}</button>`;
+  // 2026-10-13 (Tim): Start/Stopp sitzt jetzt oben im Kopf (kopfKnoepfeHtml)
   if (false) {   // 2026-10-13: entfällt (Kurierwege regeln den Rückweg)
     html += `<button class="lz-knopf" type="button" data-aktion="rueckgabe" title="Kuriere bringen einmalig alles über dem Soll ins Lager (außer Ressourcen mit ausgeschaltetem Export)">Überschuss zurückschicken</button>`;
   }
   if (t.art === "hauptlager") html += `<button class="lz-knopf symbol-knopf" type="button" data-aktion="lager" aria-label="Lager-Fenster öffnen" title="Lager-Fenster öffnen ${kbd("lager")}">▣</button>`;
   html += `</div>`;
   // 2026-10-13 (Tim): Verschieben und Abreißen sitzen oben in der Kopfleiste neben ! und ✕ (spart Platz)
-  setzeHtml($("info-kopf-knoepfe"), `<button class="info-kopf-knopf" type="button" data-kopf="verschieben" aria-label="Gebäude verschieben" title="Verschieben ${kbd("verschieben")}">✥</button>`
-    + `<button class="info-kopf-knopf gefahr" type="button" data-kopf="abreissen" aria-label="Gebäude abreißen" title="Abreißen">🗑</button>`);
+  setzeHtml($("info-kopf-knoepfe"), kopfKnoepfeHtml(g));
+  setzeKopfFortschritt(g);
   // Phase 7a: nur Geändertes austauschen (kein Flackern, Scroll-Position und Knöpfe bleiben)
   morphe(ob.infoInhalt, html);
   const ziel = $("info-zahlen");
   if (ziel) ziel._html = zahlen;
   anzeige.infoStrukturFehlt = false;
   if (istImportzone(g)) izEinpassen();   // kein Scrollbalken in der Importzone
+}
+
+// 2026-10-13 (Tim): Kopf des Info-Fensters – Station: ▶ (grün, läuft) bzw. ■ (rot, gestoppt) statt Statuszeile.
+// Der Status (und ein konkreter Grund) steht im Hover-Text, der Fortschritt als grüner Strich in der Kopfkante.
+function kopfKnoepfeHtml(g) {
+  let html = "";
+  if (istStation(g)) {
+    const art = g.status || stationsStatus(g);
+    const st = art === "automatik" && laeuftOhnePersonal(g) ? STATUS_ANZEIGE.arbeitet : STATUS_ANZEIGE[art] || STATUS_ANZEIGE.pausiert;
+    const titel = g.pausiert ? "Gestoppt – Klick: starten" : `Läuft · ${st.text}${g.grund ? ` – ${g.grund}` : ""}\nKlick: stoppen`;
+    html += `<button class="info-kopf-knopf ${g.pausiert ? "stopp" : "lauf"} ampel-${st.ampel}" type="button" data-kopf="pause"
+      aria-label="${g.pausiert ? "Gestoppt – starten" : "Läuft – stoppen"}" title="${htmlSicher(titel)}">${g.pausiert ? "■" : "▶"}</button>`;
+  }
+  return html + `<button class="info-kopf-knopf" type="button" data-kopf="verschieben" aria-label="Gebäude verschieben" title="Verschieben ${kbd("verschieben")}">✥</button>`
+    + `<button class="info-kopf-knopf gefahr" type="button" data-kopf="abreissen" aria-label="Gebäude abreißen" title="Abreißen">🗑</button>`;
+}
+// g = null blendet den Strich aus (Bänder, Mehrfachauswahl)
+function setzeKopfFortschritt(g) {
+  const el = $("info-fortschritt");
+  if (!el) return;
+  const an = !!g && istStation(g) && !g.pausiert;
+  el.hidden = !an;
+  if (an) el.firstElementChild.style.width = `${Math.round(Math.min(1, g.fortschritt || 0) * 100)}%`;
+}
+// Klick auf den Titel: Eingabefeld, Enter oder Fokus weg speichert, Esc bricht ab.
+// Der Kopf ist zugleich Griff zum Verschieben (setPointerCapture) – der Klick landet daher am Kopf:
+// gemerkt wird, ob er auf dem Titel begann und die Maus sich kaum bewegt hat.
+let infoTitelDruck = null;
+ob.infoTitel.addEventListener("pointerdown", (e) => { infoTitelDruck = e.button === 0 ? { x: e.clientX, y: e.clientY } : null; });
+ob.infoTitel.parentElement.addEventListener("click", (e) => {
+  const druck = infoTitelDruck; infoTitelDruck = null;
+  if (druck && Math.hypot(e.clientX - druck.x, e.clientY - druck.y) < 4) starteTitelUmbenennen();
+});
+function starteTitelUmbenennen() {
+  const g = spiel.gebaeude.get(auswahlGebaeudeId);
+  if (!g || ob.infoTitel.dataset.umbenennen !== "1" || ob.infoTitel.querySelector("input")) return;
+  const feld = document.createElement("input");
+  feld.className = "info-titel-feld"; feld.maxLength = 60; feld.value = g.name || "";
+  feld.placeholder = gebaeudeName({ ...g, name: "" }); feld.setAttribute("aria-label", "Gebäudename");
+  let fertig = false;
+  const ende = (speichern) => {
+    if (fertig) return; fertig = true;
+    if (speichern && feld.value.trim() !== (g.name || "")) { benenneGebaeude(g.id, feld.value); zeigeMeldung(`Umbenannt: ${gebaeudeName(g)}`); }
+    ob.infoTitel.textContent = gebaeudeName(g);
+    zeichneInfo();
+  };
+  feld.addEventListener("keydown", (e) => {
+    e.stopPropagation();                 // Buchstaben steuern nicht die Kamera
+    if (e.key === "Enter") { e.preventDefault(); ende(true); }
+    else if (e.key === "Escape") { e.preventDefault(); ende(false); }
+  });
+  feld.addEventListener("blur", () => ende(true));
+  feld.addEventListener("click", (e) => e.stopPropagation());
+  ob.infoTitel.replaceChildren(feld);
+  feld.focus(); feld.select();
 }
 
 // Phase 7d: Einstellungen der neuen Lager im Info-Fenster
@@ -26046,7 +26173,7 @@ const WERKBANK_MENUE = {
   maxZuletzt:   6,    // so viele zuletzt gewählte Rezepte merkt sich das Menü (nur für diese Sitzung)
   maxTreffer:   40,   // so viele Such-Treffer höchstens als Kacheln
 };
-const werkbankWahl = { suche: "", kategorie: "", fuer: null, zuletzt: [] };   // kategorie: "gehaeuse" oder Kategorie-ID
+const werkbankWahl = { suche: "", kategorie: "", fuer: null, zuletzt: [], offen: null };   // offen: Station-ID mit aufgeklappter Auswahl   // kategorie: "gehaeuse" oder Kategorie-ID
 function werkbankGruppen() {
   return [{ id: "gehaeuse", name: "Gehäuse", eintraege: GEHAEUSE },
     ...KATEGORIEN.map((k) => ({ id: k.id, name: k.name, eintraege: BAUTEILE.filter((b) => b.kategorie === k.id) }))];
@@ -26136,22 +26263,35 @@ function werkbankGruppeHtml(g, typ, gruppe) {
   });
   return html + `</div>`;
 }
-function werkbankRezeptHtml(g) {
+// 2026-10-13 (Tim): Ist ein Rezept gewählt, steht nur die Rezept-Karte da (Bild, Name, Rohstoffe, Zeit) –
+// Klick klappt die Auswahl auf, eine Wahl klappt sie wieder zu. nebenan = Arbeiter-Auswahl rechts daneben.
+function werkbankKarteHtml(g, offen) {
+  const b = g.rezept && herstellbarNachTyp.get(g.rezept);
+  if (!b) return `<button type="button" class="wb-karte leer" data-aktion="wb-karte" aria-expanded="true"><b>Rezept wählen</b><span class="wb-karte-pfeil">▴</span></button>`;
+  const tier = b.stufe || Number(String(b.tier || "T1").slice(1)) || 1;
+  return `<button type="button" class="wb-karte" data-aktion="wb-karte" aria-expanded="${offen}" style="--tier-farbe:${KOMPONENTEN_MODELLE.tierFarben[tier] || "#8a94a3"}"
+      title="${htmlSicher(werkbankKachelTitel(b, true))}\nKlick: ${offen ? "Auswahl schließen" : "anderes Rezept wählen"}">
+    <span class="wb-karte-bild">${wareHtml(b.typ, 34, b.name)}</span><b>${htmlSicher(b.name)}</b><span class="wb-karte-pfeil">${offen ? "▴" : "▾"}</span>
+    <span class="wb-karte-roh">${Object.entries(b.rezept).map(([id, n]) => `<span>${wareHtml(id, 15)}${n}</span>`).join("")}<span>· ${zahlText(b.zeit)} s</span></span></button>`;
+}
+function werkbankRezeptHtml(g, nebenan = "") {
   const typ = typVon(g);                             // Phase 7d: Maschinen können nur ihre Rezepte (maschineKann)
   const gruppen = werkbankGruppen().filter((gr) => gr.eintraege.some((b) => b.rezept && maschineKann(typ, b.typ)));
   // Andere Station gewählt: deren Rezept-Kategorie zeigen; Kategorie-Maschine: immer ihre Kategorie
-  if (werkbankWahl.fuer !== g.id) { werkbankWahl.fuer = g.id; werkbankWahl.kategorie = werkbankGruppeVon(g.rezept); }
+  if (werkbankWahl.fuer !== g.id) { werkbankWahl.fuer = g.id; werkbankWahl.kategorie = werkbankGruppeVon(g.rezept); werkbankWahl.offen = null; }
   if (typ.katMaschine) werkbankWahl.kategorie = typ.katMaschine;
   if (!gruppen.some((gr) => gr.id === werkbankWahl.kategorie)) werkbankWahl.kategorie = gruppen[0] ? gruppen[0].id : "";
   const suche = suchText(werkbankWahl.suche.trim());
   const passt = (b) => !suche || suchText(b.name).includes(suche) || (b.nr && suchText(b.nr).includes(suche));
   const aktuell = g.rezept && herstellbarNachTyp.get(g.rezept);
-  let html = `<div class="wb-menue">
+  const offen = !aktuell || werkbankWahl.offen === g.id || !!werkbankWahl.suche;
+  const kopf = `<div class="wb-karten-zeile${nebenan ? "" : " allein"}">${werkbankKarteHtml(g, offen)}${nebenan}</div>`;
+  if (!offen) return kopf;
+  let html = kopf + `<div class="wb-menue offen">
     <div class="wb-zeile-kopf">
       <input class="lz-suche" type="search" data-aktion="rezept-suche" value="${htmlSicher(werkbankWahl.suche)}" placeholder="Rezept suchen …"
         autocomplete="off" spellcheck="false" aria-label="Rezepte dieser Station durchsuchen">
-      <span class="wb-aktuell">${aktuell ? `${wareHtml(aktuell.typ, 22)}<b title="${htmlSicher(aktuell.name)}">${htmlSicher(aktuell.name)}</b>
-        <button class="mini-knopf" type="button" data-aktion="wb-rezept" data-rezept="" title="Rezept entfernen">✕</button>` : `<small>kein Rezept gewählt</small>`}</span>
+      ${aktuell ? `<button class="mini-knopf" type="button" data-aktion="wb-rezept" data-rezept="" title="Rezept entfernen">✕ Rezept</button>` : ""}
     </div>`;
   // 1. Schnellzeile „Gebraucht“
   const gebraucht = werkbankGebraucht(typ);
@@ -26200,15 +26340,19 @@ function waehleWerkbankRezept(g, rezept) {
   }
   if (!setzeRezept(g.id, rezept)) { zeigeMeldung(`${gebaeudeName(g)} kann ${b.name} nicht herstellen.`, true); return false; }
   werkbankWahl.zuletzt = [rezept, ...werkbankWahl.zuletzt.filter((id) => id !== rezept)].slice(0, WERKBANK_MENUE.maxZuletzt);
+  werkbankWahl.offen = null; werkbankWahl.suche = "";   // 2026-10-13: gewählt – Auswahl klappt zu
   zeigeMeldung(`${gebaeudeName(g)}: Rezept ${b.name}.`);
   return true;
 }
 // Klicks im Menü: Kategorie wechseln bzw. Rezept setzen
 ob.infoInhalt.addEventListener("click", (e) => {
-  const knopf = e.target.closest("button[data-aktion='wb-kat'], button[data-aktion='wb-rezept']");
+  const knopf = e.target.closest("button[data-aktion='wb-kat'], button[data-aktion='wb-rezept'], button[data-aktion='wb-karte']");
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!knopf || !g) return;
-  if (knopf.dataset.aktion === "wb-kat") {
+  if (knopf.dataset.aktion === "wb-karte") {
+    werkbankWahl.offen = werkbankWahl.offen === g.id ? null : g.id;
+    if (!werkbankWahl.offen) werkbankWahl.suche = "";
+  } else if (knopf.dataset.aktion === "wb-kat") {
     werkbankWahl.kategorie = knopf.dataset.kat;
     if (werkbankWahl.suche) { werkbankWahl.suche = ""; }   // Kategorie gewählt: Suche endet
   } else {
@@ -26456,6 +26600,8 @@ function aktualisiereInfoZahlen() {
   // Phase 7b: Während im Max-Feld getippt wird, nichts austauschen
   if (infoFormularAktiv()) return;
   setzeHtml(ziel, infoZahlenHtml(g));
+  setzeHtml($("info-kopf-knoepfe"), kopfKnoepfeHtml(g));   // 2026-10-13: ▶/■ und Fortschritt laufen mit
+  setzeKopfFortschritt(g);
 }
 // Phase 7b: Importzone – Bestellungen pro Rohstoff (Menge + Rhythmus) und Wagen unterwegs
 // Kurze Beschriftungen für die Rhythmus-Combobox der Importzone (Anzeige; Werte bleiben gleich)
@@ -26684,50 +26830,20 @@ function infoZahlenHtml(g) {
     const projekt = istForschungsstation(g) && projektVon(g.id);   // Phase 7d: Zeitprojekt statt Zerlegen
     const r = projekt ? null : rezeptVon(g);
     if (istForschungsstation(g)) html += projektInfoHtml(g);
-    html += `<div class="info-block"><h3>Status</h3><span class="info-status ${st.ampel}">${st.text}</span>`;
-    if (g.grund) html += `<p class="info-grund">${htmlSicher(g.grund)}</p>`;   // 2026-10-12: konkreter Grund
-    if (art === "arbeitet" || art === "automatik") html += `<div class="info-balken"><span style="width:${Math.round(g.fortschritt * 100)}%"></span></div>`;
-    // Worauf wartet der Arbeiter genau? (und ob das Lager überhaupt etwas davon hat)
-    const wartender = art === "wartetAufMaterial" && mitarbeiter.find((m) => m.id === g.arbeiterId);
-    const quelle = wartender && wartender.auftrag && spiel.gebaeude.get(wartender.auftrag.quelleId);
-    if (quelle) {
-      const inhalt = fachInhalt(quelle, wartender.auftrag.quelleFach);
-      const fehlt = Object.entries(wartender.auftrag.items)
-        .filter(([item, n]) => (inhalt[item] || 0) < n)
-        .map(([item, n]) => `${n - (inhalt[item] || 0)}× ${htmlSicher(itemInfo(item).name)}`
-          + (hlMenge(item) > 0 ? "" : " (nicht im Lager)"));
-      if (fehlt.length) html += `<p class="info-leer">Fehlt noch: ${fehlt.join(", ")}</p>`;
-    }
-    html += `</div>`;
+    // 2026-10-13 (Tim): Statuszeile entfällt – ▶/■ im Kopf, Grund im Hover-Text, Fehlendes zeigen die REIN-Kacheln
     if (r) {
       const dio = ioDiagnose(g);   // W1 (M4): I/O-Fixierung sichtbar machen
       if (dio) html += `<p class="info-warnung">🔒 ${htmlSicher(dio.text)}</p>`;
       // W1 (M6): Gefahrenzone am Arbeitsplatz (Hitze/Lärm der Nachbarmaschinen)
       const gef = gefahrAufKachel(g.zugang.x, g.zugang.z, g.id);
       if (gef.hitze > 0 || gef.laerm > 0) html += `<p class="info-leer">Umgebung am Zugang: Hitze ${zahlText(gef.hitze)} · Lärm ${zahlText(gef.laerm)} (je ${GEFAHR.hitzeSchwelle} = 1 Stufe über der Toleranz)</p>`;
-      html += `<div class="info-block"><h3>${r.fp ? "Pro Durchgang" : "Material pro Durchgang"} (${Math.round(r.zeit * 10) / 10} s)</h3>${itemZeilen(r.eingaben)}`;
-      if (r.fp) html += `<p class="info-leer">→ ${zahlText(r.fp)} Forschungspunkte</p>`;
-      html += `</div>`;
-      // Phase 5b: Import-/Export-Pegel
-      html += `<div class="info-block"><h3>Ressourcen · Eingangsfach ${summe(g.eingang)} / ${fachGroesse(g, "eingang")}</h3>${stationsZeilen(g, r)}</div>`;
+      if (r.fp) html += `<p class="info-leer">Pro Durchgang (${Math.round(r.zeit * 10) / 10} s) → ${zahlText(r.fp)} Forschungspunkte</p>`;
       if (r.ausschuss) html += `<p class="info-warnung">⚠ Überhitzte Blaupause: ${Math.round(r.ausschuss * 100)} % Ausschuss.</p>`;
       const zuKlein = verknuepfteLager(g, "import").filter((l) => istZwischenlager(l) && darfArbeiterEntnehmen(l) && kapazitaetVon(l) < summe(r.eingaben));
       if (zuKlein.length) html += `<p class="info-warnung">⚠ ${zuKlein.map(gebaeudeName).join(", ")} ist zu klein für einen Durchgang (${summe(r.eingaben)} Items).</p>`;
       if (stationsStatus(g) === "keinLager") html += `<p class="info-warnung">⚠ Weder Import ins Eingangsfach noch ein Lager mit Material: Der Arbeiter bekommt nichts.</p>`;
-      if (r.ausgabe) {
-        const ausgangLager = verknuepfteLager(g, "export").filter((v) => nimmtErzeugnisAn(v, r.ausgabe));
-        const fach = regelVon(g, r.ausgabe).exp ? `ins Ausgabefach (Kuriere holen ab ${exportPegel(g, r.ausgabe)} Stück ab)` : "ins Ausgabefach (Export aus: bleibt liegen)";
-        html += `<div class="info-block"><h3>Erzeugnisse gehen</h3>${ausgangLager.length ? `ins Lager: ${ausgangLager.map(lagerName).join(", ")}` : fach}</div>`;
-      }
     }
-    if (kapazitaetVon(g) > 0) html += `<div class="info-block"><h3>Ausgabefach ${summe(g.bestand)} / ${kapazitaetVon(g)}</h3>${itemZeilen(g.bestand)}</div>`;
-    // Phase 7a (Nachtrag 2): Import- und Export-Verknüpfungen getrennt, jeweils mit ✕ zum Lösen
-    // 2026-10-13 (Tim): Import und Export nebeneinander; Alt + Linksklick / Alt + Rechtsklick auf ein Lager weist zu
-    html += `<div class="vk-paar"><div class="info-block vk-spalte import"><h3>${verknuepfPfeilHtml(g, "import")}</h3>${vkListe(g, verknuepfteLager(g, "import"), "import", lagerName)
-      || `<span class="info-leer">Kein Lager</span>`}</div>`;
-    html += `<div class="info-block vk-spalte export"><h3>${verknuepfPfeilHtml(g, "export")}</h3>${vkListe(g, verknuepfteLager(g, "export"), "export", lagerName)
-      || `<span class="info-leer">Kein Lager</span>`}</div></div>
-      <p class="vk-tipp"><kbd>Alt</kbd> + Linksklick auf ein Lager: Import · <kbd>Alt</kbd> + Rechtsklick: Export</p>`;
+    html += stationsFaecherHtml(g, r, lagerName);
   } else if (istZwischenlager(g)) {
     html += lagerZusatzZahlenHtml(g);               // Phase 7d: Silo-Ware, Nachkauf-Bedarf
     html += `<div class="info-block"><h3>Füllstand ${typVon(g).silo ? `<span class="fuell-wert">${belegt(g)} / ∞</span>` : fuellstandHtml(g)}</h3>${lagerZeilen(g)}</div>`;
@@ -26752,17 +26868,80 @@ function infoZahlenHtml(g) {
     html += `<div class="info-block"><h3>Füllstand ${fuellstandHtml(g)}</h3>${hauptlagerZeilen(g)}</div>`;   // Phase 7b Nachtrag: Regeln
     html += vkLagerHtml(g, lagerName);
   }
-  if (istStation(g)) html += maschinenInventarHtml(g);
   html += bandAnschlussHtml(g);                     // Phase 6
   return html;
 }
 // Phase 7a (Nachtrag 2): verknüpfte Gebäude als Chips mit ✕ (g = das gewählte Gebäude)
-function maschinenInventarHtml(g) {
-  return ["eingang", "bestand"].map(fach => `<details class="info-block" open><summary>${fach === "eingang" ? "Eingangsfach" : "Ausgangsfach"} · Ressourcen löschen</summary>
-    <table class="band-inventar-tabelle"><thead><tr><th>Produkt</th><th>Menge</th><th>1x</th><th>Betrag löschen</th><th>Alle</th></tr></thead><tbody>${Object.entries(g[fach] || {}).filter(([,n])=>n>0).map(([item,n]) => `<tr><td><span class="info-item mit-ware">${wareHtml(item, 20)}${htmlSicher(itemInfo(item).name)}</span></td><td>${n}</td>
-      <td><button class="mini-knopf" data-aktion="maschinenLoeschen" data-fach="${fach}" data-item="${htmlSicher(item)}" data-menge="1" aria-label="Eine Einheit löschen">X</button></td>
-      <td><input type="text" inputmode="numeric" style="width:44px" aria-label="Löschmenge ${htmlSicher(itemInfo(item).name)}"><button class="mini-knopf" data-aktion="maschinenLoeschen" data-fach="${fach}" data-item="${htmlSicher(item)}" data-menge="betrag" aria-label="Menge löschen">X</button></td>
-      <td><button class="mini-knopf" data-aktion="maschinenLoeschen" data-fach="${fach}" data-item="${htmlSicher(item)}" data-menge="alle" aria-label="Alle Einheiten löschen">X</button></td></tr>`).join("") || '<tr><td colspan="5">leer</td></tr>'}</tbody></table></details>`).join("");
+/* --- 2026-10-13 (Tim): Fächer einer Station als Kacheln wie im Lager ---
+   REIN (Eingangsfach) | RAUS (Ausgabefach): je Ware Ist/Soll, ⇣ bzw. ⇡ (an/aus), rotes ✕ (Bestand löschen),
+   Bild mit „×n je Durchgang“, Name und −/Zahl/+ für den Import- bzw. Export-Pegel.
+   Darunter die Verknüpfungen: unter REIN „aus“ (Import-Lager), unter RAUS „nach“ (Export-Lager).
+   Ersetzt Material pro Durchgang, Eingangsfach-Tabelle, „Erzeugnisse gehen“, Ausgabefach und die Löschtabelle. */
+function fachZahlHtml(item, wert, titel) {
+  const id = htmlSicher(item);
+  return `<span class="fk-zahl"><button type="button" class="lk-knopf" data-aktion="soll-minus" data-item="${id}" aria-label="${htmlSicher(titel)} verringern">−</button>`
+    + `<input class="max-feld lk-feld" type="number" min="0" step="1" inputmode="numeric" data-aktion="max" data-item="${id}" value="${wert}" title="${htmlSicher(titel)} eintippen, Enter übernimmt" aria-label="${htmlSicher(titel)}">`
+    + `<button type="button" class="lk-knopf" data-aktion="soll-plus" data-item="${id}" aria-label="${htmlSicher(titel)} erhöhen">+</button></span>`;
+}
+function fachKachelHtml(z) {
+  const info = itemInfo(z.item), id = htmlSicher(z.item);
+  const pfeil = z.feld ? `<button type="button" class="fk-pfeil ${z.feld}" data-aktion="pfeil" data-feld="${z.feld}" data-item="${id}" aria-pressed="${z.an}"
+      title="${htmlSicher(z.pfeilTitel)}">${z.feld === "imp" ? "⇣" : "⇡"}</button>` : "";
+  const auto = z.manuell ? `<button type="button" class="fk-auto" data-aktion="auto" data-item="${id}" title="Zurück auf Automatik" aria-label="Zurück auf Automatik">↺</button>` : "";
+  return `<div class="fk-kachel${z.klasse ? " " + z.klasse : ""}" title="${htmlSicher(z.titel)}" style="--item-farbe:${info.farbe || "#8a94a3"}">
+    <span class="fk-top"><span class="fk-ist">${z.ist}${z.soll !== null ? `<small>/${z.soll}</small>` : ""}</span>${auto}${pfeil}
+      <button type="button" class="fk-weg" data-aktion="fach-weg" data-fach="${z.fach}" data-item="${id}" ${z.ist ? "" : "disabled"}
+        aria-label="${htmlSicher(info.name)} löschen" title="${z.ist ? "Bestand löschen" : "nichts zu löschen"}">✕</button></span>
+    <span class="fk-bild">${wareHtml(z.item, 34, info.name)}${z.je ? `<em>×${z.je}</em>` : ""}</span>
+    <span class="fk-name">${namenTrennbar(info.name)}</span>${z.fuss}</div>`;
+}
+function fachVerknuepfungHtml(g, richtung, lagerName) {
+  const liste = verknuepfteLager(g, richtung), aktiv = !!verknuepfModus && verknuepfModus.richtung === richtung;
+  const tipp = richtung === "import" ? "<kbd>Alt</kbd>+Linksklick auf ein Lager" : "<kbd>Alt</kbd>+Rechtsklick auf ein Lager";
+  const titel = richtung === "import" ? "Import-Lager verknüpfen" : "Export-Lager verknüpfen";
+  return `<div class="fk-vk ${richtung}"><small>${richtung === "import" ? "aus" : "nach"}</small>${vkListe(g, liste, richtung, lagerName) || `<span class="fk-vk-leer">${tipp}</span>`}
+    <button type="button" class="fk-vk-neu" data-aktion="verknuepfen" data-richtung="${richtung}" aria-pressed="${aktiv}" aria-label="${titel}" title="${titel} (danach Lager anklicken)">+</button></div>`;
+}
+function stationsFaecherHtml(g, r, lagerName) {
+  const rein = [], raus = [];
+  const hatFach = fachGroesse(g, "eingang") > 0, soll = sollEingangsfach(g);
+  const holt = laeuftOhnePersonal(g) || g.automatik ? "aus dem Lager" : "Arbeiter holt";
+  for (const [item, n] of Object.entries(r ? r.eingaben : {})) {
+    const regel = regelVon(g, item), ist = g.eingang[item] || 0, an = hatFach && !!regel.imp;
+    rein.push(fachKachelHtml({ item, fach: "eingang", ist, soll: an ? soll[item] || 0 : null, je: n, manuell: regel.manuell,
+      feld: hatFach ? "imp" : null, an, pfeilTitel: an ? "Import an: Kuriere bringen bis zum Pegel (Klick: aus)" : "Import aus: der Arbeiter holt es selbst aus dem Lager (Klick: an)",
+      klasse: ist < n && an ? "knapp" : "", titel: `${itemInfo(item).name} · ${n} je Durchgang · ${an ? `Kuriere bringen bis ${soll[item] || 0}` : holt}`,
+      fuss: an ? fachZahlHtml(item, soll[item] || 0, "Import-Pegel") : `<span class="fk-hinweis">${holt}</span>` }));
+  }
+  for (const item of Object.keys(g.eingang)) {     // Reste im Eingangsfach (Rezept gewechselt): Kuriere holen sie ab
+    if (r && item in r.eingaben) continue;
+    if (!g.eingang[item]) continue;
+    rein.push(fachKachelHtml({ item, fach: "eingang", ist: g.eingang[item], soll: null, klasse: "rest",
+      titel: `${itemInfo(item).name}: Rest – Kuriere holen ihn ab`, fuss: `<span class="fk-hinweis">Rest</span>` }));
+  }
+  const kap = kapazitaetVon(g), voll = kap > 0 && summe(g.bestand) >= kap;
+  const ausgangLager = r && r.ausgabe ? verknuepfteLager(g, "export").filter((v) => nimmtErzeugnisAn(v, r.ausgabe)) : [];
+  if (r && r.ausgabe) {
+    const regel = regelVon(g, r.ausgabe), ist = g.bestand[r.ausgabe] || 0, an = !!regel.exp, pegel = exportPegel(g, r.ausgabe);
+    const wohin = ausgangLager.length ? `geht direkt nach ${ausgangLager.map(gebaeudeName).join(", ")}` : an ? `Kuriere holen ab ${pegel} Stück ab` : "bleibt liegen";
+    raus.push(fachKachelHtml({ item: r.ausgabe, fach: "bestand", ist, soll: an && !ausgangLager.length ? pegel : null, je: 1, manuell: regel.manuell,
+      feld: "exp", an, pfeilTitel: an ? "Export an: Kuriere holen ab (Klick: aus)" : "Export aus: bleibt liegen (Klick: an)",
+      klasse: voll ? "voll" : "", titel: `${itemInfo(r.ausgabe).name} · ${wohin}`,
+      fuss: ausgangLager.length ? `<span class="fk-hinweis">direkt ins Lager</span>` : an ? fachZahlHtml(r.ausgabe, pegel, "Export-Pegel") : `<span class="fk-hinweis">bleibt liegen</span>` }));
+  }
+  for (const item of Object.keys(g.bestand)) {     // anderes im Ausgabefach
+    if ((r && item === r.ausgabe) || !g.bestand[item]) continue;
+    raus.push(fachKachelHtml({ item, fach: "bestand", ist: g.bestand[item], soll: null, klasse: voll ? "voll rest" : "rest",
+      titel: `${itemInfo(item).name}: liegt im Ausgabefach`, fuss: `<span class="fk-hinweis">wird abgeholt</span>` }));
+  }
+  const mitRaus = kap > 0 || raus.length;
+  const anteil = Math.max(1, Math.min(3, rein.length));   // REIN bekommt so viel Breite, wie es Kacheln hat
+  let html = `<div class="fk-faecher${mitRaus ? "" : " ohne-raus"}" style="grid-template-columns:${mitRaus ? `minmax(0, ${anteil}fr) minmax(0, 1fr)` : "minmax(0, 1fr)"}">`;
+  html += `<section class="fk-fach rein" aria-label="Eingangsfach"><div class="fk-fach-kopf"><b>⇣ Rein</b><span>${summe(g.eingang)} / ${fachGroesse(g, "eingang")}</span></div>
+    <div class="fk-raster">${rein.join("") || `<p class="info-leer">${r ? "nichts nötig" : "kein Rezept"}</p>`}</div>${fachVerknuepfungHtml(g, "import", lagerName)}</section>`;
+  if (mitRaus) html += `<section class="fk-fach raus" aria-label="Ausgabefach"><div class="fk-fach-kopf"><b>⇡ Raus</b><span>${summe(g.bestand)} / ${kap}</span></div>
+    <div class="fk-raster">${raus.join("") || `<p class="info-leer">leer</p>`}</div>${fachVerknuepfungHtml(g, "export", lagerName)}</section>`;
+  return html + `</div>`;
 }
 function loescheMaschinenWare(g, fach, item, wert) {
   if (!istStation(g) || !["eingang","bestand"].includes(fach)) return false;
@@ -26939,11 +27118,14 @@ ob.infoInhalt.addEventListener("click", (e) => {
   if (!knopf || !g) return;
   const item = knopf.dataset.item;
   switch (knopf.dataset.aktion) {
-    case "maschinenLoeschen": {
-      const fach = knopf.dataset.fach, menge = knopf.dataset.menge;
-      const wert = menge === "alle" ? g[fach]?.[item] || 0 : menge === "betrag" ? knopf.parentElement.querySelector("input").value : menge;
-      if (!loescheMaschinenWare(g, fach, item, wert)) zeigeMeldung("Bitte eine gültige Menge aus dem vorhandenen Bestand eingeben.", true);
-      break;
+    case "fach-weg": {                               // 2026-10-13: ✕ an einer Fach-Kachel der Station
+      const fach = knopf.dataset.fach === "bestand" ? "bestand" : "eingang", n = g[fach]?.[item] || 0;
+      if (!n) return;
+      frage({ titel: "Ware löschen?", text: `${n} × ${itemInfo(item).name} werden endgültig aus dem ${fach === "eingang" ? "Eingangsfach" : "Ausgabefach"} gelöscht.`, ok: `${n} löschen` }, () => {
+        if (loescheMaschinenWare(g, fach, item, n)) zeigeMeldung(`${n} × ${itemInfo(item).name} gelöscht.`);
+        zeichneInfo(); sofortAktualisieren();
+      });
+      return;
     }
     case "importInventarEins": {
       if (!istImportzone(g)) return;
@@ -27096,6 +27278,13 @@ $("info-kopf-knoepfe").addEventListener("click", (e) => {
   const g = spiel.gebaeude.get(auswahlGebaeudeId);
   if (!knopf || !g) return;
   if (knopf.dataset.kopf === "verschieben") { starteVerschieben(g.id); return; }
+  if (knopf.dataset.kopf === "pause") {             // 2026-10-13: ▶/■ statt Statuszeile
+    schaltePause(g.id);
+    zeigeMeldung(g.pausiert ? `${gebaeudeName(g)} gestoppt.` : `${gebaeudeName(g)} läuft.`);
+    setzeHtml($("info-kopf-knoepfe"), kopfKnoepfeHtml(g)); setzeKopfFortschritt(g);
+    sofortAktualisieren();
+    return;
+  }
   const name = gebaeudeName(g);
   reisseAb(g.id);
   zeigeMeldung(`${name} abgerissen und ins Depot gelegt.`);
@@ -29513,6 +29702,7 @@ function zeichneBandInfo() {
   const seg = gruppe ? segAlle : null;
   ob.infoTitel.textContent = gruppe ? `${t.name} · Bandgruppe` : segAlle ? `${typ.name} · ${t.name}` : typ.name;
   setzeHtml($("info-kopf-knoepfe"), "");   // 2026-10-13: Kopf-Knöpfe nur bei Gebäuden
+  setzeKopfFortschritt(null); ob.infoTitel.dataset.umbenennen = ""; ob.infoTitel.title = "";
   ob.infoUnter.textContent = "";
   let html = `<div id="band-inventar">${bandInventarHtml(t)}</div>`;
   if (!gruppe && segAlle) {
@@ -31029,6 +31219,7 @@ function zeichneMehrfachInfo() {
   for (const id of mehrfach.baender) zaehle(bandTyp(spiel.baender.get(id)).name);
   ob.infoTitel.textContent = `${teileText(n)} ausgewählt`;
   setzeHtml($("info-kopf-knoepfe"), "");   // 2026-10-13: Kopf-Knöpfe nur bei Gebäuden
+  setzeKopfFortschritt(null); ob.infoTitel.dataset.umbenennen = ""; ob.infoTitel.title = "";
   ob.infoUnter.textContent = "Shift + Klick nimmt Teile dazu oder heraus. Mit der linken Maustaste einen Rahmen ziehen wählt alles darin.";
   const zeilen = [...zaehler].sort((a, b) => b[1] - a[1]).map(([name, anzahl]) => `<dt>${htmlSicher(name)}</dt><dd>${anzahl}</dd>`).join("");
   morphe(ob.infoInhalt, `<div class="info-block"><h3>Auswahl</h3><dl class="info-zeilen zwei">${zeilen}</dl></div>

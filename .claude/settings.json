@@ -5,9 +5,16 @@
         "source": "github",
         "repo": "data-goblin/claude-code-filetree"
       }
+    },
+    "tradeup-mods": {
+      "source": {
+        "source": "directory",
+        "path": "/mnt/project-files/mods"
+      }
     }
   },
   "enabledPlugins": {
-    "filetree@claude-code-filetree": true
+    "filetree@claude-code-filetree": true,
+    "visible-compact@tradeup-mods": true
   }
 }

@@ -4177,6 +4177,163 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
 @media (max-width: 520px) { #info-panel .fk-faecher { grid-template-columns: minmax(0, 1fr) !important; } #info-panel .wb-karten-zeile { grid-template-columns: minmax(0, 1fr); } }
 
 </style>
+<style id="produktdesigner-neu">
+/* === Layout-Konfigurator neu (Tim 2026-10-13) ==============================================
+   Produktdesigner: Endprodukt-Knopf mit Bild + Popover (T1/T2/T3), "Benötigt"-Kasten oben rechts
+   (rot/grün), Blaupausen-Karten mit 2×2 Knöpfen, SVG-Zeichen statt Sonderzeichen. Nichts wird
+   abgekürzt: lange Namen brechen um. Farben aus dem Leitstand (mit Ersatzwerten für die alte Oberfläche). */
+#lz-fenster {
+  --pd-flaeche: var(--emaille-2, #2b3539); --pd-flaeche-3: var(--emaille-3, #334046); --pd-mulde: var(--mulde, #171d20);
+  --pd-tinte: var(--tinte, #e6ecec); --pd-leise: var(--leise, #9aa8ac); --pd-linie: var(--linie, #39454b);
+  --pd-ein: var(--ein, #4cc56f); --pd-aus: var(--aus, #f0675b); --pd-warn: var(--warn, #f5b03a); --pd-gelb: var(--schiene, #f2b233);
+  position: relative;
+}
+#lz-fenster svg.pd-i { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: middle; }
+#lz-fenster svg.pd-i.pd-klein { width: 12px; height: 12px; stroke-width: 2.4; vertical-align: -1px; }
+#lz-fenster svg.pd-i.pd-gross { width: 30px; height: 30px; stroke-width: 1.6; }
+#lz-fenster .ic svg { width: 100%; height: 100%; display: block; }
+.pd-tier { display: inline-grid; place-items: center; min-width: 22px; height: 16px; padding: 0 4px; border-radius: 4px; font: 700 10px/1 var(--font-zahl, monospace); color: #10161a !important; background: #b7c4c9; }
+.pd-tier.t2 { background: #7fc3e8; } .pd-tier.t3 { background: #c9a4f0; }
+
+/* Kopf */
+#lz-fenster > .lz-kopf { gap: 10px; flex-wrap: wrap; }
+.pd-logo { width: 30px; height: 30px; }
+#lz-fenster .pd-name { display: flex; align-items: center; gap: 6px; flex: 0 1 300px; min-width: 160px; height: 32px; padding: 0 8px 0 10px; border-radius: 8px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); }
+#lz-fenster .pd-name:focus-within { border-color: var(--pd-gelb); }
+#lz-fenster .pd-name input { flex: 1; min-width: 0; border: 0 !important; background: none !important; box-shadow: none !important; outline: none; padding: 0 !important; font-weight: 600; font-size: 14px; color: inherit !important; }
+.pd-modus { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.14); color: var(--stahl-leise, #9fb0b6); }
+.pd-modus.bearbeitet { padding-right: 4px; background: color-mix(in srgb, var(--tuerkis, #48c4bf) 18%, transparent); border-color: color-mix(in srgb, var(--tuerkis, #48c4bf) 60%, transparent); color: #bff1ee; }
+.pd-modus button { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: inherit; cursor: pointer; }
+.pd-modus button svg.pd-i { width: 12px; height: 12px; }
+
+/* Endprodukt-Knopf (volle Breite, Name nie abgekürzt) */
+.pd-ziel { display: flex; width: 100%; align-self: stretch; justify-self: stretch; }
+.pd-ziel-knopf { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: 46px minmax(0, 1fr) 18px; align-items: center; gap: 0 10px; padding: 5px 12px 5px 6px; text-align: left; border-radius: 11px; cursor: pointer;
+  background: var(--pd-flaeche); color: var(--pd-tinte); border: 1px solid var(--pd-linie); border-bottom-width: 3px; font: inherit; }
+.pd-ziel-knopf:hover, .pd-ziel-knopf[aria-expanded="true"] { border-color: var(--pd-gelb); }
+.pd-ziel-knopf > .pd-bild { grid-row: 1 / span 2; width: 46px; height: 46px; display: grid; place-items: center; color: var(--pd-leise); }
+.pd-ziel-knopf > small { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--pd-leise); }
+.pd-ziel-knopf > b { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-size: 15px; line-height: 1.2; }
+.pd-ziel-knopf > svg.pd-i { grid-column: 3; grid-row: 1 / span 2; color: var(--pd-leise); transition: transform .15s; }
+.pd-ziel-knopf[aria-expanded="true"] > svg.pd-i { transform: rotate(180deg); }
+.pd-klasse { font-size: 28px; }
+
+/* Popover */
+.pd-pop { position: absolute; z-index: 30; width: min(640px, calc(100% - 16px)); padding: 12px; border-radius: 14px; background: var(--emaille, #232b2f); color: var(--pd-tinte);
+  border: 1px solid var(--pd-linie); box-shadow: 0 4px 0 var(--stahl-tief, #050708), 0 24px 50px rgba(0,0,0,.5); }
+.pd-pop-kopf { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.pd-pop-kopf h3 { margin: 0 auto 0 0 !important; }
+.pd-tabs { display: inline-flex; padding: 3px; gap: 3px; border-radius: 10px; background: var(--pd-mulde); border: 1px solid var(--pd-linie); }
+.pd-tabs button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: none; color: var(--pd-leise); font: 700 13px var(--font-schild, sans-serif); letter-spacing: .06em; cursor: pointer; }
+.pd-tabs button small { font: 600 10.5px var(--font-zahl, monospace); }
+.pd-tabs button[aria-selected="true"] { background: var(--pd-flaeche-3); color: var(--pd-tinte); }
+.pd-tabs i { width: 8px; height: 8px; border-radius: 50%; background: #b7c4c9; } .pd-tabs i.t2 { background: #7fc3e8; } .pd-tabs i.t3 { background: #c9a4f0; }
+.pd-pop-netz { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; max-height: min(430px, 60vh); overflow: auto; padding: 1px; }
+.pd-pk { position: relative; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 10px 8px 9px; border-radius: 11px; text-align: center; cursor: pointer;
+  background: var(--pd-flaeche); color: var(--pd-tinte); border: 1px solid var(--pd-linie); font: inherit; }
+.pd-pk:hover { border-color: var(--pd-gelb); }
+.pd-pk.aktiv { border-color: var(--pd-gelb); box-shadow: 0 0 0 1px var(--pd-gelb); }
+.pd-pk b { font-size: 12.5px; line-height: 1.2; min-height: 2.4em; display: grid; place-items: center; }
+.pd-pk-kats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; font-size: 11px; color: var(--pd-leise); }
+.pd-pk-kats > span { opacity: .4; filter: grayscale(.7); } .pd-pk-kats > span.da { opacity: 1; filter: none; }
+.pd-pk-balken { width: 100%; height: 4px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.pd-pk-balken i { display: block; height: 100%; background: var(--pd-warn); }
+.pd-pk.voll .pd-pk-balken i { background: var(--pd-ein); }
+.pd-pk-eck { position: absolute; top: 6px; left: 6px; }
+.pd-pk-qa { position: absolute; top: 6px; right: 6px; font: 700 9.5px var(--font-zahl, monospace); color: var(--pd-leise); padding: 1px 4px; border-radius: 4px; border: 1px solid var(--pd-linie); }
+.pd-pk.ohne { border-style: dashed; color: var(--pd-leise); }
+.pd-pk .pd-bild { display: grid; place-items: center; }
+
+/* Werkzeugleiste */
+#lz-fenster .pd-wz { display: inline-grid; place-items: center; width: 36px; min-height: 34px; padding: 0 !important; }
+.pd-wz-trenner { width: 1px; align-self: stretch; margin: 2px 4px; background: var(--pd-linie); }
+.pd-gewaehlt { font-size: 12.5px; font-weight: 600; color: var(--pd-tinte); text-align: right; }
+
+/* Benötigt-Kasten (oben rechts) */
+.pd-bedarf { display: grid; gap: 8px; margin-bottom: 10px; padding: 10px 12px 12px; border-radius: 12px; background: var(--pd-flaeche); border: 1px solid var(--pd-linie); transition: background .2s, border-color .2s; }
+.pd-bedarf.fehlt { background: color-mix(in srgb, var(--pd-aus) 16%, var(--pd-flaeche)); border-color: var(--pd-aus); }
+.pd-bedarf.ok { background: color-mix(in srgb, var(--pd-ein) 16%, var(--pd-flaeche)); border-color: var(--pd-ein); }
+.pd-bedarf.heiss { background: color-mix(in srgb, var(--pd-warn) 16%, var(--pd-flaeche)); border-color: var(--pd-warn); }
+.pd-bedarf-kopf { display: flex; align-items: baseline; gap: 8px; }
+.pd-bedarf-kopf h3 { margin: 0 !important; }
+.pd-bedarf-kopf small { margin-left: auto; font-size: 12px; font-weight: 700; }
+.pd-bedarf.fehlt .pd-bedarf-kopf small { color: var(--pd-aus); } .pd-bedarf.ok .pd-bedarf-kopf small { color: var(--pd-ein); } .pd-bedarf.heiss .pd-bedarf-kopf small { color: var(--pd-warn); }
+.pd-bedarf-reihe { display: flex; flex-wrap: wrap; gap: 8px; }
+.pd-bedarf-leer { margin: 0; font-size: 12px; color: var(--pd-leise); }
+.pd-trenner { width: 1px; align-self: stretch; background: var(--pd-linie); }
+.pd-bk { position: relative; display: inline-grid; place-items: center; width: 42px; height: 42px; padding: 0; border-radius: 9px; cursor: pointer;
+  background: color-mix(in srgb, var(--kat-farbe, #9aa8ac) 14%, var(--pd-mulde)); border: 1px dashed color-mix(in srgb, var(--kat-farbe, #9aa8ac) 55%, var(--pd-linie)); }
+.pd-bk.da { border-style: solid; }
+.pd-bk:hover { border-color: var(--kat-farbe, var(--pd-gelb)); }
+.pd-bk.pd-geh { cursor: default; }
+.pd-bk::after { content: ""; position: absolute; right: -5px; top: -5px; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 0 2px var(--pd-flaeche);
+  background: var(--pd-aus) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E") center / 10px no-repeat; }
+.pd-bk.da::after { background: var(--pd-ein) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / 10px no-repeat; }
+
+/* Bewertung kompakt */
+.pd-karte { margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: var(--pd-flaeche); border: 1px solid var(--pd-linie); }
+.pd-karte h3 { margin-top: 0 !important; }
+html #lz-bewertung { display: grid !important; grid-template-columns: 1fr !important; gap: 8px; margin: 0; }
+#lz-bewertung .pd-mz { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; align-items: baseline; }
+#lz-bewertung .pd-mz dt { margin: 0; font-size: 12.5px; }
+#lz-bewertung .pd-mz dd { margin: 0; display: contents; }
+#lz-bewertung .pd-mz dd > b { justify-self: end; font-family: var(--font-zahl, monospace); font-size: 13px; }
+#lz-bewertung .pd-mz dd > .lz-balken, #lz-bewertung .pd-mz dd > small { grid-column: 1 / -1; }
+#lz-bewertung .pd-mz dd > .lz-ampel-klein { justify-self: end; }
+#lz-bewertung .lz-liste-ueberhitzt { font-size: 12px; color: var(--pd-aus); }
+
+/* Blaupausen-Karten */
+.pd-bp-titel { display: flex !important; align-items: center; gap: 8px; }
+.pd-bp-titel small { margin-left: auto; font-size: 11px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--pd-leise); }
+.pd-zahl { display: inline-grid; place-items: center; min-width: 20px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--pd-flaeche-3); font: 700 11px var(--font-zahl, monospace); color: var(--pd-tinte); }
+#lz-blaupausen { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+#lz-blaupausen li.pd-bp { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 6px; padding: 7px; border-radius: 12px; background: var(--pd-flaeche); border: 1px solid var(--pd-linie); }
+#lz-blaupausen li.pd-bp.aktiv { border-color: var(--tuerkis, #48c4bf); box-shadow: 0 0 0 1px var(--tuerkis, #48c4bf); }
+#lz-blaupausen li.pd-bp.angeheftet { border-color: color-mix(in srgb, var(--pd-gelb) 60%, var(--pd-linie)); }
+#lz-blaupausen li.pd-bp.neu { animation: pd-neu 2.4s ease-out; }
+@keyframes pd-neu { 0% { box-shadow: 0 0 0 3px var(--pd-gelb), 0 0 26px rgba(242,178,51,.7); background: color-mix(in srgb, var(--pd-gelb) 25%, var(--pd-flaeche)); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.pd-bp-info { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 3px 10px; align-items: center; align-content: start; min-width: 0; }
+.pd-bp-bild { position: relative; grid-row: 1 / span 3; align-self: start; width: 58px; height: 58px; border-radius: 9px; background: var(--pd-mulde); display: grid; place-items: center; }
+.pd-bp-bild > .pd-bild { position: absolute; right: -8px; bottom: -8px; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+.pd-bp-name { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 5px; min-width: 0; font-weight: 700; font-size: 13px; line-height: 1.2; overflow-wrap: anywhere; }
+.pd-v { font: 600 10px var(--font-zahl, monospace); color: var(--pd-leise); padding: 0 4px; border-radius: 4px; border: 1px solid var(--pd-linie); }
+.pd-pin-marke { color: var(--pd-gelb); }
+.pd-warn { color: var(--pd-warn); }
+.pd-bp-ziel { font-size: 11.5px; line-height: 1.25; color: var(--pd-leise); }
+.pd-bp-ziel.ok { color: var(--pd-ein); } .pd-bp-ziel.fehlt { color: var(--pd-aus); }
+.pd-werte { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 600 10.5px var(--font-zahl, monospace); color: var(--pd-leise); }
+.pd-werte > span { display: inline-flex; align-items: center; gap: 2px; }
+.pd-werte .heiss { color: var(--pd-warn); }
+.pd-bp-knoepfe { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 4px; }
+.pd-bk2 { display: grid; place-items: center; min-height: 28px; padding: 0; border-radius: 8px; cursor: pointer; background: var(--pd-flaeche-3); color: var(--pd-tinte); border: 1px solid var(--pd-linie); border-bottom-width: 2px; }
+.pd-bk2:hover { border-color: var(--pd-gelb); }
+.pd-bk2.weg:hover { border-color: var(--pd-aus); color: var(--pd-aus); }
+.pd-bk2[aria-pressed="true"] { background: color-mix(in srgb, var(--pd-gelb) 26%, var(--pd-flaeche-3)); border-color: var(--pd-gelb); color: var(--pd-gelb); }
+.pd-bk2[aria-pressed="true"] svg.pd-i { fill: currentColor; }
+.pd-frage { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 8px; background: color-mix(in srgb, var(--pd-aus) 18%, var(--pd-flaeche)); border: 1px solid var(--pd-aus); font-size: 12px; }
+.pd-frage span { flex: 1 1 100%; }
+html #lz-fenster .pd-frage .lz-knopf { flex: 1 1 0; min-width: 0; padding: 4px 6px !important; font-size: 12px !important; }
+html #lz-fenster .pd-frage .pd-ja { background: var(--pd-aus) !important; color: #fff !important; border-color: var(--pd-aus) !important; }
+.pd-bp-leer { display: grid; justify-items: center; gap: 6px; padding: 18px 10px; border-radius: 12px; border: 1px dashed var(--pd-linie); text-align: center; font-size: 12px; }
+.pd-flug { position: fixed !important; z-index: 400; margin: 0 !important; pointer-events: none; transform-origin: 0 0; }
+
+/* Bauteil-Leiste und Gehäuse-Karten: Bilder, keine Abkürzungen */
+#lz-palette .lz-bauteil, #lz-palette .lz-bauteil-gesperrt { display: grid !important; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+#lz-palette .lz-bauteil b, #lz-palette .lz-bauteil-gesperrt b { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; line-height: 1.2; }
+.pd-karton { display: grid; width: 36px; height: 36px; }
+.pd-karton svg { width: 100%; height: 100%; }
+#lz-palette .lz-werte { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+#lz-palette .lz-werte > span { display: inline-flex; align-items: center; gap: 2px; }
+.pd-geh-bild { display: grid; width: 40px; height: 40px; margin: 0 auto; }
+.pd-geh-bild svg { width: 100%; height: 100%; }
+#lz-fenster .lz-geh-karte b { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+#lz-fenster .lz-geh-karte .pd-werte { justify-content: center; }
+.pd-fuss-info { font-size: 12px; color: var(--pd-leise); }
+#lz-fenster .pd-knopf { display: inline-flex; align-items: center; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { #lz-blaupausen li.pd-bp.neu { animation: none; } }
+</style>
 </head>
 <body>
 
@@ -4258,8 +4415,11 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
 <div id="layout-overlay" class="frei" hidden>
   <section id="lz-fenster" role="dialog" aria-modal="false" aria-labelledby="lz-titel" tabindex="-1">
     <header class="lz-kopf">
+      <span class="pd-logo ic" id="pd-logo" aria-hidden="true"></span>
       <h2 id="lz-titel">Produktdesigner</h2>
-      <label class="lz-name">Name <input id="lz-name" type="text" maxlength="40" autocomplete="off" spellcheck="false"></label>
+      <!-- Layout-Konfigurator neu (Tim 2026-10-13): Name mit Stift, daneben Modus "Neuer Entwurf" / "Bearbeite …" -->
+      <label class="lz-name pd-name" title="Name der Blaupause"><svg class="pd-i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg><input id="lz-name" type="text" maxlength="40" autocomplete="off" spellcheck="false" aria-label="Name der Blaupause"></label>
+      <span id="pd-modus" class="pd-modus"></span>
       <button id="lz-schliessen" class="lz-knopf lz-knopf-rund" type="button" aria-label="Designer schließen">✕</button>
     </header>
 
@@ -4278,20 +4438,24 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
 
       <!-- Mitte: das Produkt-Raster -->
       <div class="lz-mitte">
-        <!-- Phase 7a: Welches Endprodukt soll entstehen? Darunter: welche Bauteile noch fehlen -->
-        <div class="lz-ziel">
-          <label class="lz-auswahl">Endprodukt <select id="lz-ziel"></select></label>
-          <div id="lz-ziel-teile" class="lz-ziel-teile" aria-live="polite"></div>
+        <!-- Layout-Konfigurator neu: Endprodukt als Knopf mit Bild; das Raster mit allen Endprodukten (T1/T2/T3)
+             öffnet als Popover. Die Auswahlliste bleibt unsichtbar für Tastatur/Tests. -->
+        <div class="pd-ziel">
+          <button id="pd-ziel-knopf" class="pd-ziel-knopf" type="button" aria-haspopup="dialog" aria-expanded="false"></button>
+          <label class="lz-auswahl lz-unsichtbar">Endprodukt <select id="lz-ziel"></select></label>
         </div>
         <div class="lz-raster-kopf"><b id="lz-raster-titel">Raster</b><span id="lz-raster-zahl"></span></div>
         <div class="lz-werkzeuge" role="toolbar" aria-label="Werkzeuge">
-          <button id="lz-zurueck" class="lz-knopf" type="button" aria-label="Rückgängig (Strg+Z)" title="Rückgängig (Strg+Z)">↶</button>
-          <button id="lz-vor" class="lz-knopf" type="button" aria-label="Wiederholen (Strg+Y)" title="Wiederholen (Strg+Y)">↷</button>
-          <button id="lz-drehen" class="lz-knopf" type="button" title="Ausgewähltes Teil drehen (R)">⟳</button>
-          <button id="lz-entfernen" class="lz-knopf" type="button" title="Ausgewähltes Teil entfernen (Entf)">✕</button>
-          <button id="lz-leeren" class="lz-knopf" type="button" title="Alle Teile entfernen – das Gehäuse bleibt">🗑</button>
+          <button id="lz-zurueck" class="lz-knopf pd-wz" type="button" aria-label="Rückgängig (Strg+Z)" title="Rückgängig (Strg+Z)"><svg class="pd-i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+          <button id="lz-vor" class="lz-knopf pd-wz" type="button" aria-label="Wiederholen (Strg+Y)" title="Wiederholen (Strg+Y)"><svg class="pd-i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg></button>
+          <span class="pd-wz-trenner"></span>
+          <button id="lz-drehen" class="lz-knopf pd-wz" type="button" title="Ausgewähltes Teil drehen (R)" aria-label="Ausgewähltes Teil drehen"><svg class="pd-i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
+          <button id="lz-entfernen" class="lz-knopf pd-wz" type="button" title="Ausgewähltes Teil entfernen (Entf)" aria-label="Ausgewähltes Teil entfernen"><svg class="pd-i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+          <button id="lz-leeren" class="lz-knopf pd-wz" type="button" title="Alle Teile entfernen – das Gehäuse bleibt" aria-label="Alle Teile entfernen"><svg class="pd-i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/></svg></button>
+          <span class="pd-wz-trenner"></span>
+          <button id="lz-hitze-knopf" class="lz-knopf pd-wz" type="button" aria-pressed="false" title="Hitze je Kachel zeigen (H)" aria-label="Hitze je Kachel zeigen"><svg class="pd-i" viewBox="0 0 24 24"><path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1.5 2 2 2.5 1.5C11 7.5 11.5 5 12 3z"/></svg></button>
           <span class="lz-platz"></span>
-          <button id="lz-hitze-knopf" class="lz-knopf" type="button" aria-pressed="false" title="Hitze je Kachel zeigen (H)">🔥</button>
+          <span id="pd-gewaehlt" class="pd-gewaehlt"></span>
         </div>
         <div class="lz-rahmen">
           <div id="lz-raster" class="lz-raster" aria-label="Produkt-Raster"></div>
@@ -4313,18 +4477,23 @@ html[data-ui-theme="light"] .wb-kachel { background: rgba(0, 0, 0, 0.03); border
 
       <!-- Rechte Spalte: Bewertung und gespeicherte Blaupausen -->
       <div class="lz-rechte-spalte"><aside class="lz-spalte lz-info">
-        <h3>Bewertung</h3>
-        <dl id="lz-bewertung" aria-live="polite"></dl>
-        <h3>Blaupausen</h3>
+        <!-- Layout-Konfigurator neu: "Benötigt" oben rechts – ganzer Kasten rot (fehlt etwas) / grün (alles da) -->
+        <div id="lz-ziel-teile" class="pd-bedarf" aria-live="polite"></div>
+        <div class="pd-karte">
+          <h3>Bewertung</h3>
+          <dl id="lz-bewertung" aria-live="polite"></dl>
+        </div>
+        <h3 class="pd-bp-titel">Blaupausen <span id="pd-bp-zahl" class="pd-zahl">0</span><small>Neueste oben</small></h3>
         <p id="lz-speicher-hinweis" hidden>Der Browser-Speicher ist gesperrt: Blaupausen bleiben nur bis zum Neuladen erhalten.</p>
         <ul id="lz-blaupausen"></ul>
       </aside></div>
     </div>
 
     <footer class="lz-fuss">
-      <button id="lz-neu" class="lz-knopf" type="button">Neues Design</button>
+      <button id="lz-neu" class="lz-knopf pd-knopf" type="button" title="Maske leeren: leeres Holzgehäuse, kein Endprodukt"><svg class="pd-i" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.34-5.66"/><path d="M4 4v5h5"/></svg>Neu beginnen</button>
+      <span id="pd-fuss-info" class="pd-fuss-info"></span>
       <span class="lz-platz"></span>
-      <button id="lz-speichern" class="lz-knopf lz-knopf-haupt" type="button">Als Blaupause speichern</button>
+      <button id="lz-speichern" class="lz-knopf lz-knopf-haupt pd-knopf" type="button"><svg class="pd-i" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg><span id="pd-speichern-text">Als Blaupause speichern</span></button>
     </footer>
   </section>
   <!-- Das Teil, das beim Ziehen am Mauszeiger hängt -->
@@ -8406,7 +8575,8 @@ function schreibeBlaupausen(liste) {
 
 // Speichert ein Layout als Blaupause. Mit "id" wird diese Blaupause überschrieben,
 // ohne "id" (oder wenn es sie nicht mehr gibt) entsteht eine neue. Rückgabe: die Blaupause.
-function speichereBlaupause(layout, name, id = null) {
+// ziel (Layout-Konfigurator neu, optional): Endprodukt "ep:…" bzw. Klasse, für Bild und Status der Karte
+function speichereBlaupause(layout, name, id = null, ziel = undefined) {
   const liste = ladeBlaupausen();
   const bewertung = bewerteLayout(layout);
   const jetzt = new Date().toISOString();
@@ -8419,6 +8589,7 @@ function speichereBlaupause(layout, name, id = null) {
     raster: { breite: layout.breite, hoehe: layout.hoehe },
     teile: Object.values(layout.teile).map(({ typ, x, y, drehung }) => ({ typ, x, y, drehung })),
     werte: blaupausenWerte(bewertung),
+    ziel: ziel !== undefined ? (ziel || "") : (vorhanden && vorhanden.ziel) || "",
     erstellt: vorhanden ? vorhanden.erstellt : jetzt,
     geaendert: jetzt,
   };
@@ -8503,6 +8674,27 @@ function naechsterEntwurfsName() {
    Aufrufe der Layout-Logik (Abschnitt 8). Drag & Drop läuft über Pointer-Events,
    damit Maus, Stift und Touch gleich funktionieren.
    ============================================================================ */
+// Layout-Konfigurator neu: SVG-Zeichen des Produktdesigners (früh, weil Leiste und Gehäuse-Karten schon beim Laden zeichnen)
+const PD_ICON = {
+  stift: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
+  kopie: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/>',
+  muell: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  pin: '<path d="M9 3h6l-1 6 4 4H6l4-4-1-6z"/><path d="M12 13v8"/>',
+  haken: '<path d="M5 12.5l4.5 4.5L19 7"/>',
+  kreuz: '<path d="M6 6l12 12M18 6L6 18"/>',
+  runter: '<path d="M6 9l6 6 6-6"/>',
+  warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.5"/>',
+  ziel: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>',
+  flamme: '<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5 1 1.5 2 2 2.5 1.5C11 7.5 11.5 5 12 3z"/>',
+  schnee: '<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/>',
+  schild: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"/>',
+  schloss: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  offen: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>',
+};
+function pdIcon(name, extraKlasse = "") {
+  return `<svg class="pd-i${extraKlasse ? " " + extraKlasse : ""}" viewBox="0 0 24 24" aria-hidden="true">${PD_ICON[name]}</svg>`;
+}
+const pdTier = (t) => `<span class="pd-tier t${t}">T${t}</span>`;
 const lz = {
   overlay:     document.getElementById("layout-overlay"),
   fenster:     document.getElementById("lz-fenster"),
@@ -8543,15 +8735,17 @@ function gehaeuseFormHtml(geh) {
     geh.maske.map((zelle) => `<span style="background:${zelle ? `color-mix(in srgb, ${geh.farbe} 70%, #141a26)` : "rgba(255,255,255,0.06)"}"></span>`).join("") + `</span>`;
 }
 function faktorText(f) { return String(f).replace(".", ","); }
+// Layout-Konfigurator neu: Iso-Bild des Gehäuses (vor dem Laden der Grafiken: Formvorschau)
+function pdGehBild(geh) { return katGrafikBereit ? `<span class="pd-geh-bild">${symbolFuer(geh.id, 40)}</span>` : gehaeuseFormHtml(geh); }
 function zeichneGehaeuseKarten() {
   lzGehKarten.innerHTML = GEHAEUSE.map((geh) => {
     const aktiv = designer.layout.gehaeuse === geh.id;
     const werte = `<small>${geh.kacheln} Zellen (T${geh.stufe}) · ${geh.breite} × ${geh.hoehe}</small>
-      <small><span title="Hitze-Limit: so viel Gesamthitze verträgt das Gehäuse">🔥 ${geh.maxHitze}</span> · <span title="Wärmeabfuhr: so viel Hitze zieht das Gehäuse von jeder Kachel ab">❄ ${geh.waermeabfuhr ? `−${geh.waermeabfuhr}` : "0"}</span> · <span title="Produktwert × Faktor">Wert × ${faktorText(geh.wertFaktor)}</span></small>`;
+      <small class="pd-werte"><span title="Hitze-Limit: so viel Gesamthitze verträgt das Gehäuse">${pdIcon("flamme", "pd-klein")}${geh.maxHitze}</span><span title="Wärmeabfuhr: so viel Hitze zieht das Gehäuse von jeder Kachel ab">${pdIcon("schnee", "pd-klein")}${geh.waermeabfuhr ? `−${geh.waermeabfuhr}` : "0"}</span><span title="Produktwert × Faktor">Wert × ${faktorText(geh.wertFaktor)}</span></small>`;
     if (geh.freigeschaltet) {
       return `<button class="lz-geh-karte" type="button" role="radio" aria-checked="${aktiv}" data-gehaeuse="${geh.id}"
         title="${htmlSicher(`${geh.name}: ${geh.kacheln} Zellen, Wärmeabfuhr ${geh.waermeabfuhr} je Kachel, Wert × ${faktorText(geh.wertFaktor)}`)}">
-        ${gehaeuseFormHtml(geh)}<b>${htmlSicher(geh.name)}</b>${werte}</button>`;
+        ${pdGehBild(geh)}<b>${htmlSicher(geh.name)}</b>${werte}</button>`;
     }
     const st = uiFreischaltStatus(geh.id);
     const bereit = !!st && st.kann;
@@ -8559,8 +8753,8 @@ function zeichneGehaeuseKarten() {
       ? `${fortschrittHtml(st.ist, st.ziel)}<small>${st.ist} / ${st.ziel} ${htmlSicher(itemInfo(st.item).name)}</small>` : "";
     return `<div class="lz-geh-karte gesperrt${bereit ? " bereit" : ""}" data-gehaeuse="${geh.id}"
         title="${htmlSicher(st ? (bereit ? `${geh.name}: Ziel erreicht – freischalten` : st.grund) : geh.name)}">
-        ${gehaeuseFormHtml(geh)}<b>${bereit ? "🔓" : "🔒"} ${htmlSicher(geh.name)}</b>${werte}${fortschritt}
-        ${bereit ? `<button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${geh.id}">🔓 Freischalten</button>` : ""}
+        ${pdGehBild(geh)}<b>${pdIcon(bereit ? "offen" : "schloss", "pd-klein")} ${htmlSicher(geh.name)}</b>${werte}${fortschritt}
+        ${bereit ? `<button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${geh.id}">${pdIcon("offen", "pd-klein")} Freischalten</button>` : ""}
       </div>`;
   }).join("");
 }
@@ -8628,40 +8822,152 @@ lzGehaeuse.addEventListener("change", () => {
 zeichneGehaeuseAuswahl();
 spielEreignisse.addEventListener("freischaltungGeaendert", zeichneGehaeuseAuswahl);
 spielEreignisse.addEventListener("layoutGeaendert", () => { if (lzGehaeuse.value !== designer.layout.gehaeuse) zeichneGehaeuseAuswahl(); });
-// Phase 7a: Pflichtteile des gewählten Endprodukts – vorhanden (✓) oder fehlt (✗)
-function zeichneZiel(layout, bewertung) {
-  // P1: Ziel ist entweder ein Endprodukt der 25 ("ep:…") oder eine Auftrags-Klasse
-  const zielId = designer.ziel || "";
+/* === Layout-Konfigurator neu (Tim 2026-10-13) ===============================================
+   Endprodukt-Knopf mit Bild (Popover mit Reitern T1/T2/T3), "Benötigt"-Kasten oben rechts
+   (rot = fehlt etwas, grün = alles da, gelb = überhitzt), Blaupausen-Karten mit 2×2 Knöpfen.
+   Alle Zeichen sind SVG (PD_ICON), Produktbilder kommen aus ISO_BAU["ep:<id>"]. */
+function pdProduktBild(id, px) { return `<span class="ic pd-bild" style="width:${px}px;height:${px}px">${symbolFuer("ep:" + id, px)}</span>`; }
+function pdZielDaten(zielId = designer.ziel || "") {
   const endprodukt = zielId.startsWith("ep:") ? ENDPRODUKTE.find((p) => p.id === zielId.slice(3)) : null;
   const klasse = (!endprodukt && zielId) ? PRODUKTKLASSEN.find((k) => k.id === zielId) : null;
+  return { endprodukt, klasse };
+}
+// Status eines Layouts gegenüber einem Endprodukt (für Benötigt-Kasten, Popover und Blaupausen-Karten)
+function pdZielStatus(layout, bewertung, endprodukt, klasse = null) {
+  const kategorien = endprodukt ? endprodukt.pflicht : klasse ? klasse.kategorien : [];
+  const geh = gehaeuseNachId.get(layout.gehaeuse);
+  const tierOk = !endprodukt || ((geh && geh.stufe) || 1) >= endprodukt.tier;
+  const fehlen = fehlendeKategorien(layout, kategorien) || [];
+  const ueberhitzt = bewertung.ueberhitzt.length > 0 || !!bewertung.ueberLimit;
+  const fertig = !fehlen.length && tierOk && (!endprodukt || !LAYOUT.vollbelegungPflicht || bewertung.vollstaendig);
+  return { kategorien, fehlen, tierOk, ueberhitzt, fertig, anteil: kategorien.length ? (kategorien.length - fehlen.length) / kategorien.length : 0 };
+}
+// Ziel-Knopf (Bild + Tier + voller Name) und Benötigt-Kasten
+function zeichneZiel(layout, bewertung) {
+  const { endprodukt, klasse } = pdZielDaten();
   if (lz.ziel.value !== designer.ziel) lz.ziel.value = designer.ziel;
-  if (!klasse && !endprodukt) {
-    lz.zielTeile.innerHTML = `<span class="lz-ziel-hinweis">Wähle ein Endprodukt, dann zeigt diese Liste, welche Bauteile noch fehlen.</span>`;
+  const knopf = document.getElementById("pd-ziel-knopf");
+  knopf.classList.toggle("leer", !endprodukt && !klasse);
+  knopf.title = "Klick wählt das Endprodukt";
+  knopf.innerHTML = endprodukt
+    ? `${pdProduktBild(endprodukt.id, 46)}<small>Endprodukt</small><b>${pdTier(endprodukt.tier)}<span>${htmlSicher(endprodukt.name)}</span></b>${pdIcon("runter")}`
+    : klasse ? `<span class="ic pd-bild pd-klasse">${htmlSicher(klasse.symbol)}</span><small>Produktklasse</small><b><span>${htmlSicher(klasse.name)}</span></b>${pdIcon("runter")}`
+    : `<span class="ic pd-bild">${pdIcon("ziel", "pd-gross")}</span><small>Endprodukt</small><b><span>Frei entwerfen</span></b>${pdIcon("runter")}`;
+  const el = lz.zielTeile;
+  if (!endprodukt && !klasse) {
+    el.className = "pd-bedarf";
+    el.innerHTML = `<div class="pd-bedarf-kopf"><h3>Benötigt</h3></div><p class="pd-bedarf-leer">Erst ein Endprodukt wählen, dann stehen hier die nötigen Komponenten.</p>`;
     return;
   }
-  const kategorien = endprodukt ? endprodukt.pflicht : klasse.kategorien;
-  const geh = gehaeuseNachId.get(layout.gehaeuse);
-  const tierOk = !endprodukt || (geh && (geh.stufe || 1) >= endprodukt.tier);
-  const ueberhitzt = bewertung.ueberhitzt.length > 0 || bewertung.ueberLimit;
-  const fehlen = fehlendeKategorien(layout, kategorien) || [];
-  let html = kategorien.map((k) => {
-    const da = !fehlen.includes(k);
-    const kat = kategorieNachId.get(k);   // Phase 7c (UI): Symbol und Farbe der Kategorie; Klick zeigt ihre Teile
-    return `<button type="button" class="lz-ziel-teil ${da ? "da" : "fehlt"}" data-kat="${k}" style="--kat-farbe:${kat.farbe}"
-      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${da ? "✓" : "✗"} <span class="lz-kat-symbol mit-grafik" aria-hidden="true">${kategorieGrafik(kat.id, 18)}</span>${htmlSicher(kat.name)}</button>`;
+  const st = pdZielStatus(layout, bewertung, endprodukt, klasse);
+  const ton = st.ueberhitzt ? "heiss" : st.fertig ? "ok" : "fehlt";
+  const offen = st.fehlen.length + (st.tierOk ? 0 : 1);
+  const text = st.ueberhitzt ? "überhitzt – zählt nicht" : st.fertig ? "alles da"
+    : offen ? `${offen} fehl${offen === 1 ? "t" : "en"}` : "Gehäuse voll belegen";
+  let html = st.kategorien.map((k) => {
+    const da = !st.fehlen.includes(k), kat = kategorieNachId.get(k);
+    return `<button type="button" class="pd-bk${da ? " da" : ""}" data-kat="${k}" style="--kat-farbe:${kat.farbe}"
+      title="${htmlSicher(`${kat.name}: ${da ? "vorhanden" : "fehlt noch"} – Klick zeigt die Teile dieser Kategorie`)}">${kategorieGrafik(kat.id, 32)}</button>`;
   }).join("");
   if (endprodukt) {
-    html += `<span class="lz-ziel-teil ${tierOk ? "da" : "fehlt"}" title="Gehäuse-Tier mindestens T${endprodukt.tier}">${tierOk ? "✓" : "✗"} Gehäuse ≥ T${endprodukt.tier}</span>`;
-    html += LAYOUT.vollbelegungPflicht
-      ? `<span class="lz-ziel-teil ${bewertung.vollstaendig ? "da" : "fehlt"}" title="Vollbelegungspflicht: jede Zelle muss belegt sein">${bewertung.vollstaendig ? "✓" : "✗"} vollständig (${bewertung.belegung}/${bewertung.kacheln})</span>`
-      : `<span class="lz-ziel-teil ${bewertung.vollstaendig ? "da" : ""}" title="Belegung ${bewertung.belegung}/${bewertung.kacheln} – voll belegen ist freiwillig">${bewertung.vollstaendig ? "✓" : "○"} belegt (${bewertung.belegung}/${bewertung.kacheln})</span>`;
-    if (endprodukt.eigenschaften.length) html += `<span class="lz-ziel-hinweis">Verlangt: ${endprodukt.eigenschaften.map(htmlSicher).join(", ")}${endprodukt.qaStufe ? ` · QA-Stufe ${endprodukt.qaStufe}` : ""}</span>`;
+    const geh = gehaeuseNachId.get(endprodukt.gehaeuse);
+    html += `<span class="pd-trenner"></span><span class="pd-bk pd-geh${st.tierOk ? " da" : ""}" title="${htmlSicher(`${geh ? geh.name : "Gehäuse"} oder besser (mindestens T${endprodukt.tier})`)}">${wareHtml(endprodukt.gehaeuse, 32, geh ? geh.name : "")}</span>`;
   }
-  if (ueberhitzt) html += `<span class="lz-ziel-teil fehlt">⚠ überhitzt – zählt nicht</span>`;
-  else if (!fehlen.length && tierOk && (!endprodukt || !LAYOUT.vollbelegungPflicht || bewertung.vollstaendig)) {
-    html += `<span class="lz-ziel-teil fertig">Erfüllt ${endprodukt ? "🏁" : klasse.symbol} ${htmlSicher(endprodukt ? endprodukt.name : klasse.name)}</span>`;
+  el.className = "pd-bedarf " + ton;
+  el.innerHTML = `<div class="pd-bedarf-kopf"><h3>Benötigt</h3><small>${text}</small></div><div class="pd-bedarf-reihe">${html}</div>` +
+    (endprodukt && endprodukt.eigenschaften.length ? `<p class="pd-bedarf-leer">Verlangt: ${endprodukt.eigenschaften.map(htmlSicher).join(", ")}${endprodukt.qaStufe ? ` · QA-Stufe ${endprodukt.qaStufe}` : ""}</p>` : "");
+}
+
+/* --- Popover: alle Endprodukte als Bild-Raster, Reiter T1/T2/T3 --- */
+const pdPop = { el: null, tier: 1 };
+function schliesseZielPopover() {
+  if (!pdPop.el) return;
+  pdPop.el.remove(); pdPop.el = null;
+  document.getElementById("pd-ziel-knopf").setAttribute("aria-expanded", "false");
+}
+function zeichneZielPopover() {
+  const bewertung = bewerteLayout(designer.layout);
+  const da = new Set(KATEGORIEN.map((k) => k.id).filter((k) => !(fehlendeKategorien(designer.layout, [k]) || []).length));
+  const reiter = [1, 2, 3].map((t) => `<button type="button" role="tab" data-tier="${t}" aria-selected="${pdPop.tier === t}"><i class="t${t}"></i>T${t}<small>${ENDPRODUKTE.filter((p) => p.tier === t).length}</small></button>`).join("");
+  const karten = ENDPRODUKTE.filter((p) => p.tier === pdPop.tier).map((p) => {
+    const st = pdZielStatus(designer.layout, bewertung, p);
+    const titel = `${p.name} · braucht ${p.pflicht.map((k) => kategorieNachId.get(k).name).join(", ")}${p.eigenschaften.length ? ` · verlangt ${p.eigenschaften.join(", ")}` : ""}`;
+    return `<button type="button" class="pd-pk${designer.ziel === "ep:" + p.id ? " aktiv" : ""}${st.anteil === 1 ? " voll" : ""}" data-ep="${p.id}" title="${htmlSicher(titel)}">
+      ${pdProduktBild(p.id, 72)}<b>${htmlSicher(p.name)}</b>
+      <span class="pd-pk-kats">${p.pflicht.map((k) => `<span class="${da.has(k) ? "da" : ""}">${kategorieGrafik(k, 18)}</span>`).join("")}</span>
+      <span class="pd-pk-balken"><i style="width:${Math.round(st.anteil * 100)}%"></i></span>
+      <span class="pd-pk-eck">${pdTier(p.tier)}</span>${p.qaStufe ? `<span class="pd-pk-qa" title="QA-Prüfung empfohlen">QA ${p.qaStufe}</span>` : ""}</button>`;
+  }).join("");
+  pdPop.el.innerHTML = `<div class="pd-pop-kopf"><h3>Endprodukt wählen</h3><span class="pd-tabs" role="tablist">${reiter}</span></div>
+    <div class="pd-pop-netz">${karten}<button type="button" class="pd-pk ohne${designer.ziel ? "" : " aktiv"}" data-ep=""><span class="ic pd-bild" style="width:72px;height:72px">${pdIcon("ziel", "pd-gross")}</span><b>Frei entwerfen</b><span class="pd-pk-kats">ohne Ziel</span></button></div>`;
+}
+function oeffneZielPopover() {
+  if (pdPop.el) { schliesseZielPopover(); return; }
+  const { endprodukt } = pdZielDaten();
+  if (endprodukt) pdPop.tier = endprodukt.tier;
+  pdPop.el = document.createElement("div");
+  pdPop.el.className = "pd-pop";
+  pdPop.el.setAttribute("role", "dialog");
+  pdPop.el.setAttribute("aria-label", "Endprodukt wählen");
+  lz.fenster.appendChild(pdPop.el);
+  zeichneZielPopover();
+  const k = document.getElementById("pd-ziel-knopf"), f = lz.fenster.getBoundingClientRect(), r = k.getBoundingClientRect();
+  pdPop.el.style.left = Math.max(8, Math.min(r.left - f.left, f.width - pdPop.el.offsetWidth - 8)) + "px";
+  pdPop.el.style.top = (r.bottom - f.top + 6) + "px";
+  k.setAttribute("aria-expanded", "true");
+  (pdPop.el.querySelector(".pd-pk.aktiv") || pdPop.el.querySelector(".pd-pk")).focus({ preventScroll: true });
+}
+document.getElementById("pd-ziel-knopf").addEventListener("click", oeffneZielPopover);
+lz.fenster.addEventListener("click", (e) => {
+  if (!pdPop.el) return;
+  const tab = e.target.closest("[data-tier]");
+  if (tab && pdPop.el.contains(tab)) { pdPop.tier = +tab.dataset.tier; zeichneZielPopover(); return; }
+  const karte = e.target.closest("[data-ep]");
+  if (karte && pdPop.el.contains(karte)) {
+    designer.ziel = karte.dataset.ep ? "ep:" + karte.dataset.ep : "";
+    schliesseZielPopover();
+    lz.fenster.focus({ preventScroll: true });
+    zeichneDesigner();
+    return;
   }
-  lz.zielTeile.innerHTML = html;
+  if (!pdPop.el.contains(e.target) && !e.target.closest("#pd-ziel-knopf")) schliesseZielPopover();
+});
+document.addEventListener("pointerdown", (e) => { if (pdPop.el && !lz.fenster.contains(e.target)) schliesseZielPopover(); });
+
+// Kopf (Modus), Werkzeugleiste (gewähltes Teil) und Fuß (Speichern-Text) passend zum Zustand
+function zeichnePdRahmen() {
+  const bp = designer.blaupauseId ? ladeBlaupausen().find((b) => b.id === designer.blaupauseId) : null;
+  const modus = document.getElementById("pd-modus");
+  if (bp) {
+    modus.className = "pd-modus bearbeitet";
+    modus.innerHTML = `${pdIcon("stift")}<span>Bearbeite „${htmlSicher(bp.name)}“ · wird V${(bp.produktVersion || 1) + 1}</span><button type="button" data-aktion="abbrechen" title="Bearbeiten abbrechen – Maske leeren" aria-label="Bearbeiten abbrechen">${pdIcon("kreuz")}</button>`;
+  } else {
+    modus.className = "pd-modus";
+    modus.textContent = "Neuer Entwurf";
+  }
+  const auswahl = ui.auswahlId && designer.layout.teile[ui.auswahlId];
+  setzeText(document.getElementById("pd-gewaehlt"), auswahl ? `Gewählt: ${bauteilNachTyp.get(auswahl.typ).name}` : "");
+  const leer = Object.keys(designer.layout.teile).length === 0;
+  $("lz-speichern").disabled = leer;
+  setzeText(document.getElementById("pd-speichern-text"), bp ? `Als V${(bp.produktVersion || 1) + 1} speichern` : "Als Blaupause speichern");
+  setzeText(document.getElementById("pd-fuss-info"), leer ? "Leeres Raster kann nicht gespeichert werden." : `Wird gespeichert als „${(lz.name.value || "").trim() || naechsterEntwurfsName()}“`);
+}
+document.getElementById("pd-modus").addEventListener("click", (e) => { if (e.target.closest('[data-aktion="abbrechen"]')) { setzeDesignerZurueck(); zeichneDesigner(); } });
+// Nullstand: leeres Standardgehäuse, kein Ziel, neuer Name, kein Verlauf
+function setzeDesignerZurueck() {
+  designer.layout = erstelleLeeresLayout();
+  designer.verlauf = [];
+  designer.zukunft = [];
+  designer.blaupauseId = null;
+  designer.ziel = "";
+  designer.name = naechsterEntwurfsName();
+  lz.name.value = designer.name;
+  ui.auswahlId = null;
+  lzGehHinweis.hidden = true;
+  schliesseZielPopover();
+  zeichneGehaeuseAuswahl();
+  zeichneBlaupausen();
+  meldeLayoutGeaendert();
 }
 // Phase 7c: Klick auf eine Ziel-Kategorie öffnet sie in der Bauteil-Leiste
 lz.zielTeile.addEventListener("click", (e) => {
@@ -8768,11 +9074,11 @@ function istFreischaltbar(id) {
 function rasterText(raster) { return String(raster).replace("x", "×"); }
 // Werte einer Komponente als kleine Zeile: Tier · Raster · Hitze (Kühlung deutlich blau) · Toleranz
 function paletteWerteHtml(b) {
+  // Layout-Konfigurator neu: SVG-Zeichen statt 🔥/❄, Tier als Plakette
   const wirkung = b.kuehlung
-    ? `<span class="lz-kuehl" title="kühlt jede angrenzende Kachel um ${b.kuehlung}">❄ −${b.kuehlung}</span>`
-    : b.hitze ? `<span class="lz-heiss" title="heizt jede angrenzende Kachel um ${b.hitze}">🔥 ${b.hitze}</span>`
-    : `<span title="erzeugt keine Hitze">Hitze 0</span>`;
-  return `<span>${b.tier}</span><span title="Raster: Reihen × Spalten">${rasterText(b.raster)}</span>${wirkung}<span title="verträgt so viel Hitze">Tol. ${b.toleranz}</span>`;
+    ? `<span class="lz-kuehl" title="kühlt jede angrenzende Kachel um ${b.kuehlung}">${pdIcon("schnee", "pd-klein")}−${b.kuehlung}</span>`
+    : `<span class="${b.hitze ? "lz-heiss" : ""}" title="${b.hitze ? `heizt jede angrenzende Kachel um ${b.hitze}` : "erzeugt keine Hitze"}">${pdIcon("flamme", "pd-klein")}${b.hitze}</span>`;
+  return `${pdTier(b.stufe)}<span title="Raster: Reihen × Spalten">${rasterText(b.raster)}</span>${wirkung}<span title="verträgt so viel Hitze">${pdIcon("schild", "pd-klein")}${b.toleranz}</span>`;
 }
 // Kleine Vorschau der Form in Kategorie-Farbe
 function miniFormHtml(b) {
@@ -8799,8 +9105,8 @@ function bauteilKarteHtml(b) {
     return `<li><button class="lz-bauteil" type="button" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
       title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie}`)}"
       aria-label="${htmlSicher(b.name)} (${bauteilWerteText(b)}) – ziehen oder klicken zum Einsetzen">
-      ${miniFormHtml(b)}
-      <span><b>${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small></span>
+      ${katGrafikBereit ? `<span class="pd-karton">${symbolFuer("karton:" + b.kategorie, 36)}</span>` : ""}
+      <span><b>${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small></span>${miniFormHtml(b)}
     </button></li>`;
   }
   const st = uiFreischaltStatus(b.typ);
@@ -8808,7 +9114,7 @@ function bauteilKarteHtml(b) {
   let unten = "";
   if (bereit) {
     unten = `<small>Ziel erreicht: ${st.ist} / ${st.ziel}× ${htmlSicher(itemInfo(st.item).name)}</small>
-      <button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${b.typ}">🔓 Freischalten</button>`;
+      <button class="lz-knopf lz-knopf-haupt lz-freischalten" type="button" data-freischalten="${b.typ}">${pdIcon("offen", "pd-klein")} Freischalten</button>`;
   } else if (st && st.art === "herstellung") {
     unten = `<small>${htmlSicher(st.grund)}</small>${fortschrittHtml(st.ist, st.ziel)}`;
   } else if (st) {
@@ -8816,8 +9122,8 @@ function bauteilKarteHtml(b) {
   }
   return `<li><div class="lz-bauteil-gesperrt${bereit ? " bereit" : ""}" data-typ="${b.typ}" style="--kat-farbe:${b.farbe}"
       title="${htmlSicher(`${b.nr} · ${kat.name} · Linie ${b.linie}, Stufe ${b.stufeInLinie} – gesperrt`)}">
-      ${miniFormHtml(b)}
-      <span><b>${bereit ? "🔓" : "🔒"} ${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small>${unten}</span>
+      ${katGrafikBereit ? `<span class="pd-karton">${symbolFuer("karton:" + b.kategorie, 36)}</span>` : ""}
+      <span><b>${pdIcon(bereit ? "offen" : "schloss", "pd-klein")} ${htmlSicher(b.name)}</b><small class="lz-werte">${paletteWerteHtml(b)}</small>${unten}</span>
     </div></li>`;
 }
 // Welche Teile zeigt die Leiste (ohne Blick auf den Reiter)?
@@ -8989,6 +9295,7 @@ function zeichneDesigner() {
   zeichneZiel(anzeige, bewertung);
   lz.zurueck.disabled = designer.verlauf.length === 0;
   lz.vor.disabled = designer.zukunft.length === 0;
+  zeichnePdRahmen();   // Layout-Konfigurator neu: Modus, gewähltes Teil, Speichern-Text
 }
 
 // Phase 7c: Kachelgröße so wählen, dass die Gehäuseform in die mittlere Spalte passt (höchstens --lz-zelle,
@@ -9055,21 +9362,22 @@ function zeichneBewertung(bewertung, layout) {
   // gelb bis ans Limit, rot sobald das Limit überschritten ist oder ein Bauteil überhitzt ist.
   const hitzeTon = (bewertung.ueberLimit || anteilHitze > 1 || bewertung.ueberhitzt.length)
     ? "schlecht" : anteilHitze > 0.5 ? "mittel" : "gut";
-  lz.bewertung.innerHTML = `
-    <dt>Belegung</dt><dd>${bewertung.belegung} / ${bewertung.kacheln}${bewertung.vollstaendig ? " ✓" : ""}${balken(anteilBelegung, bewertung.vollstaendig ? "gut" : "")}</dd>
-    <dt title="So viel Gesamthitze verträgt dieses Gehäuse (P1)">Gehäuse-Limit</dt><dd>${bewertung.maxHitze || "–"}${bewertung.ueberLimit ? " ⚠ überschritten" : ""}</dd>
-    <dt>Bauteile</dt><dd>${bewertung.teileAnzahl}</dd>
-    <dt>Gesamthitze</dt><dd>${bewertung.gesamtHitze} / ${bewertung.maxHitze || "–"}${balken(anteilHitze, hitzeTon)}</dd>
-    <dt>Heißeste Kachel</dt><dd>${heiss.wert > 0 ? heiss.wert : "–"}</dd>
-    <dt title="Das Gehäuse zieht diese Hitze von jeder Kachel ab (in der Hitze-Ansicht schon abgezogen)">Wärmeabfuhr</dt><dd>${bewertung.hitze.waermeabfuhr ? `−${bewertung.hitze.waermeabfuhr} je Kachel` : "keine"}</dd>
-    ${(() => `<dt title="So oft kommt ein verkauftes Stück erfahrungsgemäß fehlerhaft zurück (Hitze + fehlende QA-Prüfung)">Rückrufrisiko</dt>` +
-      `<dd><span class="lz-ampel-klein ${hitzeTon}">${prozent(qOhne)} je Stück</span>${balken(Math.min(1, qOhne / schlechtest), hitzeTon)}` +
-      `<small class="lz-bewertung-klein" title="Wert bei vollständiger QA-Prüfung (beste verfügbare Prüfstrecke)">mit voller QA-Prüfung ${prozent(qMit)}${bewertung.ueberhitzt.length ? " · ⚠ überhitzt" : ""}</small></dd>`)()}
-    ${produktZeilen(bewertung, layout)}
-    <dd class="lz-status-zeile"><span class="lz-ampel ${bewertung.status}">${STATUS_TEXT[bewertung.status]}</span></dd>
-    ${bewertung.ueberLimit ? `<dd class="lz-liste-ueberhitzt">⚠ Gehäuse-Limit überschritten (${bewertung.gesamtHitze} / ${bewertung.maxHitze}) – Ausschussrisiko!</dd>` : ""}
-    ${LAYOUT.vollbelegungPflicht && !bewertung.vollstaendig ? `<dd class="lz-liste-ueberhitzt">⚠ Unvollständig: ${bewertung.kacheln - bewertung.belegung} Zelle(n) leer – erst vollständig belegen (Vollbelegungspflicht)</dd>` : ""}
-    ${ueberhitztNamen.length ? `<dd class="lz-liste-ueberhitzt">⚠ Überhitzt: ${ueberhitztNamen.join(", ")}</dd>` : ""}`;
+  // Layout-Konfigurator neu: kompakte Bewertung (Belegung, Gesamthitze, Rückrufrisiko, Marktwert) + Warnungen;
+  // Details stehen im Tooltip. Das Endprodukt prüft der Benötigt-Kasten darüber.
+  const zeile = (titel, tip, wert) => `<div class="pd-mz"><dt title="${htmlSicher(tip)}">${titel}</dt><dd>${wert}</dd></div>`;
+  const warnungen = [
+    bewertung.ueberLimit ? `Gehäuse-Limit überschritten (${bewertung.gesamtHitze} / ${bewertung.maxHitze}) – Ausschussrisiko!` : "",
+    LAYOUT.vollbelegungPflicht && !bewertung.vollstaendig ? `Unvollständig: ${bewertung.kacheln - bewertung.belegung} Zelle(n) leer – erst vollständig belegen` : "",
+    ueberhitztNamen.length ? `Überhitzt: ${ueberhitztNamen.join(", ")}` : "",
+  ].filter(Boolean);
+  lz.bewertung.innerHTML =
+    zeile("Belegung", "Belegte Zellen des Gehäuses", `<b>${bewertung.belegung} / ${bewertung.kacheln}</b>${balken(anteilBelegung, bewertung.vollstaendig ? "gut" : "")}`) +
+    zeile("Gesamthitze", `Hitze aller Teile minus Kühlung · Wärmeabfuhr ${bewertung.hitze.waermeabfuhr ? `−${bewertung.hitze.waermeabfuhr} je Kachel` : "keine"} · heißeste Kachel ${heiss.wert > 0 ? heiss.wert : "–"}`,
+      `<b>${bewertung.gesamtHitze} / ${bewertung.maxHitze || "–"}</b>${balken(anteilHitze, hitzeTon)}`) +
+    zeile("Rückrufrisiko", "So oft kommt ein verkauftes Stück erfahrungsgemäß fehlerhaft zurück (Hitze + fehlende QA-Prüfung)",
+      `<span class="lz-ampel-klein ${hitzeTon}">${prozent(qOhne)} je Stück</span><small class="lz-bewertung-klein">mit voller QA-Prüfung ${prozent(qMit)}</small>`) +
+    produktZeilen(bewertung, layout) +
+    warnungen.map((w) => `<div class="lz-liste-ueberhitzt">${pdIcon("warn", "pd-klein")} ${htmlSicher(w)}</div>`).join("");
 }
 // Phase 5: Welche Produktklasse erfüllt das Layout, und was ist es auf dem Markt wert?
 function produktZeilen(bewertung, layout) {
@@ -9078,8 +9386,7 @@ function produktZeilen(bewertung, layout) {
     if (!Object.keys(teile).length) return "";
     const ueberhitzt = bewertung.ueberhitzt.length > 0;
     const klasse = besteKlasse(teile, ueberhitzt);
-    return `<dt>Erfüllt</dt><dd>${klasse ? `${klasse.symbol} ${klasse.name}` : "keine Klasse"}</dd>
-      <dt>Marktwert</dt><dd>ca. ${euro(marktwertAusTeilen(teile, ueberhitzt, layout.gehaeuse))}</dd>`;
+    return `<div class="pd-mz"><dt title="Erfüllte Auftrags-Klasse: ${htmlSicher(klasse ? klasse.name : "keine")}">Marktwert</dt><dd><b>ca. ${euro(marktwertAusTeilen(teile, ueberhitzt, layout.gehaeuse))}</b></dd></div>`;
   } catch (fehler) {
     return "";   // Wirtschaft noch nicht bereit (sollte nicht vorkommen)
   }
@@ -9175,28 +9482,48 @@ function blaupausenMiniHtml(bp) {
   return `<span class="lz-bp-mini" aria-hidden="true" style="grid-template-columns:repeat(${breite},6px)">${mini}</span>`;
 }
 
+// Layout-Konfigurator neu: Karte = Mini-Raster + Produktbild, Name, Version, Ziel-Status, Werte;
+// daneben 2×2 Knöpfe Bearbeiten · Kopieren · Löschen (Rückfrage in der Karte) · Anheften (Rezept-Stapel).
+const pdListe = { neuId: null, loeschFrage: null };
+function pdPinSchluessel(bp) { return "p:" + (bp.produktId || bp.id); }
+function pdAngeheftet(bp) { try { return istAngeheftet(pdPinSchluessel(bp)); } catch (fehler) { return false; } }
 function zeichneBlaupausen() {
-  const liste = ladeBlaupausen().sort((a, b) => (b.geaendert || "").localeCompare(a.geaendert || ""));
+  const liste = ladeBlaupausen().map((bp) => ({ bp, pin: pdAngeheftet(bp) }))
+    .sort((a, b) => (b.pin - a.pin) || (b.bp.geaendert || "").localeCompare(a.bp.geaendert || ""));
   lz.speicherHinweis.hidden = speicherVerfuegbar;
+  setzeText(document.getElementById("pd-bp-zahl"), String(liste.length));
   if (liste.length === 0) {
-    lz.blaupausen.innerHTML = `<li class="lz-leer">Noch keine Blaupausen gespeichert.</li>`;
+    lz.blaupausen.innerHTML = `<li class="lz-leer pd-bp-leer">${wareHtml("blaupause", 44)}Noch keine Blaupausen. Entwurf bauen und speichern – er erscheint hier.</li>`;
     return;
   }
-  lz.blaupausen.innerHTML = liste.map((bp) => `
-    <li data-id="${htmlSicher(bp.id)}" class="${bp.id === designer.blaupauseId ? "aktiv" : ""}">
-      <button class="lz-bp-laden" type="button" data-aktion="laden" title="In den Designer laden">
-        ${blaupausenMiniHtml(bp)}
-        <span class="lz-bp-text"><b>${htmlSicher(produktVersionsName(bp))}${bp.werte && bp.werte.ueberhitzt ? ' <span class="lz-bp-warn" title="überhitzt">⚠</span>' : ""}</b>
-          <small>${bp.werte ? `${bp.werte.belegung}/${kachelnVonBlaupause(bp)} Kacheln · Hitze ${bp.werte.gesamtHitze}` : ""}${blaupausenKlassenText(bp)}</small>
-          <span class="lz-balken"><i style="width:${Math.round((bp.werte ? bp.werte.belegung : 0) / (kachelnVonBlaupause(bp) || 1) * 100)}%"></i></span>
-        </span>
-      </button>
-      <span class="lz-bp-aktionen">
-        <button class="lz-symbol-knopf" type="button" data-aktion="umbenennen" aria-label="${htmlSicher(bp.name)} umbenennen" title="Umbenennen">✎</button>
-        <button class="lz-symbol-knopf" type="button" data-aktion="duplizieren" aria-label="${htmlSicher(bp.name)} duplizieren" title="Duplizieren">⧉</button>
-        <button class="lz-symbol-knopf" type="button" data-aktion="loeschen" aria-label="${htmlSicher(bp.name)} löschen" title="Löschen">🗑</button>
-      </span>
-    </li>`).join("");
+  lz.blaupausen.innerHTML = liste.map(({ bp, pin }) => {
+    const ziel = pdZielDaten(bp.ziel || "");
+    let zielHtml = `<span class="pd-bp-ziel">${blaupausenKlassenText(bp).replace(/^ · /, "") || "freies Design"}</span>`;
+    if (ziel.endprodukt || ziel.klasse) {
+      const geladen = ladeBlaupauseInsLayout(bp.id);
+      const st = geladen ? pdZielStatus(geladen.layout, bewerteLayout(geladen.layout), ziel.endprodukt, ziel.klasse) : null;
+      const name = ziel.endprodukt ? ziel.endprodukt.name : ziel.klasse.name;
+      zielHtml = `<span class="pd-bp-ziel ${st && st.fertig && !st.ueberhitzt ? "ok" : "fehlt"}" title="${st && st.fertig && !st.ueberhitzt ? "erfüllt" : "unvollständig"}">${pdIcon(st && st.fertig && !st.ueberhitzt ? "haken" : "kreuz", "pd-klein")} ${htmlSicher(name)}</span>`;
+    }
+    const geh = gehaeuseNachId.get(bp.gehaeuse);
+    const frage = pdListe.loeschFrage === bp.id
+      ? `<div class="pd-frage"><span>„${htmlSicher(bp.name)}“ löschen?</span><button type="button" class="lz-knopf pd-ja" data-aktion="loeschen-ja">Löschen</button><button type="button" class="lz-knopf" data-aktion="loeschen-nein">Behalten</button></div>` : "";
+    return `
+    <li data-id="${htmlSicher(bp.id)}" class="pd-bp${bp.id === designer.blaupauseId ? " aktiv" : ""}${pin ? " angeheftet" : ""}${bp.id === pdListe.neuId ? " neu" : ""}">
+      <div class="pd-bp-info">
+        <span class="pd-bp-bild">${blaupausenMiniHtml(bp)}${ziel.endprodukt ? pdProduktBild(ziel.endprodukt.id, 34) : ""}</span>
+        <span class="pd-bp-name">${pin ? pdIcon("pin", "pd-pin-marke") : ""}<span>${htmlSicher(bp.name)}</span><span class="pd-v">V${bp.produktVersion || 1}</span>${bp.werte && bp.werte.ueberhitzt ? `<span class="pd-warn" title="überhitzt">${pdIcon("warn", "pd-klein")}</span>` : ""}</span>
+        ${zielHtml}
+        <span class="pd-werte">${geh ? pdTier(geh.stufe || 1) : ""}<span>${bp.werte ? bp.werte.belegung : 0}/${kachelnVonBlaupause(bp)}</span><span class="${bp.werte && bp.werte.ueberhitzt ? "heiss" : ""}" title="Gesamthitze">${pdIcon("flamme", "pd-klein")}${bp.werte ? bp.werte.gesamtHitze : 0}</span></span>
+      </div>
+      <div class="pd-bp-knoepfe">
+        <button class="pd-bk2" type="button" data-aktion="laden" title="Bearbeiten" aria-label="${htmlSicher(bp.name)} bearbeiten">${pdIcon("stift")}</button>
+        <button class="pd-bk2" type="button" data-aktion="duplizieren" title="Kopieren" aria-label="${htmlSicher(bp.name)} kopieren">${pdIcon("kopie")}</button>
+        <button class="pd-bk2 weg" type="button" data-aktion="loeschen" title="Löschen" aria-label="${htmlSicher(bp.name)} löschen">${pdIcon("muell")}</button>
+        <button class="pd-bk2" type="button" data-aktion="pin" aria-pressed="${pin}" title="${pin ? "Vom Rand lösen" : "Als Rezept an den Rand heften"}" aria-label="${htmlSicher(bp.name)} ${pin ? "lösen" : "anheften"}">${pdIcon("pin")}</button>
+      </div>${frage}
+    </li>`;
+  }).join("");
 }
 
 // Phase 5: Produktklasse einer Blaupause als kurzer Zusatz in der Liste
@@ -9215,62 +9542,49 @@ lz.blaupausen.addEventListener("click", (e) => {
     case "laden": {
       const ergebnis = ladeBlaupauseInsLayout(id);
       if (!ergebnis) return;
+      designer.ziel = ergebnis.blaupause.ziel || designer.ziel;   // Layout-Konfigurator neu: Endprodukt der Blaupause
       aendereLayout(() => { designer.layout = ergebnis.layout; return true; }); // Laden ist rückgängig machbar
       designer.blaupauseId = ergebnis.blaupause.blaupauseId || ergebnis.blaupause.id;
+      zeichneGehaeuseAuswahl();
       designer.name = ergebnis.blaupause.name;
       lz.name.value = designer.name;
       ui.auswahlId = null;
       zeichneBlaupausen();
+      zeichnePdRahmen();
       zeigeMeldung(ergebnis.uebersprungen
         ? `„${ergebnis.blaupause.name}“ geladen – ${ergebnis.uebersprungen} Teil(e) passten nicht und wurden übersprungen.`
         : `„${ergebnis.blaupause.name}“ geladen.`, ergebnis.uebersprungen > 0);
       break;
     }
-    case "umbenennen": {
-      // Name direkt in der Liste bearbeiten (Enter = übernehmen, Esc = abbrechen)
-      const laden = eintrag.querySelector(".lz-bp-laden");
-      const alterName = (laden.querySelector(".lz-bp-text b")?.textContent || "").replace("⚠", "").trim();   // erstes span = Mini-Vorschau
-      const eingabe = document.createElement("input");
-      eingabe.className = "lz-bp-name-eingabe";
-      eingabe.maxLength = 40;
-      eingabe.value = alterName;
-      eingabe.setAttribute("aria-label", "Neuer Name");
-      laden.replaceWith(eingabe);
-      eingabe.focus();
-      eingabe.select();
-      let fertig = false;
-      const uebernehmen = (speichern) => {
-        if (fertig) return;
-        fertig = true;
-        if (speichern && eingabe.value.trim() && benenneBlaupauseUm(id, eingabe.value)) {
-          if (designer.blaupauseId === id) { designer.name = eingabe.value.trim(); lz.name.value = designer.name; }
-        }
-        zeichneBlaupausen();
-      };
-      eingabe.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") uebernehmen(true);
-        if (ev.key === "Escape") uebernehmen(false);
-      });
-      eingabe.addEventListener("blur", () => uebernehmen(true));
-      break;
-    }
     case "duplizieren": {
       const kopie = dupliziereBlaupause(id);
-      if (kopie) zeigeMeldung(`Kopie „${kopie.name}“ angelegt.`);
+      if (kopie) { pdHebeHervor(kopie.id); zeigeMeldung(`Kopie „${kopie.name}“ angelegt.`); }
       break;
     }
-    case "loeschen": {
-      // Sicherheitsabfrage ohne Popup: erster Klick fragt "Sicher?", zweiter löscht.
-      if (!knopf.classList.contains("bestaetigen")) {
-        knopf.classList.add("bestaetigen");
-        knopf.textContent = "Sicher?";
-        setTimeout(() => { if (knopf.isConnected) { knopf.classList.remove("bestaetigen"); knopf.textContent = "🗑"; } }, 3000);
-        return;
-      }
+    case "loeschen":
+      pdListe.loeschFrage = id;
+      zeichneBlaupausen();
+      break;
+    case "loeschen-nein":
+      pdListe.loeschFrage = null;
+      zeichneBlaupausen();
+      break;
+    case "loeschen-ja": {
+      pdListe.loeschFrage = null;
+      const bp = ladeBlaupausen().find((b) => b.id === id);
+      if (bp && pdAngeheftet(bp)) schalteRezeptPin(pdPinSchluessel(bp));
       if (loescheBlaupause(id)) {
-        if (designer.blaupauseId === id) designer.blaupauseId = null;
+        if (designer.blaupauseId === id) { designer.blaupauseId = null; zeichnePdRahmen(); }
         zeigeMeldung("Blaupause gelöscht.");
       }
+      break;
+    }
+    case "pin": {
+      const bp = ladeBlaupausen().find((b) => b.id === id);
+      if (!bp) break;
+      const an = schalteRezeptPin(pdPinSchluessel(bp));
+      zeichneBlaupausen();
+      zeigeMeldung(an ? `„${bp.name}“ als Rezept an den Rand geheftet.` : `„${bp.name}“ vom Rand gelöst.`);
       break;
     }
   }
@@ -9507,35 +9821,63 @@ document.getElementById("lz-leeren").addEventListener("click", () => {
   });
   zeichneDesigner();
 });
+// Layout-Konfigurator neu: "Neu beginnen" setzt die ganze Maske auf den Nullstand
 document.getElementById("lz-neu").addEventListener("click", () => {
-  if (Object.keys(designer.layout.teile).length > 0) {
-    aendereLayout(() => { designer.layout = erstelleLeeresLayout(designer.layout.gehaeuse); return true; });   // Phase 7c: Gehäuse bleibt
-  }
-  designer.blaupauseId = null;
-  designer.name = naechsterEntwurfsName();
-  lz.name.value = designer.name;
-  zeichneBlaupausen();
+  setzeDesignerZurueck();
   zeichneDesigner();
 });
-lz.name.addEventListener("input", () => { designer.name = lz.name.value; });
+lz.name.addEventListener("input", () => { designer.name = lz.name.value; zeichnePdRahmen(); });
 
-// "Als Blaupause speichern": überschreibt die geladene Blaupause oder legt eine neue an.
+// Neue/kopierte Karte kurz aufleuchten lassen
+function pdHebeHervor(id) {
+  pdListe.neuId = id;
+  zeichneBlaupausen();
+  const karte = lz.blaupausen.querySelector(`li[data-id="${CSS.escape(id)}"]`);
+  if (karte) karte.scrollIntoView({ block: "nearest" });
+  setTimeout(() => { if (pdListe.neuId === id) pdListe.neuId = null; }, 2600);
+}
+// Das gespeicherte Raster fliegt verkleinert zur Karte unten rechts
+function pdFliegeZurKarte(kopie, von, id) {
+  const ziel = lz.blaupausen.querySelector(`li[data-id="${CSS.escape(id)}"] .pd-bp-bild`);
+  if (!ziel || !kopie || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const nach = ziel.getBoundingClientRect();
+  kopie.removeAttribute("id");
+  kopie.querySelectorAll("[id]").forEach((e) => e.removeAttribute("id"));
+  kopie.classList.add("pd-flug");
+  Object.assign(kopie.style, { left: von.left + "px", top: von.top + "px", width: von.width + "px", height: von.height + "px" });
+  document.body.appendChild(kopie);
+  const s = nach.width / Math.max(1, von.width);
+  const anim = kopie.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 },
+    { transform: `translate(${nach.left - von.left}px, ${nach.top - von.top}px) scale(${s})`, opacity: 0.2 }],
+    { duration: 650, easing: "cubic-bezier(.5,0,.2,1)", fill: "forwards" });
+  anim.onfinish = () => kopie.remove();
+}
+
+// "Als Blaupause speichern": überschreibt die geladene Blaupause (neue Version) oder legt eine neue an.
+// Layout-Konfigurator neu: danach Nullstand – die Blaupause erscheint unten rechts und leuchtet auf.
 document.getElementById("lz-speichern").addEventListener("click", () => {
   if (Object.keys(designer.layout.teile).length === 0) {
     zeigeMeldung("Ein leeres Design kann nicht gespeichert werden.", true);
     return;
   }
-  const blaupause = speichereBlaupause(designer.layout, lz.name.value, designer.blaupauseId);
-  designer.blaupauseId = blaupause.id;
-  designer.name = blaupause.name;
-  lz.name.value = blaupause.name;
+  const rahmen = lz.raster.parentElement;
+  const von = rahmen.getBoundingClientRect();
+  const kopie = rahmen.cloneNode(true);
+  const blaupause = speichereBlaupause(designer.layout, lz.name.value, designer.blaupauseId, designer.ziel);
+  const { endprodukt, klasse } = pdZielDaten(designer.ziel);
+  const st = (endprodukt || klasse) ? pdZielStatus(designer.layout, bewerteLayout(designer.layout), endprodukt, klasse) : null;
   const nurBisNeuladen = speicherVerfuegbar ? "" : " (nur bis zum Neuladen)";
+  meldeEreignis("blaupauseGespeichert", { blaupause });
+  setzeDesignerZurueck();
+  zeichneDesigner();
+  pdHebeHervor(blaupause.id);
+  pdFliegeZurKarte(kopie, von, blaupause.id);
   if (blaupause.werte.ueberhitzt) {
     zeigeMeldung(`„${blaupause.name}“ gespeichert${nurBisNeuladen} – Achtung, Teile sind überhitzt!`, true);
   } else {
-    zeigeMeldung(`„${produktVersionsName(blaupause)}“ gespeichert${nurBisNeuladen}. An der Montagestation kannst du diese Version auswählen.`);
+    const zielText = st ? (st.fertig ? ` – erfüllt ${endprodukt ? endprodukt.name : klasse.name}` : ` – für ${endprodukt ? endprodukt.name : klasse.name} fehlt noch etwas`) : "";
+    zeigeMeldung(`„${produktVersionsName(blaupause)}“ gespeichert${nurBisNeuladen}${zielText}. Der Montagetisch kann sie jetzt bauen.`);
   }
-  meldeEreignis("blaupauseGespeichert", { blaupause });
 });
 
 /* --- Einheitliche Modalsteuerung: Fokus und 3D-Sperre folgen dem sichtbaren Fenster. --- */
@@ -9581,11 +9923,13 @@ function oeffneDesigner() {
   zeichneGehaeuseAuswahl();
   zeichneBlaupausen();
   zeichneDesigner();
+  document.getElementById("pd-logo").innerHTML = symbolFuer("blaupause", 30);
   lz.fenster.focus({ preventScroll: true });
 }
 function schliesseDesigner() {
   if (!designer.offen) return;
   if (ui.ziehen) ziehenAbbrechen();
+  schliesseZielPopover();
   designer.offen = false;
   lz.overlay.hidden = true;
   aktualisiereSperre();
@@ -9640,7 +9984,9 @@ window.addEventListener("keydown", (e) => {
 
   const pfeile = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
   if (taste === "escape") {
-    if (ui.ziehen && ui.ziehen.gestartet) ziehenAbbrechen();
+    if (pdPop.el) { schliesseZielPopover(); document.getElementById("pd-ziel-knopf").focus({ preventScroll: true }); }
+    else if (pdListe.loeschFrage) { pdListe.loeschFrage = null; zeichneBlaupausen(); }
+    else if (ui.ziehen && ui.ziehen.gestartet) ziehenAbbrechen();
     else schliesseDesigner();
   } else if (taste === tasteFuer("designer")) {
     schliesseDesigner();
@@ -10059,6 +10405,208 @@ ISO_BAU["blaupause"] = (g) => {
     `<rect x="-38" y="-38" width="36" height="16" fill="${kf("energie", "#e6c34d")}"/><rect x="2" y="-38" width="16" height="36" fill="${kf("displays", "#6fa8dc")}"/><rect x="-38" y="-18" width="36" height="36" fill="${kf("prozessoren", "#b48ad9")}"/>` +
     `<rect x="22" y="-38" width="16" height="16" fill="${kf("kuehlung", "#9fd6e8")}"/><rect x="2" y="2" width="36" height="16" fill="${kf("umwelt", "#8cc96b")}"/><rect x="-38" y="22" width="16" height="16" fill="${kf("audio", "#f2a65a")}"/>`, "oben");
 };
+/* --- Endprodukte: je ein eigenes Iso-Symbol (Schlüssel "ep:<id>", Ids aus ENDPRODUKTE) ---
+   Maßstab wie Kartons/Rohstoffe (Grundfläche ca. −12 … 12). Zeichnungen auf Flächen über auf() mit
+   Maßstab 0.1: 1 Welteinheit = 10 Einheiten der Zeichnung. Reihenfolge = hinten → vorne. */
+const EP_S = 0.1;
+// Zeichnung auf die Deckfläche / Vorderseite links (+y) / rechts (+x) eines Quaders legen
+const epOben = (g, x, y, z, w, d, inner) => g.auf(x + w / 2, y + d / 2, z, EP_S, inner, "oben");
+const epLinks = (g, x, y, z, w, d, h, inner) => g.auf(x + w / 2, y + d, z + h / 2, EP_S, inner, "links");
+const epRechts = (g, x, y, z, w, d, h, inner) => g.auf(x + w, y + d / 2, z + h / 2, EP_S, inner, "rechts");
+const epR = (x, y, w, h, f, rx = 0, extra = "") => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${f}"${extra}/>`;
+const epK = (x, y, r, f, extra = "") => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"${extra}/>`;
+const epT = (x, y, gr, f, text, anker = "middle") => `<text x="${x}" y="${y}" text-anchor="${anker}" font-family="IBM Plex Mono, ui-monospace, monospace" font-weight="700" font-size="${gr}" fill="${f}">${text}</text>`;
+const epL = (d, f, sw) => `<path d="${d}" fill="none" stroke="${f}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+const EP_BAU = {
+  // ---------- T1 ----------
+  taschenrechner(g) {
+    g.quader(-8, -11, 0, 16, 22, 2.6, "#3a4148");
+    let k = epR(-62, -96, 124, 44, "#a9d39c", 6) + epT(54, -62, 30, "#26402a", "3,14", "end");
+    for (let r = 0; r < 5; r++) for (let s = 0; s < 4; s++)
+      k += epR(-62 + s * 32, -38 + r * 28, 26, 22, r === 4 && s === 3 ? "#f08a3c" : s === 3 ? "#9aa6b0" : "#e3e7ea", 4);
+    epOben(g, -8, -11, 2.6, 16, 22, k);
+  },
+  taschenlampe(g) {
+    g.rolle(-12, 6, 0, 5.4, 4.2, "#3b4a5a");
+    g.auf(-3, 0, 9.6, EP_S, epR(-60, -14, 120, 28, "#2c3843", 12), "oben");
+    g.quader(-5, -1.2, 9.3, 3.4, 2.4, 0.9, "#e2523b");
+    g.rolle(6, 12.5, 0, 5.4, 6, "#c8ced3", "#ffe27a");
+  },
+  powerbank(g) {
+    g.quader(-8, -12, 0, 16, 24, 4.5, "#3d464e");
+    epOben(g, -8, -12, 4.5, 16, 24, epR(-70, -110, 140, 220, "#4a545d", 14) +
+      epR(-28, -46, 56, 92, "none", 8, ` stroke="#9ff0b4" stroke-width="7"`) + epR(-12, -58, 24, 12, "#9ff0b4", 3) +
+      epR(-18, -2, 36, 16, "#9ff0b4", 3) + epR(-18, 18, 36, 16, "#9ff0b4", 3) + epR(-18, -22, 36, 16, "#9ff0b4", 3, ` opacity="0.35"`));
+    epLinks(g, -8, -12, 0, 16, 24, 4.5, [-30, -10, 10, 30].map((x, i) => epK(x, 0, 6, i < 3 ? "#6ff09a" : "#2b3238")).join(""));
+    epRechts(g, -8, -12, 0, 16, 24, 4.5, epR(-60, -9, 34, 16, "#15191c", 4) + epR(20, -9, 26, 16, "#15191c", 4));
+  },
+  digitaluhr(g) {
+    g.quader(-3.5, -13, 0, 7, 26, 1.2, "#2d3338");
+    g.quader(-6.5, -6.5, 1.2, 13, 13, 3.8, "#c9ced3");
+    epOben(g, -6.5, -6.5, 5, 13, 13, epR(-54, -54, 108, 108, "#1b2024", 16) + epT(0, 12, 36, "#7df0c8", "12:08") + epR(-34, 26, 68, 8, "#7df0c8", 4, ` opacity="0.45"`));
+    epRechts(g, -6.5, -6.5, 1.2, 13, 13, 3.8, epR(-12, -8, 24, 16, "#8b949b", 4));
+  },
+  kuechenwaage(g) {
+    g.quader(-11, -11, 0, 22, 22, 2.6, "#eceef0");
+    g.quader(-10, -10, 2.6, 20, 20, 0.8, "#b9c6ce", { o: 0.3 });
+    epLinks(g, -11, -11, 0, 22, 22, 2.6, epR(-44, -10, 88, 20, "#1b2024", 4) + epT(30, 7, 17, "#7df0c8", "250 g", "end"));
+    g.kugel(-1, 1, 7, 3.6, "#d9443a");
+    g.quader(-1.3, 0.6, 10.2, 0.6, 0.6, 1.6, "#6b4a2b");
+  },
+  wetterstation(g) {
+    g.quader(-7, -7, 0, 14, 14, 9, "#f1f3f4");
+    epLinks(g, -7, -7, 0, 14, 14, 9, epR(-58, -36, 116, 62, "#1b2024", 8) + epK(-30, -10, 12, "#ffcf4a") +
+      `<path d="M-26,8 a12,12 0 0 1 10,-18 a15,15 0 0 1 26,4 a10,10 0 0 1 2,18 z" fill="#e8eef2"/>` + epT(40, 14, 20, "#7df0c8", "21°", "end"));
+    g.zylinder(2, -2, 9, 0.7, 9, "#9aa3ab");
+    g.quader(-3, -2.3, 17.6, 10, 0.6, 0.6, "#9aa3ab");
+    g.kugel(-3, -2, 18.5, 1.7, "#2f6fd0");
+    g.kugel(7, -2, 18.5, 1.7, "#2f6fd0");
+  },
+  netzgeraet(g) {
+    g.quader(-10, -10, 0, 20, 20, 10, "#4a5560");
+    let rillen = ""; for (let i = 0; i < 6; i++) rillen += epR(-70, -70 + i * 26, 140, 9, "#39424b", 4);
+    epOben(g, -10, -10, 10, 20, 20, rillen);
+    epLinks(g, -10, -10, 0, 20, 20, 10, epR(-88, -40, 104, 38, "#15191c", 5) + epT(-38, -12, 26, "#ff6a4a", "12.0V") +
+      epK(46, -22, 13, "#c9ced3") + epK(46, -22, 5, "#5b636b") + epK(-60, 26, 9, "#e2523b") + epK(-30, 26, 9, "#1b1f22") + epK(10, 26, 9, "#e3e7ea"));
+  },
+  kopfhoerer(g) {
+    g.rolle(-11, -6.5, 0, 5, 5, "#2b2f33", "#c94f4f");
+    g.auf(0, 0, 10, EP_S, epL("M-82,40 A82,86 0 0 1 82,40", "#6b747d", 20) + epL("M-40,-22 A60,46 0 0 1 40,-22", "#c94f4f", 10), "links");
+    g.rolle(6.5, 11, 0, 5, 5, "#2b2f33", "#4a5058");
+  },
+  tastatur(g) {
+    g.quader(-8, -13, 0, 16, 26, 2, "#2c3136");
+    let k = "";
+    for (let r = 0; r < 3; r++) for (let s = 0; s < 11; s++) k += epR(-62 + r * 32, -120 + s * 22, 26, 18, "#dfe3e6", 3);
+    k += epR(34, -120, 26, 40, "#9aa6b0", 3) + epR(34, -74, 26, 104, "#dfe3e6", 3) + epR(34, 36, 26, 40, "#9aa6b0", 3) + epR(34, 82, 26, 18, "#f08a3c", 3);
+    epOben(g, -8, -13, 2, 16, 26, k);
+  },
+  // ---------- T2 ----------
+  digitalkamera(g) {
+    g.quader(-6, -11, 0, 12, 22, 13, "#2a2e33");
+    epLinks(g, -6, -11, 0, 12, 22, 13, epR(-60, -40, 120, 10, "#d9443a", 3));
+    g.zylinder(-2, -7, 13, 1.6, 0.9, "#d0d4d8");
+    g.zylinder(-1, 5, 13, 2.4, 1.1, "#5b636b");
+    epRechts(g, -6, -11, 0, 12, 22, 13, epR(40, -58, 46, 22, "#e8eef2", 3));
+    g.rolle(6, 11, 0, 6.2, 5, "#3a3f45", "#3b6fb3");
+  },
+  spielkonsole(g) {
+    g.quader(-10, -11, 0, 20, 22, 4, "#f2f4f5");
+    epLinks(g, -10, -11, 0, 20, 22, 4, epR(-90, -4, 180, 7, "#3fa9f5", 3));
+    epOben(g, -10, -11, 4, 20, 22, epR(-100, -20, 200, 14, "#1b1f23", 0));
+    g.auf(1.5, 2, 4.05, EP_S, `<path d="M-60,-16 q0,-26 30,-26 h60 q30,0 30,26 l10,34 q4,18 -14,18 q-14,0 -22,-16 h-58 q-8,16 -22,16 q-18,0 -14,-18 z" fill="#2a2f35"/>` +
+      epK(-30, -10, 9, "#4a525a") + epK(28, -16, 5, "#3fa9f5") + epK(40, -4, 5, "#f05a5a") + epK(16, -4, 5, "#7bd46a"), "oben");
+  },
+  fitnesstracker(g) {
+    g.quader(-3, -13, 0, 6, 26, 1, "#e2553f");
+    g.quader(-4, -5, 1, 8, 10, 2.4, "#1e2226");
+    epOben(g, -4, -5, 3.4, 8, 10, epR(-32, -42, 64, 84, "#0f1215", 12) + epL("M-26,8 h12 l6,-20 l10,36 l8,-24 h16", "#6ff09a", 5) +
+      `<path d="M0,-22 c-6,-8 -18,-4 -12,6 l12,10 l12,-10 c6,-10 -6,-14 -12,-6 z" fill="#ff5a6e"/>`);
+  },
+  drohne(g) {
+    const rotor = (x, y) => { g.zylinder(x, y, 3.5, 1, 2, "#33383d"); g.zylinder(x, y, 5.5, 4.4, 0.3, "#9fd6e8", { op: 0.45 }); };
+    rotor(0, -10); rotor(-10, 0);
+    g.quader(-11, -0.8, 3.5, 22, 1.6, 1, "#5b636b");
+    g.quader(-0.8, -11, 3.5, 1.6, 22, 1, "#5b636b");
+    g.quader(-4, -4, 2.5, 8, 8, 3.2, "#e9ecee");
+    epOben(g, -4, -4, 5.7, 8, 8, epK(0, 0, 18, "#e2553f"));
+    g.kugel(3.2, 3.2, 2, 1.7, "#1f2327");
+    rotor(10, 0); rotor(0, 10);
+  },
+  minipc(g) {
+    g.quader(-10, -10, 0, 20, 20, 7, "#3a4048");
+    epOben(g, -10, -10, 7, 20, 20, epR(-92, -92, 184, 184, "#454c55", 24) + [70, 52, 34].map((r) => epK(0, 0, r, "none", ` stroke="#2d3238" stroke-width="7"`)).join(""));
+    epLinks(g, -10, -10, 0, 20, 20, 7, epK(-70, 0, 6, "#3fa9f5") + epR(-40, -8, 26, 14, "#15191c", 3) + epR(-6, -8, 26, 14, "#15191c", 3) + epK(60, 0, 8, "#1b1f22"));
+  },
+  lautsprecher(g) {
+    g.zylinder(0, 0, 0, 8.5, 15, "#33424f");
+    g.zylinder(0, 0, 2.5, 8.6, 10, "#4b5d6c");
+    let punkte = ""; for (let x = -70; x <= 70; x += 14) for (let y = -70; y <= 70; y += 14) if (x * x + y * y < 66 * 66) punkte += epK(x, y, 3.2, "#2a3640");
+    g.auf(0, 0, 15, EP_S, punkte + epK(0, 0, 14, "#62d0ff", ` opacity="0.9"`), "oben");
+  },
+  wlan_router(g) {
+    for (const y of [-8, -1.5, 5]) g.quader(-9.6, y, 3.5, 1.4, 1.4, 12, "#2a2f33");
+    g.quader(-10, -11, 0, 20, 22, 3.5, "#1f2428");
+    epOben(g, -10, -11, 3.5, 20, 22, epR(-60, -20, 120, 40, "#2b3238", 20) + epL("M-22,4 a26,26 0 0 1 44,0 M-12,12 a14,14 0 0 1 24,0", "#62d0ff", 5) + epK(0, 18, 4, "#62d0ff"));
+    epLinks(g, -10, -11, 0, 20, 22, 3.5, [-60, -30, 0, 30, 60].map((x, i) => epK(x, 0, 5, i === 4 ? "#f5b03a" : "#6ff09a")).join(""));
+  },
+  dashcam(g) {
+    g.quader(-2, -2, 9, 4, 4, 5, "#5b636b");
+    g.zylinder(0, 0, 14, 4, 0.8, "#cfd8de", { op: 0.75 });
+    g.quader(-5, -7, 2, 10, 14, 7, "#24282c");
+    epOben(g, -5, -7, 9, 10, 14, epR(-40, -60, 80, 120, "#2e3338", 10));
+    epLinks(g, -5, -7, 2, 10, 14, 7, epK(-30, 0, 6, "#e2523b"));
+    g.rolle(5, 8.5, 0, 5.5, 3.2, "#3a3f45", "#2f6fd0");
+  },
+  ebike_display(g) {
+    g.rolle(-13, 13, -4, 3, 1.4, "#3a3f45");
+    g.quader(-5.5, -2.5, 1.5, 11, 6, 10, "#2a2e33");
+    epLinks(g, -5.5, -2.5, 1.5, 11, 6, 10, epR(-48, -42, 96, 84, "#0f1215", 8) + epT(14, 10, 40, "#7df0c8", "25", "middle") +
+      epT(14, 30, 13, "#7df0c8", "km/h") + [0, 1, 2, 3].map((i) => epR(-38, 26 - i * 16, 14, 11, i < 3 ? "#6ff09a" : "#2b3238", 2)).join(""));
+  },
+  // ---------- T3 ----------
+  smartphone(g) {
+    g.quader(-7, -12, 0, 14, 24, 1.6, "#1b1f23");
+    const grad = g.grad([[0, "#6a5cff"], [0.55, "#2f9bff"], [1, "#22d3c5"]], ...isoP(-7, -12, 1.6), ...isoP(7, 12, 1.6));
+    let k = epR(-62, -112, 124, 224, grad, 14) + epR(-16, -104, 32, 8, "#0d1013", 4);
+    for (let r = 0; r < 4; r++) for (let s = 0; s < 3; s++) k += epR(-46 + s * 34, -78 + r * 34, 24, 24, "#ffffff", 6, ` opacity="0.55"`);
+    epOben(g, -7, -12, 1.6, 14, 24, k);
+  },
+  krypto_wallet(g) {
+    g.quader(-5, -11, 0, 10, 22, 2.2, "#222831");
+    epOben(g, -5, -11, 2.2, 10, 22, epR(-38, -86, 76, 70, "#0f1215", 6) + epL("M-20,-50 h40 M-20,-36 h28", "#6ff09a", 6) +
+      epK(-20, 40, 12, "#5b636b") + epK(20, 40, 12, "#5b636b"));
+    g.zylinder(7, 7, 0, 4.6, 1.2, "#e0b43c");
+    g.auf(7, 7, 1.2, EP_S, epK(0, 0, 32, "none", ` stroke="#b8862a" stroke-width="5"`) + epL("M-8,-18 v36 M-8,-18 h12 q10,0 10,9 q0,9 -10,9 h-12 h14 q10,0 10,9 q0,9 -10,9 h-14", "#8a5f17", 6), "oben");
+  },
+  ki_karte(g) {
+    g.quader(-12, -6, 0, 24, 12, 1, "#2b7a4b");
+    let finger = ""; for (let i = 0; i < 14; i++) finger += epR(-100 + i * 12, -5, 7, 10, "#e0b43c");
+    epLinks(g, -12, -6, 0, 24, 12, 1, finger);
+    g.quader(-11, -5.5, 1, 22, 11, 3.5, "#2d3238");
+    epLinks(g, -11, -5.5, 1, 22, 11, 3.5, epR(-110, -4, 220, 6, "#76e09a", 3));
+    const luefter = epK(0, 0, 44, "#1b1f22") + [0, 60, 120, 180, 240, 300].map((w) => `<path d="M0,0 L36,-10 A38,38 0 0 1 30,22 Z" fill="#4a525a" transform="rotate(${w})"/>`).join("") + epK(0, 0, 10, "#76e09a");
+    g.auf(-5.5, 0, 4.5, EP_S, luefter, "oben");
+    g.auf(5.5, 0, 4.5, EP_S, luefter, "oben");
+  },
+  edge_server(g) {
+    for (const z of [0, 5.3]) {
+      g.quader(-10, -11, z, 20, 22, 5, "#3b434b");
+      epLinks(g, -10, -11, z, 20, 22, 5, [-80, -44, -8].map((x) => epR(x, -14, 30, 28, "#272d33", 3)).join("") + epK(44, -6, 5, "#6ff09a") + epK(62, -6, 5, "#3fa9f5") + epR(36, 6, 40, 6, "#5b636b", 3));
+    }
+    let rillen = ""; for (let i = 0; i < 8; i++) rillen += epR(-80, -96 + i * 26, 160, 8, "#2f363d", 4);
+    epOben(g, -10, -11, 10.3, 20, 22, rillen);
+  },
+  medizingeraet(g) {
+    g.quader(-9, -9, 0, 18, 18, 6, "#eef1f3");
+    epLinks(g, -9, -9, 0, 18, 18, 6, epR(-12, -24, 24, 48, "#e2523b", 2) + epR(-24, -12, 48, 24, "#e2523b", 2));
+    g.quader(-1, -1, 6, 2, 2, 2, "#9aa3ab");
+    g.quader(-7, -3, 8, 14, 2.4, 10, "#d8dde1");
+    epLinks(g, -7, -3, 8, 14, 2.4, 10, epR(-62, -42, 124, 80, "#0f1215", 6) + epL("M-56,0 h30 l8,-22 l10,40 l8,-30 l6,12 h50", "#6ff09a", 5) + epT(54, -22, 16, "#ff6a6a", "72", "end"));
+  },
+  satellit(g) {
+    g.quader(-8, -8, 0, 16, 16, 4, "#d9dde1");
+    epLinks(g, -8, -8, 0, 16, 16, 4, epK(-50, 0, 5, "#6ff09a") + epR(-30, -6, 70, 12, "#9aa3ab", 3));
+    g.zylinder(0, 0, 4, 1.1, 6, "#9aa3ab");
+    g.zylinder(0, 0, 10, 9.5, 1, "#f1f3f4");
+    g.auf(0, 0, 11, EP_S, [80, 56, 32].map((r) => epK(0, 0, r, "none", ` stroke="#c9d1d7" stroke-width="4"`)).join(""), "oben");
+    g.zylinder(0, 0, 11, 0.45, 5, "#7c858c");
+    g.kugel(0, 0, 16.6, 1.3, "#e2553f");
+  },
+  roboter(g) {
+    g.quader(-11, -11, 0, 22, 22, 3, "#3a4048");
+    epLinks(g, -11, -11, 0, 22, 22, 3, epK(-80, 0, 5, "#6ff09a") + epK(-62, 0, 5, "#f5b03a") + epR(30, -5, 70, 10, "#272d33", 3));
+    g.zylinder(-3, -3, 3, 5, 2, "#2a2f35");
+    g.quader(-4.6, -4.6, 5, 3.2, 3.2, 9, "#f2b233");
+    g.kugel(-3, -3, 14.5, 2.5, "#2a2f35");
+    g.quader(-3, -4.6, 13.2, 11, 3.2, 3, "#f2b233");
+    g.kugel(8.5, -3, 14.7, 1.8, "#2a2f35");
+    g.quader(8.6, -4.8, 10.5, 1, 1, 3.6, "#9aa3ab");
+    g.quader(8.6, -2.2, 10.5, 1, 1, 3.6, "#9aa3ab");
+  },
+};
+for (const [id, bau] of Object.entries(EP_BAU)) ISO_BAU["ep:" + id] = bau;
 
 /* --- Item-ID des Spiels → Symbol-Schlüssel ---
    "eisen" → roh:eisen · Komponente → karton:<Kategorie> · "geh_holz" → geh:geh_holz · "p:<id>" → produkt.

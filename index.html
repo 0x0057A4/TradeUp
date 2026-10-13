@@ -3128,6 +3128,15 @@
 .lager-ausgabe-tabelle tr.lager-sort-davor > td, .band-inventar-tabelle tr.lager-sort-davor > td { box-shadow: inset 0 3px #69d3b0; }
 .lager-ausgabe-tabelle tr.lager-sort-dahinter > td, .band-inventar-tabelle tr.lager-sort-dahinter > td { box-shadow: inset 0 -3px #69d3b0; }
 .lager-sort-hinweis { line-height: 1.45; }
+/* 2026-10-13 (Tim): Lager-Tabelle sauber ausgerichtet – Name mittig zur Knopfreihe, Pfeil-Spalten zentriert unter ihrem Kopf */
+.regel-tabelle td .info-item.mit-ware { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
+.regel-tabelle td .lager-sort-griff, .regel-tabelle td .lager-sort-knoepfe { vertical-align: middle; }
+.regel-tabelle th:nth-child(3), .regel-tabelle th:nth-child(4), .regel-tabelle td:nth-child(3), .regel-tabelle td:nth-child(4) { width: 34px; text-align: center; padding-left: 2px; padding-right: 2px; }
+.regel-tabelle th:nth-child(3), .regel-tabelle th:nth-child(4) { font-size: 14px; }
+.regel-tabelle td.zahl { white-space: nowrap; }
+.regel-tabelle td.zahl .fix-knoepfe { align-items: center; }
+.regel-tabelle .max-feld { text-align: center; }
+.regel-tabelle .max-feld::placeholder { text-align: center; opacity: 0.6; }
 </style>
 <style id="tradeup-hud-integration-css">
 /* HUD.html integration layer: keeps the existing game logic/DOM; only the shell and selected-object window move to glass HUD framing. */
@@ -3907,7 +3916,9 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-aktuell .mini-knopf { margin-left: auto; flex: none; }
 .wb-gebraucht { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.16); }
 .wb-gebraucht > small { margin-right: 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
-.wb-kats { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 3px; }
+.wb-kats { display: flex; gap: 3px; }   /* 2026-10-13: immer eine Reihe, gleich breit, kein einzelner Rest in Zeile 2 */
+.wb-kats .wb-kat { flex: 1 1 0; min-width: 0; }
+.wb-kats .wb-kat .kat-grafik { max-width: 100%; height: auto; }
 .wb-kat {
   position: relative; display: grid; justify-items: center; gap: 0; padding: 3px 0 2px; min-width: 0; cursor: pointer;
   font: inherit; color: inherit; background: color-mix(in srgb, var(--kat-farbe) 12%, rgba(255, 255, 255, 0.04));
@@ -3972,7 +3983,7 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-kachel.nicht { opacity: 0.18; cursor: not-allowed; }
 .wb-k-bild { position: relative; grid-row: 1 / span 2; display: grid; place-items: center; }
 .wb-k-schloss { position: absolute; right: -4px; top: -4px; font-size: 10px; line-height: 1; }
-.wb-k-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; font-weight: 600; }
+.wb-k-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; word-break: normal; hyphens: manual; font-weight: 600; }   /* 2026-10-13: an Wortfugen trennen (namenTrennbar) statt „Eisengehäus|e“ */
 .wb-k-fuss { display: flex; align-items: center; justify-content: space-between; gap: 2px; min-width: 0; font-size: 9.5px; opacity: 0.85; font-variant-numeric: tabular-nums; }
 .wb-k-roh { display: flex; gap: 2px; min-width: 0; overflow: hidden; }
 .wb-k-roh > span { display: inline-flex; align-items: center; gap: 0; }
@@ -26027,6 +26038,9 @@ function werkbankKachelTitel(b, kannHier) {
   }
   return teile.join("\n");
 }
+// 2026-10-13 (Tim): Lange Namen in schmalen Kacheln an der Wortfuge trennen („Kunststoff-|gehäuse“), nicht mitten im Wort
+const WORTFUGEN = /(\p{Ll})(gehäuse|modul|prozessor|speicher|einheit|sensor|platine|chip|kern|gatter|array|engine|controller|kamera|antenne|lautsprecher|display|batterie|akku|zelle|kühler|lüfter|motor|getriebe|regler|wandler|filter|schalter|taster|linse|optik|steuerung|empfänger|sender)/giu;
+function namenTrennbar(name) { return htmlSicher(name).replace(WORTFUGEN, "$1\u00AD$2"); }
 // Eine Komponenten-Kachel. klein = Schnellzeile (nur Bild und Name)
 function werkbankKachelHtml(g, b, typ, klein = false, zusatz = "") {
   const kannHier = maschineKann(typ, b.typ);
@@ -26038,7 +26052,7 @@ function werkbankKachelHtml(g, b, typ, klein = false, zusatz = "") {
   return `<button type="button" class="${klassen}" data-aktion="wb-rezept" data-rezept="${b.typ}" style="--tier-farbe:${KOMPONENTEN_MODELLE.tierFarben[tier] || "#8a94a3"}"
       aria-pressed="${aktiv}" ${kannHier ? "" : "disabled"} title="${htmlSicher(werkbankKachelTitel(b, kannHier) + (zusatz ? "\n" + zusatz : ""))}">
       <span class="wb-k-bild">${wareHtml(b.typ, klein ? 24 : 28, b.name)}${gesperrt ? '<span class="wb-k-schloss" aria-hidden="true">🔒</span>' : ""}</span>
-      <span class="wb-k-name">${htmlSicher(b.name)}</span>${roh}</button>`;
+      <span class="wb-k-name">${namenTrennbar(b.name)}</span>${roh}</button>`;
 }
 // Inhalt der gewählten Gruppe: Matrix (Kategorie) bzw. Liste (Gehäuse)
 function werkbankGruppeHtml(g, typ, gruppe) {
@@ -26492,7 +26506,7 @@ function exportKachelHtml(g, item) {
   return `<button type="button" class="wb-kachel ez-kachel${an ? " aktiv" : ""}" data-aktion="ez-ware" data-item="${htmlSicher(item)}" aria-pressed="${an}"
       style="--tier-farbe:${b ? KOMPONENTEN_MODELLE.tierFarben[tier] || "#8a94a3" : info.farbe || "#8a94a3"}"
       title="${htmlSicher(info.name + (an ? " – wird hergebracht (Klick: nicht mehr)" : " – Klick: Kuriere bringen es her"))}">
-      <span class="wb-k-bild">${wareHtml(item, 28, info.name)}</span><span class="wb-k-name">${htmlSicher(info.name)}</span>${an ? '<span class="ez-haken" aria-hidden="true">✓</span>' : ""}</button>`;
+      <span class="wb-k-bild">${wareHtml(item, 28, info.name)}</span><span class="wb-k-name">${namenTrennbar(info.name)}</span>${an ? '<span class="ez-haken" aria-hidden="true">✓</span>' : ""}</button>`;
 }
 function exportWahlHtml(g) {
   const gruppen = exportWahlGruppen().filter((gr) => gr.eintraege.length);

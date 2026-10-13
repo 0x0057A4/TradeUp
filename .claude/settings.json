@@ -11,10 +11,18 @@
         "source": "directory",
         "path": "/mnt/project-files/mods"
       }
+    },
+    "claude-kit": {
+      "source": {
+        "source": "github",
+        "repo": "JohnnyVizz/claude-kit"
+      }
     }
   },
   "enabledPlugins": {
     "filetree@claude-code-filetree": true,
-    "visible-compact@tradeup-mods": true
+    "visible-compact@tradeup-mods": true,
+    "savvy-flow@claude-kit": true,
+    "savvy-progress@claude-kit": true
   }
 }

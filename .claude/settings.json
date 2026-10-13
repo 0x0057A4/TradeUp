@@ -17,12 +17,19 @@
         "source": "github",
         "repo": "JohnnyVizz/claude-kit"
       }
+    },
+    "claude-code-mods": {
+      "source": {
+        "source": "github",
+        "repo": "hamzafer/claude-code-mods"
+      }
     }
   },
   "enabledPlugins": {
     "filetree@claude-code-filetree": true,
     "visible-compact@tradeup-mods": true,
     "savvy-flow@claude-kit": true,
-    "savvy-progress@claude-kit": true
+    "savvy-progress@claude-kit": true,
+    "next-steps@claude-code-mods": true
   }
 }

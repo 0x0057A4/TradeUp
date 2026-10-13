@@ -1,5 +1,23 @@
 {
   "extraKnownMarketplaces": {
+    "claude-code-filetree": {
+      "source": {
+        "source": "github",
+        "repo": "data-goblin/claude-code-filetree"
+      }
+    },
+    "tradeup-mods": {
+      "source": {
+        "source": "directory",
+        "path": "/mnt/project-files/mods"
+      }
+    },
+    "claude-kit": {
+      "source": {
+        "source": "github",
+        "repo": "JohnnyVizz/claude-kit"
+      }
+    },
     "claude-code-mods": {
       "source": {
         "source": "github",
@@ -8,6 +26,10 @@
     }
   },
   "enabledPlugins": {
+    "filetree@claude-code-filetree": true,
+    "visible-compact@tradeup-mods": true,
+    "savvy-flow@claude-kit": true,
+    "savvy-progress@claude-kit": true,
     "next-steps@claude-code-mods": true
   }
 }

@@ -1,14 +1,21 @@
 {
-  "enabledPlugins": {
-    "savvy-flow@claude-kit": true,
-    "savvy-progress@claude-kit": true
-  },
   "extraKnownMarketplaces": {
+    "claude-code-filetree": {
+      "source": {
+        "source": "github",
+        "repo": "data-goblin/claude-code-filetree"
+      }
+    },
     "claude-kit": {
       "source": {
         "source": "github",
         "repo": "JohnnyVizz/claude-kit"
       }
     }
+  },
+  "enabledPlugins": {
+    "filetree@claude-code-filetree": true,
+    "savvy-flow@claude-kit": true,
+    "savvy-progress@claude-kit": true
   }
 }

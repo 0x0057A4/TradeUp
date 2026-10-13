@@ -3938,7 +3938,12 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-liste, .wb-treffer { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 3px; }
 .wb-hinweis { opacity: 0.7; font-size: 10px; }
 /* 2026-10-12 (Tim): Personal als Karten */
-.pk-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 8px; max-height: 440px; overflow: auto; padding: 2px 4px 2px 0; }
+.pk-liste { display: grid; gap: 12px; max-height: 480px; overflow: auto; padding: 2px 4px 2px 0; }
+.pk-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 8px; }
+.pk-abschnitt h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--hud-leise); }
+.pk-abschnitt h4::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.10); }
+.pk-abschnitt h4 span { padding: 1px 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); color: var(--hud-text); font-variant-numeric: tabular-nums; }
+.pk-abschnitt.frei h4 { color: var(--hud-cyan, #29c8e0); }
 .pk-karte { display: grid; gap: 7px; padding: 9px 11px; border-radius: 12px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-left: 3px solid var(--farbe-arbeiter, #6fb3ff); min-width: 0; }
 .pk-karte.kurier { border-left-color: var(--farbe-kurier, #ff9f43); }
 .pk-karte.service { border-left-color: var(--farbe-service, #8be9a8); }
@@ -25299,7 +25304,9 @@ function stelleEntlassFrage(id) {
 }
 function zeichnePersonal() {
   const anzahl = angestellte().length, max = maxMitarbeiter();   // Phase 7a (Nachtrag 2): "Du" zählt nicht mit
-  const zeilen = mitarbeiter.map((p) => {
+  // 2026-10-13 (Tim): Personal in Gruppen – nicht zugewiesen, Kuriere, Arbeiter (Service/Scouts als „Weitere“)
+  const gruppeVon = (p) => p.rolle === "kurier" ? "kurier" : !p.stationId && (p.rolle === "arbeiter" || p.ohneAufgabe) ? "frei" : p.rolle === "arbeiter" ? "arbeiter" : "weitere";
+  const karten = mitarbeiter.map((p) => {
     const station = p.stationId && spiel.gebaeude.get(p.stationId);
     const st = kurierStufe(p);
     const stufe = erfahrungsStufe(p);
@@ -25331,9 +25338,11 @@ function zeichnePersonal() {
       ? `<button class="mini-knopf" type="button" data-aktion="zuArbeiter" title="Wird Arbeiter an einer freien Station (Erfahrung bleibt)">→ Arbeiter</button>`
       : p.istDu ? `<button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier">→ Kurier</button>` : "")
       + (!p.istDu && p.rolle !== "scout" && istErforscht("HR-007") ? `<button class="mini-knopf" type="button" data-aktion="scout" title="Wird Scout am Expeditions-Außenposten (Erfahrung bleibt)">🧭 Scout</button>` : "")   // W3 (M1)
+      + (!p.istDu && p.rolle === "arbeiter" && !p.stationId ? `<button class="mini-knopf" type="button" data-aktion="forschung" title="An die nächste freie Forschungsstation">🔬 Forschung</button><button class="mini-knopf" type="button" data-aktion="logistik" title="Wird Kurier (Erfahrung bleibt)">📦 Kurier</button>` : "")   // 2026-10-13: ersetzt die Liste „Ohne Aufgabe“
       + klonKnopf(p, stufe, anzahl >= max);          // Phase 7d: HR-074
     const einsatz = p.rolle === "kurier" ? `<select class="kw-zuordnung" data-kw-person="${htmlSicher(p.id)}" aria-label="Kurierweg für ${htmlSicher(p.name)}"><option value="">Freie Aufträge</option>${spiel.kurierwege.map(r=>`<option value="${htmlSicher(r.id)}" ${p.kurierwegId===r.id?'selected':''}>${htmlSicher(r.name)}</option>`).join('')}</select>`
       : station ? `<b>${htmlSicher(gebaeudeName(station))}</b>${p.rolle === "scout" ? `<span class="pt-klein">Außenposten</span>` : ""}`
+      : p.rolle === "arbeiter" && freieStationen(null).length ? `<select class="kw-zuordnung" data-aktion="station" aria-label="${htmlSicher(p.name)} an eine Station setzen"><option value="">Station wählen …</option>${freieStationen(null).map((s) => `<option value="${s.id}">${htmlSicher(gebaeudeName(s))}</option>`).join("")}</select>`
       : `<span class="pt-klein">${p.rolle === "scout" ? "kein Außenposten" : "keine Station"}</span>`;
     // 2026-10-12 (Tim): Karte statt enger Tabellenzeile – Kopf (Name, Rolle, Lohn, ✕), Status, Einsatz, Ausrüstung, Aktionen
     const entlassen = p.istDu ? "" : (entlassFrageOffen(p.id)
@@ -25357,6 +25366,11 @@ function zeichnePersonal() {
         ${ausruestung || umschulen || du ? `<div class="pk-fuss">${ausruestung ? `<span class="pk-gruppe"><small>Ausrüstung</small>${ausruestung}</span>` : ""}
           ${umschulen || du ? `<span class="pk-gruppe pk-aktionen"><small>Tätigkeit</small><span class="personal-umschulen">${umschulen}${du}</span></span>` : ""}</div>` : ""}
       </article>`;
+  });
+  const PERSONAL_GRUPPEN = [["frei", "Nicht zugewiesen"], ["kurier", "Kuriere"], ["arbeiter", "Arbeiter"], ["weitere", "Weitere"]];
+  const zeilen = PERSONAL_GRUPPEN.map(([id, titel]) => {
+    const drin = mitarbeiter.map((p, i) => gruppeVon(p) === id ? karten[i] : "").filter(Boolean);
+    return drin.length ? `<section class="pk-abschnitt ${id}"><h4>${titel} <span>${drin.length}</span></h4><div class="pk-raster">${drin.join("")}</div></section>` : "";
   }).join("");
   // 2026-10-12: eigenes Fenster (früher Baumenü-Reiter); morphen statt ersetzen, damit Klicks und Auswahlfelder bleiben
   setzeHtml(ob.personalInhalt, `<div class="personal"><div class="kw-kopf"><b>Mitarbeiter</b><button class="lz-knopf" type="button" data-kw="oeffnen">Kurierwege</button></div>
@@ -25373,7 +25387,6 @@ function zeichnePersonal() {
       </div>
       <label class="personal-auto"><input type="checkbox" data-aktion="autoZuweisung" ${spiel.autoZuweisung ? "checked" : ""}>
         Freie Arbeiter gehen selbst an freie Stationen</label>
-      ${ohneAufgabeHtml()}
       <div class="pk-liste">${zeilen || `<p class="info-leer">Noch niemand eingestellt.</p>`}</div>
     </div>`);
 }
@@ -29796,7 +29809,7 @@ function ohneAufgabeHtml() {
 ob.personalInhalt.addEventListener("change", (e) => {   // 2026-10-12: Personal-Fenster statt Baumenü
   const feld = e.target;
   if (feld.dataset.aktion === "station" && feld.value) {
-    const p = mitarbeiter.find((m) => m.id === feld.closest("li").dataset.id);
+    const p = mitarbeiter.find((m) => m.id === feld.closest("[data-id]").dataset.id);   // Liste „Ohne Aufgabe“ und Karten
     const s = spiel.gebaeude.get(feld.value);
     if (p && s && weiseZu(p.id, s.id)) zeigeMeldung(`${p.name} arbeitet jetzt an ${gebaeudeName(s)}.`);
     feld.blur();
@@ -31935,9 +31948,13 @@ const HUD_SYMBOLE = (() => {
   };
   BAU["optionen"] = (g) => {
     const p = []; for (let i = 0; i < 32; i++) { const w = (i / 32) * Math.PI * 2, zahn = i % 4 < 2; p.push(z2(Math.cos(w) * (zahn ? 48 : 36)) + "," + z2(Math.sin(w) * (zahn ? 48 : 36))); }
-    for (let k = 0; k < 6; k++) g.auf(0, 0, k * 0.9, 0.25, `<polygon points="${p.join(" ")}" fill="#4a535a" stroke="#2a3036" stroke-width="1"/>`);
-    g.auf(0, 0, 5.4, 0.25, `<polygon points="${p.join(" ")}" fill="#a7b0b6" stroke="#5f6a73" stroke-width="1.5"/><circle r="16" fill="#2a3036"/><circle r="24" fill="none" stroke="#cfd5d8" stroke-width="3"/>`);
-    g.merk(...P(-12, -12, 0)); g.merk(...P(12, 12, 0)); g.merk(...P(12, -12, 6)); g.merk(...P(-12, 12, 6));
+    // 2026-10-13 (Tim: „Zahnrad derzeit flach“): dickeres Zahnrad mit sichtbarer Flanke, heller Stirnseite und gelber Nabe
+    const H = 9;
+    for (let k = 0; k <= 12; k++) { const t = k / 12; g.auf(0, 0, t * H, 0.25, `<polygon points="${p.join(" ")}" fill="${t < 0.5 ? "#2f363c" : "#454e55"}" stroke="#1d2226" stroke-width="${k === 0 ? 2 : 0.6}"/>`); }
+    g.auf(0, 0, H, 0.25, `<polygon points="${p.join(" ")}" fill="#d3dade" stroke="#6c7880" stroke-width="2"/><circle r="27" fill="none" stroke="#f4f7f8" stroke-width="4"/><circle r="27" fill="none" stroke="#9aa6ad" stroke-width="1.2"/>`);
+    g.zylinder(0, 0, H, 4.6, 2.4, "#f2b233");
+    g.zylinder(0, 0, H + 2.4, 2.2, 0.6, "#2a3036");
+    g.merk(...P(-12, -12, 0)); g.merk(...P(12, 12, 0)); g.merk(...P(12, -12, H + 3)); g.merk(...P(-12, 12, H + 3));
   };
 
   // Flache Glyphen für Werte und Befehle (24er-Raster, 2 px Strich)
@@ -32090,6 +32107,7 @@ const HUD_CSS = `
   .taste.gross .ic { width: 30px; height: 30px; }
   .taste .gl { width: 16px; height: 16px; }
   #th-theme .gl { width: 18px; height: 18px; }
+  .taste.gross .zahnrad-3d { width: 26px; height: 26px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.5)); }   /* 2026-10-13: Zahnrad mit Tiefe statt flach liegend */
 
   /* ===================== Meldungen (Hinweise zwischen den Leitständen) ===================== */
   .meldeleiste { flex: 1 1 auto; min-width: 0; display: flex; justify-content: center; gap: 6px; padding: 9px 4px 16px; margin-bottom: -16px; overflow: hidden; }
@@ -32284,7 +32302,7 @@ const HUD_MARKUP = (() => {
       <button class="taste" type="button" data-speed="2" aria-label="Doppelt" title="Doppeltes Tempo (2)">${glyphe("ff")}</button>
       <button class="taste" type="button" data-speed="3" aria-label="Dreifach" title="Dreifaches Tempo (3)">${glyphe("fff")}</button>
     </div>
-    <button class="taste gross" type="button" data-hud-action="optionen" title="Einstellungen (O)" aria-label="Einstellungen">${iso("optionen")}</button>
+    <button class="taste gross" type="button" data-hud-action="optionen" title="Einstellungen (O)" aria-label="Einstellungen"><svg class="zahnrad-3d" viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><g transform="translate(2.6 3)"><polygon points="23.00,12.00 22.91,13.44 22.63,14.85 19.95,15.29 19.45,16.30 18.82,17.24 19.78,19.78 18.70,20.73 17.50,21.53 15.29,19.95 14.23,20.31 13.12,20.53 12.00,23.00 10.56,22.91 9.15,22.63 8.71,19.95 7.70,19.45 6.76,18.82 4.22,19.78 3.27,18.70 2.47,17.50 4.05,15.29 3.69,14.23 3.47,13.12 1.00,12.00 1.09,10.56 1.37,9.15 4.05,8.71 4.55,7.70 5.18,6.76 4.22,4.22 5.30,3.27 6.50,2.47 8.71,4.05 9.77,3.69 10.88,3.47 12.00,1.00 13.44,1.09 14.85,1.37 15.29,4.05 16.30,4.55 17.24,5.18 19.78,4.22 20.73,5.30 21.53,6.50 19.95,8.71 20.31,9.77 20.53,10.88" fill="#0f1316"/></g><g transform="translate(1.8 2.1)"><polygon points="23.00,12.00 22.91,13.44 22.63,14.85 19.95,15.29 19.45,16.30 18.82,17.24 19.78,19.78 18.70,20.73 17.50,21.53 15.29,19.95 14.23,20.31 13.12,20.53 12.00,23.00 10.56,22.91 9.15,22.63 8.71,19.95 7.70,19.45 6.76,18.82 4.22,19.78 3.27,18.70 2.47,17.50 4.05,15.29 3.69,14.23 3.47,13.12 1.00,12.00 1.09,10.56 1.37,9.15 4.05,8.71 4.55,7.70 5.18,6.76 4.22,4.22 5.30,3.27 6.50,2.47 8.71,4.05 9.77,3.69 10.88,3.47 12.00,1.00 13.44,1.09 14.85,1.37 15.29,4.05 16.30,4.55 17.24,5.18 19.78,4.22 20.73,5.30 21.53,6.50 19.95,8.71 20.31,9.77 20.53,10.88" fill="#4b555c"/></g><g transform="translate(1 1.2)"><polygon points="23.00,12.00 22.91,13.44 22.63,14.85 19.95,15.29 19.45,16.30 18.82,17.24 19.78,19.78 18.70,20.73 17.50,21.53 15.29,19.95 14.23,20.31 13.12,20.53 12.00,23.00 10.56,22.91 9.15,22.63 8.71,19.95 7.70,19.45 6.76,18.82 4.22,19.78 3.27,18.70 2.47,17.50 4.05,15.29 3.69,14.23 3.47,13.12 1.00,12.00 1.09,10.56 1.37,9.15 4.05,8.71 4.55,7.70 5.18,6.76 4.22,4.22 5.30,3.27 6.50,2.47 8.71,4.05 9.77,3.69 10.88,3.47 12.00,1.00 13.44,1.09 14.85,1.37 15.29,4.05 16.30,4.55 17.24,5.18 19.78,4.22 20.73,5.30 21.53,6.50 19.95,8.71 20.31,9.77 20.53,10.88" fill="#6d7880"/></g><defs><linearGradient id="zahnrad-stirn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4f7f8"/><stop offset="1" stop-color="#aeb8be"/></linearGradient></defs><g transform="translate(0.2 0.4)"><polygon points="23.00,12.00 22.91,13.44 22.63,14.85 19.95,15.29 19.45,16.30 18.82,17.24 19.78,19.78 18.70,20.73 17.50,21.53 15.29,19.95 14.23,20.31 13.12,20.53 12.00,23.00 10.56,22.91 9.15,22.63 8.71,19.95 7.70,19.45 6.76,18.82 4.22,19.78 3.27,18.70 2.47,17.50 4.05,15.29 3.69,14.23 3.47,13.12 1.00,12.00 1.09,10.56 1.37,9.15 4.05,8.71 4.55,7.70 5.18,6.76 4.22,4.22 5.30,3.27 6.50,2.47 8.71,4.05 9.77,3.69 10.88,3.47 12.00,1.00 13.44,1.09 14.85,1.37 15.29,4.05 16.30,4.55 17.24,5.18 19.78,4.22 20.73,5.30 21.53,6.50 19.95,8.71 20.31,9.77 20.53,10.88" fill="url(#zahnrad-stirn)" stroke="#5f6a73" stroke-width="0.5"/><circle cx="12" cy="12" r="4.6" fill="#f2b233" stroke="#8a6a10" stroke-width="0.6"/><circle cx="12" cy="12" r="2" fill="#2a3036"/></g></svg></button>
     <button class="taste gross theme-toggle" id="th-theme" type="button" aria-label="HUD-Farbmodus wechseln" aria-pressed="true" title="Tagschicht / Nachtschicht">${glyphe("mond", ' id="th-theme-icon"')}</button>
   </div>
 </div>

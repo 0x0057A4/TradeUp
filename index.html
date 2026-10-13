@@ -6043,7 +6043,7 @@ const BAENDER = {
   umsortierTeile: 3,        // ... und wie viele gerade Bandteile dahinter durchsucht werden
   mindestAbstand:   0.5,   // Abstand zwischen zwei Items auf einem Band (0,5 = 2 Items pro Kachel)
   knotenTempo:      2.5,   // so schnell (Kacheln/s) laufen Items durch Splitter und Zusammenführungen
-  senkePuffer:      6,     // 2026-10-12: so viele Stück dürfen gleichzeitig zu einem Lager/einer Exportzone unterwegs sein (Weg ohne Maschine)
+  senkePuffer:      60,    // so viele Stück dürfen gleichzeitig zu einem Lager/einer Exportzone unterwegs sein (Weg ohne Maschine; 2026-10-13: 6 bremste)
   stauWarnung:      5,     // nach so vielen Sekunden Stillstand am Ende zeigt das Segment "Stau"
   greifZyklus:      1.2,   // Sekunden für einen Greifarm-Zyklus (greifen, schwenken, ablegen)
   bandVersorgtSek:  60,    // so lange nach der letzten Band-Lieferung gilt ein Material als "vom Band versorgt" (Kuriere bringen es dann nicht)
@@ -16317,8 +16317,10 @@ function bedarfFehlt(g, item, res) {
 function bedarfWaehle(t, kandidaten, start = bedarfStart(t)) {
   const res = reservierungen(), maschinen = new Map(), quelle = bedarfQuelleId(t);
   const stationen = new Map(), senken = new Map();
+  let irgendeinZiel = false;
   for (const item of kandidaten) for (const [id, route] of bedarfZiele(start, item, t.richtung)) {
     if (id === quelle) continue;
+    irgendeinZiel = true;
     const fehlt = zielFehlt(route, item, res);
     if (fehlt <= 0) continue;
     if (route.weg.some((b) => bandInventar(b).anzahl >= 25 || (istSpur(b) && bandTempo(b) <= 0))) continue;
@@ -16330,6 +16332,14 @@ function bedarfWaehle(t, kandidaten, start = bedarfStart(t)) {
   // Maschinen gehen vor; Senken (Lager, Exportzone) nur, wenn keine Maschine auf dem Weg etwas braucht.
   const choices = stationen.size ? stationen : senken;
   const ids = [...choices.keys()].sort();
+  // 2026-10-13 (Tim): Von Hand gelegter Weg ohne erkennbares Ziel (z. B. Band endet frei oder an einem Arm,
+  // der ins Leere greift): Ware läuft trotzdem, reihum, bis das Band voll ist. Erreicht der Weg irgendein Ziel,
+  // gilt weiter die Bedarfslogik (kein Fluten von Maschinenstrecken).
+  if (!ids.length && !irgendeinZiel && kandidaten.length) {
+    const ab = (kandidaten.indexOf(t.freiLetztes) + 1) % kandidaten.length;
+    t.freiLetztes = kandidaten[ab];
+    return { item: kandidaten[ab], bedarfZiel: null };
+  }
   if (!ids.length) return null;
   const id = ids.find((id) => id > (t.bedarfLetztesZiel || "")) || ids[0];
   // 2026-10-12 Satzweise: die Ware, von der im Rezeptverhältnis am meisten fehlt (Si, KS, Glas, Si, KS, Glas …);

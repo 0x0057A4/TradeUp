@@ -6,6 +6,12 @@
         "repo": "data-goblin/claude-code-filetree"
       }
     },
+    "tradeup-mods": {
+      "source": {
+        "source": "directory",
+        "path": "/mnt/project-files/mods"
+      }
+    },
     "claude-kit": {
       "source": {
         "source": "github",
@@ -15,6 +21,7 @@
   },
   "enabledPlugins": {
     "filetree@claude-code-filetree": true,
+    "visible-compact@tradeup-mods": true,
     "savvy-flow@claude-kit": true,
     "savvy-progress@claude-kit": true
   }

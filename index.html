@@ -3918,7 +3918,8 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .wb-gebraucht > small { margin-right: 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
 .wb-kats { display: flex; gap: 3px; }   /* 2026-10-13: immer eine Reihe, gleich breit, kein einzelner Rest in Zeile 2 */
 .wb-kats .wb-kat { flex: 1 1 0; min-width: 0; }
-.wb-kats .wb-kat .kat-grafik { max-width: 100%; height: auto; }
+.wb-kats .wb-kat { display: grid; place-items: center; justify-items: center; padding: 4px 0; text-align: center; }   /* 2026-10-13: Symbol mittig in der Kachel */
+.wb-kats .wb-kat .kat-grafik { width: 26px; height: 26px; max-width: calc(100% - 4px); margin: 0 auto; justify-self: center; }
 .wb-kat {
   position: relative; display: grid; justify-items: center; gap: 0; padding: 3px 0 2px; min-width: 0; cursor: pointer;
   font: inherit; color: inherit; background: color-mix(in srgb, var(--kat-farbe) 12%, rgba(255, 255, 255, 0.04));
@@ -3944,6 +3945,13 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 .pk-abschnitt h4::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.10); }
 .pk-abschnitt h4 span { padding: 1px 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); color: var(--hud-text); font-variant-numeric: tabular-nums; }
 .pk-abschnitt.frei h4 { color: var(--hud-cyan, #29c8e0); }
+.pk-filter { display: flex; flex-wrap: wrap; gap: 4px; position: sticky; top: 0; z-index: 1; padding: 2px 0 6px; background: inherit; }
+.pk-filter-knopf { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; cursor: pointer; font: inherit; font-size: 0.72rem; font-weight: 600;
+  color: var(--hud-text, #e8edf0); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); }
+.pk-filter-knopf span { padding: 0 6px; border-radius: 99px; background: rgba(255, 255, 255, 0.10); font-variant-numeric: tabular-nums; }
+.pk-filter-knopf:hover { background: rgba(255, 255, 255, 0.11); }
+.pk-filter-knopf[aria-selected="true"] { color: #1d2226; background: var(--schiene, #f5c518); border-color: var(--schiene, #f5c518); }
+.pk-filter-knopf[aria-selected="true"] span { background: rgba(0, 0, 0, 0.15); }
 .pk-karte { display: grid; gap: 7px; padding: 9px 11px; border-radius: 12px; background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.10); border-left: 3px solid var(--farbe-arbeiter, #6fb3ff); min-width: 0; }
 .pk-karte.kurier { border-left-color: var(--farbe-kurier, #ff9f43); }
 .pk-karte.service { border-left-color: var(--farbe-service, #8be9a8); }
@@ -10343,9 +10351,13 @@ function torErlaubt(g, art, innen, aussen) {
 function bringZugang(g) { return toreVon(g)?.ein.aussen || g.zugang; }
 function holZugang(g) { return toreVon(g)?.aus.aussen || g.zugang; }
 // Läuft diese Station ohne Arbeiter? (Maschine oder Werkbank mit Gigafactory-Forschung)
+// 2026-10-13 (Tim): Wird ein Mitarbeiter von Hand an eine Werkbank/einen Montagetisch gesetzt, arbeitet er dort –
+// auch wenn die Station sonst automatisch (Bänder, Gigafactory) laufen würde. Geht er weg, gilt wieder die Automatik.
+function imHandbetrieb(s) { return !!s && !!s.handbetriebPerson && s.handbetriebPerson === s.arbeiterId && !istMaschine(s); }
 function laeuftOhnePersonal(s) {
   if (!s || !istStation(s)) return false;
   if (istMaschine(s)) return true;
+  if (imHandbetrieb(s)) return false;
   return typVon(s).art === "werkbank" && istErforscht(GIGAFACTORY.forschung);
 }
 // Tempo-Faktor auf die Arbeitszeit (Maschinen; sonst 1)
@@ -10844,6 +10856,7 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     fortschritt: Math.max(0, Math.min(1, Number(extra.fortschritt) || 0)),
     autoRezept: extra.autoRezept ? JSON.parse(JSON.stringify(extra.autoRezept)) : null,
     arbeiterId: null,
+    handbetriebPerson: typeof extra.handbetriebPerson === "string" ? extra.handbetriebPerson : null,   // 2026-10-13: von Hand gesetzter Arbeiter
     status: "",
     version: 0,
     modus: STANDARD_LAGER_MODUS,   // Phase 7a: immer "Gemischt" (alte Spielstände mit Eingang/Ausgang werden umgestellt)
@@ -11804,7 +11817,9 @@ function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
   const p = mitarbeiter.find((m) => m.id === personId);
   if (!p || p.rolle !== "arbeiter") return false;
   const neu = stationId ? spiel.gebaeude.get(stationId) : null;
-  if (stationId && (!neu || !istStation(neu) || neu.automatik || laeuftOhnePersonal(neu))) return false;   // Phase 6: Automatik braucht niemanden (7d: Maschinen)
+  if (stationId && (!neu || !istStation(neu) || istMaschine(neu))) return false;   // Maschinen haben keinen Arbeitsplatz
+  // Automatik braucht niemanden – außer du setzt jemanden bewusst hin (Handbetrieb, 2026-10-13)
+  if (stationId && (neu.automatik || laeuftOhnePersonal(neu)) && vonSelbst) return false;
   if (neu && typVon(neu).art === "aussenposten") return false;   // W3 (M1): am Außenposten arbeiten nur Scouts
   if (neu && istForschungsstation(neu) && !forscherErlaubt()) return false;      // Phase 7d: HR-003 "Rolle: Forscher"
   if (neu) delete spiel.forschung.overseer[p.id];  // Phase 7d: kein Overseer mehr
@@ -11820,6 +11835,7 @@ function weiseZu(personId, stationId, { vonSelbst = false } = {}) {
   p.stationId = neu ? neu.id : null;
   p.manuellFrei = !neu;                            // bewusst ohne Station: nicht automatisch neu zuordnen
   if (neu) neu.arbeiterId = p.id;
+  if (neu && !vonSelbst) neu.handbetriebPerson = p.id;   // von Hand gesetzt: arbeitet auch an einer Automatik-Station
   meldeStruktur();
   return true;
 }
@@ -13233,6 +13249,7 @@ function spielstandDaten() {
       // Phase 5b: Eingangsfach (Phase 6: plus Material, das eine Automatik-Station gerade verarbeitet)
       eingang: g.eingang, autoRezept: g.autoRezept || null, fortschritt: g.fortschritt || 0,
       expedition: g.expedition || undefined,   // W3 (M1): laufende Expedition am Außenposten
+      handbetriebPerson: g.handbetriebPerson || undefined,   // 2026-10-13: Handbetrieb an Automatik-Station
     })),
     // Phase 6: Hallenausbau, Bänder, Greifarme
     halle: { stufe: spiel.halleStufe },
@@ -17532,7 +17549,7 @@ function aktualisiereAutomatik() {
   for (const s of gebaeudeListe(istStation)) {
     // Phase 7d: Maschinen (und mit PROD-072 alle Werkbänke) laufen immer automatisch
     const ohnePersonal = laeuftOhnePersonal(s);
-    const an = ohnePersonal || (!!s.bandZulauf && (typVon(s).art === "forschung" || !!s.bandAblauf));
+    const an = !imHandbetrieb(s) && (ohnePersonal || (!!s.bandZulauf && (typVon(s).art === "forschung" || !!s.bandAblauf)));
     if (an === !!s.automatik) continue;
     s.automatik = an;
     if (an) {
@@ -25240,7 +25257,7 @@ kwOverlay.addEventListener('dragstart',e=>{
 kwOverlay.addEventListener('dragover',e=>{if(kwZiehen!==null&&e.target.closest('[data-kw-stopp]')){e.preventDefault();e.dataTransfer.dropEffect='move';}});
 kwOverlay.addEventListener('drop',e=>{const c=e.target.closest('[data-kw-stopp]');if(kwZiehen!==null&&c){e.preventDefault();const von=kwZiehen;kwZiehen=null;kwVerschiebe(von,Number(c.dataset.kwStopp));}});
 kwOverlay.addEventListener('dragend',()=>{kwZiehen=null;kwFenster.querySelectorAll('.kw-dragging').forEach(e=>e.classList.remove('kw-dragging'));});
-$("personal-inhalt").addEventListener('click',e=>{if(e.target.closest('[data-kw="oeffnen"]'))oeffneKurierwege();});   // 2026-10-12: Personal-Fenster
+$("personal-inhalt").addEventListener('click',e=>{if(e.target.closest('[data-kw="oeffnen"]'))oeffneKurierwege();const f=e.target.closest('[data-personal-filter]');if(f){personalFilter=f.dataset.personalFilter;zeichnePersonal();}});   // 2026-10-12: Personal-Fenster
 $("personal-inhalt").addEventListener('change',e=>{if(e.target.matches('[data-kw-person]')){weiseKurierwegZu(e.target.dataset.kwPerson,e.target.value);zeichnePersonal();}});
 function benenneGebaeude(id,name) {
   const g=spiel.gebaeude.get(id);if(!g||typeof name!=='string')return false;
@@ -25302,10 +25319,17 @@ function stelleEntlassFrage(id) {
   clearTimeout(entlassFrage.timer);
   entlassFrage.timer = setTimeout(() => { if (personalOffen) zeichnePersonal(); }, 3100);
 }
+let personalFilter = "";   // "", "frei", "kurier", "forschung", "arbeiter", "weitere"
 function zeichnePersonal() {
   const anzahl = angestellte().length, max = maxMitarbeiter();   // Phase 7a (Nachtrag 2): "Du" zählt nicht mit
   // 2026-10-13 (Tim): Personal in Gruppen – nicht zugewiesen, Kuriere, Arbeiter (Service/Scouts als „Weitere“)
-  const gruppeVon = (p) => p.rolle === "kurier" ? "kurier" : !p.stationId && (p.rolle === "arbeiter" || p.ohneAufgabe) ? "frei" : p.rolle === "arbeiter" ? "arbeiter" : "weitere";
+  const gruppeVon = (p) => {
+    if (p.rolle === "kurier") return "kurier";
+    if (!p.stationId && (p.rolle === "arbeiter" || p.ohneAufgabe)) return "frei";
+    const st = p.stationId && spiel.gebaeude.get(p.stationId);
+    if (st && istForschungsstation(st)) return "forschung";
+    return p.rolle === "arbeiter" ? "arbeiter" : "weitere";
+  };
   const karten = mitarbeiter.map((p) => {
     const station = p.stationId && spiel.gebaeude.get(p.stationId);
     const st = kurierStufe(p);
@@ -25367,9 +25391,16 @@ function zeichnePersonal() {
           ${umschulen || du ? `<span class="pk-gruppe pk-aktionen"><small>Tätigkeit</small><span class="personal-umschulen">${umschulen}${du}</span></span>` : ""}</div>` : ""}
       </article>`;
   });
-  const PERSONAL_GRUPPEN = [["frei", "Nicht zugewiesen"], ["kurier", "Kuriere"], ["arbeiter", "Arbeiter"], ["weitere", "Weitere"]];
-  const zeilen = PERSONAL_GRUPPEN.map(([id, titel]) => {
+  const PERSONAL_GRUPPEN = [["frei", "Nicht zugewiesen"], ["kurier", "Kuriere"], ["forschung", "Forschung"], ["arbeiter", "Arbeiter"], ["weitere", "Weitere"]];
+  // 2026-10-13 (Tim): Filter-Leiste – Alle / Nicht zugewiesen / Kuriere / Forschung / Arbeiter
+  const anzahlIn = (id) => mitarbeiter.filter((p) => gruppeVon(p) === id).length;
+  if (personalFilter && !anzahlIn(personalFilter) && personalFilter !== "frei") personalFilter = "";
+  const filterLeiste = `<div class="pk-filter" role="tablist" aria-label="Personal filtern">` +
+    [["", "Alle", mitarbeiter.length], ...PERSONAL_GRUPPEN.filter(([id]) => id !== "weitere" || anzahlIn(id)).map(([id, titel]) => [id, titel, anzahlIn(id)])]
+      .map(([id, titel, n]) => `<button type="button" role="tab" class="pk-filter-knopf ${id || "alle"}" data-personal-filter="${id}" aria-selected="${personalFilter === id}">${titel} <span>${n}</span></button>`).join("") + `</div>`;
+  const zeilen = filterLeiste + PERSONAL_GRUPPEN.filter(([id]) => !personalFilter || personalFilter === id).map(([id, titel]) => {
     const drin = mitarbeiter.map((p, i) => gruppeVon(p) === id ? karten[i] : "").filter(Boolean);
+    if (!drin.length && personalFilter === id) return `<p class="info-leer">Niemand in „${titel}“.</p>`;
     return drin.length ? `<section class="pk-abschnitt ${id}"><h4>${titel} <span>${drin.length}</span></h4><div class="pk-raster">${drin.join("")}</div></section>` : "";
   }).join("");
   // 2026-10-12: eigenes Fenster (früher Baumenü-Reiter); morphen statt ersetzen, damit Klicks und Auswahlfelder bleiben
@@ -30136,7 +30167,7 @@ function zugZiel(k) {
   const g = gebaeudeUnter(k);
   if (!g) return null;
   if (!istStation(g)) return { g, passt: false, grund: `${gebaeudeName(g)} ist keine Station – Mitarbeiter arbeiten an Werkbank, Montagetisch oder Forschungsstation.` };
-  if (g.automatik) return { g, passt: false, grund: `${gebaeudeName(g)} läuft automatisch über Bänder und braucht niemanden.` };
+  if (istMaschine(g)) return { g, passt: false, grund: `${gebaeudeName(g)} ist eine Maschine und arbeitet ohne Personal.` };
   return { g, passt: true };
 }
 

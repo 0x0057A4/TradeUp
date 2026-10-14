@@ -4822,7 +4822,7 @@ const GRAFIK = {
   greifRadius:    0.45,     // Phase 7a: so nah (in Kacheln) muss die Maus an einem Mitarbeiter sein, um ihn zu greifen
 
   // --- Spielfigur (Phase 2) ---
-  figurGroesse:      0.8,       // Höhe der Figur in Kacheln
+  figurGroesse:      1.25,      // Höhe der Figur in Kacheln (2026-10-14, Tim: Personen größer, vorher 0.8)
   farbeFigurKoerper: "#4a7fc1", // Arbeitskleidung (Blau)
   farbeFigurHaut:    "#f2c9a0", // Kopf und Hände
   farbeFigurHelm:    "#f5c542", // Bauhelm (Gelb)
@@ -13358,24 +13358,67 @@ function kurierwegWeiter(p,hinweis='') {
 function kwPlaneAufnahme(p,r,index,s,g,res,auftrag=null) {
   let frei=Math.max(0,traglastVon(p)-summe(p.traegt));
   const items={},ziele={};
-  for(const {item,menge} of s.ressourcen) {
-    const z=kurierwegZiel(p,item,(index+1)%r.stopps.length);
-    if(!z || zugangGesperrt(z.g) || frei<=0)continue;
-    if(auftrag && !(auftrag.items?.[item]>0))continue;
+  // Wie viel von item kann jetzt höchstens mit (ohne Rücksicht auf die Traglast)?
+  const moeglich=(item,menge,z)=>{
     const schon=items[item]||0;
-    const m=Math.min(traglastFuerItem(item,frei),
-      (menge??Infinity)-schon,
+    return Math.min((menge??Infinity)-schon,
       auftrag ? auftrag.items[item]-schon : Infinity,
       kurierwegAufnahme(g,item,res),
       z.menge!=null ? kurierwegAbgabe(z.g,item,res,true)
-        : kurierwegAutoZiele(p,item,(index+1)%r.stopps.length).reduce((t,a)=>t+kurierwegAbgabe(a.g,item,res),0),
+        : kurierwegAutoZiele(p,item,(index+1)%r.stopps.length).reduce((t,a)=>t+kwAutoAbgabe(a,item,res,r),0),
       Math.max(0,(z.menge??Infinity)-(p.traegt[item]||0)-schon));
-    if(!(m>0))continue;
-    items[item]=schon+m; ziele[item]={zielId:z.g.id,zielFach:z.fach}; frei-=m;
+  };
+  const nimm=(item,m,z)=>{
+    m=Math.min(traglastFuerItem(item,frei),m);
+    if(!(m>0))return;
+    items[item]=(items[item]||0)+m; ziele[item]={zielId:z.g.id,zielFach:z.fach}; frei-=m;
     kwVormerken(res,'raus',fachSchluessel(g.id,'bestand'),item,m);
     kwVormerken(res,'rein',fachSchluessel(z.g.id,z.fach),item,m);
+  };
+  const kandidaten=[];
+  for(const {item,menge} of s.ressourcen) {
+    const z=kurierwegZiel(p,item,(index+1)%r.stopps.length);
+    if(!z || zugangGesperrt(z.g))continue;
+    if(auftrag && !(auftrag.items?.[item]>0))continue;
+    kandidaten.push({item,menge,z});
   }
+  // 2026-10-14 (Tim): Nicht mehr stur in der Reihenfolge der Route laden (sonst trägt der Kurier ewig die erste
+  // Ware und die letzte kommt nie an). Zuerst, worauf ein Arbeiter am Ziel wartet, dann die am Ziel knappste Ware.
+  // Erster Durchgang: jede Ware höchstens ihr gleicher Anteil an der Traglast; zweiter Durchgang: Rest auffüllen.
+  if(!auftrag && kandidaten.length>1) {
+    const wartet=kwWartendeWaren();
+    const vorrat=(k)=>(k.z.g[k.z.fach==='eingang'?'eingang':'bestand'][k.item]||0)+reserviert(res.rein,fachSchluessel(k.z.g.id,k.z.fach),k.item);
+    kandidaten.forEach((k,i)=>{k.rang=i;k.wartet=wartet.has(k.z.g.id+'|'+k.item)?0:1;k.vorrat=vorrat(k);});
+    kandidaten.sort((a,b)=>a.wartet-b.wartet||a.vorrat-b.vorrat||a.rang-b.rang);
+    const moegliche=kandidaten.filter(k=>moeglich(k.item,k.menge,k.z)>0);
+    const anteil=Math.ceil(frei/Math.max(1,moegliche.length));
+    for(const k of moegliche){ if(frei<=0)break; nimm(k.item,Math.min(anteil,moeglich(k.item,k.menge,k.z)),k.z); }
+  }
+  for(const k of kandidaten){ if(frei<=0)break; nimm(k.item,moeglich(k.item,k.menge,k.z),k.z); }
   return {items,ziele};
+}
+// Waren, auf die gerade ein Arbeiter an seiner Quelle wartet: Set "Gebäude-Id|Item"
+function kwWartendeWaren() {
+  const set=new Set();
+  for(const m of mitarbeiter) {
+    const a=m.auftrag;
+    if(m.phase!=='wartetMaterial' || !a?.rezept || !a.quelleId)continue;
+    for(const item of Object.keys(a.rezept.eingaben||{}))set.add(a.quelleId+'|'+item);
+  }
+  return set;
+}
+// Auto-Menge für ein Liefer-Ziel. 2026-10-14 (Tim): Ein Lager (Hauptlager) ohne eingetipptes Max bekommt je Ware
+// höchstens den gleichen Anteil am Platz (Kapazität ÷ Auto-Waren dieses Stopps) – sonst füllt die erste Ware das
+// Lager allein und für die übrigen bleibt kein Platz.
+function kwAutoAbgabe(a,item,res,r) {
+  const menge=kurierwegAbgabe(a.g,item,res);
+  if(!istHauptlager(a.g) || maxVon(a.g,item)!==Infinity)return menge;
+  const stopp=r?.stopps[a.index];
+  const anzahl=stopp ? stopp.ressourcen.filter((e)=>e.menge==null).length : 1;
+  if(anzahl<2)return menge;
+  const anteil=Math.floor(kapazitaetVon(a.g)/anzahl/Math.max(1e-9,platzBedarf(a.g,item)));
+  const hat=(a.g.bestand[item]||0)+reserviert(res.rein,fachSchluessel(a.g.id,'bestand'),item);
+  return Math.max(0,Math.min(menge,anteil-hat));
 }
 function schrittKurierweg(p,dt) {
   const r=kurierwegVon(p);

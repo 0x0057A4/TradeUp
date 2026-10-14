@@ -3403,17 +3403,7 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 .modern-ui .kw-actions button[aria-pressed="true"] { background:rgba(255,255,255,.1); border-color:var(--mi-text); color:var(--mi-text); }
 .modern-ui .kw-actions button[data-wert="aufnehmen"][aria-pressed="true"] { color:#f87171; border-color:rgba(248,113,113,.5); }
 .modern-ui .kw-actions button[data-wert="abliefern"][aria-pressed="true"] { color:#4ade80; border-color:rgba(74,222,128,.5); }
-.kw-ressourcen { display:flex; flex-direction:column; gap:8px; }
-.kw-ressource { display:grid; grid-template-columns:minmax(0,1fr) 62px 22px; gap:6px; align-items:center; }
-.kw-label-zeile { display:grid; grid-template-columns:minmax(0,1fr) 62px 22px; gap:6px; }
-.modern-ui .kw-ressource input[type=number] { -moz-appearance:textfield; appearance:textfield; text-align:right; }
-.modern-ui .kw-ressource input[type=number]::-webkit-inner-spin-button, .modern-ui .kw-ressource input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
-.kw-ressource small { display:block; font-size:10px; color:var(--mi-muted); margin-bottom:2px; }
-.modern-ui .kw-ressource select, .modern-ui .kw-ressource input { width:100%; padding:6px 8px; font-size:12px; }
-.modern-ui .kw-res-weg { background:none; border:none; color:var(--mi-muted); padding:2px; font-size:12px; display:flex; justify-content:center; }
-.modern-ui .kw-res-weg:hover { color:#f87171; }
-.modern-ui .kw-res-dazu { background:transparent; border:1px dashed var(--mi-muted); color:var(--mi-muted); width:100%; padding:6px; font-size:11px; margin-top:4px; }
-.modern-ui .kw-res-dazu:hover { border-color:var(--mi-text); color:var(--mi-text); }
+.kw-label-zeile { display:flex; justify-content:space-between; gap:6px; }
 .kw-warten-hinweis { font-size:11px; color:var(--mi-muted); }
 .modern-ui .kw-stopp-dazu { background:color-mix(in srgb,var(--mi-blue) 10%,transparent); border:1px dashed var(--mi-blue); color:var(--mi-blue); width:44px; min-height:200px; align-self:stretch; font-size:18px; flex-shrink:0; }
 .modern-ui .kw-stopp-dazu:hover { background:color-mix(in srgb,var(--mi-blue) 20%,transparent); }
@@ -3434,7 +3424,7 @@ html[data-ui-theme="light"] .modern-ui, html[data-ui-theme="light"] #info-panel.
 #kurier-overlay:not(.kw-bearbeiten) #kurier-fenster { width:min(760px,100%); max-height:80vh; }
 /* Bearbeiten: Halle bleibt sichtbar (Routen-Pfeile), Fenster unten angedockt */
 #kurier-overlay.kw-bearbeiten { background:transparent !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; place-items:end center; }
-#kurier-overlay.kw-bearbeiten #kurier-fenster { max-height:min(62vh,600px) !important; padding:14px 18px; }
+#kurier-overlay.kw-bearbeiten #kurier-fenster { max-height:min(70vh,660px) !important; padding:14px 18px; }
 #kurier-overlay.kw-bearbeiten .kw-kopfzeile { padding-bottom:10px; }
 #kurier-overlay.kw-bearbeiten .kw-strecke { padding:10px 0 6px; }
 #kurier-overlay.kw-bearbeiten .kw-card-body { gap:10px; padding:10px 12px; }
@@ -3459,6 +3449,11 @@ body:has(#kurier-overlay.kw-bearbeiten:not([hidden])) #spielfeld { filter:none !
 .kv-leiste { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .kv-seg { display:flex; }.modern-ui .kv-seg button { border-radius:0; }.modern-ui .kv-seg button:first-child { border-radius:6px 0 0 6px; }.modern-ui .kv-seg button:last-child { border-radius:0 6px 6px 0; }
 .modern-ui .kv-seg button[aria-pressed="true"] { color:var(--mi-blue); border-color:var(--mi-blue); background:color-mix(in srgb,var(--mi-blue) 12%,var(--mi-input)); }
+.zonen-art { display:flex; gap:0; margin:0 0 10px; }
+#info-panel .zonen-art button { flex:1; padding:6px 10px; font-weight:600; font-size:13px; line-height:1.2; cursor:pointer; color:var(--mi-muted,#8a948c); background:var(--mi-input,#1d2228); border:1px solid var(--mi-border,#3a424a); }
+#info-panel .zonen-art button:first-child { border-radius:6px 0 0 6px; } #info-panel .zonen-art button:last-child { border-radius:0 6px 6px 0; border-left:0; }
+#info-panel .zonen-art button[aria-pressed="true"][data-art="importzone"] { color:var(--mi-green,#3fa65c); border-color:var(--mi-green,#3fa65c); background:color-mix(in srgb,var(--mi-green,#3fa65c) 14%,var(--mi-input,#1d2228)); }
+#info-panel .zonen-art button[aria-pressed="true"][data-art="exportzone"] { color:var(--mi-red,#d8473c); border-color:var(--mi-red,#d8473c); background:color-mix(in srgb,var(--mi-red,#d8473c) 14%,var(--mi-input,#1d2228)); }
 .kv-schalter { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }.kv-schalter input { accent-color:var(--mi-green); width:16px; height:16px; }
 .kv-buehne { position:relative; height:min(58vh,560px); min-height:240px; border-radius:8px; overflow:hidden; border:1px solid var(--mi-border); }
 .kv-buehne canvas { display:block; width:100% !important; height:100% !important; cursor:grab; }
@@ -3824,9 +3819,27 @@ html[data-ui-theme="light"] .ic.ware:hover::after { background: rgba(27, 35, 38,
 /* Kontor: Pflicht-Kartons eines Auftrags */
 .ak-kartons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 4px 0 2px; font-size: 0.72rem; opacity: 0.92; }
 .ak-kartons > small { margin-right: 2px; }
-/* Kurierwege: Symbol vor dem Auswahlfeld der Ressource */
-.kw-ressource.mit-ware { grid-template-columns: 24px minmax(0, 1fr) 62px 22px; }
-.kw-ware { width: 24px; height: 24px; display: inline-grid; place-items: center; }
+/* 2026-10-13: Kurierwege – Waren-Raster je Stopp, rote Markierung ohne Kurier */
+.kw-raster { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; max-height: 196px; overflow-y: auto; padding-right: 2px; }
+.kw-wk { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px 3px; min-width: 0; cursor: pointer; user-select: none;
+  background: rgba(0,0,0,.18); border: 1px solid var(--mi-border, #3a424a); border-radius: 6px; color: var(--mi-muted, #8a948c); }
+.kw-wk:hover { border-color: var(--mi-muted, #8a948c); }
+.kw-wk:focus-visible { outline: 2px solid var(--mi-blue, #60a5fa); outline-offset: 1px; }
+.kw-wk.an { border-color: #f97316; background: color-mix(in srgb, #f97316 14%, transparent); color: var(--mi-text, #e6ecec); }
+.kw-wk-name { font-size: 9.5px; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kw-wk-haken { position: absolute; top: 2px; left: 4px; color: #f97316; font-weight: 800; font-size: 11px; display: none; }
+.kw-wk.an .kw-wk-haken { display: block; }
+.kw-wk-anteil { position: absolute; top: 2px; right: 3px; font-size: 9px; font-weight: 700; color: #1b1f24; background: #facc15; border-radius: 3px; padding: 0 3px; }
+.modern-ui .kw-wk input { width: 100%; box-sizing: border-box; padding: 1px 3px; text-align: center; font-size: 11px; -moz-appearance: textfield; appearance: textfield; }
+.kw-wk input::-webkit-inner-spin-button, .kw-wk input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.kw-raster-leer { font-size: 11px; color: var(--mi-muted, #8a948c); padding: 6px 0; }
+.kw-hinweis { font-size: 11px; color: #facc15; margin-top: 4px; }
+.kw-label-zeile em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.kw-ausruf { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: #ef4444; color: #fff; font-weight: 800; font-size: 13px; line-height: 1; flex-shrink: 0; }
+.kw-zeile.kw-fehlt { border-color: color-mix(in srgb, #ef4444 60%, var(--mi-border, #3a424a)); background: color-mix(in srgb, #ef4444 8%, var(--mi-card, #20262c)); }
+#kurier-fenster .kw-zeile-text small.kw-rot { color: #f87171; font-weight: 600; }
+.kw-kuriere.kw-fehlt { border-color: color-mix(in srgb, #ef4444 60%, var(--mi-border, #3a424a)); }
+.kw-meldung.kw-ok { color: #4ade80; }
 .kw-waren { display: inline-flex; flex-wrap: wrap; gap: 2px; align-items: center; }
 /* Angeheftete Rezepte: je Ware ein Symbol, Name klein (9 px) darunter, Zahl der Stationen als Plakette */
 #rezept-stapel .rezept-karte ul.rezept-symbole { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 4px; }
@@ -4754,7 +4767,8 @@ html #lz-fenster .pd-frage .pd-ja { background: var(--pd-aus) !important; color:
 
 <script type="module">
 import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";   // 12d: abgerundete Teile im neuen Band-Look
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";   // 2026-10-13: Figur-Teile je Gelenk verschmelzen   // 12d: abgerundete Teile im neuen Band-Look
 
 /* ============================================================================
    ABSCHNITT 1: KONFIGURATION – 3D & Grafik                       [3D-Agent]
@@ -5258,7 +5272,7 @@ const PRODUKTION = {
   lieferAlterung:      60,    // nach so vielen Sekunden ohne Lieferung hat ein Zwischenlager bei Kurieren Vorrang
   speicherIntervall:   10,    // alle so viele Sekunden wird der Spielstand im Browser gespeichert
   speicherSchluessel:  "tradeup.spielstand", // Name, unter dem der Browser den Spielstand speichert
-  spielstandVersion:   19,    // 19: Kurierwege mit mehreren Ressourcen je Stopp; 18: Gebäudenamen und Austausch-Stopps; ältere Stände bleiben lesbar.
+  spielstandVersion:   20,    // 20: Zonen umschaltbar (zonenArt), Kurierweg-Aufteilung; 19: Kurierwege mit mehreren Ressourcen je Stopp; 18: Gebäudenamen und Austausch-Stopps; ältere Stände bleiben lesbar.
   kurierTraglast:      5,     // Phase 7b: Grundwert Items pro Kurier-Gang, Ausrüstung und Forschung addieren sich
   // Phase 7b: Lager haben ein Volumen-Limit. So viel Platz braucht ein Item:
   volumenRohstoff:     1,     // Rohstoff
@@ -7245,12 +7259,17 @@ const rahmenZiel = hoverRahmen.position.clone(); // wohin der Rahmen gleiten sol
 
 /* ============================================================================
    ABSCHNITT 5b: Figuren – Modell & Animation                       [3D-Agent]
-   Spielfigur, Kuriere und Arbeiter nutzen dasselbe Modell aus Grundformen
-   (keine Modelldatei), nur in anderen Farben. Ihre "Vorderseite" zeigt in
-   Richtung +z; dorthin schauen auch die Augen.
+   2026-10-13 (Tim, mit Abnahme): Figuren neu nach dem Muster „Mitarbeiter-Kurierwege“.
+   Skins: Arbeiter (Helm, Warnweste), Forscher (Kittel, Schutzbrille – Arbeiter an einer
+   Forschungsstation), Kurier (Kappe, Polo, Cargohose); Service und Scout in Arbeiter-Form.
+   Jede Person bekommt aus ihrer Id Hautton, Haare und Bart. Nur geschlossene, runde Formen,
+   die ineinander stecken; Kleinteile liegen auf der berechneten Kopfoberfläche. Getragenes
+   und Ausrüstung hängen an den Händen (koppleAnHaende), nie an festen Punkten.
+   Vorderseite +z. Drehpunkte: Hüfte (Beine, Oberkörper), Knie, Schulter, Ellbogen.
+   Modellhöhe ca. 1,05 → GRAFIK.figurGroesse. Teile mit gleichem Material werden je Gelenk
+   zu einem Mesh verschmolzen (wenige Draw-Calls auch bei vielen Personen).
    ============================================================================ */
-// Matt-Material mit flacher Schattierung = typischer Low-Poly-Look.
-// Pro Farbe gibt es nur EIN Material, das sich alle Modelle teilen (spart Grafikspeicher).
+// Matt-Material mit flacher Schattierung (für Ausrüstung). Pro Farbe EIN Material.
 const materialSpeicher = new Map();
 function figurMaterial(farbe) {
   if (!materialSpeicher.has(farbe)) {
@@ -7258,128 +7277,333 @@ function figurMaterial(farbe) {
   }
   return materialSpeicher.get(farbe);
 }
-
-// Baut eine Figur und hängt sie in die Szene.
-//   farben: { koerper, helm, weste (optional, z. B. für Kuriere) }
-// Rückgabe: alle beweglichen Teile, damit aktualisiereFigurModell() sie animieren kann.
-function baueFigurModell(farben) {
-  const gruppe = new THREE.Group();        // die ganze Figur (wird bewegt und gedreht)
-  const oberkoerper = new THREE.Group();   // alles außer den Füßen (wippt und neigt sich)
-  gruppe.add(oberkoerper);
-
-  // Füße: zwei kleine Quader, die beim Laufen vor und zurück schwingen
-  const baueFuss = (seite) => {
-    const fuss = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.17), figurMaterial(GRAFIK.farbeFigurSchuhe));
-    fuss.position.set(seite * 0.085, 0.035, 0.02);
-    gruppe.add(fuss);
-    return fuss;
+const FIGUR = (() => {
+  // Im Spiel sind Figuren klein: Segmente gegenüber dem Muster reduziert
+  const seg = (n, min) => Math.max(min, Math.round(n * 0.6));
+  const SphereGeo = (r, w = 32, h = 16, ...rest) => new THREE.SphereGeometry(r, seg(w, 10), seg(h, 6), ...rest);
+  const CapsuleGeo = (r, l, cap = 4, rad = 8) => new THREE.CapsuleGeometry(r, l, seg(cap, 3), seg(rad, 10));
+  const CylinderGeo = (a, b, h, rad = 32, ...rest) => new THREE.CylinderGeometry(a, b, h, seg(rad, 10), ...rest);
+  const LatheGeo = (punkte, n = 12, ...rest) => new THREE.LatheGeometry(punkte, seg(n, 12), ...rest);
+  const TorusGeo = (r, d, rs = 12, ts = 48, ...rest) => new THREE.TorusGeometry(r, d, seg(rs, 6), seg(ts, 14), ...rest);
+  const mats = new Map();
+  function mat(farbe, extra = {}) {
+    const k = farbe + JSON.stringify(extra);
+    if (!mats.has(k)) mats.set(k, new THREE.MeshStandardMaterial({ color: farbe, roughness: 0.6, metalness: 0, ...extra }));
+    return mats.get(k);
+  }
+  /* Grundsatz für den Release: nur geschlossene, runde Formen, die ineinander stecken (nichts steht ab,
+     nichts schwebt). Kleinteile liegen auf der Oberfläche, deren Lage berechnet wird. Getragenes und
+     Ausrüstung hängen an den Händen (koppleAnHaende), nie an festen Punkten. */
+  const SKINS = {
+    arbeiter: { shirt: "#2c6cf0", hose: "#2f5fcf", umschlag: "#4677e6", schuh: "#b8532c", sohle: "#4a2416", helm: "#ffcf1f", weste: "#ff7a14", streifen: "#fff066", guertel: "#1f2a44" },
+    forscher: { shirt: "#2aa198", hose: "#4f5966", umschlag: "#59636f", schuh: "#2f3338", sohle: "#15181b", kittel: "#f2f4f5", glas: "#9fdcff", rahmen: "#2c3a44", guertel: "#2a2f36" },
+    // Service-Techniker und Scout: Arbeiter-Form (Helm, Weste) in den Rollenfarben
+    service:  { form: "arbeiter", shirt: GRAFIK.farbeServiceKoerper, hose: "#2b3f5c", umschlag: "#3a5274", schuh: "#3a3f47", sohle: "#1c1f24", helm: GRAFIK.farbeServiceHelm, weste: "#e8eef5", streifen: "#9fd3ff", guertel: "#1f2a44" },
+    scout:    { form: "arbeiter", shirt: GRAFIK.farbeScoutKoerper, hose: "#5b5048", umschlag: "#6a5e55", schuh: "#6b4a2e", sohle: "#2e2016", helm: GRAFIK.farbeScoutHelm, weste: "#c9a84a", streifen: "#f3e3a0", guertel: "#2e2620" },
+    kurier:   { shirt: "#4f6b8c", hose: "#6f7550", umschlag: "#7a8059", schuh: "#efebe4", sohle: "#d9412f", kappe: "#d9412f", kragen: "#3f5a7a", guertel: "#3b3226" },
   };
-  const fussLinks = baueFuss(-1);
-  const fussRechts = baueFuss(1);
+  const HAUT = ["#f3c09a", "#e9a77c", "#c98b5e", "#9a6340", "#6e4429"];
+  const HAARE = ["#24170f", "#3b2416", "#6b4423", "#151515", "#7d7d7d", "#b88a4a"];
+  function zufallsVariante(seed) {
+    let s = seed * 9301 + 49297; const r = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+    return { haut: HAUT[Math.floor(r() * HAUT.length)], haare: HAARE[Math.floor(r() * HAARE.length)], bart: r() < 0.55 };
+  }
+  function teil(geo, m, x = 0, y = 0, z = 0, eltern) { const t = new THREE.Mesh(geo, m); t.position.set(x, y, z); t.castShadow = true; if (eltern) eltern.add(t); return t; }
+  const kapsel = (r, l, m, x, y, z, e) => teil(CapsuleGeo(r, l, 8, 20), m, x, y, z, e);
+  const kugel = (r, m, x, y, z, e, sx = 1, sy = 1, sz = 1) => { const t = teil(SphereGeo(r, 28, 20), m, x, y, z, e); t.scale.set(sx, sy, sz); return t; };
 
-  // Körper: eine Kapsel (Zylinder mit runden Enden) in Arbeitskleidungs-Farbe
-  const koerper = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.22, 3, 10), figurMaterial(farben.koerper));
-  koerper.position.y = 0.34;
-  oberkoerper.add(koerper);
+  // Rumpfprofil (Radius, Höhe). Gestreckt in x, abgeflacht in z. profilR(y) = Radius auf dieser Höhe.
+  const RUMPF = [[0.112, 0.53], [0.118, 0.58], [0.13, 0.65], [0.136, 0.7], [0.13, 0.75], [0.105, 0.79], [0.06, 0.812], [0.001, 0.818]];
+  const RUMPF_X = 1.18, RUMPF_Z = 0.8;
+  function profilR(y) {
+    for (let i = 1; i < RUMPF.length; i++) { const [r0, y0] = RUMPF[i - 1], [r1, y1] = RUMPF[i]; if (y <= y1) return r0 + (r1 - r0) * Math.max(0, (y - y0) / (y1 - y0)); }
+    return 0;
+  }
+  const profil = (plus, von = 0, bis = 9) => RUMPF.filter(([, y]) => y >= von && y <= bis).map(([r, y]) => new THREE.Vector2(r + plus, y));
 
-  // Warnweste (nur Kuriere): ein etwas breiterer, kurzer Zylinder um den Bauch
-  if (farben.weste) {
-    const weste = new THREE.Mesh(new THREE.CylinderGeometry(0.182, 0.182, 0.2, 10), figurMaterial(farben.weste));
-    weste.position.y = 0.37;
-    oberkoerper.add(weste);
+  // Kopf: Mittelpunkt im Ursprung, Radius 0.1, in y um 1.05 gestreckt. Punkt auf der Oberfläche (für Augen, Brauen …)
+  const KOPF_R = 0.1, KOPF_SY = 1.05;
+  const kopfZ = (x, y, plus = 0) => Math.sqrt(Math.max(0, (KOPF_R + plus) ** 2 - x * x - (y / KOPF_SY) ** 2));
+
+
+  function baueModell(skin, v) {
+    const S = SKINS[skin] || SKINS.arbeiter;
+    skin = S.form || skin;   // Service und Scout: Arbeiter-Form in eigenen Farben
+    // Drehpunkt des Oberkörpers liegt in der Hüfte (y 0.5): Neigen kippt ihn über den Beinen, das Becken bleibt dran
+    const gruppe = new THREE.Group(), huefteDreh = new THREE.Group(), oberkoerper = new THREE.Group();
+    huefteDreh.position.y = 0.5; oberkoerper.position.y = -0.5;
+    gruppe.add(huefteDreh); huefteDreh.add(oberkoerper);
+    const haut = mat(v.haut), hose = mat(S.hose), haar = mat(v.haare);
+
+    // ---------- Beine: Hüfte → Knie → Fuß. Kapseln überlappen in den Gelenken, damit beim Beugen keine Lücke entsteht ----------
+    const baueBein = (seite) => {
+      const huefte = new THREE.Group(); huefte.position.set(seite * 0.066, 0.5, 0);
+      kapsel(0.058, 0.16, hose, 0, -0.105, 0, huefte);
+      const knie = new THREE.Group(); knie.position.y = -0.215; huefte.add(knie);
+      kapsel(0.052, 0.15, hose, 0, -0.085, 0, knie);
+      teil(CylinderGeo(0.058, 0.058, 0.03, 20), mat(S.umschlag), 0, -0.17, 0, knie);       // Hosenumschlag (geschlossener Ring)
+      const fuss = new THREE.Group(); fuss.position.y = -0.2; knie.add(fuss);
+      const sm = mat(S.schuh);
+      teil(CylinderGeo(0.05, 0.053, 0.06, 20), sm, 0, -0.005, -0.005, fuss);               // Schaft
+      kugel(0.052, sm, 0, -0.03, 0.03, fuss, 0.98, 0.62, 1.5);                                          // Schuhkappe (eine Form, kein Kasten)
+      kugel(0.055, mat(S.sohle), 0, -0.05, 0.03, fuss, 1.0, 0.24, 1.62);                                   // Sohle: abgerundet wie der Schuh
+      gruppe.add(huefte);
+      return { huefte, knie };
+    };
+    const beinL = baueBein(-1), beinR = baueBein(1);
+
+    // ---------- Rumpf ----------
+    const rumpf = (geo, m, y = 0) => { const t = teil(geo, m, 0, y, 0, oberkoerper); t.scale.set(RUMPF_X, 1, RUMPF_Z); return t; };
+    kugel(0.116, hose, 0, 0.505, 0, oberkoerper, RUMPF_X, 0.55, RUMPF_Z);                                 // Becken
+    rumpf(CylinderGeo(0.114, 0.116, 0.05, 28), hose, 0.525);
+    rumpf(CylinderGeo(0.118, 0.118, 0.024, 28), mat(S.guertel), 0.548);                    // Gürtel
+    rumpf(LatheGeo(profil(0), 32), mat(S.shirt));
+    // Ring, der genau auf einer Kleidungsschicht liegt (für Streifen, Säume)
+    const ring = (y, h, plus, farbe, luecke = 0, extra = {}) => rumpf(CylinderGeo(profilR(y + h / 2) + plus, profilR(y - h / 2) + plus, h, 40, 1, luecke > 0, luecke / 2, Math.PI * 2 - luecke), mat(farbe, { side: THREE.DoubleSide, ...extra }), y);
+    // Offene Kleidung (Front = +z, Lücke vorn); DoubleSide, damit man in der Öffnung keine Löcher sieht
+    // Innenseite leicht aufgehellt (emissive), sonst wirkt sie in der Öffnung schwarz
+    const offen = (punkte, farbe, luecke) => rumpf(LatheGeo(punkte, 40, luecke / 2, Math.PI * 2 - luecke), mat(farbe, { side: THREE.DoubleSide, emissive: farbe, emissiveIntensity: 0.18 }));
+    if (skin === "arbeiter") {
+      offen(profil(0.012, 0.535, 0.795), S.weste, 0.5);                                                    // Warnweste mit V-Öffnung
+      ring(0.6, 0.026, 0.015, S.streifen, 0.5, { emissive: S.streifen, emissiveIntensity: 0.15 });          // Reflexstreifen
+      ring(0.668, 0.026, 0.015, S.streifen, 0.5, { emissive: S.streifen, emissiveIntensity: 0.15 });
+    } else if (skin === "forscher") {
+      const kittel = [[0.152, 0.405], [0.138, 0.46], [0.124, 0.535], ...RUMPF.filter(([, y]) => y >= 0.58 && y <= 0.795).map(([r, y]) => [r + 0.014, y])].map(([r, y]) => new THREE.Vector2(r, y));
+      offen(kittel, S.kittel, 0.46);                                                                        // Kittel bis zur Hüfte
+    } else {
+      teil(TorusGeo(0.06, 0.016, 10, 28), mat(S.kragen), 0, 0.812, 0, oberkoerper).rotation.x = Math.PI / 2;   // Polokragen als Wulst
+    }
+    teil(TorusGeo(0.055, 0.01, 8, 24), mat(S.shirt), 0, 0.815, 0, oberkoerper).rotation.x = Math.PI / 2;   // Halsausschnitt
+
+    // ---------- Arme: Schulter → Ellbogen → Hand (Kugel, ohne lose Finger) ----------
+    const baueArm = (seite) => {
+      const schulter = new THREE.Group(); schulter.position.set(seite * 0.152, 0.765, 0);
+      const lang = skin === "forscher", aermel = mat(lang ? S.kittel : S.shirt);
+      kugel(0.047, aermel, 0, 0, 0, schulter);
+      kapsel(0.045, 0.05, aermel, 0, -0.045, 0, schulter);                                                   // Ärmel
+      kapsel(0.038, 0.09, lang ? aermel : haut, 0, -0.115, 0, schulter);                                    // Oberarm
+      const ellbogen = new THREE.Group(); ellbogen.position.y = -0.165; schulter.add(ellbogen);
+      kapsel(0.036, 0.1, lang ? aermel : haut, 0, -0.065, 0, ellbogen);                                     // Unterarm
+      if (lang) teil(CylinderGeo(0.04, 0.04, 0.02, 18), mat("#e2e6e8"), 0, -0.115, 0, ellbogen);   // Ärmelbund
+      const hand = new THREE.Group(); hand.position.y = -0.15; ellbogen.add(hand);
+      kugel(0.04, haut, 0, 0, 0, hand, 0.95, 1.08, 0.85);
+      oberkoerper.add(schulter);
+      return { schulter, ellbogen, hand };
+    };
+    const armL = baueArm(-1), armR = baueArm(1);
+
+    // ---------- Kopf ----------
+    teil(CylinderGeo(0.04, 0.046, 0.07, 18), haut, 0, 0.83, 0, oberkoerper);               // Hals
+    const kopf = new THREE.Group(); kopf.position.y = 0.935; oberkoerper.add(kopf);
+    kugel(KOPF_R, haut, 0, 0, 0, kopf, 1, KOPF_SY, 1);
+    for (const s of [-1, 1]) {
+      kugel(0.026, haut, s * 0.092, -0.004, -0.006, kopf, 0.5, 1, 0.75);                                    // Ohren (stecken im Kopf)
+      const ax = s * 0.034, ay = 0.018;
+      kugel(0.016, mat("#f7f7f5", { roughness: 0.35 }), ax, ay, kopfZ(ax, ay) - 0.005, kopf, 1, 1.25, 0.5);   // Augenweiß (liest sich auf jedem Hautton)
+      kugel(0.0105, mat("#17181a", { roughness: 0.25 }), ax, ay - 0.001, kopfZ(ax, ay) - 0.001, kopf, 1, 1.25, 0.5);   // Pupille
+      const bx = s * 0.037, by = 0.05, braue = kapsel(0.007, 0.026, haar, bx, by, kopfZ(bx, by) - 0.002, kopf);
+      braue.rotation.set(-Math.asin(by / KOPF_SY / KOPF_R), 0, Math.PI / 2 + s * 0.12);
+    }
+    kugel(0.019, haut, 0, -0.004, kopfZ(0, -0.004) + 0.002, kopf, 1.05, 0.95, 1);                         // Nase
+    const mundY = -0.046, mund = kapsel(0.0055, 0.024, mat("#8a3b33"), 0, mundY, kopfZ(0, mundY) + (v.bart ? 0.005 : -0.002), kopf);
+    mund.rotation.set(-0.45, 0, Math.PI / 2);
+    if (v.bart) {
+      // Kinnbart = vorderer Ausschnitt der unteren Kopfschale: liegt am Gesicht an, Wangen bleiben frei
+      const bart = teil(SphereGeo(KOPF_R + 0.007, 32, 20, Math.PI * 0.24, Math.PI * 0.52, Math.PI * 0.64, Math.PI * 0.36), haar, 0, 0, 0, kopf);
+      bart.scale.set(1, KOPF_SY, 1.04);
+      const sy = -0.026, schnurr = kapsel(0.011, 0.04, haar, 0, sy, kopfZ(0, sy, 0.006), kopf);
+      schnurr.rotation.set(-0.3, 0, Math.PI / 2);
+    }
+    // Haare: unter Helm/Kappe verdeckt; Forscher Oberkopf + Hinterkopf
+    if (skin === "forscher") teil(SphereGeo(KOPF_R + 0.004, 32, 16, Math.PI, Math.PI, 0, Math.PI * 0.6), haar, 0, 0, 0, kopf).scale.set(1, KOPF_SY, 1);
+    if (skin === "arbeiter") {
+      // Bauhelm: Schale klar größer als der Kopf, geschlossene Krempe, ein Grat über die Mitte
+      const helm = mat(S.helm, { roughness: 0.3 });
+      teil(SphereGeo(0.12, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2), helm, 0, 0.038, -0.004, kopf).scale.set(1, 0.95, 1.1);
+      const grat = teil(TorusGeo(0.12, 0.011, 10, 40, Math.PI), helm, 0, 0.038, -0.004, kopf);
+      grat.rotation.y = Math.PI / 2; grat.scale.set(1.1, 0.95, 1);
+      teil(CylinderGeo(0.142, 0.142, 0.012, 48), helm, 0, 0.036, 0.012, kopf).scale.set(1, 1, 1.16);
+    } else if (skin === "kurier") {
+      // Kappe: Schale über dem Kopf, Schirm über den Augen (liegt höher als die Augen), Knopf steckt in der Schale
+      const k = mat(S.kappe);
+      teil(SphereGeo(0.113, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), k, 0, 0.04, -0.004, kopf).scale.set(1, 0.9, 1.04);
+      teil(CylinderGeo(0.114, 0.114, 0.012, 40), k, 0, 0.044, -0.004, kopf).scale.set(1, 1, 1.04);   // Band unten (schließt die Schale)
+      const schirm = teil(CylinderGeo(0.085, 0.085, 0.012, 32, 1, false, -Math.PI / 2, Math.PI), k, 0, 0.046, 0.075, kopf);
+      schirm.scale.set(1.05, 1, 0.95); schirm.rotation.x = 0.1;
+      kugel(0.016, mat("#ffffff"), 0, 0.04 + 0.113 * 0.9 - 0.006, -0.004, kopf);
+    } else {
+      // Forscher: Haare oben, Schutzbrille auf der Stirn (Gläser liegen auf der Kopfoberfläche, Band umläuft den Kopf)
+      teil(SphereGeo(KOPF_R + 0.006, 28, 14, 0, Math.PI * 2, 0, Math.PI * 0.33), haar, 0, 0, 0, kopf).scale.set(1, KOPF_SY, 1.02);
+      const by = 0.06, bandR = Math.sqrt((KOPF_R + 0.006) ** 2 - (by / KOPF_SY) ** 2) + 0.004;
+      teil(TorusGeo(bandR, 0.008, 10, 40), mat(S.rahmen), 0, by, 0, kopf).rotation.x = Math.PI / 2;
+      for (const s of [-1, 1]) {
+        const gx = s * 0.036, gy = by, gz = kopfZ(gx, gy, 0.008);
+        const normale = new THREE.Vector3(gx, gy / KOPF_SY ** 2, gz).normalize();
+        for (const [r, d, m, vor] of [[0.025, 0.014, mat(S.rahmen), 0], [0.02, 0.006, mat(S.glas, { roughness: 0.08, metalness: 0.1 }), 0.008]]) {
+          const geo = CylinderGeo(r, r, d, 28); geo.rotateX(Math.PI / 2);
+          const glas = teil(geo, m, gx + normale.x * vor, gy + normale.y * vor, gz + normale.z * vor, kopf);
+          glas.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normale);
+        }
+      }
+    }
+    const trage = new THREE.Group(); gruppe.add(trage);   // wird in koppleAnHaende auf die Hände gesetzt
+    return { gruppe, oberkoerper: huefteDreh, beinL, beinR, armL, armR, kopf, trage, schritt: 0 };
   }
 
-  // Kopf mit Augen und Bauhelm
-  const kopf = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 8), figurMaterial(GRAFIK.farbeFigurHaut));
-  kopf.position.y = 0.72;
-  oberkoerper.add(kopf);
-  for (const seite of [-1, 1]) {
-    const auge = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 4), figurMaterial(GRAFIK.farbeFigurSchuhe));
-    auge.position.set(seite * 0.05, 0.73, 0.128);
-    oberkoerper.add(auge);
+  const _a = new THREE.Vector3(), _b = new THREE.Vector3();
+  function handMitte(m) {
+    m.gruppe.updateMatrixWorld(true);
+    m.armL.hand.getWorldPosition(_a); m.armR.hand.getWorldPosition(_b);
+    const mitte = _a.add(_b).multiplyScalar(0.5);
+    return { mitte: m.gruppe.worldToLocal(mitte), abstand: m.armL.hand.getWorldPosition(new THREE.Vector3()).distanceTo(m.armR.hand.getWorldPosition(new THREE.Vector3())) / m.gruppe.getWorldScale(new THREE.Vector3()).x };
   }
-  const helm = new THREE.Mesh(
-    new THREE.SphereGeometry(0.155, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), // obere Halbkugel
-    figurMaterial(farben.helm)
-  );
-  helm.position.y = 0.75;
-  oberkoerper.add(helm);
-  const helmKrempe = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 14), figurMaterial(farben.helm));
-  helmKrempe.position.set(0, 0.75, 0.02);
-  oberkoerper.add(helmKrempe);
 
-  // Arme: drehen sich an der Schulter (Drehpunkt = Gruppe), Hand am Ende
-  const baueArm = (seite) => {
-    const schulter = new THREE.Group();
-    schulter.position.set(seite * 0.2, 0.5, 0);
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.14, 2, 6), figurMaterial(farben.koerper));
-    arm.position.y = -0.09;
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), figurMaterial(GRAFIK.farbeFigurHaut));
-    hand.position.y = -0.2;
-    schulter.add(arm, hand);
-    oberkoerper.add(schulter);
-    return schulter;
-  };
-  const armLinks = baueArm(-1);
-  const armRechts = baueArm(1);
+  // Meshes mit gleichem Material je Gelenk-Gruppe zu einem Mesh verschmelzen
+  function verschmelze(wurzel) {
+    const gruppen = [];
+    wurzel.traverse((o) => { if (o.isGroup || o === wurzel) gruppen.push(o); });
+    for (const g of gruppen) {
+      const jeMaterial = new Map();
+      for (const k of g.children) if (k.isMesh) { const l = jeMaterial.get(k.material) || []; l.push(k); jeMaterial.set(k.material, l); }
+      for (const [m, liste] of jeMaterial) {
+        if (liste.length < 2) continue;
+        const geos = liste.map((k) => { k.updateMatrix(); const geo = k.geometry.toNonIndexed(); geo.applyMatrix4(k.matrix); for (const n of Object.keys(geo.attributes)) if (!["position", "normal", "uv"].includes(n)) geo.deleteAttribute(n); return geo; });
+        const geo = mergeGeometries(geos, false);
+        for (const k of liste) { g.remove(k); k.geometry.dispose(); }
+        for (const x of geos) x.dispose();
+        if (!geo) continue;
+        const mesh = new THREE.Mesh(geo, m); mesh.castShadow = true;
+        g.add(mesh);
+      }
+    }
+  }
+  // Id → feste Variante (Hautton, Haare, Bart)
+  function varianteVon(id) {
+    let h = 7;
+    for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 233280;
+    return zufallsVariante(h);
+  }
+  function baue(skin, id) {
+    const m = baueModell(skin, varianteVon(id));
+    verschmelze(m.gruppe);
+    m.gruppe.scale.setScalar(GRAFIK.figurGroesse / 1.05);
+    m.skin = skin; m.trageSchluessel = "";
+    szene.add(m.gruppe);
+    return m;
+  }
+  // Modell entfernen (Geometrien gehören nur dieser Figur; Materialien sind geteilt)
+  function entferne(m) {
+    szene.remove(m.gruppe);
+    for (const t of [m.trage, m.ausruestung?.ladung]) if (t) while (t.children.length) t.remove(t.children[0]);   // Ware-Meshes teilen ihre Geometrie
+    m.gruppe.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  }
 
-  // "Hand-Punkt": Hier hängen getragene Items (Phase 4). Ein späteres Sackkarren-
-  // Modell wird ebenfalls hier eingehängt.
-  const trage = new THREE.Group();
-  trage.position.set(0, 0.36, 0.27);
-  oberkoerper.add(trage);
+  // Ausrüstung der Kuriere. Sackkarre/Handkarre: Ursprung = Griff-Mitte, Holme laufen nach unten zur Achse.
+  // koppleAnHaende neigt sie so, dass die Räder genau auf dem Boden stehen. Ladung steht auf der Schaufel.
+  const KARRE = { L: 0.66, rad: 0.075 };
+  function baueSackkarre(farbe) {
+    const g = new THREE.Group(), rot = mat(farbe, { roughness: 0.45 }), dunkel = mat("#2a2e33");
+    const rohr = (x1, y1, z1, x2, y2, z2, r = 0.016) => {
+      const a = new THREE.Vector3(x1, y1, z1), b = new THREE.Vector3(x2, y2, z2), l = a.distanceTo(b);
+      const t = teil(CylinderGeo(r, r, l, 12), rot, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2, g);
+      t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    };
+    const L = KARRE.L;
+    rohr(-0.17, 0, 0, 0.17, 0, 0, 0.02);                                         // Griff
+    for (const x of [-0.13, 0.13]) { rohr(x, 0, 0, x, -L, 0); kugel(0.02, rot, x, 0, 0, g); }
+    rohr(-0.13, -L * 0.45, 0, 0.13, -L * 0.45, 0);                               // Querstrebe
+    for (const s of [-1, 1]) teil(CylinderGeo(0.023, 0.023, 0.06, 12), mat("#151515", { roughness: 0.9 }), s * 0.17, 0, 0, g).rotation.z = Math.PI / 2;   // Gummigriffe
+    teil(new THREE.BoxGeometry(0.28, 0.012, 0.13), mat("#6d757c", { metalness: 0.4, roughness: 0.45 }), 0, -L + 0.006, 0.07, g);   // Schaufel
+    teil(CylinderGeo(0.012, 0.012, 0.4, 10), dunkel, 0, -L, -0.02, g).rotation.z = Math.PI / 2;                                   // Achse
+    for (const s of [-1, 1]) {
+      teil(CylinderGeo(KARRE.rad, KARRE.rad, 0.045, 24), mat("#1b1d20", { roughness: 0.9 }), s * 0.19, -L, -0.02, g).rotation.z = Math.PI / 2;
+      teil(CylinderGeo(0.03, 0.03, 0.05, 16), mat("#9aa1a8", { metalness: 0.5, roughness: 0.35 }), s * 0.19, -L, -0.02, g).rotation.z = Math.PI / 2;
+    }
+    verschmelze(g);
+    const ladung = new THREE.Group(); ladung.position.set(0, -L + 0.012, 0.075); g.add(ladung);
+    return { gruppe: g, ladung, art: "karre" };
+  }
+  // Hubwagen: Ursprung am Boden unter dem Deichsel-Gelenk. Gabeln mit Palette zeigen nach vorn (+z),
+  // die Deichsel (Drehpunkt auf dem Hydraulik-Körper) lehnt zum Kurier; koppleAnHaende neigt sie bis in die Hände.
+  const HUB = { gelenk: 0.24, L: 0.5 };
+  function baueHubwagen(farbe) {
+    const g = new THREE.Group(), lack = mat(farbe, { roughness: 0.45 }), dunkel = mat("#2a2e33"), gummi = mat("#1b1d20", { roughness: 0.9 });
+    for (const x of [-0.12, 0.12]) teil(new THREE.BoxGeometry(0.08, 0.05, 0.78), lack, x, 0.045, 0.43, g);                 // Gabeln
+    teil(CylinderGeo(0.09, 0.1, 0.17, 20), lack, 0, 0.115, 0, g);                                                        // Hydraulik-Körper
+    teil(CylinderGeo(0.05, 0.05, 0.05, 16), gummi, 0, 0.05, 0, g).rotation.z = Math.PI / 2;                              // Lenkrad
+    for (const x of [-0.12, 0.12]) teil(CylinderGeo(0.025, 0.025, 0.06, 12), gummi, x, 0.025, 0.78, g).rotation.z = Math.PI / 2;   // Gabelrollen
+    teil(new THREE.BoxGeometry(0.5, 0.07, 0.56), mat(GRAFIK.farbeHolz, { roughness: 0.85 }), 0, 0.105, 0.45, g);          // Palette
+    verschmelze(g);
+    const deichsel = new THREE.Group(); deichsel.position.y = HUB.gelenk; g.add(deichsel);
+    const stab = teil(CylinderGeo(0.018, 0.018, HUB.L, 10), dunkel, 0, HUB.L / 2, 0, deichsel);
+    stab.castShadow = true;
+    teil(CylinderGeo(0.02, 0.02, 0.24, 12), dunkel, 0, HUB.L, 0, deichsel).rotation.z = Math.PI / 2;                     // Griff
+    for (const s of [-1, 1]) teil(CylinderGeo(0.023, 0.023, 0.05, 12), mat("#151515", { roughness: 0.9 }), s * 0.13, HUB.L, 0, deichsel).rotation.z = Math.PI / 2;
+    verschmelze(deichsel);
+    const ladung = new THREE.Group(); ladung.position.set(0, 0.14, 0.45); g.add(ladung);
+    return { gruppe: g, ladung, deichsel, art: "hubwagen" };
+  }
 
-  // Alle Teile werfen Schatten; Gesamtgröße auf GRAFIK.figurGroesse bringen (Modell ist ca. 0,9 hoch).
-  gruppe.traverse((teil) => { if (teil.isMesh) teil.castShadow = true; });
-  gruppe.scale.setScalar(GRAFIK.figurGroesse / 0.9);
-  szene.add(gruppe);
+  // Animation. Haltungen: normal, traegt (Getragenes auf den Händen), schiebt (Sackkarre/Hubwagen), arbeitet
+  function animiere(m, sekunden, zeit, tempo, staerke, haltung, versatz = 0) {
+    const ruhig = wenigerAnimation;
+    m.schritt += (tempo * sekunden / GRAFIK.schrittLaenge) * Math.PI;
+    const s = Math.sin(m.schritt), st = staerke;
+    const knie = (p) => Math.max(0, Math.sin(p - 1.2)) * 0.7 * st;
+    m.beinL.huefte.rotation.set(-s * 0.48 * st, 0, 0); m.beinR.huefte.rotation.set(s * 0.48 * st, 0, 0);
+    m.beinL.knie.rotation.x = knie(m.schritt); m.beinR.knie.rotation.x = knie(m.schritt + Math.PI);
+    const arm = (a, x, el, z = 0) => { a.schulter.rotation.set(x, 0, z); a.ellbogen.rotation.x = el; };
+    m.oberkoerper.rotation.x = 0.04 * st; m.kopf.rotation.set(0, 0, 0);
+    m.oberkoerper.position.y = 0.5 + (ruhig ? 0 : Math.abs(Math.cos(m.schritt)) * 0.006 * st + Math.sin(zeit * 2.2 + versatz) * 0.002 * (1 - st));
+    if (haltung === "traegt") { arm(m.armL, -0.55, -1.05, 0.32); arm(m.armR, -0.55, -1.05, -0.32); }
+    else if (haltung === "schiebt") { arm(m.armL, -0.7, -0.45, 0.06); arm(m.armR, -0.7, -0.45, -0.06); m.oberkoerper.rotation.x = 0.1; }
+    else if (haltung === "arbeitet") {
+      const w = ruhig ? 0 : Math.sin(zeit * 11 + versatz);
+      arm(m.armL, -0.7 + w * 0.18, -0.8, 0.1); arm(m.armR, -0.7 - w * 0.18, -0.8, -0.1); m.oberkoerper.rotation.x = 0.12;
+    } else {
+      arm(m.armL, s * 0.5 * st, -0.15 - Math.max(0, s) * 0.3 * st, 0.08); arm(m.armR, -s * 0.5 * st, -0.15 - Math.max(0, -s) * 0.3 * st, -0.08);
+      if (st < 0.05 && !ruhig) m.kopf.rotation.y = Math.sin(zeit * 0.7 + versatz) * 0.25;   // im Stand schaut die Person sich um
+    }
+  }
+  // Getragenes und Ausrüstung an den Händen ausrichten (nach animiere)
+  function koppleAnHaende(m, haltung) {
+    const aus = m.ausruestung;
+    if (haltung !== "traegt" && haltung !== "schiebt") return;
+    const { mitte } = handMitte(m);
+    if (haltung === "traegt") { m.trage.position.set(mitte.x, mitte.y + 0.035, mitte.z + 0.02); return; }
+    if (aus?.art === "karre") {
+      aus.gruppe.position.copy(mitte);
+      const c = Math.min(1, Math.max(0.2, (mitte.y - KARRE.rad) / KARRE.L));
+      aus.gruppe.rotation.set(-Math.acos(c), 0, 0);
+    } else if (aus?.art === "hubwagen") {
+      const c = Math.min(1, Math.max(0.15, (mitte.y - HUB.gelenk) / HUB.L)), a = Math.acos(c);
+      aus.deichsel.rotation.x = -a;
+      aus.gruppe.position.set(mitte.x, 0, mitte.z + HUB.L * Math.sin(a));
+    }
+  }
+  return { baue, entferne, animiere, koppleAnHaende, baueSackkarre, baueHubwagen };
+})();
 
-  return { gruppe, oberkoerper, fussLinks, fussRechts, armLinks, armRechts, trage,
-           schrittPhase: 0,        // Fortschritt der Geh-Animation (läuft mit der Geschwindigkeit mit)
-           trageSchluessel: "" };  // was gerade in den Händen gezeichnet ist
+// Welcher Skin passt gerade? Forscher = Arbeiter an einer Forschungsstation (Skin wechselt beim Zuweisen).
+function figurSkinVon(p) {
+  if (p.rolle === "kurier" || p.rolle === "service" || p.rolle === "scout") return p.rolle;
+  const st = p.stationId && spiel.gebaeude.get(p.stationId);
+  return st && istForschungsstation(st) ? "forscher" : "arbeiter";
 }
 
-// Die Spielfigur (blaue Arbeitskleidung, gelber Helm)
-const figurModell = baueFigurModell({ koerper: GRAFIK.farbeFigurKoerper, helm: GRAFIK.farbeFigurHelm });
+// Die Spielfigur (Arbeiter-Skin)
+const figurModell = FIGUR.baue("arbeiter", "du");
 
 // Überträgt Position und Blickrichtung einer Person auf ihr 3D-Modell und animiert es.
 //   sekunden     – vergangene Zeit (bei Mitarbeitern die Spielzeit, also inkl. Tempo)
 //   hoechstTempo – Laufgeschwindigkeit, bei der die Animation voll ausschlägt
-//   haltung      – "normal", "traegt" (Arme nach vorn) oder "arbeitet" (Arme werkeln)
+//   haltung      – "normal", "traegt" (Getragenes auf den Händen), "schiebt" (Ausrüstung) oder "arbeitet"
 function aktualisiereFigurModell(p, m, sekunden, zeit, hoechstTempo, haltung = "normal") {
   m.gruppe.position.set(p.position.x, rasterHoehe, p.position.z);
   m.gruppe.rotation.y = p.blickwinkel;
-
-  // Wie stark gelaufen wird: 0 = steht, 1 = volles Tempo
-  const staerke = Math.min(1, p.tempo / hoechstTempo);
-  // Ein voller Animations-Zyklus (2 Schritte) = 2 × Schrittlänge. So "rutschen" die Füße nicht.
-  m.schrittPhase += (p.tempo * sekunden / GRAFIK.schrittLaenge) * Math.PI;
-  const s = Math.sin(m.schrittPhase);
-
-  // Füße schwingen abwechselnd vor und zurück und heben sich leicht an
-  m.fussLinks.position.z = 0.02 + s * 0.09 * staerke;
-  m.fussRechts.position.z = 0.02 - s * 0.09 * staerke;
-  m.fussLinks.position.y = 0.035 + Math.max(0, Math.cos(m.schrittPhase)) * 0.04 * staerke;
-  m.fussRechts.position.y = 0.035 + Math.max(0, -Math.cos(m.schrittPhase)) * 0.04 * staerke;
-
-  // Arme: beim Tragen nach vorn gestreckt, beim Arbeiten werkeln sie, sonst schwingen sie gegengleich zu den Füßen
-  if (haltung === "traegt") {
-    m.armLinks.rotation.x = -1.1;
-    m.armRechts.rotation.x = -1.1;
-  } else if (haltung === "arbeitet") {
-    const werkeln = wenigerAnimation ? 0 : Math.sin(zeit * 11);
-    m.armLinks.rotation.x = -0.9 + werkeln * 0.25;
-    m.armRechts.rotation.x = -0.9 - werkeln * 0.25;
-  } else {
-    m.armLinks.rotation.x = -s * 0.7 * staerke;
-    m.armRechts.rotation.x = s * 0.7 * staerke;
-  }
-
-  // Oberkörper wippt beim Laufen, neigt sich etwas nach vorn und "atmet" im Stand
-  const wippen = wenigerAnimation ? 0 : Math.abs(s) * 0.025 * staerke;
-  const atmen = wenigerAnimation ? 0 : Math.sin(zeit * 2.2 + (p.atemVersatz || 0)) * 0.008 * (1 - staerke);
-  m.oberkoerper.position.y = wippen + atmen;
-  m.oberkoerper.rotation.x = 0.1 * staerke + (haltung === "arbeitet" ? 0.12 : 0);
+  const staerke = Math.min(1, p.tempo / hoechstTempo);   // 0 = steht, 1 = volles Tempo
+  FIGUR.animiere(m, sekunden, zeit, p.tempo, staerke, haltung, p.atemVersatz || 0);
+  FIGUR.koppleAnHaende(m, haltung);
 }
 
 // Die Spielfigur wird jedes Bild aktualisiert (Abschnitt 10).
@@ -10034,6 +10258,18 @@ lz.overlay.addEventListener("click", (e) => {
        eingang: { eisen: 2 },         // Eingangsfach einer Station (Phase 5b)
        rueckgabe: false }             // "Überschuss zurückschicken" läuft (Zwischenlager)
    ============================================================================ */
+/* --- 2026-10-13 (Tim): Lager und Zonen ohne Zugangspfeil, von überall nutzbar ---
+   Alle Lagertypen (Hauptlager, Kisten, Regale, Silo, Zonen, Mülltonne) bekommen jede Randkachel als Zugang
+   (Standard vorn zuerst). Zonen an der Wand: ohne die Wandseite hinten. Personen nehmen die nächste freie Seite. */
+for (const t of GEBAEUDE_TYPEN) {
+  if (t.kategorie !== "lager") continue;
+  const rand = [];
+  for (let dx = 0; dx < t.breite; dx++) rand.push([dx, t.tiefe]);                                  // vorn
+  for (let dz = t.tiefe - 1; dz >= 0; dz--) rand.push([-1, dz], [t.breite, dz]);                  // Seiten
+  if (!t.wand) for (let dx = 0; dx < t.breite; dx++) rand.push([dx, -1]);                         // hinten
+  t.zugaenge = rand.filter(([a, b]) => a !== t.zugang[0] || b !== t.zugang[1]);
+  t.rundum = true;
+}
 const gebaeudeTypNach = new Map(GEBAEUDE_TYPEN.map((t) => [t.typ, t]));
 
 // Alle Items, die es gibt: Rohstoffe und Bauteile. Produkte heißen "p:<Blaupausen-ID>".
@@ -10668,13 +10904,6 @@ function wareHtml(itemId, groesse = 24, name = "") {
   const stufe = s && s.stufe ? `<b class="iso-stufe">${String(s.stufe).replace(/^T?/i, "T")}</b>` : "";
   return `<span class="ic ware" data-name="${htmlSicher(n)}" style="width:${groesse}px;height:${groesse}px">${symbolFuer(itemId, groesse)}${stufe}</span>`;
 }
-// Kurierwege: Ressource im Auswahlfeld gewechselt → Symbol davor austauschen (nur Optik, ohne neu zu zeichnen)
-document.addEventListener("change", (e) => {
-  const feld = e.target;
-  if (!(feld instanceof HTMLSelectElement) || feld.dataset.kwRfeld !== "item") return;
-  const platz = feld.parentElement && feld.parentElement.querySelector(":scope > .kw-ware");
-  if (platz) platz.innerHTML = feld.value ? wareHtml(feld.value, 24) : "";
-});
 
 /* ============================================================================
    ABSCHNITT 13x2: Kategorie-Grafiken (Paket Bandbau/Baumenü 2026-10-12, B6)   [UI/UX-Agent]
@@ -10942,7 +11171,39 @@ function meldeStruktur() {
 }
 
 /* --- Abfragen --- */
-function typVon(g) { return gebaeudeTypNach.get(g.typ); }
+// 2026-10-13 (Tim): Import- und Exportzone sind umschaltbar (g.zonenArt). Größe und Zugänge bleiben vom
+// gebauten Typ, Rolle, Name und Beschreibung kommen vom gewählten. Alle Prüfungen über typVon(g).art folgen damit.
+const zonenTypCache = new Map();
+function typVon(g) {
+  const t = gebaeudeTypNach.get(g.typ);
+  if (!g.zonenArt || g.zonenArt === t.art) return t;
+  const schluessel = g.typ + "|" + g.zonenArt;
+  if (!zonenTypCache.has(schluessel)) {
+    const rolle = gebaeudeTypNach.get(g.zonenArt);
+    zonenTypCache.set(schluessel, { ...t, art: rolle.art, name: rolle.name, symbol: rolle.symbol, beschreibung: rolle.beschreibung });
+  }
+  return zonenTypCache.get(schluessel);
+}
+function istZone(g) { return !!g && ["importzone", "exportzone"].includes(gebaeudeTypNach.get(g.typ).art); }
+// Zone auf Import oder Export umstellen. Nur leer und ohne Wagen; Bestellungen bzw. Verkaufsmodi beginnen neu.
+function setzeZonenArt(id, art) {
+  const g = spiel.gebaeude.get(id);
+  if (!istZone(g) || !["importzone", "exportzone"].includes(art)) return { ok: false, grund: "Keine Zone." };
+  if (typVon(g).art === art) return { ok: true };
+  if (summe(g.bestand) > 0) return { ok: false, grund: "Erst die Zone leeren – es liegt noch Ware darin." };
+  if ((g.lieferwagen || []).some((w) => !w.abgeladen) || g.abholwagen) return { ok: false, grund: "Ein Wagen ist unterwegs – bitte kurz warten." };
+  for (const p of mitarbeiter) {
+    const a = p.auftrag;
+    if (a && (a.quelleId === g.id || a.zielId === g.id)) return { ok: false, grund: "Ein Kurier ist gerade mit dieser Zone beschäftigt." };
+  }
+  g.zonenArt = art === gebaeudeTypNach.get(g.typ).art ? undefined : art;
+  delete g.bestellungen; delete g.lieferwagen; delete g.exportModus; delete g.abholTimer; delete g.abholwagen; delete g.letzteAbholung;
+  richteZoneEin(g);
+  g.version = (g.version || 0) + 1;
+  meldeEreignis("zoneUmgestellt", { gebaeude: g });
+  meldeStruktur(); speichereSpielstand();
+  return { ok: true };
+}
 function istStation(g) { return typVon(g).kategorie === "station" || typVon(g).kategorie === "maschine"; }   // Phase 7d: Maschinen sind Stationen
 function istZwischenlager(g) { return typVon(g).art === "zwischenlager"; }
 function istHauptlager(g) { return typVon(g).art === "hauptlager"; }   // Phase 7b Nachtrag
@@ -11364,6 +11625,7 @@ function gebaeudeName(g) {
   if(g?.name)return g.name;
   const t = typVon(g);
   // Phase 7a (Nachtrag 3): Solange es nur ein Lager gibt, heißt es ohne Nummer
+  if (g.zonenArt) return `${t.name} ${g.nummer + anzahlTyp(g.zonenArt)}`;   // umgestellte Zone: Nummer hinter den gebauten
   if (t.maxAnzahl === 1 || (["hauptlager", "importzone", "exportzone"].includes(t.art) && anzahlTyp(t.typ) <= 1 && g.nummer === 1)) return t.name;
   return `${t.name} ${g.nummer}`;
 }
@@ -11519,7 +11781,7 @@ function passtGebaeude(typ, x, z, drehung, ignoriereId = null) {
   } else if (t.zugaenge) {
     // 2026-10-13: eine freie Arbeitsseite genügt
     const frei = geo.zugaenge.some((n) => { const k = holeKachel(n.x, n.z); return k && ((k.begehbar && !k.objekt) || istEigen(n)) && !k.band && !k.hochband; });
-    if (!frei) gruende.push("Mindestens eine Arbeitsseite (Pfeil) muss frei bleiben.");
+    if (!frei) gruende.push(t.rundum ? "Mindestens eine Seite muss frei bleiben." : "Mindestens eine Arbeitsseite (Pfeil) muss frei bleiben.");
   } else {
     if (!zugangKachel || ((!zugangKachel.begehbar || zugangKachel.objekt) && !istEigen(geo.zugang))) gruende.push("Der Arbeitszugang (Pfeil) ist versperrt.");
     if (zugangKachel?.band || zugangKachel?.hochband) gruende.push("Der Arbeitszugang (Pfeil) muss auch oberhalb frei bleiben.");
@@ -11582,6 +11844,8 @@ function stelleGebaeudeAuf(typ, x, z, drehung, extra = {}) {
     nachkauf: extra.nachkauf !== false,                                    // Phase 7d: Smart-Schrank bestellt nach
     expedition: extra.expedition || null,                                  // W3 (M1): Außenposten-Expedition
   };
+  // 2026-10-13: umgestellte Zone (Import ↔ Export)
+  if (istZone(g) && ["importzone", "exportzone"].includes(extra.zonenArt) && extra.zonenArt !== gebaeudeTypNach.get(typ).art) g.zonenArt = extra.zonenArt;
   richteZoneEin(g, extra);                                                 // Phase 7b: Bestellungen, Wagen, Export-Modus
   spiel.gebaeude.set(g.id, g);
   for (const c of geo.zellen) setzeBlockade(c.x, c.z, true, g.id);
@@ -12972,7 +13236,7 @@ function speichereKurierweg(d) {
   else spiel.kurierwege[i] = r;
   if (r.stopps.length < 2) r.aktiv = false;
   for (const p of mitarbeiter.filter(p=>p.kurierwegId===r.id)) {
-    haltePersonAn(p); p.auftrag=null; p.kurierwegIndex=0; p.kurierwegAustausch=false; p.kurierwegPhase='bereit'; p.timer=0;
+    haltePersonAn(p); p.auftrag=null; p.kurierwegIndex=0; p.kurierwegAustausch=false; p.kurierwegPhase='bereit'; p.timer=0; p.kwAnteile=null;
   }
   meldeStruktur(); speichereSpielstand();
   return {ok:true, route:r};
@@ -12992,7 +13256,7 @@ function weiseKurierwegZu(personId, routeId) {
   if((p.kurierwegId||'') === (routeId||'')) return true;
   // Bei Wechsel/Entfernen wird die vorhandene Ladung wie bei einer Umschulung zurückgebucht.
   setzePersonZurueck(p); haltePersonAn(p);
-  p.kurierwegId=routeId||null; p.kurierwegIndex=0; p.kurierwegAustausch=false; p.kurierwegPhase='bereit'; p.kurierwegRunden=0; p.kurierwegHinweis=''; p.timer=0;
+  p.kurierwegId=routeId||null; p.kwAnteile=null; p.kurierwegIndex=0; p.kurierwegAustausch=false; p.kurierwegPhase='bereit'; p.kurierwegRunden=0; p.kurierwegHinweis=''; p.timer=0;
   if(p.istDu && routeId) p.flexibel=false;
   meldeStruktur(); speichereSpielstand(); return true;
 }
@@ -13013,6 +13277,26 @@ function kurierwegZiel(p,item,abIndex=p.kurierwegIndex||0) {
     if(e)return {g,stopp,index,menge:e.menge,fach:istStation(g)?'eingang':'bestand'};
   }
   return null;
+}
+// Alle Auto-Liefer-Stopps eines Items ab abIndex (für die gleichmäßige Aufteilung: 2 → 50/50, 3 → je ⅓)
+function kurierwegAutoZiele(p,item,abIndex) {
+  const r=kurierwegVon(p),liste=[]; if(!r?.stopps.length)return liste;
+  for(let n=0;n<r.stopps.length;n++) {
+    const index=(abIndex+n)%r.stopps.length, stopp=r.stopps[index], g=spiel.gebaeude.get(stopp.gebaeudeId);
+    if(!g || !['abliefern','austauschen'].includes(stopp.aktion))continue;
+    const e=stopp.ressourcen.find(e=>e.item===item);
+    if(e && e.menge==null)liste.push({g,index,fach:istStation(g)?'eingang':'bestand'});
+  }
+  return liste;
+}
+// Nach dem Aufnehmen: getragene Menge gleich auf die Auto-Ziele verteilen, Rest an das erste
+function kurierwegVerteile(p,item,abIndex) {
+  const ziele=kurierwegAutoZiele(p,item,abIndex), n=p.traegt[item]||0;
+  p.kwAnteile=p.kwAnteile||{};
+  if(ziele.length<2 || !n){delete p.kwAnteile[item];return;}
+  const je=Math.floor(n/ziele.length), anteile={};
+  ziele.forEach((z,i)=>{anteile[z.index]=je+(i===0?n-je*ziele.length:0);});
+  p.kwAnteile[item]=anteile;
 }
 // Ziel eines Items aus dem laufenden Abholauftrag (mehrere Ressourcen können verschiedene Ziele haben)
 function kwAuftragsZiel(a,item) { return a.ziele?.[item] || {zielId:a.zielId,zielFach:a.zielFach}; }
@@ -13041,13 +13325,20 @@ function kurierwegAufnahme(g,item,res) {
   return Math.max(0,verfuegbar(g,item,res));
 }
 // fest = am Stopp ist eine feste Menge eingetragen: dann zählt nur der freie Platz (nicht der Bedarf/Sollbestand).
-// Leere Menge („Bedarf (Auto)“) liefert wie bisher nur, was Station, Zwischenlager oder Exportzone brauchen.
+// Leere Menge („Bedarf (Auto)“) liefert an Stationen nur, was sie brauchen.
+// Exportzone als Routenziel nimmt immer alles, was passt (der Spieler hat die Route bewusst dorthin gelegt).
 function kurierwegAbgabe(g,item,res,fest=false) {
   const fach=istStation(g)?'eingang':'bestand';
+  // 2026-10-13: Kiste/Regal als Routenziel nimmt die Ware der Route an (Lager sind von überall nutzbar).
+  // Hat die Ware dort ein Soll, füllt Auto bis zum Soll auf, sonst so viel wie passt. Nur ein von Hand gesperrtes ✕ verbietet es.
+  if(istZwischenlager(g)) {
+    if(!lagerNimmtWare(g,item) || g.regeln[item]?.imp===false)return 0;
+    return fest||!sollbestand(g)[item] ? platzFuer(g,item,res) : Math.min(platzFuer(g,item,res),bedarf(g,res)[item]||0);
+  }
   if(!darfKurierLiefern(g,item,fach))return 0;
   if(istHauptlager(g))return hlAufnahme(g,item,res);
-  if(istExportzone(g))return fest?platzFuer(g,item,res):Math.min(platzFuer(g,item,res),exportBedarf(g,res)[item]||0);
-  if(istStation(g)||istZwischenlager(g))return fest?platzFuer(g,item,res,fach):Math.min(platzFuer(g,item,res,fach),bedarf(g,res)[item]||0);
+  if(istExportzone(g))return platzFuer(g,item,res);
+  if(istStation(g))return fest?platzFuer(g,item,res,fach):Math.min(platzFuer(g,item,res,fach),bedarf(g,res)[item]||0);
   return platzFuer(g,item,res,fach);
 }
 function kurierwegWeiter(p,hinweis='') {
@@ -13076,7 +13367,8 @@ function kwPlaneAufnahme(p,r,index,s,g,res,auftrag=null) {
       (menge??Infinity)-schon,
       auftrag ? auftrag.items[item]-schon : Infinity,
       kurierwegAufnahme(g,item,res),
-      kurierwegAbgabe(z.g,item,res,z.menge!=null),
+      z.menge!=null ? kurierwegAbgabe(z.g,item,res,true)
+        : kurierwegAutoZiele(p,item,(index+1)%r.stopps.length).reduce((t,a)=>t+kurierwegAbgabe(a.g,item,res),0),
       Math.max(0,(z.menge??Infinity)-(p.traegt[item]||0)-schon));
     if(!(m>0))continue;
     items[item]=schon+m; ziele[item]={zielId:z.g.id,zielFach:z.fach}; frei-=m;
@@ -13126,13 +13418,15 @@ function schrittKurierweg(p,dt) {
         if(ziel)kwVormerken(res,'rein',fachSchluessel(ziel.g.id,ziel.fach),item,Math.min(n,ziel.menge??Infinity));
       }
       const plan=kwPlaneAufnahme(p,r,index,s,g,res,a);
-      for(const [item,m] of Object.entries(plan.items)){aendereFach(g,'bestand',item,-m);bucheItems(p.traegt,{[item]:m});bewegt+=m;}
+      for(const [item,m] of Object.entries(plan.items)){aendereFach(g,'bestand',item,-m);bucheItems(p.traegt,{[item]:m});bewegt+=m;kurierwegVerteile(p,item,(index+1)%r.stopps.length);}
     }
-    if(!bewegt)hinweis='Aufnahme übersprungen: Quelle leer, Traglast erreicht, Ziel voll/fehlend oder Regel gesperrt (am Ziel-Lager Import ⇣ einschalten).';
+    if(!bewegt)hinweis='Aufnahme übersprungen: Quelle leer, Traglast erreicht oder Ziel voll/fehlend.';
   } else if(aktion==='abliefern') {
     let rest=false;
     for(const {item,menge} of s.ressourcen) {
-      const m=Math.min(p.traegt[item]||0,menge??Infinity,kurierwegAbgabe(g,item,res,menge!=null));
+      const anteil=menge==null ? p.kwAnteile?.[item]?.[index] : undefined;
+      const m=Math.min(p.traegt[item]||0,menge??Infinity,anteil??Infinity,kurierwegAbgabe(g,item,res,menge!=null));
+      if(anteil!==undefined){delete p.kwAnteile[item][index];if(!Object.keys(p.kwAnteile[item]).length)delete p.kwAnteile[item];}
       if(m>0){aendereFach(g,istStation(g)?'eingang':'bestand',item,m);bucheItems(p.traegt,{[item]:m},-1);bewegt+=m;}
       else if(p.traegt[item])rest=true;
     }
@@ -13147,7 +13441,7 @@ function schrittKurierweg(p,dt) {
 }
 function kurierwegPersonDaten(p) {
   if(!p.kurierwegId)return null;
-  return JSON.parse(JSON.stringify({id:p.kurierwegId,index:p.kurierwegIndex||0,austausch:!!p.kurierwegAustausch,phase:p.kurierwegPhase||'bereit',timer:p.timer||0,runden:p.kurierwegRunden||0,hinweis:p.kurierwegHinweis||'',traegt:p.traegt,auftrag:p.auftrag}));
+  return JSON.parse(JSON.stringify({id:p.kurierwegId,index:p.kurierwegIndex||0,austausch:!!p.kurierwegAustausch,phase:p.kurierwegPhase||'bereit',timer:p.timer||0,runden:p.kurierwegRunden||0,hinweis:p.kurierwegHinweis||'',traegt:p.traegt,auftrag:p.auftrag,anteile:p.kwAnteile||null}));
 }
 function ladeKurierwege(d) {
   const ids=new Set();spiel.kurierwege=[];
@@ -13168,6 +13462,12 @@ function ladeKurierwegPerson(p,d) {
   p.kurierwegRunden=Number.isSafeInteger(d.runden)?Math.max(0,d.runden):0;p.kurierwegHinweis=String(d.hinweis||'');
   p.traegt=getragen;p.auftrag=null;
   p.kurierwegAustausch=!!d.austausch;
+  // Aufteilung (Item → {Stopp-Index: Menge}); nur gültige, positive ganze Mengen übernehmen
+  p.kwAnteile={};
+  for(const [item,a] of Object.entries(d.anteile&&typeof d.anteile==='object'?d.anteile:{})) {
+    const ok=Object.fromEntries(Object.entries(a||{}).filter(([i,n])=>Number.isSafeInteger(+i)&&+i>=0&&+i<r.stopps.length&&Number.isSafeInteger(n)&&n>0));
+    if(getragen[item]&&Object.keys(ok).length)p.kwAnteile[item]=ok;
+  }
   if(p.kurierwegPhase==='laedt' && d.auftrag?.art==='kurierweg') {
     const a=d.auftrag,s=r.stopps[p.kurierwegIndex];
     if((s?.aktion==='aufnehmen'||s?.aktion==='austauschen'&&p.kurierwegAustausch) && s.gebaeudeId===a.quelleId) {
@@ -13980,7 +14280,7 @@ function spielstandDaten() {
     level: level.name,
     gebaeude: gebaeudeListe().map((g) => ({
       id: g.id, typ: g.typ, nummer: g.nummer, x: g.x, z: g.z, drehung: g.drehung,
-      name: g.name || undefined,
+      name: g.name || undefined, zonenArt: g.zonenArt || undefined,
       bestand: g.bestand, verknuepft: g.verknuepft, rezept: g.rezept, pausiert: g.pausiert,
       importVon: g.importVon, exportNach: g.exportNach,   // Phase 7a (Nachtrag 2)
       modus: g.modus, regeln: g.regeln,
@@ -14064,7 +14364,7 @@ function leseSpielstand() {
     // W1: version 10 wird gelesen (Mitarbeiter ohne Gefahrenzulage starten mit 0)
     // W2: version 11 wird gelesen (Blaupausen starten ohne QA-Prüfung)
     // W2b: version 12 wird gelesen (produktQa true/false → Prüfquote { g, m })
-    return daten && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
+    return daten && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, PRODUKTION.spielstandVersion].includes(daten.version) && Array.isArray(daten.gebaeude) ? daten : null;
   } catch (fehler) {
     spielstandSpeicherbar = false;
     return null;
@@ -19651,8 +19951,9 @@ function baueZugangsPfeil(zugang, richtung, material = pfeilMaterial) {
   return pfeil;
 }
 // Jedes Gebäude zeigt seine Zugangskachel mit dem Richtungspfeil.
+// 2026-10-13: Lager und Zonen sind rundum nutzbar → kein Pfeil
 function zeigtZugangsPfeil(typ) {
-  return gebaeudeTypNach.has(typ) && gebaeudeTypNach.get(typ).kategorie !== "maschine";
+  return gebaeudeTypNach.has(typ) && !["maschine", "lager"].includes(gebaeudeTypNach.get(typ).kategorie);
 }
 
 /* --- Status-Symbole über den Stationen (kleine runde Schilder, immer zur Kamera gedreht) --- */
@@ -19901,7 +20202,7 @@ const gebaeude3d = new Map();   // Gebäude-ID → { huelle, modell, fuellung, p
 
 spielEreignisse.addEventListener("gebaeudeGebaut", (e) => {
   const g = e.detail.gebaeude;
-  const bau = MODELLE[g.typ](null);
+  const bau = modellFuer(g);   // 2026-10-13: umgestellte Zonen
   const warnPunkt = bau.warnPunkt || warnPunktVon(bau.gruppe);   // Phase 7d: vor dem Aufploppen (Maßstab 1) bestimmen
   const huelle = new THREE.Group();
   const mitte = gebaeudeMitteWelt(g);
@@ -20134,71 +20435,42 @@ spielEreignisse.addEventListener("schwebeText", (e) => {
 });
 
 /* --- Mitarbeiter-Modelle --- */
-const mitarbeiter3d = new Map();   // Personen-ID → Modell (aus baueFigurModell)
+const mitarbeiter3d = new Map();   // Personen-ID → Modell (aus FIGUR.baue)
 
 // Gleicht die Modelle mit der Mitarbeiter-Liste ab (Einstellen/Entlassen).
 spielEreignisse.addEventListener("mitarbeiterGeaendert", () => {
   const ids = new Set(mitarbeiter.map((p) => p.id));
   for (const [id, modell] of mitarbeiter3d) {
-    if (!ids.has(id)) { szene.remove(modell.gruppe); mitarbeiter3d.delete(id); }
+    if (!ids.has(id)) { FIGUR.entferne(modell); mitarbeiter3d.delete(id); }
   }
   for (const p of mitarbeiter) {
     // Phase 6: Nach einer Umschulung bekommt die Person die Kleidung ihrer neuen Rolle
+    // (2026-10-13: Skin – auch Forscher ↔ Arbeiter wechselt in aktualisiereMitarbeiter3d)
     const alt = mitarbeiter3d.get(p.id);
-    if (alt && alt.rolle !== p.rolle) { szene.remove(alt.gruppe); mitarbeiter3d.delete(p.id); }
+    if (alt && alt.skin !== figurSkinVon(p)) { FIGUR.entferne(alt); mitarbeiter3d.delete(p.id); }
     if (mitarbeiter3d.has(p.id)) continue;
-    const farben = p.rolle === "kurier"
-      ? { koerper: GRAFIK.farbeKurierKoerper, helm: GRAFIK.farbeKurierHelm, weste: GRAFIK.farbeKurierWeste }
-      : p.rolle === "service"                                                          // W2b (M8)
-        ? { koerper: GRAFIK.farbeServiceKoerper, helm: GRAFIK.farbeServiceHelm, weste: GRAFIK.farbeKurierWeste }
-        : p.rolle === "scout"                                                          // W3 (M1)
-          ? { koerper: GRAFIK.farbeScoutKoerper, helm: GRAFIK.farbeScoutHelm, weste: GRAFIK.farbeKurierWeste }
-          : { koerper: GRAFIK.farbeArbeiterKoerper, helm: GRAFIK.farbeArbeiterHelm };
-    const modell = baueFigurModell(farben);
-    modell.rolle = p.rolle;
-    mitarbeiter3d.set(p.id, modell);
+    mitarbeiter3d.set(p.id, FIGUR.baue(figurSkinVon(p), p.id));
   }
 });
 
-/* --- Ausrüstung der Kuriere (Phase 5): Sackkarre und Hubwagen aus Grundformen --- */
-// Rückgabe: { gruppe, ladung } – "ladung" ist der Punkt, auf dem die Items gestapelt werden
+/* --- Ausrüstung der Kuriere (Phase 5) ---
+   2026-10-13: Sackkarre (auch Handkarre) und Hubwagen hängen an den Händen (FIGUR.koppleAnHaende). */
 function baueAusruestung(stufe) {
-  const g = new THREE.Group();
-  const rad = (x, z, r) => {
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.05, 12), figurMaterial(GRAFIK.farbeRad));
-    m.rotation.z = Math.PI / 2;
-    m.position.set(x, r, z);
-    m.castShadow = true;
-    g.add(m);
-  };
-  const ladung = new THREE.Group();
   const modell = (KURIER_STUFEN.find((k) => k.stufe === stufe) || {}).modell;   // Phase 7d: Handkarre vorerst wie Sackkarre
-  if (modell === "sackkarre" || modell === "handkarre") {   // Sackkarre: zwei Holme, Schaufel unten, zwei Räder
-    for (const x of [-0.15, 0.15]) quader(g, 0.035, 0.7, 0.035, GRAFIK.farbeSackkarre, x, 0.05, 0.42);
-    quader(g, 0.33, 0.03, 0.035, GRAFIK.farbeSackkarre, 0, 0.45, 0.42);
-    quader(g, 0.36, 0.025, 0.2, GRAFIK.farbeMetallDunkel, 0, 0.03, 0.5);
-    quader(g, 0.4, 0.035, 0.035, GRAFIK.farbeSackkarre, 0, 0.72, 0.4);       // Griff
-    rad(-0.21, 0.4, 0.09); rad(0.21, 0.4, 0.09);
-    ladung.position.set(0, 0.055, 0.52);
-  } else if (modell === "hubwagen") {   // Hubwagen: Gabeln mit Palette, Hydraulik-Körper, Deichsel
-    for (const x of [-0.12, 0.12]) quader(g, 0.08, 0.05, 0.75, GRAFIK.farbeHubwagen, x, 0.02, 0.78);
-    quader(g, 0.34, 0.2, 0.14, GRAFIK.farbeHubwagen, 0, 0.02, 0.38);
-    const deichsel = quader(g, 0.04, 0.55, 0.04, GRAFIK.farbeMetallDunkel, 0, 0.2, 0.33);
-    deichsel.rotation.x = -0.35;
-    quader(g, 0.24, 0.04, 0.04, GRAFIK.farbeMetallDunkel, 0, 0.7, 0.24);
-    rad(0, 0.36, 0.05);
-    quader(g, 0.5, 0.08, 0.6, GRAFIK.farbeHolz, 0, 0.07, 0.8);                // Palette
-    ladung.position.set(0, 0.15, 0.8);
-  }
-  g.add(ladung);
-  return { gruppe: g, ladung };
+  if (modell === "sackkarre" || modell === "handkarre") return FIGUR.baueSackkarre(GRAFIK.farbeSackkarre);
+  if (modell === "hubwagen") return FIGUR.baueHubwagen(GRAFIK.farbeHubwagen);
+  return null;
 }
 
-// Getragene Items als kleine Würfel vor der Brust (gestapelt, höchstens 10 sichtbar).
-// Mit Ausrüstung (Phase 5) liegen sie auf der Sackkarre bzw. der Palette des Hubwagens.
+// Getragene Items: ohne Ausrüstung auf den Händen (2 nebeneinander), sonst auf der Schaufel der Karre
+// bzw. der Palette des Hubwagens (2 × 2). Höchstens 10 sichtbar, gestapelt.
 function zeichneGetragenes(modell, traegt, stufe = 0) {
   if (modell.ausruestungStufe !== stufe) {
-    if (modell.ausruestung) modell.gruppe.remove(modell.ausruestung.gruppe);
+    if (modell.ausruestung) {
+      const alt = modell.ausruestung;
+      while (alt.ladung.children.length) alt.ladung.remove(alt.ladung.children[0]);   // Ware-Meshes teilen ihre Geometrie
+      modell.gruppe.remove(alt.gruppe); alt.gruppe.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    }
     modell.ausruestung = stufe > 0 ? baueAusruestung(stufe) : null;
     if (modell.ausruestung) modell.gruppe.add(modell.ausruestung.gruppe);
     modell.ausruestungStufe = stufe;
@@ -20212,16 +20484,17 @@ function zeichneGetragenes(modell, traegt, stufe = 0) {
   }
   const liste = [];
   for (const [item, n] of Object.entries(traegt)) for (let i = 0; i < n; i++) liste.push(item);
-  const ziel = modell.ausruestung ? modell.ausruestung.ladung : modell.trage;
-  const proLage = stufe === 2 ? 4 : 2;           // Hubwagen: 2 × 2 pro Lage, sonst 2 nebeneinander
+  const aus = modell.ausruestung, ziel = aus ? aus.ladung : modell.trage;
+  const hub = aus?.art === "hubwagen", proLage = hub ? 4 : 2;
+  const groesse = aus?.art === "karre" ? 0.13 : 0.15, abstand = groesse + 0.01;
   const oben = [0, 0, 0, 0];                     // Phase 7c: Stapelhöhe je Platz (Items sind unterschiedlich hoch)
   liste.slice(0, 10).forEach((item, i) => {
     const w = new THREE.Mesh();
-    const hoehe = zeigeItemAlsMesh(w, item, 0.16);   // Phase 7c: Form und Farbe nach Kategorie/Gehäuse/Holz
+    const hoehe = zeigeItemAlsMesh(w, item, groesse);   // Phase 7c: Form und Farbe nach Kategorie/Gehäuse/Holz
     const platz = i % proLage, y = oben[platz] + hoehe / 2;
     oben[platz] += hoehe + 0.005;
-    if (stufe === 2) w.position.set(((platz % 2) - 0.5) * 0.17, y, (Math.floor(platz / 2) - 0.5) * 0.17);
-    else w.position.set((platz - 0.5) * (liste.length > 1 ? 0.17 : 0), y, 0);
+    if (hub) w.position.set(((platz % 2) - 0.5) * 0.2, y, (Math.floor(platz / 2) - 0.5) * 0.2);
+    else w.position.set((platz - 0.5) * (liste.length > 1 ? abstand : 0), y, 0);
     w.castShadow = true;
     ziel.add(w);
   });
@@ -20229,10 +20502,12 @@ function zeichneGetragenes(modell, traegt, stufe = 0) {
 
 function aktualisiereMitarbeiter3d(simSekunden, zeit) {
   for (const p of mitarbeiter) {
-    const modell = mitarbeiter3d.get(p.id);
+    let modell = mitarbeiter3d.get(p.id);
     if (!modell) continue;
+    // 2026-10-13: Skin folgt der Aufgabe (Arbeiter ↔ Forscher beim Zuweisen an eine Forschungsstation)
+    if (modell.skin !== figurSkinVon(p)) { FIGUR.entferne(modell); modell = FIGUR.baue(figurSkinVon(p), p.id); mitarbeiter3d.set(p.id, modell); }
     zeichneGetragenes(modell, p.traegt, p.rolle === "kurier" ? p.stufe : 0);
-    const haltung = p.phase === "arbeitet" ? "arbeitet" : hatItems(p) || (p.rolle === "kurier" && p.stufe > 0) ? "traegt" : "normal";
+    const haltung = p.phase === "arbeitet" ? "arbeitet" : modell.ausruestung ? "schiebt" : hatItems(p) ? "traegt" : "normal";
     aktualisiereFigurModell(p, modell, simSekunden, zeit, laufTempoVon(p), haltung);
     // Phase 7a: Wird die Person gerade gezogen, hängt sie leicht angehoben an der Maus
     if (personZug.aktiv && personZug.id === p.id && personZug.punkt) {
@@ -23563,7 +23838,9 @@ const MASCHINEN_LOOK = (() => {
     ersatz = m || null;
     try { return bauen(); } finally { ersatz = null; }
   }
-  return { baue, hat: (typ) => !!BAUER[typ], kartonForm, maleSymbol, rohstoffForm, wagen: (farbe) => { ersatz = null; return wagen(farbe); } };
+  // 2026-10-13: umgestellte Zone (Größe vom gebauten Typ, Farbe/Schrift/Tor von der Rolle)
+  const umgestellteZone = (breite, art) => { ersatz = null; return art === "importzone" ? zone(breite, GRUEN, "IMPORT", false) : zone(breite, ROT, "EXPORT", true); };
+  return { baue, hat: (typ) => !!BAUER[typ], zone: umgestellteZone, kartonForm, maleSymbol, rohstoffForm, wagen: (farbe) => { ersatz = null; return wagen(farbe); } };
 })();
 
 // Die alten Modelle bleiben erreichbar: Ist der neue Look an, baut MODELLE[typ] das neue Modell
@@ -23572,23 +23849,38 @@ for (const [typ, alt] of Object.entries(MODELLE)) {
   MODELLE[typ] = (m) => (neuerMaschinenLook() && MASCHINEN_LOOK.baue(typ, m)) || alt(m);
 }
 
+// Modell eines Gebäudes (umgestellte Zonen bekommen das Aussehen ihrer Rolle in ihrer Größe)
+function modellFuer(g) {
+  if (g.zonenArt) {
+    const breite = gebaeudeTypNach.get(g.typ).breite, imp = g.zonenArt === "importzone";
+    return neuerMaschinenLook() ? MASCHINEN_LOOK.zone(breite, g.zonenArt) : zonenModell(null, breite, imp ? GRAFIK.farbeImport : GRAFIK.farbeExport, imp ? true : "gitter");
+  }
+  return MODELLE[g.typ](null);
+}
+spielEreignisse.addEventListener("zoneUmgestellt", (ev) => {
+  const e = gebaeude3d.get(ev.detail.gebaeude.id);
+  if (e && !e.verschwindet) baueEinModellNeu(e);
+});
 // Schalter umgelegt: alle Gebäude mit dem passenden Modell neu aufbauen (Füllung, Fächer und Marken bleiben)
 function baueGebaeudeModelleNeu() {
   for (const e of gebaeude3d.values()) {
     if (e.verschwindet || !MASCHINEN_LOOK.hat(e.gebaeude.typ)) continue;
-    const g = e.gebaeude, bau = MODELLE[g.typ](null);
-    e.huelle.remove(e.modell);
-    if (e.eingangFuellung) { e.modell.remove(e.eingangFuellung); e.eingangFuellung = null; }
-    bau.gruppe.add(e.fuellung);
-    e.huelle.add(bau.gruppe);
-    Object.assign(e, {
-      modell: bau.gruppe, plaetze: bau.plaetze, wuerfel: bau.wuerfel, version: -1, tor: bau.tor || null,
-      bau7d: bau.lampe || bau.animiere || bau.eingangPlaetze || bau.silo || bau.smart ? bau : null,
-      warnPunkt: bau.warnPunkt || warnPunktVon(bau.gruppe),
-      eingangVersion: undefined, siloVersion: undefined, smartZustand: undefined, arbeitsPhase: undefined,
-    });
-    if (e.lagerMarke) e.lagerMarke.hoehe = bau.schildHoehe || LAGER_SCHILD_HOEHE[g.typ] || 1.2;
+    baueEinModellNeu(e);
   }
+}
+function baueEinModellNeu(e) {
+  const g = e.gebaeude, bau = modellFuer(g);
+  e.huelle.remove(e.modell);
+  if (e.eingangFuellung) { e.modell.remove(e.eingangFuellung); e.eingangFuellung = null; }
+  bau.gruppe.add(e.fuellung);
+  e.huelle.add(bau.gruppe);
+  Object.assign(e, {
+    modell: bau.gruppe, plaetze: bau.plaetze, wuerfel: bau.wuerfel, version: -1, tor: bau.tor || null,
+    bau7d: bau.lampe || bau.animiere || bau.eingangPlaetze || bau.silo || bau.smart ? bau : null,
+    warnPunkt: bau.warnPunkt || warnPunktVon(bau.gruppe),
+    eingangVersion: undefined, siloVersion: undefined, smartZustand: undefined, arbeitsPhase: undefined,
+  });
+  if (e.lagerMarke) e.lagerMarke.hoehe = bau.schildHoehe || LAGER_SCHILD_HOEHE[g.typ] || 1.2;
 }
 
 /* --- Items auf den Bändern: ein InstancedMesh für alle --- */
@@ -25503,7 +25795,7 @@ function bauKartenWerte(t) {
 // Kurier-Schildern und Start/Pause/Speichern/Leeren; Stopp-Karten nebeneinander (ziehen zum Umsortieren),
 // je Stopp mehrere Ressourcen mit eigener Menge. Icons: eigene SVGs (nach den Font-Awesome-Symbolen der Vorlage),
 // Ziehen: SortableJS 1.15.2 per CDN (fehlt es, gilt das eingebaute Ziehen per Drag & Drop).
-const kurierwegeAnsicht={offen:false,modus:'liste',auswahl:null,entwurf:null,meldung:'',pick:null,vormerk:[]};   // modus: 'liste' (Übersicht) | 'bearbeiten'
+const kurierwegeAnsicht={offen:false,modus:'liste',auswahl:null,entwurf:null,meldung:'',ok:false,pick:null,vormerk:[],hinweise:{}};   // modus: 'liste' (Übersicht) | 'bearbeiten'
 const kwOverlay=document.createElement('div');
 kwOverlay.id='kurier-overlay';kwOverlay.className='modal-schleier frei';kwOverlay.hidden=true;
 kwOverlay.innerHTML='<section id="kurier-fenster" class="modal-fenster modern-ui" role="dialog" aria-modal="false" aria-label="Kurierwege" tabindex="-1"></section>';
@@ -25540,7 +25832,7 @@ const kwIcon=(name,stil='')=>{
 };
 function kurierwegEntwurf(id) {
   const r=spiel.kurierwege.find(r=>r.id===id);
-  kurierwegeAnsicht.auswahl=r?.id||null;kurierwegeAnsicht.vormerk=[];
+  kurierwegeAnsicht.auswahl=r?.id||null;kurierwegeAnsicht.vormerk=[];kurierwegeAnsicht.hinweise={};
   kurierwegeAnsicht.entwurf=r?JSON.parse(JSON.stringify(r)):{name:'Kurierfahrt '+spiel.naechsterKurierweg,aktiv:true,stopps:[]};
 }
 function oeffneKurierwege() {
@@ -25555,20 +25847,80 @@ function schliesseKurierwege() {
 }
 function kwPickEnde(g=null) {
   const i=kurierwegeAnsicht.pick;
-  if(g&&i!==null&&kurierwegeAnsicht.entwurf?.stopps[i])kurierwegeAnsicht.entwurf.stopps[i].gebaeudeId=g.id;
+  if(g&&i!==null&&kurierwegeAnsicht.entwurf?.stopps[i]){kurierwegeAnsicht.entwurf.stopps[i].gebaeudeId=g.id;kwPruefeWaren(i);}
   kurierwegeAnsicht.pick=null;kwPickBanner.hidden=true;kwOverlay.hidden=false;
   zeichneKurierwege();aktualisiereSperre();kwFenster.focus({preventScroll:true});
 }
 function kwGebaeudeErlaubt(g) { return g&&(istHauptlager(g)||istZwischenlager(g)||istStation(g)||istImportzone(g)||istExportzone(g)); }
-function kwAktiveItems() {
-  const ids=new Set(ROHSTOFFE.map(r=>r.id));
-  for(const g of spiel.gebaeude.values()) {
-    for(const [i,n] of Object.entries({...g.bestand,...g.eingang}))if(n>0)ids.add(i);
-    const r=istStation(g)&&rezeptVon(g);
-    if(r){Object.keys(r.eingaben).forEach(i=>ids.add(i));if(r.ausgabe)ids.add(r.ausgabe);}
+// 2026-10-13 (Tim): Waren-Raster je Stopp – nur Waren, die am gewählten Gebäude bei dieser Aktion genutzt werden.
+// Aufnehmen: Bestand, Lager-Kacheln, Erzeugnis der Station, Bestellungen der Importzone, was Stationen hier ablegen.
+// Abliefern: Station = Zutaten; Lager = Bestand/Kacheln, Bedarf der Stationen, die hier holen, + in der Route Aufgenommenes;
+// Exportzone = Endprodukte + in der Route Aufgenommenes; Importzone nimmt nichts an. Austausch = beides.
+function kwWarenFuer(g,aktion,route) {
+  if(!g||aktion==='besuchen')return [];
+  const ids=new Set(),dazu=(liste)=>{for(const i of liste)if(i)ids.add(i);};
+  const auf=aktion==='aufnehmen'||aktion==='austauschen',ab=aktion==='abliefern'||aktion==='austauschen';
+  const lager=istHauptlager(g)||istZwischenlager(g);
+  const rezept=istStation(g)&&rezeptVon(g);
+  if(auf) {
+    dazu(Object.keys(g.bestand||{}).filter(i=>g.bestand[i]>0));
+    if(lager){dazu(Object.keys(g.regeln||{}));for(const st of verknuepfteStationen(g,'export'))dazu([rezeptVon(st)?.ausgabe]);}
+    if(rezept)dazu([rezept.ausgabe]);
+    if(istImportzone(g))dazu((g.bestellungen||[]).map(b=>b.item));
   }
-  for(const p of mitarbeiter)Object.keys(p.traegt||{}).forEach(i=>ids.add(i));
-  return [...ids].sort((a,b)=>itemInfo(a).name.localeCompare(itemInfo(b).name));
+  if(ab&&!istImportzone(g)) {
+    const aufgenommen=(route?.stopps||[]).filter(x=>x.aktion==='aufnehmen'||x.aktion==='austauschen').flatMap(x=>(x.ressourcen||[]).map(e=>e.item));
+    if(rezept){dazu(Object.keys(rezept.eingaben));dazu(Object.keys(g.eingang||{}).filter(i=>g.eingang[i]>0));}
+    else if(istExportzone(g)){dazu(bekannteProdukte());dazu(Object.keys(g.bestand||{}));dazu(Object.keys(g.exportModus||{}));dazu(aufgenommen);}
+    else if(lager){
+      dazu(Object.keys(g.bestand||{}).filter(i=>g.bestand[i]>0));dazu(Object.keys(g.regeln||{}));
+      for(const st of verknuepfteStationen(g,'import'))dazu(Object.keys(rezeptVon(st)?.eingaben||{}));
+      dazu(aufgenommen);
+    }
+  }
+  return [...ids].filter(i=>itemInfo(i)).sort((a,b)=>itemInfo(a).name.localeCompare(itemInfo(b).name));
+}
+// Gleiche Ware an mehreren Liefer-Stopps mit Auto-Menge → Anteil je Stopp (Schlüssel "index|item").
+// Quelle mit Auto-Menge: Prozent; feste Menge an der Quelle: Stückzahl, Rest an den ersten Stopp.
+function kwAnteile(route) {
+  const ziele=new Map(),aus={};
+  route.stopps.forEach((st,i)=>{
+    if(!['abliefern','austauschen'].includes(st.aktion))return;
+    for(const e of st.ressourcen||[])if(e.item&&e.menge==null){const l=ziele.get(e.item)||[];l.push(i);ziele.set(e.item,l);}
+  });
+  const quelle=(item)=>{for(const st of route.stopps)if(st.aktion==='aufnehmen'||st.aktion==='austauschen'){const e=(st.ressourcen||[]).find(x=>x.item===item);if(e)return e.menge;}return null;};
+  for(const [item,stopps] of ziele) {
+    if(stopps.length<2)continue;
+    const n=quelle(item),je=n==null?null:Math.floor(n/stopps.length),rest=n==null?0:n-je*stopps.length;
+    stopps.forEach((i,k)=>{aus[i+'|'+item]={teil:stopps.length,text:je==null?Math.round(100/stopps.length)+' %':String(je+(k===0?rest:0))};});
+  }
+  return aus;
+}
+// Gebäude oder Aktion eines Stopps geändert: Waren, die dort nicht genutzt werden, fliegen raus (mit Hinweis)
+function kwPruefeWaren(i) {
+  const d=kurierwegeAnsicht.entwurf,st=d?.stopps[i];if(!st)return;
+  const g=spiel.gebaeude.get(st.gebaeudeId);
+  kurierwegeAnsicht.hinweise=kurierwegeAnsicht.hinweise||{};
+  if(!g||st.aktion==='besuchen'){kurierwegeAnsicht.hinweise[i]='';return;}
+  const erlaubt=new Set(kwWarenFuer(g,st.aktion,d)),weg=(st.ressourcen||[]).filter(e=>!erlaubt.has(e.item));
+  st.ressourcen=(st.ressourcen||[]).filter(e=>erlaubt.has(e.item));
+  kurierwegeAnsicht.hinweise[i]=weg.length?weg.map(e=>itemInfo(e.item)?.name||e.item).join(', ')+' entfernt – hier nicht genutzt.':'';
+}
+// Menge getippt: Anteile der anderen Stopps (Platzhalter) nachziehen, ohne neu zu zeichnen (Fokus bleibt)
+function kwAnteileAktualisieren() {
+  const d=kurierwegeAnsicht.entwurf;if(!d)return;
+  const teile=kwAnteile(d);
+  for(const f of kwFenster.querySelectorAll('input[data-kw-menge]')) {
+    const karte=f.closest('[data-kw-stopp]'),a=karte&&teile[karte.dataset.kwStopp+'|'+f.dataset.kwMenge];
+    f.placeholder=a?a.text:'Auto';
+  }
+}
+function kwSchalteWare(i,item) {
+  const st=kurierwegeAnsicht.entwurf?.stopps[i];if(!st)return;
+  st.ressourcen=st.ressourcen||[];
+  const k=st.ressourcen.findIndex(e=>e.item===item);
+  if(k>=0)st.ressourcen.splice(k,1);else st.ressourcen.push({item,menge:null});
+  zeichneKurierwege();
 }
 function kwVerschiebe(von,nach) {
   const d=kurierwegeAnsicht.entwurf;
@@ -25579,7 +25931,7 @@ function kwVerschiebe(von,nach) {
 function kwKuriere(r) {
   return r?mitarbeiter.filter(p=>p.kurierwegId===r.id):kurierwegeAnsicht.vormerk.map(id=>mitarbeiter.find(p=>p.id===id)).filter(Boolean);
 }
-function kwKarte(s,i,anzahl,items,gebaeude) {
+function kwKarte(s,i,anzahl,gebaeude,route,teile) {
   const g=spiel.gebaeude.get(s.gebaeudeId),nr=i+1,warten=s.aktion==='besuchen';
   const ressourcen=Array.isArray(s.ressourcen)?s.ressourcen:[];
   return '<article class="kw-card" data-kw-stopp="'+i+'"><header data-kw-drag="'+i+'"><span>'+kwIcon('grip-vertical')+'<span>Stopp '+nr+'</span></span>'+
@@ -25592,14 +25944,28 @@ function kwKarte(s,i,anzahl,items,gebaeude) {
     '<div><div class="kw-label">Aktion</div><div class="kw-actions" role="group" aria-label="Aktion für Stopp '+nr+'">'+
       [['aufnehmen','arrow-up','Aufnehmen'],['abliefern','arrow-down','Abliefern'],['austauschen','arrows-up-down','Austausch: erst abliefern, dann aufnehmen'],['besuchen','circle','Warten: nur anfahren']].map(([a,icon,name])=>
         '<button type="button" data-kw="aktion" data-wert="'+a+'" data-index="'+i+'" title="'+name+'" aria-label="'+name+' für Stopp '+nr+'" aria-pressed="'+(s.aktion===a)+'">'+kwIcon(icon,a==='besuchen'?'width:.55em;height:.55em':'')+'</button>').join('')+'</div></div>'+
-    '<div><div class="kw-label kw-label-zeile"><span>Ressource</span><span>Menge</span></div>'+(warten?'<div class="kw-warten-hinweis">Warten: Der Kurier fährt nur an, ohne Ware zu bewegen.</div>':
-      '<div class="kw-ressourcen">'+ressourcen.map((e,j)=>
-        '<div class="kw-ressource mit-ware" data-kw-res="'+j+'"><span class="kw-ware">'+(e.item?wareHtml(e.item,24):'')+'</span><select data-kw-rfeld="item" aria-label="Ressource '+(j+1)+' für Stopp '+nr+'"><option value="">Ressource wählen</option>'+
-          [...new Set([...items,...(e.item?[e.item]:[])])].map(item=>'<option value="'+htmlSicher(item)+'" '+(e.item===item?'selected':'')+'>'+htmlSicher(itemInfo(item).name)+'</option>').join('')+'</select>'+
-        '<input data-kw-rfeld="menge" type="number" min="1" step="1" inputmode="numeric" placeholder="Auto" title="Menge je Besuch – leer = Auto (Traglast / Bedarf)" aria-label="Menge je Besuch, Ressource '+(j+1)+' für Stopp '+nr+'" value="'+(e.menge??'')+'">'+
-        '<button type="button" class="kw-res-weg" data-kw="res-weg" data-index="'+i+'" data-res="'+j+'" title="Entfernen" aria-label="Ressource '+(j+1)+' von Stopp '+nr+' entfernen">'+kwIcon('xmark')+'</button></div>').join('')+'</div>'+
-      '<button type="button" class="kw-res-dazu" data-kw="res-dazu" data-index="'+i+'">'+kwIcon('plus')+' Ressource hinzufügen</button>')+'</div>'+
+    kwRasterHtml(s,i,g,route,teile)+
     '</div></article>';
+}
+// Waren-Raster eines Stopps: Klick = wählen/abwählen, Menge direkt unter dem Bild (leer = Auto)
+function kwRasterHtml(s,i,g,route,teile) {
+  const ressourcen=Array.isArray(s.ressourcen)?s.ressourcen:[],nr=i+1;
+  if(s.aktion==='besuchen')return '<div><div class="kw-label">Waren</div><div class="kw-warten-hinweis">Warten: Der Kurier fährt nur an, ohne Ware zu bewegen.</div></div>';
+  const gewaehlt=new Map(ressourcen.map(e=>[e.item,e]));
+  // Gewählte Waren bleiben sichtbar (abwählbar), auch wenn der Bestand gerade leer ist
+  const liste=g?[...new Set([...kwWarenFuer(g,s.aktion,route),...gewaehlt.keys()])].filter(i=>i&&itemInfo(i)):[];
+  const kacheln=liste.map(item=>{
+    const e=gewaehlt.get(item),a=teile[i+'|'+item],name=htmlSicher(itemInfo(item).name),id=htmlSicher(item);
+    return '<div class="kw-wk'+(e?' an':'')+'" data-kw-ware="'+id+'" data-index="'+i+'" role="button" tabindex="0" aria-pressed="'+!!e+'" title="'+name+(a?' – geteilt mit '+(a.teil-1)+' weiteren Stopp(s)':'')+'">'+
+      '<span class="kw-wk-haken" aria-hidden="true">✓</span>'+(a?'<span class="kw-wk-anteil">1/'+a.teil+'</span>':'')+wareHtml(item,30)+'<span class="kw-wk-name">'+name+'</span>'+
+      (e?'<input type="number" min="1" step="1" inputmode="numeric" data-kw-menge="'+id+'" placeholder="'+(a?a.text:'Auto')+'" value="'+(e.menge??'')+'" title="Menge je Besuch – leer = Auto" aria-label="Menge '+name+', Stopp '+nr+'">':'')+'</div>';
+  }).join('');
+  const vorgemerkt=!g&&ressourcen.length?' '+ressourcen.length+' Waren vorgemerkt.':'';
+  const leer=!g?'Erst Gebäude wählen.'+vorgemerkt:istImportzone(g)&&s.aktion==='abliefern'?'Die Importzone nimmt nichts an.':'Hier wird keine Ware genutzt.';
+  const hinweis=kurierwegeAnsicht.hinweise?.[i];
+  return '<div><div class="kw-label kw-label-zeile"><span>Waren</span><em>'+(ressourcen.length&&g?ressourcen.length+' gewählt · leer = Auto':'')+'</em></div>'+
+    (liste.length?'<div class="kw-raster">'+kacheln+'</div>':'<div class="kw-raster-leer">'+leer+'</div>')+
+    (hinweis?'<div class="kw-hinweis">'+htmlSicher(hinweis)+'</div>':'')+'</div>';
 }
 let kwSortierer=null;
 // Übersicht aller Routen: Start / Pause / Bearbeiten / Löschen, oben rechts „Neue Route“
@@ -25607,10 +25973,11 @@ function kwListeHtml() {
   const zeilen=spiel.kurierwege.map(r=>{
     const ps=mitarbeiter.filter(p=>p.kurierwegId===r.id),namen=r.stopps.map(s=>spiel.gebaeude.get(s.gebaeudeId)).map(g=>g?gebaeudeName(g):'⚠ fehlt');
     const waren=[...new Set(r.stopps.flatMap(s=>(Array.isArray(s.ressourcen)?s.ressourcen:[]).map(e=>e.item)).filter(Boolean))];   // Abschnitt 13x: bewegte Waren als Symbole
-    return '<div class="kw-zeile" data-kw-route="'+r.id+'"><div class="kw-zeile-text"><b>'+htmlSicher(r.name)+'</b>'+
+    const fehlt=!ps.length;   // 2026-10-13 (Tim): Route ohne Kurier rot mit !
+    return '<div class="kw-zeile'+(fehlt?' kw-fehlt':'')+'" data-kw-route="'+r.id+'"><div class="kw-zeile-text">'+(fehlt?'<span class="kw-ausruf" title="Kein Kurier zugewiesen – die Route steht">!</span>':'')+'<b>'+htmlSicher(r.name)+'</b>'+
         '<span class="kw-zustand '+(r.aktiv?'laeuft':'pausiert')+'">'+(r.aktiv?'läuft':'pausiert')+'</span>'+
         '<small>'+r.stopps.length+' Stopps'+(namen.length?': '+htmlSicher(namen.join(' → '))+' ↺':'')+'</small>'+
-        '<small>'+kwIcon('users')+' '+(ps.length?htmlSicher(ps.map(p=>p.name).join(', ')):'kein Kurier')+'</small>'+
+        '<small'+(fehlt?' class="kw-rot"':'')+'>'+kwIcon('users')+' '+(ps.length?htmlSicher(ps.map(p=>p.name).join(', ')):'Kein Kurier – Route steht')+'</small>'+
         (waren.length?'<span class="kw-waren">'+waren.map(i=>wareHtml(i,22)).join('')+'</span>':'')+'</div>'+
       '<div class="kw-zeile-knoepfe">'+
         '<button type="button" class="kw-play" data-kw="liste-start" data-id="'+r.id+'" aria-pressed="'+r.aktiv+'" title="Starten" aria-label="'+htmlSicher(r.name)+' starten">'+kwIcon('play')+'</button>'+
@@ -25621,8 +25988,8 @@ function kwListeHtml() {
   return '<div id="kw-liste"><div class="kw-kopfzeile"><div class="kw-gruppe"><h2>'+kwIcon('route')+' Kurierwege</h2></div>'+
       '<div class="kw-gruppe"><button type="button" class="kw-neu" data-kw="neu">'+kwIcon('plus')+' Neue Route</button>'+
       '<button type="button" data-kw="schliessen" title="Schließen (Esc)" aria-label="Kurierwege schließen">'+kwIcon('xmark')+'</button></div></div>'+
-    '<div class="kw-routen">'+(zeilen||'<p class="kw-leer">Noch keine Kurierwege. Mit „Neue Route“ anlegen.</p>')+'</div>'+
-    '<div class="kw-meldung" role="status">'+htmlSicher(kurierwegeAnsicht.meldung)+'</div></div>';
+    '<div class="kw-meldung'+(kurierwegeAnsicht.ok?' kw-ok':'')+'" role="status">'+htmlSicher(kurierwegeAnsicht.meldung)+'</div>'+
+    '<div class="kw-routen">'+(zeilen||'<p class="kw-leer">Noch keine Kurierwege. Mit „Neue Route“ anlegen.</p>')+'</div></div>';
 }
 function zeichneKurierwege() {
   const v=kurierwegeAnsicht;
@@ -25634,9 +26001,9 @@ function zeichneKurierwege() {
   if(!v.entwurf)kurierwegEntwurf(v.auswahl);
   const d=v.entwurf,r=spiel.kurierwege.find(r=>r.id===v.auswahl);
   const aktiv=r?r.aktiv:d.aktiv!==false,ps=kwKuriere(r);
-  const items=kwAktiveItems(),gebaeude=gebaeudeListe(kwGebaeudeErlaubt);
+  const gebaeude=gebaeudeListe(kwGebaeudeErlaubt),teile=kwAnteile(d);
   const freie=mitarbeiter.filter(p=>p.rolle==='kurier'&&!ps.includes(p));
-  const karten=d.stopps.map((s,i)=>kwKarte(s,i,d.stopps.length,items,gebaeude)).join('');
+  const karten=d.stopps.map((s,i)=>kwKarte(s,i,d.stopps.length,gebaeude,d,teile)).join('');
   kwFenster.innerHTML='<div id="kw-editor"><div class="kw-kopfzeile"><div class="kw-gruppe">'+
       '<button type="button" data-kw="zurueck" title="Zur Übersicht" aria-label="Zur Übersicht">'+kwIcon('arrow-left')+' Übersicht</button>'+
       '<h2>'+(r?'Route bearbeiten':'Neue Route')+'</h2>'+
@@ -25649,11 +26016,11 @@ function zeichneKurierwege() {
       '<button type="button" data-kw="schliessen" title="Schließen (Esc)" aria-label="Kurierwege schließen">'+kwIcon('xmark')+'</button></div></div>'+
     '<div class="kw-strecke"><div class="kw-pipeline">'+karten+'</div>'+
       '<button type="button" class="kw-stopp-dazu'+(karten?'':' kw-erster')+'" data-kw="stopp" title="Neuen Stopp anfügen" aria-label="Neuen Stopp anfügen">'+kwIcon('plus')+'</button></div>'+
-    '<div class="kw-kuriere">'+kwIcon('users')+'<div class="kw-schilder">'+ps.map(p=>'<button type="button" class="kw-schild" data-kw="kurier-weg" data-person="'+p.id+'" title="Kurier entfernen">'+kwIcon('user')+' '+htmlSicher(p.name)+' '+kwIcon('xmark','margin-left:4px')+'</button>').join('')+'</div>'+
+    '<div class="kw-kuriere'+(ps.length?'':' kw-fehlt')+'">'+kwIcon('users')+(ps.length?'':'<span class="kw-ausruf" title="Kein Kurier zugewiesen">!</span>')+'<div class="kw-schilder">'+ps.map(p=>'<button type="button" class="kw-schild" data-kw="kurier-weg" data-person="'+p.id+'" title="Kurier entfernen">'+kwIcon('user')+' '+htmlSicher(p.name)+' '+kwIcon('xmark','margin-left:4px')+'</button>').join('')+'</div>'+
         '<select class="kw-kurier-wahl" data-kw-kurier aria-label="Kurier zuweisen"><option value="" selected>+ Kurier zuweisen</option>'+
           freie.map(p=>'<option value="'+p.id+'">'+htmlSicher(p.name)+' ('+(p.kurierwegId?htmlSicher(kurierwegVon(p)?.name||'andere Route'):'Frei')+')</option>').join('')+
           (!freie.length?'<option value="" disabled>Keine weiteren Kuriere – im Personal-Fenster (P) einstellen</option>':'')+'</select></div>'+
-    '<div class="kw-fuss"><small>Rundlauf · orange Linie in der Halle = Laufweg, Kreis anklicken springt zum Stopp · Stopp-Kopf ziehen zum Umsortieren · Menge leer = Auto · Ändern gilt nach „Speichern“</small>'+
+    '<div class="kw-fuss"><small>Rundlauf · Kreis in der Halle springt zum Stopp · Kopf ziehen = umsortieren · Ware anklicken = wählen · leer = Auto · gleiche Ware an mehreren Stopps wird geteilt</small>'+
       '<button type="button" class="kw-route-weg" data-kw="loeschen" '+(!r?'disabled':'')+'>'+kwIcon('trash-can')+' Route löschen</button></div>'+
     '<div class="kw-status" aria-live="off"></div><div class="kw-meldung" role="status">'+htmlSicher(v.meldung)+'</div></div>';
   kwRichteSortierungEin();
@@ -25812,9 +26179,10 @@ kwOverlay.addEventListener('input',e=>{
   if(e.target.matches('[data-kw-name]'))d.name=e.target.value;
   const karte=e.target.closest('[data-kw-stopp]'),s=karte&&d.stopps[Number(karte.dataset.kwStopp)];
   if(!s)return;
-  const feld=e.target.dataset.kwFeld,rfeld=e.target.dataset.kwRfeld,block=e.target.closest('[data-kw-res]');
+  const feld=e.target.dataset.kwFeld,ware=e.target.dataset.kwMenge;
   if(feld)s[feld]=e.target.value;
-  if(rfeld&&block&&s.ressourcen?.[Number(block.dataset.kwRes)])s.ressourcen[Number(block.dataset.kwRes)][rfeld]=rfeld==='menge'&&e.target.value===''?null:e.target.value;
+  const eintrag=ware!==undefined&&(s.ressourcen||[]).find(x=>x.item===ware);
+  if(eintrag){eintrag.menge=e.target.value===''?null:e.target.value;kwAnteileAktualisieren();}
 });
 kwOverlay.addEventListener('change',e=>{
   const t=e.target,v=kurierwegeAnsicht;
@@ -25824,14 +26192,16 @@ kwOverlay.addEventListener('change',e=>{
     else if(!v.vormerk.includes(t.value)){v.vormerk.push(t.value);v.meldung='Kurier vorgemerkt – gilt nach „Speichern“.';}
     zeichneKurierwege();
   }
-  if(t.dataset.kwFeld==='gebaeudeId')zeichneKurierwege();
+  if(t.dataset.kwFeld==='gebaeudeId'){const karte=t.closest('[data-kw-stopp]');if(karte)kwPruefeWaren(Number(karte.dataset.kwStopp));zeichneKurierwege();}
 });
 kwOverlay.addEventListener('click',e=>{
+  const w=e.target.closest('[data-kw-ware]');
+  if(w&&kwFenster.contains(w)&&!e.target.matches('input')){kurierwegeAnsicht.meldung='';kwSchalteWare(Number(w.dataset.index),w.dataset.kwWare);return;}
   const b=e.target.closest('[data-kw]');if(!b||!kwFenster.contains(b))return;
   const a=b.dataset.kw,d=kurierwegeAnsicht.entwurf,i=Number(b.dataset.index),v=kurierwegeAnsicht;
   const r=spiel.kurierwege.find(r=>r.id===v.auswahl);
   if(a==='schliessen'){schliesseKurierwege();return;}
-  v.meldung='';
+  v.meldung='';v.ok=false;
   // Übersicht
   if(a==='neu'||a==='bearbeiten'){kurierwegEntwurf(a==='neu'?null:b.dataset.id);v.modus='bearbeiten';zeichneKurierwege();return;}
   if(a==='liste-start'||a==='liste-pause'){
@@ -25851,14 +26221,14 @@ kwOverlay.addEventListener('click',e=>{
   }
   if(a==='pick'){v.pick=i;kwOverlay.hidden=true;kwPickBanner.hidden=false;aktualisiereSperre();return;}
   if(a==='stopp'){
-    const vorher=d.stopps.at(-1)?.ressourcen?.at(-1)?.item||'holz';
-    d.stopps.push({gebaeudeId:'',aktion:d.stopps.length?'abliefern':'aufnehmen',ressourcen:[{item:vorher,menge:null}]});
+    // 2026-10-13 (Tim): neuer Stopp übernimmt die Waren von Stopp 1 (wegklicken, was nicht hin soll)
+    const erster=d.stopps[0],waren=(erster?.ressourcen||[]).filter(e=>e.item).map(e=>({item:e.item,menge:null}));
+    d.stopps.push({gebaeudeId:'',aktion:d.stopps.length?'abliefern':'aufnehmen',ressourcen:waren});
+    if(waren.length)v.meldung='Stopp '+d.stopps.length+': '+waren.length+' Waren von Stopp 1 übernommen – wegklicken, was nicht hin soll.';
     zeichneKurierwege();kwFenster.querySelector('.kw-strecke')?.scrollTo({left:1e6,behavior:'smooth'});return;
   }
-  if(a==='entfernen')d.stopps.splice(i,1);
-  if(a==='aktion'){d.stopps[i].aktion=b.dataset.wert;if(!d.stopps[i].ressourcen?.length)d.stopps[i].ressourcen=[{item:'holz',menge:null}];}
-  if(a==='res-dazu'){const s=d.stopps[i];s.ressourcen=s.ressourcen||[];s.ressourcen.push({item:'',menge:null});}
-  if(a==='res-weg'){d.stopps[i]?.ressourcen?.splice(Number(b.dataset.res),1);}
+  if(a==='entfernen'){d.stopps.splice(i,1);v.hinweise={};}
+  if(a==='aktion'){d.stopps[i].aktion=b.dataset.wert;d.stopps[i].ressourcen=d.stopps[i].ressourcen||[];kwPruefeWaren(i);}
   if(a==='kurier-weg'){
     if(r)weiseKurierwegZu(b.dataset.person,null);else v.vormerk=v.vormerk.filter(id=>id!==b.dataset.person);
   }
@@ -25871,9 +26241,12 @@ kwOverlay.addEventListener('click',e=>{
     if(!r)d.aktiv=d.aktiv!==false;
     const result=speichereKurierweg(d);
     if(result.ok){
-      const vorgemerkt=v.vormerk;kurierwegEntwurf(result.route.id);
+      // 2026-10-13 (Tim): Speichern führt zurück in die Übersicht
+      const vorgemerkt=v.vormerk;
       for(const id of vorgemerkt)weiseKurierwegZu(id,result.route.id);
-      v.meldung='Route „'+result.route.name+'“ mit '+result.route.stopps.length+' Stopps gespeichert. Runde beginnt neu; Ladung bleibt erhalten.'+(result.route.stopps.length<2?' Zum Starten mindestens zwei Stopps.':'');
+      const ohne=!mitarbeiter.some(p=>p.kurierwegId===result.route.id);
+      v.modus='liste';v.entwurf=null;v.vormerk=[];v.hinweise={};v.ok=true;
+      v.meldung='„'+result.route.name+'“ mit '+result.route.stopps.length+' Stopps gespeichert.'+(result.route.stopps.length<2?' Zum Starten mindestens zwei Stopps.':'')+(ohne?' Noch kein Kurier – rotes ! in der Liste.':'');
     }
     else v.meldung=result.grund;
   }
@@ -25887,6 +26260,10 @@ kwOverlay.addEventListener('click',e=>{
     loescheKurierweg(r.id);v.entwurf=null;v.auswahl=null;v.modus='liste';v.meldung='Route „'+r.name+'“ gelöscht.';
   }
   zeichneKurierwege();
+});
+kwOverlay.addEventListener('keydown',e=>{
+  const w=e.target.closest?.('[data-kw-ware]');
+  if(w&&e.target===w&&(e.key==='Enter'||e.key===' ')){e.preventDefault();kwSchalteWare(Number(w.dataset.index),w.dataset.kwWare);kwFenster.querySelector('[data-kw-ware="'+CSS.escape(w.dataset.kwWare)+'"][data-index="'+w.dataset.index+'"]')?.focus();}
 });
 // Eingebautes Drag & Drop (nur ohne SortableJS)
 let kwZiehen=null;
@@ -27259,7 +27636,14 @@ ob.infoInhalt.addEventListener('click',e=>{
 function dauerSek(s) { return `${Math.max(0, Math.ceil(s))} s`; }
 // Phase 7b: Exportzone – Ware mit Modus, Aufträge und Abholwagen
 // Phase 7b Nachtrag 2: Hinweis, wenn die Zone keine Wand (mehr) hat
+// 2026-10-13 (Tim): Zone als Import oder Export wählbar (Schalter oben im Fenster) + Hinweis, wenn sie nicht an der Wand steht
 function zonenWarnungHtml(g) {
+  const art = typVon(g).art;
+  const schalter = `<div class="zonen-art" role="group" aria-label="Rolle der Zone">${[["importzone", "⇩ Import"], ["exportzone", "⇧ Export"]].map(([a, text]) =>
+    `<button type="button" data-aktion="zonen-art" data-art="${a}" aria-pressed="${art === a}" title="${a === art ? "aktuelle Rolle" : "Zone umstellen (nur wenn sie leer ist)"}">${text}</button>`).join("")}</div>`;
+  return schalter + zonenWarnungText(g);
+}
+function zonenWarnungText(g) {
   if (zoneAktiv(g)) return "";
   return `<p class="info-warnung zugang-warnung">⚠ Inaktiv: Die Zone steht nicht an einer Wand. ${istImportzone(g) ? "Bestellungen ruhen" : "Verkäufe und Auftragslieferungen ruhen"}, bis du sie mit M an eine Wand verschiebst.${istImportzone(g) ? " Was noch drin liegt, holen die Kuriere ab." : ""}</p>`;
 }
@@ -27798,6 +28182,13 @@ ob.infoInhalt.addEventListener("click", (e) => {
       const weg = () => { if (n) aendereBestand(g, item, -n); setzeExportWare(g.id, item, false); meldeStruktur(); zeichneInfo(); sofortAktualisieren(); };
       if (!n) { weg(); break; }
       frage({ titel: "Ware aus der Zone löschen?", text: `${n} × ${itemInfo(item).name} werden endgültig gelöscht.`, ok: `${n} löschen` }, weg);
+      return;
+    }
+    case "zonen-art": {                              // 2026-10-13: Zone auf Import oder Export umstellen
+      const r = setzeZonenArt(g.id, knopf.dataset.art);
+      if (!r.ok) zeigeMeldung(r.grund, true);
+      else zeigeMeldung(`${gebaeudeName(g)} ist jetzt eine ${typVon(g).name}.`);
+      zeichneInfo(); sofortAktualisieren();
       return;
     }
     case "muell": {                                  // Phase 7b: Standard → ✓ Kuriere auch → ✕ gesperrt → Standard
@@ -32453,6 +32844,7 @@ window.tradeUp = {
   kachelAufBildschirm: (x, z) => { const m = kachelZuWelt(x, z); return bildschirmPunkt(m.x, rasterHoehe, m.z); },
   schalteAllesFrei, bau,
   zugaengeVon, altZuweisung, lagerSmartIds, loescheLagerWare,   // 2026-10-13: Lager-Layout
+  setzeZonenArt, kwWarenFuer, kwAnteile, mitarbeiter3d, figurSkinVon,   // 2026-10-13: Zonen umschaltbar, Kurierwege-Raster, Figuren
   speichereKurierweg, setzeKurierwegAktiv, weiseKurierwegZu, loescheKurierweg, oeffneKurierwege, schliesseKurierwege, benenneGebaeude,
   oeffneKomponentenVorschau, schliesseKomponentenVorschau, komponentenModellForm, ladeKomponentenModule,   // 12c: Display-Modelle
   schliesseLager,   // für den HUD-Knopf „Übersicht“
